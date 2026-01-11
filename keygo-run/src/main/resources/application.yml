@@ -17,5 +17,5 @@ management:
 server:
   port: "${PORT:8080}"
   servlet:
-    context-path: "/${spring.application.name}"
+    context-path: "/${key-go-server.name}"
     application-display-name: "${spring.application.name}"

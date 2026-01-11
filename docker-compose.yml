@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  keygo-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: keygo-server:1.0-SNAPSHOT
+    container_name: keygo-server
+    ports:
+      - "8080:8080"
+    environment:
+      # Application settings / Configuración de la aplicación
+      - SPRING_PROFILES_ACTIVE=dev
+      - PORT=8080
+
+      # JVM settings / Configuración de JVM
+      - JAVA_OPTS=-Xms256m -Xmx512m
+
+      # Database settings (example) / Configuración de base de datos (ejemplo)
+      # - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/keygo
+      # - SPRING_DATASOURCE_USERNAME=keygo
+      # - SPRING_DATASOURCE_PASSWORD=keygo
+
+    # Health check / Verificación de salud
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/keygo-server-1.0-SNAPSHOT/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
+
+    # Resource limits / Límites de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Restart policy / Política de reinicio
+    restart: unless-stopped
+
+    # Networks / Redes
+    networks:
+      - keygo-network
+
+  # Example: PostgreSQL database / Ejemplo: Base de datos PostgreSQL
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: keygo-postgres
+  #   environment:
+  #     - POSTGRES_DB=keygo
+  #     - POSTGRES_USER=keygo
+  #     - POSTGRES_PASSWORD=keygo
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - keygo-network
+  #   restart: unless-stopped
+
+networks:
+  keygo-network:
+    driver: bridge
+
+# volumes:
+#   postgres-data:
+

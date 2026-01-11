@@ -1,0 +1,54 @@
+# Build outputs / Salidas de compilación
+**/target/
+**/build/
+*.jar
+*.war
+*.ear
+
+# IDE files / Archivos de IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation / Documentación
+*.md
+docs/
+!README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Logs / Registros
+logs/
+*.log
+
+# OS files / Archivos del SO
+.DS_Store
+Thumbs.db
+
+# Database / Base de datos
+db/
+*.db
+*.sqlite
+
+# Temporary files / Archivos temporales
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+

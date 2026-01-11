@@ -108,6 +108,27 @@ keygo-server/
 java -jar keygo-run/target/keygo-run-*.jar
 ```
 
+### Using Docker / Usando Docker
+
+**English:** Run with Docker Compose (recommended)
+
+**Español:** Ejecutar con Docker Compose (recomendado)
+
+```bash
+docker-compose up -d
+```
+
+**English:** Or build and run with Docker
+
+**Español:** O construir y ejecutar con Docker
+
+```bash
+docker build -t keygo-server:1.0-SNAPSHOT .
+docker run -d -p 8080:8080 --name keygo-server keygo-server:1.0-SNAPSHOT
+```
+
+**See full Docker documentation / Ver documentación completa de Docker:** [docs/DOCKER.md](docs/DOCKER.md)
+
 ---
 
 ## Tests / Pruebas
