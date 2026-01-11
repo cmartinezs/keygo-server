@@ -12,7 +12,7 @@
     <artifactId>keygo-app</artifactId>
     <packaging>jar</packaging>
     <name>KeyGo Application</name>
-    <description>Casos de uso y servicios de aplicación</description>
+    <description>Use cases and application services / Casos de uso y servicios de aplicación</description>
 
     <dependencies>
         <dependency>

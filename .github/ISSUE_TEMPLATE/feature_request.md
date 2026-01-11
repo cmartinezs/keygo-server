@@ -1,40 +1,50 @@
 ---
-name: Feature Request
-about: Sugerir una nueva funcionalidad
+name: Feature Request / Solicitud de Funcionalidad
+about: Suggest a new feature / Sugerir una nueva funcionalidad
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''
 ---
 
-## 🚀 Descripción de la Funcionalidad
+## 🚀 Feature Description / Descripción de la Funcionalidad
 
-Una descripción clara y concisa de la funcionalidad propuesta.
+**English:** A clear and concise description of the proposed feature.
 
-## 🎯 Problema que Resuelve
+**Español:** Una descripción clara y concisa de la funcionalidad propuesta.
 
-¿Qué problema está tratando de resolver esta funcionalidad?
+## 🎯 Problem it Solves / Problema que Resuelve
 
-## 💡 Solución Propuesta
+**English:** What problem is this feature trying to solve?
 
-Describe la solución que te gustaría ver implementada.
+**Español:** ¿Qué problema está tratando de resolver esta funcionalidad?
 
-## 🔄 Alternativas Consideradas
+## 💡 Proposed Solution / Solución Propuesta
 
-¿Has considerado alternativas? Descríbelas.
+**English:** Describe the solution you would like to see implemented.
 
-## 📊 Beneficios
+**Español:** Describe la solución que te gustaría ver implementada.
 
-- Beneficio 1
-- Beneficio 2
-- Beneficio 3
+## 🔄 Alternatives Considered / Alternativas Consideradas
 
-## 🔗 Contexto Adicional
+**English:** Have you considered alternatives? Describe them.
 
-Agrega cualquier otro contexto, screenshots, o ejemplos sobre la funcionalidad.
+**Español:** ¿Has considerado alternativas? Descríbelas.
 
-## 📝 Tareas de Implementación
+## 📊 Benefits / Beneficios
 
-- [ ] Tarea 1
-- [ ] Tarea 2
-- [ ] Tarea 3
+- Benefit 1 / Beneficio 1
+- Benefit 2 / Beneficio 2
+- Benefit 3 / Beneficio 3
+
+## 🔗 Additional Context / Contexto Adicional
+
+**English:** Add any other context, screenshots, or examples about the feature.
+
+**Español:** Agrega cualquier otro contexto, screenshots, o ejemplos sobre la funcionalidad.
+
+## 📝 Implementation Tasks / Tareas de Implementación
+
+- [ ] Task 1 / Tarea 1
+- [ ] Task 2 / Tarea 2
+- [ ] Task 3 / Tarea 3
 

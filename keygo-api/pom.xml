@@ -12,7 +12,7 @@
     <artifactId>keygo-api</artifactId>
     <packaging>jar</packaging>
     <name>KeyGo API</name>
-    <description>Controladores REST y API externa</description>
+    <description>REST controllers and external API / Controladores REST y API externa</description>
 
     <dependencies>
         <dependency>

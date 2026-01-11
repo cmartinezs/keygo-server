@@ -12,7 +12,7 @@
     <artifactId>keygo-run</artifactId>
     <packaging>jar</packaging>
     <name>KeyGo Run</name>
-    <description>Módulo de ejecución y configuración de arranque</description>
+    <description>Execution module and startup configuration / Módulo de ejecución y configuración de arranque</description>
 
     <dependencies>
         <!-- Consume tus módulos -->

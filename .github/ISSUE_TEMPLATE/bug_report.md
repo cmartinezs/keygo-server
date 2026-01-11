@@ -1,47 +1,57 @@
 ---
-name: Bug Report
-about: Reportar un bug o comportamiento inesperado
+name: Bug Report / Reporte de Bug
+about: Report a bug or unexpected behavior / Reportar un bug o comportamiento inesperado
 title: '[BUG] '
 labels: bug
 assignees: ''
 ---
 
-## 🐛 Descripción del Bug
+## 🐛 Bug Description / Descripción del Bug
 
-Una descripción clara y concisa del problema.
+**English:** A clear and concise description of the problem.
 
-## 📝 Pasos para Reproducir
+**Español:** Una descripción clara y concisa del problema.
 
-1. Ir a '...'
-2. Hacer click en '...'
-3. Ejecutar comando '...'
-4. Ver error
+## 📝 Steps to Reproduce / Pasos para Reproducir
 
-## ✅ Comportamiento Esperado
+1. Go to / Ir a '...'
+2. Click on / Hacer click en '...'
+3. Execute command / Ejecutar comando '...'
+4. See error / Ver error
 
-Descripción clara de lo que esperabas que sucediera.
+## ✅ Expected Behavior / Comportamiento Esperado
 
-## ❌ Comportamiento Actual
+**English:** Clear description of what you expected to happen.
 
-Descripción de lo que sucede actualmente.
+**Español:** Descripción clara de lo que esperabas que sucediera.
 
-## 📸 Screenshots
+## ❌ Actual Behavior / Comportamiento Actual
 
-Si aplica, agrega capturas de pantalla.
+**English:** Description of what is currently happening.
 
-## 🖥️ Entorno
+**Español:** Descripción de lo que sucede actualmente.
+
+## 📸 Screenshots / Capturas de Pantalla
+
+**English:** If applicable, add screenshots.
+
+**Español:** Si aplica, agrega capturas de pantalla.
+
+## 🖥️ Environment / Entorno
 
 - OS: [e.g. Ubuntu 22.04]
 - Java Version: [e.g. Java 25]
-- Versión del Proyecto: [e.g. 1.0-SNAPSHOT]
+- Project Version / Versión del Proyecto: [e.g. 1.0-SNAPSHOT]
 
 ## 📋 Logs
 
 ```
-Pega aquí los logs relevantes
+Paste relevant logs here / Pega aquí los logs relevantes
 ```
 
-## ℹ️ Información Adicional
+## ℹ️ Additional Information / Información Adicional
 
-Cualquier otro contexto sobre el problema.
+**English:** Any other context about the problem.
+
+**Español:** Cualquier otro contexto sobre el problema.
 

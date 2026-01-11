@@ -12,7 +12,7 @@
     <artifactId>keygo-bom</artifactId>
     <packaging>pom</packaging>
     <name>KeyGo BOM</name>
-    <description>Bill of Materials - Gestión centralizada de versiones de dependencias</description>
+    <description>Bill of Materials - Centralized dependency version management / Gestión centralizada de versiones de dependencias</description>
 
     <dependencyManagement>
         <dependencies>

@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>KeyGo Server</name>
-    <description>Servicio de autenticación empresarial open source para gestión centralizada de identidad, usuarios y accesos</description>
+    <description>Enterprise authentication service - open source alternative for centralized identity, user and access management / Servicio de autenticación empresarial - alternativa open source para gestión centralizada de identidad, usuarios y accesos</description>
 
     <licenses>
         <license>

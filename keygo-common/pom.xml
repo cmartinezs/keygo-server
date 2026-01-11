@@ -12,7 +12,7 @@
     <artifactId>keygo-common</artifactId>
     <packaging>jar</packaging>
     <name>KeyGo Common</name>
-    <description>Utilidades compartidas y componentes transversales</description>
+    <description>Shared utilities and cross-cutting components / Utilidades compartidas y componentes transversales</description>
 
     <dependencies>
         <!-- Mantén common liviano -->

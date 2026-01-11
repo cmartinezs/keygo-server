@@ -12,7 +12,7 @@
     <artifactId>keygo-infra</artifactId>
     <packaging>jar</packaging>
     <name>KeyGo Infrastructure</name>
-    <description>Implementaciones de infraestructura (persistencia, APIs externas, etc.)</description>
+    <description>Infrastructure implementations (persistence, external APIs, etc.) / Implementaciones de infraestructura (persistencia, APIs externas, etc.)</description>
 
     <dependencies>
         <dependency>

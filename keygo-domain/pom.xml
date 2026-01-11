@@ -12,7 +12,7 @@
     <artifactId>keygo-domain</artifactId>
     <packaging>jar</packaging>
     <name>KeyGo Domain</name>
-    <description>Lógica de negocio y entidades del dominio</description>
+    <description>Business logic and domain entities / Lógica de negocio y entidades del dominio</description>
 
     <dependencies>
         <dependency>
