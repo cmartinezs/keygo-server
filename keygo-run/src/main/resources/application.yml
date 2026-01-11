@@ -1,0 +1,21 @@
+key-go-server:
+  title: "@project.parent.name@"
+  name: "@project.parent.artifactId@"
+  version: "@project.parent.version@"
+spring:
+  application:
+    name: "${key-go-server.name}-${key-go-server.version}"
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+server:
+  port: "${PORT:8080}"
+  servlet:
+    context-path: "/${spring.application.name}"
+    application-display-name: "${spring.application.name}"
