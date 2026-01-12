@@ -1,10 +1,11 @@
 key-go-server:
-  title: "@project.parent.name@"
-  name: "@project.parent.artifactId@"
-  version: "@project.parent.version@"
+  info:
+    title: "@project.parent.name@"
+    name: "@project.parent.artifactId@"
+    version: "@project.parent.version@"
 spring:
   application:
-    name: "${key-go-server.name}-${key-go-server.version}"
+    name: "${key-go-server.info.name}-${key-go-server.info.version}"
 management:
   endpoint:
     health:
@@ -17,5 +18,5 @@ management:
 server:
   port: "${PORT:8080}"
   servlet:
-    context-path: "/${key-go-server.name}"
+    context-path: "/${key-go-server.info.name}"
     application-display-name: "${spring.application.name}"

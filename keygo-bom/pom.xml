@@ -14,9 +14,6 @@
     <name>KeyGo BOM</name>
     <description>Bill of Materials - Centralized dependency version management / Gestión centralizada de versiones de dependencias</description>
 
-    <dependencyManagement>
-        <dependencies>
-
-        </dependencies>
-    </dependencyManagement>
+    <!-- No need for explicit dependencyManagement here, Spring Boot parent manages versions -->
+    <!-- No es necesaria gestión explícita de dependencias aquí, el padre Spring Boot gestiona las versiones -->
 </project>
