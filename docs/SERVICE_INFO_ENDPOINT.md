@@ -91,7 +91,7 @@ La implementación sigue el patrón de arquitectura hexagonal (puertos y adaptad
 - **Ubicación / Location**: `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/properties/ServiceInfoProperties.java`
 - **Anotaciones / Annotations**:
   - `@Component` - Bean de Spring
-  - `@ConfigurationProperties(prefix = "key-go-server.info")`
+  - `@ConfigurationProperties(prefix = "keygo.info")`
 - **Implementa / Implements**: `ServiceInfoProvider`
 - **Lee desde / Reads from**: `application.yml`
 
@@ -107,7 +107,7 @@ La implementación sigue el patrón de arquitectura hexagonal (puertos y adaptad
 
 ### application.yml
 ```yaml
-key-go-server:
+keygo:
   info:
     title: "@project.parent.name@"
     name: "@project.parent.artifactId@"

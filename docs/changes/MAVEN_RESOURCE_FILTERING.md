@@ -31,9 +31,10 @@ Added resource filtering:
 
 Using Maven properties:
 ```yaml
-key-go-server:
-  title: "@project.parent.name@"
-  version: "@project.parent.version@"
+keygo:
+  info:
+    title: "@project.parent.name@"
+    version: "@project.parent.version@"
 ```
 
 ### How it Works
@@ -46,9 +47,10 @@ key-go-server:
 
 3. **Runtime:** Spring Boot reads the processed file from `target/classes/`:
    ```yaml
-   key-go-server:
-     title: "KeyGo Server"
-     version: "1.0-SNAPSHOT"
+   keygo:
+     info:
+       title: "KeyGo Server"
+       version: "1.0-SNAPSHOT"
    ```
 
 ### Benefits
@@ -96,9 +98,10 @@ Se agregó filtrado de recursos:
 
 Usando propiedades de Maven:
 ```yaml
-key-go-server:
-  title: "@project.parent.name@"
-  version: "@project.parent.version@"
+keygo:
+  info:
+    title: "@project.parent.name@"
+    version: "@project.parent.version@"
 ```
 
 ### Cómo Funciona
@@ -111,9 +114,10 @@ key-go-server:
 
 3. **Tiempo de ejecución:** Spring Boot lee el archivo procesado desde `target/classes/`:
    ```yaml
-   key-go-server:
-     title: "KeyGo Server"
-     version: "1.0-SNAPSHOT"
+   keygo:
+     info:
+       title: "KeyGo Server"
+       version: "1.0-SNAPSHOT"
    ```
 
 ### Beneficios

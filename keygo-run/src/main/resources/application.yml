@@ -1,11 +1,17 @@
-key-go-server:
+keygo:
   info:
     title: "@project.parent.name@"
     name: "@project.parent.artifactId@"
     version: "@project.parent.version@"
+  bootstrap:
+    enabled: true
+    admin-key: "${KEYGO_ADMIN_KEY:changeMe}"
+    api-path-prefix: "/api/"
+    actuator-path-prefix: "/actuator/"
+    service-info-path-prefix: "/service/info"
 spring:
   application:
-    name: "${key-go-server.info.name}-${key-go-server.info.version}"
+    name: "${keygo.info.name}-${keygo.info.version}"
 management:
   endpoint:
     health:
@@ -18,5 +24,5 @@ management:
 server:
   port: "${PORT:8080}"
   servlet:
-    context-path: "/${key-go-server.info.name}"
+    context-path: "/${keygo.info.name}"
     application-display-name: "${spring.application.name}"

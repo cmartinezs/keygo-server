@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * @version 1.0
  */
 @Component
-@ConfigurationProperties(prefix = "key-go-server.info")
+@ConfigurationProperties(prefix = "keygo.info")
 @Getter
 @Setter
 public class ServiceInfoProperties implements ServiceInfoProvider {
