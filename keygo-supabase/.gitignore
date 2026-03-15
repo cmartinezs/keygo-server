@@ -1,0 +1,40 @@
+# =========================================================
+# Environment Files / Archivos de Ambiente
+# =========================================================
+# Ignore all environment files with sensitive data
+# Ignorar todos los archivos de ambiente con datos sensibles
+.env
+.env-local
+.env-desa
+.env-prod
+.env.*
+!.env.example
+.env.backup.*
+
+# Maven
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
