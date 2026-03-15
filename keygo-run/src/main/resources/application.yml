@@ -12,6 +12,8 @@ keygo:
 spring:
   application:
     name: "${keygo.info.name}-${keygo.info.version}"
+  profiles:
+    active: "${SPRING_PROFILES_ACTIVE:default}"
 management:
   endpoint:
     health:

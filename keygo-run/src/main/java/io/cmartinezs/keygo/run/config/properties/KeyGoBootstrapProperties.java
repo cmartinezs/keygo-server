@@ -61,9 +61,15 @@ public class KeyGoBootstrapProperties {
    * Validates that adminKey is not blank when enabled is true.
    * Valida que adminKey no esté vacía cuando enabled es true.
    *
+   * <p>This method is invoked by Jakarta Validation framework via reflection
+   * when the @AssertTrue annotation is processed during bean validation.
+   * Este método es invocado por el framework Jakarta Validation mediante reflexión
+   * cuando se procesa la anotación @AssertTrue durante la validación del bean.
+   *
    * @return true if validation passes
    */
   @AssertTrue(message = "adminKey must not be blank when bootstrap is enabled")
+  @SuppressWarnings("unused") // Invoked by Jakarta Validation framework
   private boolean isAdminKeyValid() {
     if (!enabled) {
       return true;

@@ -1,0 +1,17 @@
+# Test Configuration
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:15-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+# Supabase test properties
+supabase:
+  url: jdbc:tc:postgresql:15-alpine:///testdb
+  user: test
+  password: test
+

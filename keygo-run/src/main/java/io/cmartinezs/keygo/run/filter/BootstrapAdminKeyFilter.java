@@ -1,5 +1,9 @@
 package io.cmartinezs.keygo.run.filter;
 
+import tools.jackson.databind.json.JsonMapper;
+import io.cmartinezs.keygo.api.constant.ResponseCode;
+import io.cmartinezs.keygo.api.dto.reponse.BaseResponse;
+import io.cmartinezs.keygo.api.helper.ResponseHelper;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,6 +12,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -31,8 +37,10 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
   private static final String ADMIN_KEY_HEADER = "X-KEYGO-ADMIN";
 
   private final KeyGoBootstrapProperties bootstrapProperties;
+  private final JsonMapper jsonMapper;
 
   @Override
+  @SuppressWarnings("NullableProblems") // Parameters are guaranteed non-null by Spring Framework
   protected void doFilterInternal(
       HttpServletRequest request,
       HttpServletResponse response,
@@ -60,7 +68,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     if (requestPath.startsWith(bootstrapProperties.getApiPathPrefix())) {
       if (!validateAdminKey(request)) {
         log.warn("Invalid or missing admin key for path: {}", requestPath);
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
+        writeErrorResponse(response, HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED);
         return;
       }
       log.debug("Admin key validated successfully for path: {}", requestPath);
@@ -104,6 +112,31 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     }
 
     return providedKey.equals(expectedKey);
+  }
+
+  /**
+   * Writes an error response directly to the HTTP response as JSON.
+   * Escribe una respuesta de error directamente al HTTP response como JSON.
+   *
+   * @param response the HTTP response / la respuesta HTTP
+   * @param status the HTTP status / el estado HTTP
+   * @param responseCode the response code / el código de respuesta
+   * @throws IOException if writing fails / si falla la escritura
+   */
+  private void writeErrorResponse(
+      HttpServletResponse response,
+      HttpStatus status,
+      ResponseCode responseCode) throws IOException {
+
+    BaseResponse<Void> errorResponse = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(responseCode))
+        .build();
+
+    response.setStatus(status.value());
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.setCharacterEncoding("UTF-8");
+
+    jsonMapper.writeValue(response.getWriter(), errorResponse);
   }
 }
 

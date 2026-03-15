@@ -29,8 +29,9 @@ class KeyGoBootstrapPropertiesTest {
     @BeforeEach
     void setUp() {
         properties = new KeyGoBootstrapProperties();
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            validator = factory.getValidator();
+        }
     }
 
     @Test

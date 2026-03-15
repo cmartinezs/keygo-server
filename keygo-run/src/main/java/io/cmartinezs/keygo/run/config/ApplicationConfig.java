@@ -1,10 +1,16 @@
 package io.cmartinezs.keygo.run.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.cmartinezs.keygo.app.port.out.ServiceInfoProvider;
 import io.cmartinezs.keygo.app.usecase.GetServiceInfoUseCase;
+import java.util.TimeZone;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * Application configuration for use cases and dependency injection
@@ -14,12 +20,34 @@ import org.springframework.context.annotation.Configuration;
  * @version 1.0
  */
 @Configuration
-@ComponentScan(basePackages = "io.cmartinezs.keygo.api")
+@ComponentScan(basePackages = {
+    "io.cmartinezs.keygo.api",
+    "io.cmartinezs.keygo.supabase"
+})
 public class ApplicationConfig {
 
   @Bean
   public GetServiceInfoUseCase getServiceInfoUseCase(ServiceInfoProvider serviceInfoProvider) {
     return new GetServiceInfoUseCase(serviceInfoProvider);
   }
+
+    @Bean
+    JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer() {
+        return builder -> builder
+            // Módulos explícitos (si los necesitas)
+            .addModule(new JavaTimeModule())
+
+            // Robustez ante cambios en payloads (típico en integraciones)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+
+            // Interoperabilidad (opcional)
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+
+            // Payloads limpios
+            .changeDefaultPropertyInclusion(include -> include.withValueInclusion(JsonInclude.Include.NON_NULL))
+
+            // Coherencia entre ambientes
+            .defaultTimeZone(TimeZone.getTimeZone("UTC"));
+    }
 }
 

@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.run.filter;
 
+import tools.jackson.databind.json.JsonMapper;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,6 +17,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +38,9 @@ class BootstrapAdminKeyFilterTest {
   private KeyGoBootstrapProperties bootstrapProperties;
 
   @Mock
+  private JsonMapper jsonMapper;
+
+  @Mock
   private FilterChain filterChain;
 
   private BootstrapAdminKeyFilter filter;
@@ -44,7 +49,7 @@ class BootstrapAdminKeyFilterTest {
 
   @BeforeEach
   void setUp() {
-    filter = new BootstrapAdminKeyFilter(bootstrapProperties);
+    filter = new BootstrapAdminKeyFilter(bootstrapProperties, jsonMapper);
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();
 
@@ -137,6 +142,8 @@ class BootstrapAdminKeyFilterTest {
     // Then
     verify(filterChain, never()).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(401);
+    assertThat(response.getContentType()).startsWith("application/json");
+    verify(jsonMapper).writeValue(any(Writer.class), any());
   }
 
   @ParameterizedTest
@@ -154,6 +161,8 @@ class BootstrapAdminKeyFilterTest {
     // Then
     verify(filterChain, never()).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(401);
+    assertThat(response.getContentType()).startsWith("application/json");
+    verify(jsonMapper).writeValue(any(Writer.class), any());
   }
 
   @Test
