@@ -75,7 +75,8 @@ keygo-server/
 ├── keygo-app/        # Use cases and application services / Casos de uso y servicios de aplicación
 ├── keygo-infra/      # Infrastructure implementations / Implementaciones de infraestructura
 ├── keygo-api/        # REST Controllers and API / Controladores y API REST
-├── keygo-run/        # Execution and startup configuration / Configuración de ejecución y arranque
+├── keygo-run/        # Spring Boot runnable (main + wiring + config)
+├── keygo-supabase/   # Supabase integration: JPA/Flyway/scripts/compose / Integración Supabase
 ├── keygo-bom/        # Bill of Materials - dependency management / Gestión de dependencias
 └── pom.xml           # Parent POM / POM padre del proyecto
 ```
@@ -128,6 +129,103 @@ docker run -d -p 8080:8080 --name keygo-server keygo-server:1.0-SNAPSHOT
 ```
 
 **See full Docker documentation / Ver documentación completa de Docker:** [docs/DOCKER.md](docs/DOCKER.md)
+
+---
+
+## API Endpoints
+
+> The service uses `context-path=/keygo-server` by default.
+> El servicio usa `context-path=/keygo-server` por defecto.
+
+Base URL: `http://localhost:8080/keygo-server`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/service/info` | Service metadata |
+| `GET` | `/api/v1/response-codes` | Available response codes |
+| `GET` | `/actuator/health` | Health check (public) |
+
+**Examples / Ejemplos:**
+
+```bash
+curl -s http://localhost:8080/keygo-server/api/v1/service/info | jq
+curl -s http://localhost:8080/keygo-server/api/v1/response-codes | jq
+curl -s http://localhost:8080/keygo-server/actuator/health | jq
+```
+
+Endpoints under `/api/` require the bootstrap admin key header:
+
+```bash
+curl -s http://localhost:8080/keygo-server/api/v1/response-codes \
+  -H "X-KEYGO-ADMIN: $KEYGO_ADMIN_KEY" | jq
+```
+
+---
+
+## Environment Variables / Variables de Entorno
+
+### Core / Núcleo
+
+| Variable | Description / Descripción | Default |
+|----------|--------------------------|---------|
+| `PORT` | Server port / Puerto del servidor | `8080` |
+| `SPRING_PROFILES_ACTIVE` | Active profiles / Perfiles activos | `default` |
+| `KEYGO_ADMIN_KEY` | Bootstrap admin key header `X-KEYGO-ADMIN` | `changeMe` ⚠️ |
+
+> ⚠️ **`KEYGO_ADMIN_KEY=changeMe` is for local dev only. Always use a strong key in real environments.**
+
+### Supabase / DB (requires profile `supabase`)
+
+| Variable | Description / Descripción |
+|----------|--------------------------|
+| `SUPABASE_URL` | JDBC URL, e.g. `jdbc:postgresql://localhost:5432/keygo` |
+| `SUPABASE_USER` | DB username / Usuario |
+| `SUPABASE_PASSWORD` | DB password / Contraseña |
+| `SUPABASE_PROJECT_ID` | Project ID (optional) |
+| `SUPABASE_ANON_KEY` | Anon key (optional) |
+| `SUPABASE_SERVICE_KEY` | Service key (optional) |
+
+---
+
+## Quick Start with Local DB / Inicio Rápido con DB Local
+
+**English:** Start PostgreSQL 15 + PgAdmin locally using Docker Compose:
+
+**Español:** Levanta PostgreSQL 15 + PgAdmin localmente con Docker Compose:
+
+```bash
+cd keygo-supabase
+./scripts/dev-start.sh
+```
+
+- PostgreSQL: `localhost:5432` (db `keygo`, user `postgres`, pass `postgres`)
+- PgAdmin: `http://localhost:5050` (email `admin@keygo.local`, pass `admin`)
+
+> ⚠️ **Default credentials: for local development only. / Credenciales por defecto: solo para desarrollo local.**
+
+Set the required env vars and run:
+
+```bash
+export SPRING_PROFILES_ACTIVE="supabase,local"
+export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
+export SUPABASE_USER="postgres"
+export SUPABASE_PASSWORD="postgres"
+export KEYGO_ADMIN_KEY="$(openssl rand -base64 32)"
+
+./mvnw spring-boot:run -pl keygo-run
+```
+
+---
+
+## Documentation / Documentación
+
+| File / Archivo | Content / Contenido |
+|---|---|
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Architecture, modules, flows, CI/CD proposal |
+| [`AI_CONTEXT.md`](AI_CONTEXT.md) | Compact context for Copilot/Claude agents |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution standards, testing, PRs |
+| [`CLAUDE.md`](CLAUDE.md) | Rules for AI coding agents (Claude/Copilot) |
+| [`docs/`](docs/) | Historical docs and per-module guides |
 
 ---
 
