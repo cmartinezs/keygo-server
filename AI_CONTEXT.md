@@ -133,3 +133,46 @@ Siempre incluye pasos de verificación (build/tests).
 Documenta endpoints considerando que el context-path es /keygo-server.
 ```
 
+## Comportamiento esperado del agente
+
+> Estas reglas aplican a cualquier agente (Copilot, Claude, etc.) que opere en este repositorio.
+
+### Flujo obligatorio: Planificar → Implementar
+
+1. **Leer** los documentos de referencia obligatorios antes de cualquier acción:
+   - `AI_CONTEXT.md` (este archivo)
+   - `ARCHITECTURE.md`
+   - `CLAUDE.md`
+   - `.github/copilot-instructions.md`
+   - Documentos específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
+2. **Presentar un plan explícito** (módulos, archivos, flujo, tests) antes de escribir código.
+3. **Implementar** solo después de tener el plan.
+
+### Documentación: solo bajo orden explícita
+
+- En un mismo contexto de chat, **NO** generar ni actualizar archivos `.md` de forma automática.
+- Solo crear/actualizar documentación cuando el usuario lo ordene de forma explícita.
+- Toda documentación debe colocarse en **la ruta que le corresponde** (`docs/<módulo>/`, raíz, etc.).
+
+### Aprendizaje continuo
+
+- Si una acción produce un resultado no satisfactorio (error de compilación, test fallido, comportamiento inesperado): **registrar el aprendizaje** en la sección `## Lecciones aprendidas` de este archivo **antes** de reintentar.
+- Buenas prácticas nuevas, actualizaciones de versiones o cambios tecnológicos detectados deben registrarse también en `## Lecciones aprendidas`.
+
+### Git — prohibición de ejecución directa
+
+- El agente **nunca debe ejecutar comandos `git`** directamente (commit, push, merge, rebase, etc.).
+- Si el flujo requiere operaciones git, listar los comandos sugeridos para ejecución manual por el usuario.
+
+## Lecciones aprendidas
+
+> Sección de aprendizaje continuo. Registrar aquí cualquier falla, corrección, buena práctica nueva
+> o actualización de tecnología detectada durante las tareas del agente.
+
+<!-- Ejemplo de entrada:
+### [YYYY-MM-DD] Título de la lección
+**Contexto:** Breve descripción de la tarea que generó el aprendizaje.
+**Problema:** Qué falló o qué se detectó.
+**Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
+-->
+

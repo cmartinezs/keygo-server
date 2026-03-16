@@ -2,6 +2,51 @@
 
 Responde en **español (es-MX/es)** por defecto, salvo que el usuario pida otro idioma.
 
+## Flujo de trabajo obligatorio del agente
+
+> Aplica a **toda** acción que implique generar o modificar código, configuración o estructura.
+
+### 1 · Planificar primero, implementar después
+
+Antes de escribir cualquier línea de código o hacer cualquier cambio, el agente **debe**:
+
+1. Leer y considerar los documentos de referencia obligatorios (ver sección siguiente).
+2. Presentar un **plan explícito** que incluya:
+   - Módulos afectados y justificación arquitectónica.
+   - Clases/archivos a crear o modificar.
+   - Flujo de datos / secuencia de llamadas.
+   - Tests a agregar.
+3. Esperar confirmación implícita (continuar el chat) o explícita antes de implementar.
+
+### 2 · Documentación: solo cuando se ordene explícitamente
+
+- **Dentro de un mismo contexto de chat, NO generar documentación automáticamente.**
+- Generar o actualizar archivos `.md` únicamente cuando el usuario lo indique con una orden explícita (p. ej. "documenta esto", "actualiza el README").
+- Cuando se genere documentación, colocarla **siempre en la ruta que corresponde** (ver tabla de ubicaciones en `ARCHITECTURE.md` o `docs/`).
+
+### 3 · Documentos de referencia obligatorios
+
+Antes de cualquier acción, el agente debe consultar:
+
+| Documento | Ruta | Para qué sirve |
+|---|---|---|
+| Contexto general AI | `AI_CONTEXT.md` | Estado del proyecto, bugs conocidos, convenciones |
+| Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño y estructura de módulos |
+| Reglas de agentes | `CLAUDE.md` | Reglas de oro y flujo de trabajo |
+| Instrucciones Copilot | `.github/copilot-instructions.md` | Este mismo archivo |
+
+Adicionalmente, consultar los documentos específicos de los módulos involucrados en la tarea (p. ej. `docs/keygo-api/`, `docs/keygo-run/`).
+
+### 4 · Aprendizaje continuo
+
+- Si una acción produce un resultado **no satisfactorio** (error de compilación, test fallido, comportamiento inesperado), documentar el aprendizaje en `AI_CONTEXT.md` bajo la sección `## Lecciones aprendidas` antes de reintentar.
+- Las **buenas prácticas nuevas**, actualizaciones de versiones de dependencias o cambios tecnológicos detectados durante una tarea deben registrarse también en `AI_CONTEXT.md` para que estén disponibles en futuras tareas.
+
+### 5 · Git — prohibición de ejecución directa
+
+- El agente **nunca debe ejecutar comandos `git`** (commit, push, merge, rebase, etc.) directamente.
+- Si un flujo requiere operaciones de git, listar los comandos sugeridos para que el usuario los ejecute manualmente.
+
 ## Contexto del repositorio
 
 - Monorepo Maven multi-módulo (Java 21, Spring Boot).
@@ -31,7 +76,8 @@ Responde en **español (es-MX/es)** por defecto, salvo que el usuario pida otro 
 - Siempre incluir en las respuestas:
   - Tests unitarios (JUnit 5 + AssertJ + Mockito).
   - Comandos de verificación (`./mvnw test`, `./mvnw clean package`).
-  - Actualización de docs si cambian APIs o configuración.
+- **No** actualizar documentación de forma automática; esperar orden explícita del usuario.
+- Si falla un intento de implementación, registrar el aprendizaje en `AI_CONTEXT.md` (sección `## Lecciones aprendidas`) antes de continuar.
 
 ## Comandos de referencia
 

@@ -10,6 +10,47 @@
 - Arquitectura: Hexagonal / Ports & Adapters.
 - Módulo ejecutable: `keygo-run`.
 
+## Flujo de trabajo obligatorio
+
+> Aplica a **toda** acción que implique generar o modificar código, configuración o estructura.
+
+### Planificar → Implementar
+
+Antes de escribir cualquier código el agente **debe**:
+
+1. Consultar los documentos de referencia obligatorios (ver abajo).
+2. Presentar un **plan explícito**: módulos afectados, archivos a crear/modificar, flujo de datos y tests a agregar.
+3. Solo después de ese plan proceder a implementar.
+
+### Documentación: solo bajo orden explícita
+
+- **Dentro de un mismo contexto de chat, NO generar documentación automáticamente.**
+- Crear o actualizar archivos `.md` solo cuando el usuario lo ordene de forma explícita.
+- Toda documentación va en la ruta que le corresponde (`docs/<módulo>/`, raíz, etc.) — nunca en una ruta arbitraria.
+
+### Documentos de referencia obligatorios
+
+Antes de cualquier acción consultar:
+
+| Documento | Ruta | Para qué sirve |
+|---|---|---|
+| Contexto general AI | `AI_CONTEXT.md` | Estado del proyecto, bugs, convenciones, lecciones aprendidas |
+| Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño y estructura de módulos |
+| Instrucciones Copilot | `.github/copilot-instructions.md` | Lineamientos para Copilot Chat / agent mode |
+| Este archivo | `CLAUDE.md` | Reglas de oro del agente |
+
+Adicionalmente, leer los docs específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.).
+
+### Aprendizaje continuo
+
+- Si una acción produce resultado **no satisfactorio** (error de compilación, test fallido, comportamiento inesperado): documentar el aprendizaje en `AI_CONTEXT.md` → sección `## Lecciones aprendidas` **antes** de reintentar.
+- Buenas prácticas nuevas, actualizaciones de versiones o cambios tecnológicos detectados durante una tarea deben registrarse en `AI_CONTEXT.md` para futuras sesiones.
+
+### Git — prohibición de ejecución directa
+
+- El agente **nunca debe ejecutar comandos `git`** directamente (commit, push, merge, rebase, etc.).
+- Listar los comandos sugeridos para que el usuario los ejecute manualmente.
+
 ## Reglas de oro
 
 1. **No inventes** estructura del repo: apóyate en los módulos existentes (`keygo-api`, `keygo-app`, etc.).
@@ -28,10 +69,10 @@
 
 ## Cómo trabajar al implementar una feature
 
-1. **Diseño mínimo:** describe clases, módulos afectados y flujo antes de generar código.
+1. **Diseño mínimo primero:** consulta los documentos de referencia, luego describe clases, módulos afectados y flujo antes de generar código.
 2. **Cambios pequeños:** genera un commit lógico por vez.
 3. **Tests:** agrega tests unitarios (JUnit 5 + Mockito/AssertJ).
-4. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` si cambian APIs o configuración.
+4. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` **solo si el usuario lo solicita explícitamente**.
 
 ## Módulos y sus roles
 
