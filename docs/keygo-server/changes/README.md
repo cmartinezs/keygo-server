@@ -19,6 +19,15 @@ This directory contains summary documents of major changes made to the project d
 
 - **PROJECT_SUMMARY.md** - Initial project setup summary
 - **BILINGUAL_UPDATE.md** - Documentation bilingual conversion summary
+- **DOCKER_SETUP.md** - Docker multi-stage build and docker-compose setup
+- **FLYWAY_POSTGRESQL17_FIX.md** - Flyway compatibility fix for PostgreSQL 17
+- **LOMBOK_VERSION_FIX.md** - Lombok version alignment fix for IntelliJ/Java 21
+- **MAVEN_RESOURCE_FILTERING.md** - Maven resource filtering for application.yml values
+- **PORTABLE_SCRIPTS_FIX.md** - Shell scripts portability improvements
+- **PROPERTIES_HOMOGENIZATION.md** - Unification of configuration properties under `keygo.*`
+- **RESPONSE_CODES_REFACTORING.md** - ResponseCode enum and business-specific codes refactoring
+- **RESPONSE_CODES_SUMMARY.md** - Summary of response codes design philosophy
+- **UNIT_TESTS_ADDED.md** - Unit tests added for keygo-api and keygo-run modules
 
 ### Note
 
@@ -41,6 +50,15 @@ Este directorio contiene documentos resumen de los cambios importantes realizado
 
 - **PROJECT_SUMMARY.md** - Resumen de la configuración inicial del proyecto
 - **BILINGUAL_UPDATE.md** - Resumen de la conversión de documentación a formato bilingüe
+- **DOCKER_SETUP.md** - Setup del build multi-etapa Docker y docker-compose
+- **FLYWAY_POSTGRESQL17_FIX.md** - Corrección de compatibilidad Flyway con PostgreSQL 17
+- **LOMBOK_VERSION_FIX.md** - Corrección de versión de Lombok para IntelliJ/Java 21
+- **MAVEN_RESOURCE_FILTERING.md** - Filtrado de recursos Maven para valores de application.yml
+- **PORTABLE_SCRIPTS_FIX.md** - Mejoras de portabilidad de los scripts de shell
+- **PROPERTIES_HOMOGENIZATION.md** - Unificación de propiedades de configuración bajo `keygo.*`
+- **RESPONSE_CODES_REFACTORING.md** - Refactoring del enum ResponseCode con códigos de negocio específicos
+- **RESPONSE_CODES_SUMMARY.md** - Resumen de la filosofía de diseño de códigos de respuesta
+- **UNIT_TESTS_ADDED.md** - Tests unitarios añadidos para los módulos keygo-api y keygo-run
 
 ### Nota
 

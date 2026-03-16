@@ -19,9 +19,15 @@ La clase `KeyGoBootstrapProperties` proporciona propiedades de configuración pa
 | Property | Type | Default | Description (EN) | Descripción (ES) |
 |----------|------|---------|------------------|------------------|
 | `keygo.bootstrap.enabled` | `boolean` | `true` | Enable/disable bootstrap functionality | Habilitar/deshabilitar funcionalidad de arranque |
-| `keygo.bootstrap.admin-key` | `String` | - | Admin key for bootstrap operations | Clave de administrador para operaciones de arranque |
+| `keygo.bootstrap.admin-key` | `String` | — | Admin key for bootstrap operations | Clave de administrador para operaciones de arranque |
+| `keygo.bootstrap.api-path-prefix` | `String` | `/api/` | Path prefix requiring authentication | Prefijo de ruta que requiere autenticación |
+| `keygo.bootstrap.actuator-path-prefix` | `String` | `/actuator/` | Public actuator path prefix | Prefijo de ruta pública del actuator |
+| `keygo.bootstrap.service-info-path-prefix` | `String` | `/service/info` | Public service-info path prefix | Prefijo de ruta pública de service-info |
 
-**Note / Nota**: All KeyGo configuration properties use the `keygo.*` prefix for consistency. / Todas las propiedades de configuración de KeyGo usan el prefijo `keygo.*` para consistencia.
+> ⚠️ **Nota:** Con `context-path=/keygo-server` activo, las rutas configuradas como prefijos
+> deben coincidir con `getServletPath()` (sin el context-path). Ver
+> [`BOOTSTRAP_SECURITY_FILTER.md`](BOOTSTRAP_SECURITY_FILTER.md) para el bug conocido con
+> `getRequestURI()` vs `getServletPath()`.
 
 - `keygo.info.*` - Service information properties / Propiedades de información del servicio
 - `keygo.bootstrap.*` - Bootstrap configuration properties / Propiedades de configuración de arranque
@@ -46,6 +52,9 @@ keygo:
   bootstrap:
     enabled: true
     admin-key: "${KEYGO_ADMIN_KEY:changeMe}"
+    api-path-prefix: "/api/"
+    actuator-path-prefix: "/actuator/"
+    service-info-path-prefix: "/service/info"
 ```
 
 ### Environment Variable / Variable de Entorno

@@ -20,10 +20,10 @@ Este documento centraliza la arquitectura y "cómo encaja todo" para:
 
 ```mermaid
 flowchart LR
-  common[keygo-common]
-  domain[keygo-domain]
+  common["keygo-common\n🚧 stub vacío"]
+  domain["keygo-domain\n🚧 stub vacío"]
   app[keygo-app]
-  infra[keygo-infra]
+  infra["keygo-infra\n🚧 stub vacío"]
   api[keygo-api]
   supabase[keygo-supabase]
   run[keygo-run]
@@ -42,15 +42,19 @@ flowchart LR
 
 ### Responsabilidades por módulo
 
-| Módulo | Responsabilidad |
-|---|---|
-| **keygo-domain** | Dominio puro (idealmente sin Spring). Entidades, value objects, reglas de negocio. |
-| **keygo-app** | Casos de uso + puertos (interfaces OUT). Define qué hace el sistema, no cómo. |
-| **keygo-infra** | Implementaciones de puertos (repositorios, adaptadores externos). |
-| **keygo-api** | REST controllers + DTOs + manejo de errores. Entrada HTTP al sistema. |
-| **keygo-supabase** | Config de datasource/JPA/Flyway + entidades y repositorios Supabase. |
-| **keygo-run** | Spring Boot main + wiring + configuración (`application.yml`). Módulo ejecutable. |
-| **keygo-bom** | Bill of Materials — gestión centralizada de versiones de dependencias. |
+| Módulo | Rol | Estado |
+|---|---|---|
+| **keygo-domain** | Dominio puro. Sin Spring. | 🚧 Stub vacío |
+| **keygo-app** | Usecases + puertos (interfaces OUT). | ✅ Activo |
+| **keygo-infra** | Implementaciones de puertos genéricos. | 🚧 Stub vacío |
+| **keygo-api** | REST controllers + DTOs + error handlers. | ✅ Activo |
+| **keygo-supabase** | JPA/Flyway + entidades + repos de Supabase. | ✅ Activo |
+| **keygo-run** | Main + wiring + `application.yml`. | ✅ Activo |
+| **keygo-bom** | Gestión de versiones de dependencias. | ✅ Activo |
+
+> 🚧 Los módulos `keygo-domain`, `keygo-infra` y `keygo-common` son stubs vacíos que definen
+> la estructura hexagonal pero aún no tienen código fuente. La persistencia actual está
+> directamente en `keygo-supabase`.
 
 ### Regla de dependencias
 
@@ -84,6 +88,10 @@ sequenceDiagram
   RUN-->>API: title/name/version
   API-->>C: BaseResponse{ data, success, date }
 ```
+
+> ℹ️ Este es el único flujo completo implementado. Los módulos `keygo-domain` e `keygo-infra`
+> están vacíos; la persistencia (`keygo-supabase`) existe pero aún no está conectada a puertos
+> en `keygo-app`.
 
 ## Convención de respuestas API
 
@@ -206,4 +214,15 @@ Regla de merge recomendada:
 - [ ] Endpoints documentados en README/ARCHITECTURE si cambian
 - [ ] Si hay migraciones nuevas: documentar y validar con Flyway
 - [ ] PR description completa (qué cambió, cómo se probó, riesgos)
+
+## Documentación relacionada
+
+| Documento | Descripción |
+|---|---|
+| [`docs/keygo-server/ARCHITECTURE.md`](docs/keygo-server/ARCHITECTURE.md) | Diagrama detallado de módulos y principios de diseño |
+| [`docs/keygo-run/BOOTSTRAP_SECURITY_FILTER.md`](docs/keygo-run/BOOTSTRAP_SECURITY_FILTER.md) | Análisis completo del filtro de seguridad y problema con context-path |
+| [`docs/keygo-run/BOOTSTRAP_PROPERTIES.md`](docs/keygo-run/BOOTSTRAP_PROPERTIES.md) | Propiedades de configuración del bootstrap |
+| [`docs/keygo-supabase/INTEGRATION.md`](docs/keygo-supabase/INTEGRATION.md) | Guía de integración con Supabase |
+| [`docs/keygo-supabase/MIGRATIONS.md`](docs/keygo-supabase/MIGRATIONS.md) | Estrategia y scripts de migraciones Flyway |
+| [`AI_CONTEXT.md`](AI_CONTEXT.md) | Contexto compacto para agentes AI |
 

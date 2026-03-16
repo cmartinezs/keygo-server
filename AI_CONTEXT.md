@@ -69,13 +69,17 @@ export SUPABASE_PASSWORD="postgres"
 ### Regla de dependencias (hexagonal)
 
 ```
-keygo-domain   → sin dependencias internas ni Spring
+keygo-domain   → sin dependencias internas ni Spring  [🚧 vacío actualmente]
 keygo-app      → depende de domain; define puertos (interfaces)
-keygo-infra    → implementa puertos; depende de app
+keygo-infra    → implementa puertos; depende de app   [🚧 vacío actualmente]
 keygo-api      → llama usecases; devuelve BaseResponse<T>
-keygo-supabase → JPA/Flyway; implementaciones de repos Supabase
+keygo-supabase → JPA/Flyway; implementaciones de repos Supabase; depende de infra
 keygo-run      → cablea todo; tiene application.yml y main
+keygo-common   → utilidades compartidas               [🚧 vacío actualmente]
 ```
+
+> Los módulos `keygo-domain`, `keygo-infra` y `keygo-common` son **stubs vacíos** que reservan
+> la estructura hexagonal. Al implementar nueva funcionalidad, respetar dónde debe ir cada pieza.
 
 ### Respuestas API
 
@@ -92,8 +96,9 @@ keygo-run      → cablea todo; tiene application.yml y main
 ## Seguridad — puntos importantes
 
 - `KEYGO_ADMIN_KEY` default `changeMe` **no es válido en producción**.
-- `BootstrapAdminKeyFilter` protege `/api/**` con header `X-KEYGO-ADMIN`.
-- Con `context-path=/keygo-server`, los URIs tienen prefijo `/keygo-server/` — validar que el filtro aplique correctamente.
+- `BootstrapAdminKeyFilter` pretende proteger `/api/**` con header `X-KEYGO-ADMIN`.
+- **Bug conocido:** el filtro usa `request.getRequestURI()` (incluye el context-path `/keygo-server/`) pero los prefijos configurados son `/api/`, `/actuator/`, `/service/info` (sin el prefijo). Con `context-path` activo **ningún path coincide** → el filtro no aplica y todas las rutas son efectivamente públicas.
+  - Fix correcto: usar `request.getServletPath()` en lugar de `getRequestURI()`.
 - Actuator expuesto completo en config actual (`include: "*"`) — **restringir en prod**.
 
 ## Prompts sugeridos para Copilot/Claude

@@ -89,7 +89,7 @@ This layering maximizes Docker cache efficiency.
 ### Health Check
 
 The container includes a health check that verifies the application is running:
-- **Endpoint:** `/keygo-server-1.0-SNAPSHOT/actuator/health`
+- **Endpoint:** `/keygo-server/actuator/health`
 - **Interval:** 30 seconds
 - **Timeout:** 3 seconds
 - **Retries:** 3
@@ -228,7 +228,7 @@ Esta separación en capas maximiza la eficiencia del caché de Docker.
 ### Health Check
 
 El contenedor incluye un health check que verifica que la aplicación esté funcionando:
-- **Endpoint:** `/keygo-server-1.0-SNAPSHOT/actuator/health`
+- **Endpoint:** `/keygo-server/actuator/health`
 - **Intervalo:** 30 segundos
 - **Timeout:** 3 segundos
 - **Reintentos:** 3

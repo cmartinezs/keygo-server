@@ -26,7 +26,9 @@ keygo-supabase/
 │   ├── validate.sh                             # Validate migrations
 │   ├── repair.sh                               # Repair Flyway metadata
 │   ├── dev-start.sh                            # Start local database
-│   └── dev-stop.sh                             # Stop local database
+│   ├── dev-stop.sh                             # Stop local database
+│   ├── load-env.sh                             # Load environment variables
+│   └── switch-env.sh                           # Switch active environment
 │
 └── src/
     ├── main/

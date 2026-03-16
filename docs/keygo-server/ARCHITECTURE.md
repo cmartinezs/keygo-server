@@ -10,54 +10,49 @@ KeyGo Server está construido siguiendo los principios de **Arquitectura Hexagon
 ┌─────────────────────────────────────────────────────────────┐
 │                        keygo-run                            │
 │              (Configuración y Arranque)                     │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-          ┌───────────────┴───────────────┐
-          │                               │
-┌─────────▼──────────┐          ┌─────────▼─────────┐
-│     keygo-api      │          │    keygo-infra    │
-│  (REST Controllers)│          │ (Implementaciones)│
-│                    │          │  - Persistencia   │
-│  - Endpoints       │          │  - APIs externas  │
-│  - DTOs            │          │  - Seguridad      │
-└─────────┬──────────┘          └─────────┬─────────┘
-          │                               │
-          └───────────────┬───────────────┘
-                          │
-                 ┌────────▼─────────┐
-                 │    keygo-app     │
-                 │  (Casos de Uso)  │
-                 │                  │
-                 │  - Servicios     │
-                 │  - Puertos       │
-                 └────────┬─────────┘
-                          │
-                 ┌────────▼─────────┐
-                 │   keygo-domain   │
-                 │  (Core Business) │
-                 │                  │
-                 │  - Entidades     │
-                 │  - Value Objects │
-                 │  - Reglas        │
-                 └────────┬─────────┘
-                          │
-                 ┌────────▼─────────┐
-                 │   keygo-common   │
-                 │   (Utilidades)   │
-                 └──────────────────┘
+└──────────┬──────────────────┬──────────────────┬────────────┘
+           │                  │                  │
+  ┌────────▼───────┐  ┌───────▼──────┐  ┌────────▼──────────┐
+  │   keygo-api    │  │  keygo-infra │  │  keygo-supabase   │
+  │ (REST Controllers)│  │ 🚧 (vacío) │  │ (JPA/Flyway/DB)   │
+  └────────┬───────┘  └───────┬──────┘  └────────┬──────────┘
+           │                  │                  │
+           └──────────────────┴──────────────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │    keygo-app     │
+                     │  (Casos de Uso)  │
+                     │  - Usecases      │
+                     │  - Puertos OUT   │
+                     └────────┬─────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │   keygo-domain   │
+                     │  🚧 (vacío)     │
+                     └────────┬─────────┘
+                              │
+                     ┌────────▼─────────┐
+                     │   keygo-common   │
+                     │  🚧 (vacío)     │
+                     └──────────────────┘
 
-                 ┌──────────────────┐
-                 │    keygo-bom     │
-                 │  (Dependencies)  │
-                 └──────────────────┘
+  ┌──────────────────┐
+  │    keygo-bom     │
+  │  (Dependencies)  │
+  └──────────────────┘
 ```
+
+> 🚧 Los módulos marcados están creados como estructura para la arquitectura hexagonal,
+> pero aún no tienen implementación de código fuente.
 
 ## Módulos
 
 ### keygo-domain (Núcleo)
-**Propósito**: Contiene la lógica de negocio pura sin dependencias externas.
+**Propósito**: Contendrá la lógica de negocio pura sin dependencias externas.
 
-**Contenido:**
+> 🚧 **Estado actual:** módulo vacío — estructura reservada para el dominio futuro.
+
+**Contenido previsto:**
 - **Entidades**: Objetos de negocio con identidad (User, Application, Service, etc.)
 - **Value Objects**: Objetos inmutables (Email, Password, Token, etc.)
 - **Reglas de Negocio**: Validaciones y lógica del dominio
@@ -83,19 +78,19 @@ KeyGo Server está construido siguiendo los principios de **Arquitectura Hexagon
 - ✅ keygo-domain
 
 ### keygo-infra (Infraestructura)
-**Propósito**: Implementaciones técnicas y adaptadores.
+**Propósito**: Implementaciones técnicas y adaptadores externos.
 
-**Contenido:**
-- **Adaptadores de Persistencia**: Implementaciones de repositorios
-  - JPA/Hibernate
-  - Base de datos
+> 🚧 **Estado actual:** módulo vacío — estructura reservada para adaptadores futuros.
+> La persistencia actual (JPA/Flyway) vive en `keygo-supabase`, no en este módulo.
+
+**Contenido previsto:**
+- **Adaptadores de Persistencia**: Implementaciones de repositorios genéricos
 - **Adaptadores de Seguridad**: JWT, OAuth2, etc.
 - **Adaptadores de APIs Externas**: Clientes HTTP, SMTP, etc.
 - **Configuración**: Beans de Spring, configuraciones
 
 **Dependencias:**
-- ✅ keygo-app (implementa los puertos)
-- ✅ keygo-domain
+- ✅ keygo-app (implementará los puertos)
 
 ### keygo-api (API REST)
 **Propósito**: Exponer la funcionalidad via REST API.
@@ -113,7 +108,9 @@ KeyGo Server está construido siguiendo los principios de **Arquitectura Hexagon
 ### keygo-common (Común)
 **Propósito**: Utilidades compartidas entre módulos.
 
-**Contenido:**
+> 🚧 **Estado actual:** módulo vacío — estructura reservada para utilidades transversales futuras.
+
+**Contenido previsto:**
 - **Excepciones base**: Jerarquía de excepciones
 - **Utilidades**: Helpers, constantes
 - **Anotaciones**: Anotaciones personalizadas
@@ -133,38 +130,59 @@ KeyGo Server está construido siguiendo los principios de **Arquitectura Hexagon
 **Propósito**: Punto de entrada y configuración de la aplicación.
 
 **Contenido:**
-- **Main class**: Clase principal de Spring Boot
-- **Configuración de beans**: Wiring de dependencias
-- **Application properties**: Configuraciones del entorno
-- **Perfiles**: Dev, Test, Prod
+- **Main class**: Clase principal de Spring Boot (`KeyGoRunner`)
+- **Configuración de beans**: Wiring de dependencias (`ApplicationConfig`)
+- **Filtros**: `BootstrapAdminKeyFilter` — autenticación por header `X-KEYGO-ADMIN`
+- **Application properties**: `application.yml` con resource filtering Maven
+- **Perfiles**: `supabase` para habilitar DB
 
 **Dependencias:**
 - ✅ keygo-api
 - ✅ keygo-infra
+- ✅ keygo-supabase
 
-## Flujo de una Request
+### keygo-supabase (Integración Supabase/DB)
+**Propósito**: Integración con Supabase/PostgreSQL mediante JPA y Flyway.
+
+**Contenido:**
+- **Entidades JPA**: `UserEntity`, `RoleEntity`, `PermissionEntity`
+- **Repositorios**: `UserRepository`, `RoleRepository`
+- **Configuración**: `SupabaseJpaConfig`, `SupabaseProperties`
+- **Migraciones**: Scripts Flyway en `classpath:db/migration`
+- **Scripts**: `scripts/*.sh` para gestión local (dev-start, dev-stop, migrate, etc.)
+- **Docker Compose**: PostgreSQL 15 + PgAdmin en `docker-compose.yml`
+
+**Dependencias:**
+- ✅ keygo-infra
+
+> ℹ️ Se activa con el perfil `supabase` (`SPRING_PROFILES_ACTIVE=supabase`).
+> La imagen Docker de producción **no incluye** este módulo — debe añadirse si se requiere DB.
+
+## Flujo de una Request (estado actual)
 
 ```
 1. HTTP Request
    ↓
 2. keygo-api (Controller)
    - Valida entrada
-   - Convierte DTO → Domain
+   - Mapea a DTO/Domain
    ↓
 3. keygo-app (Use Case)
    - Ejecuta lógica de aplicación
-   - Usa puertos
+   - Invoca puertos OUT (interfaces)
    ↓
-4. keygo-domain (Business Logic)
-   - Aplica reglas de negocio
-   - Valida invariantes
+4. keygo-run (Adapter: @ConfigurationProperties)
+   - Provee ServiceInfoProperties como implementación de ServiceInfoProvider
    ↓
-5. keygo-infra (Repository)
-   - Persiste datos
-   - Llama APIs externas
+   [Futuro: keygo-infra / keygo-supabase implementarán puertos de persistencia]
    ↓
-6. Response hacia arriba
+5. Response hacia arriba
 ```
+
+> ℹ️ **Actualmente:** `keygo-domain` e `keygo-infra` están vacíos. La única implementación de
+> puerto OUT existente es `ServiceInfoProperties` en `keygo-run`. Los repositorios JPA en
+> `keygo-supabase` (`UserRepository`, `RoleRepository`) aún no están conectados a puertos
+> de `keygo-app`.
 
 ## Principios de Diseño
 
@@ -188,17 +206,20 @@ Cada módulo tiene una responsabilidad clara y única.
 - La aplicación es independiente de tecnología
 - Los adaptadores son intercambiables
 
-## Tecnologías (Futuras)
+## Tecnologías
 
-- **Framework**: Spring Boot 3.x
-- **Persistencia**: JPA/Hibernate + PostgreSQL
-- **Seguridad**: Spring Security + JWT
-- **API**: REST + OpenAPI/Swagger
-- **Tests**: JUnit 5 + Mockito + Testcontainers
-- **Build**: Maven
+- **Framework**: Spring Boot 4.0.3
+- **Java**: 21
+- **Persistencia**: Spring Data JPA/Hibernate + PostgreSQL (módulo `keygo-supabase`)
+- **Migraciones**: Flyway
+- **Seguridad**: Filtro de clave admin bootstrap (`BootstrapAdminKeyFilter`)
+- **API**: REST + `BaseResponse<T>` como envelope estándar
+- **Tests**: JUnit 5 + Mockito + AssertJ + Testcontainers
+- **Build**: Maven (wrapper incluido `./mvnw`)
 
 ## Referencias
 
+- [ARCHITECTURE.md (raíz)](../../ARCHITECTURE.md) — visión operacional actualizada con Mermaid, flujos y CI/CD
 - [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)

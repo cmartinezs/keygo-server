@@ -24,9 +24,9 @@ There was an inconsistency between the Lombok version specified in the `maven-co
 
 ### 1. Configuración de Maven / Maven Configuration
 
-Se configuró el `maven-compiler-plugin` en cada módulo que utiliza Lombok (`keygo-api`, `keygo-common`, `keygo-run`) **sin especificar una versión hardcodeada**, permitiendo que Spring Boot parent gestione la versión de Lombok:
+Se configuró el `maven-compiler-plugin` en cada módulo que utiliza Lombok (`keygo-api`, `keygo-common`, `keygo-run`, `keygo-supabase`) **sin especificar una versión hardcodeada**, permitiendo que Spring Boot parent gestione la versión de Lombok:
 
-The `maven-compiler-plugin` was configured in each module that uses Lombok (`keygo-api`, `keygo-common`, `keygo-run`) **without specifying a hardcoded version**, allowing Spring Boot parent to manage the Lombok version:
+The `maven-compiler-plugin` was configured in each module that uses Lombok (`keygo-api`, `keygo-common`, `keygo-run`, `keygo-supabase`) **without specifying a hardcoded version**, allowing Spring Boot parent to manage the Lombok version:
 
 ```xml
 <build>
@@ -70,9 +70,9 @@ Each module must also have the Lombok dependency (without explicit version):
 
 ### 3. Gestión de Versiones / Version Management
 
-La versión de Lombok es gestionada automáticamente por Spring Boot parent. Para Spring Boot 4.0.1, se usa Lombok 1.18.42.
+La versión de Lombok es gestionada automáticamente por Spring Boot parent. Para Spring Boot 4.0.3, se usa Lombok 1.18.42.
 
-The Lombok version is automatically managed by Spring Boot parent. For Spring Boot 4.0.1, Lombok 1.18.42 is used.
+The Lombok version is automatically managed by Spring Boot parent. For Spring Boot 4.0.3, Lombok 1.18.42 is used.
 
 **No es necesario** declarar la versión en el módulo BOM (`keygo-bom/pom.xml`) ya que Spring Boot ya la gestiona.
 

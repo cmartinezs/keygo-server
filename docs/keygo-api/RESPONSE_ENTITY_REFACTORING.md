@@ -38,23 +38,18 @@ public BaseResponse<ServiceInfoData> getServiceInfoDetailed() {
 @GetMapping("/info")
 public ResponseEntity<BaseResponse<ServiceInfoData>> getServiceInfo() {
     ServiceInfoProvider info = getServiceInfoUseCase.execute();
-    
+
     ServiceInfoData data = ServiceInfoData.builder()
         .title(info.getTitle())
         .name(info.getName())
         .version(info.getVersion())
         .build();
-    
-    MessageResponse success = MessageResponse.builder()
-        .code("SUCCESS")
-        .message("Service information retrieved successfully")
-        .build();
-    
+
     BaseResponse<ServiceInfoData> response = BaseResponse.<ServiceInfoData>builder()
         .data(data)
-        .success(success)
+        .success(ResponseHelper.message(ResponseCode.SERVICE_INFO_RETRIEVED))
         .build();
-    
+
     return ResponseEntity.status(HttpStatus.OK).body(response);
 }
 ```
@@ -63,6 +58,7 @@ public ResponseEntity<BaseResponse<ServiceInfoData>> getServiceInfo() {
 - Un solo endpoint
 - Respuesta estandarizada con `BaseResponse`
 - Control total del código HTTP con `ResponseEntity`
+- Código de negocio específico del endpoint vía `ResponseCode`
 - Consistente con el resto de la API
 
 ## 📦 Estructura de la Respuesta
@@ -71,7 +67,7 @@ public ResponseEntity<BaseResponse<ServiceInfoData>> getServiceInfo() {
 {
   "date": "2026-01-11T21:15:17.983462425",
   "success": {
-    "code": "SUCCESS",
+    "code": "SERVICE_INFO_RETRIEVED",
     "message": "Service information retrieved successfully"
   },
   "data": {
@@ -134,16 +130,11 @@ return ResponseEntity
 ```java
 @ExceptionHandler(SomeException.class)
 public ResponseEntity<BaseResponse<Void>> handleException(SomeException ex) {
-    MessageResponse failure = MessageResponse.builder()
-        .code("ERROR_CODE")
-        .message(ex.getMessage())
-        .build();
-    
     BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(failure)
+        .failure(ResponseHelper.message(ResponseCode.OPERATION_FAILED, ex.getMessage()))
         .build();
-    
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 }
 ```
 
@@ -165,8 +156,9 @@ public ResponseEntity<BaseResponse<Void>> handleException(SomeException ex) {
 ### Test con curl
 
 ```bash
-# Request
-curl -i http://localhost:8080/keygo-server/api/v1/service/info
+# Request (requiere header bajo /api/)
+curl -i http://localhost:8080/keygo-server/api/v1/service/info \
+  -H "X-KEYGO-ADMIN: $KEYGO_ADMIN_KEY"
 
 # Response Headers
 HTTP/1.1 200 
@@ -178,7 +170,7 @@ Date: Mon, 12 Jan 2026 00:22:50 GMT
 {
   "date": "2026-01-11T21:15:17.983462425",
   "success": {
-    "code": "SUCCESS",
+    "code": "SERVICE_INFO_RETRIEVED",
     "message": "Service information retrieved successfully"
   },
   "data": {
@@ -205,20 +197,14 @@ Date: Mon, 12 Jan 2026 00:22:50 GMT
 public ResponseEntity<BaseResponse<YourDataType>> exampleEndpoint() {
     // 1. Ejecutar caso de uso
     YourDataType data = yourUseCase.execute();
-    
-    // 2. Crear mensaje de éxito
-    MessageResponse success = MessageResponse.builder()
-        .code("SUCCESS")
-        .message("Operation completed successfully")
-        .build();
-    
-    // 3. Construir respuesta
+
+    // 2. Construir respuesta con ResponseCode específico del endpoint
     BaseResponse<YourDataType> response = BaseResponse.<YourDataType>builder()
         .data(data)
-        .success(success)
+        .success(ResponseHelper.message(ResponseCode.RESOURCE_RETRIEVED))
         .build();
-    
-    // 4. Retornar con código HTTP
+
+    // 3. Retornar con código HTTP
     return ResponseEntity.status(HttpStatus.OK).body(response);
 }
 ```
@@ -228,51 +214,30 @@ public ResponseEntity<BaseResponse<YourDataType>> exampleEndpoint() {
 ```java
 @PostMapping("/example")
 public ResponseEntity<BaseResponse<YourDataType>> exampleWithValidation(@RequestBody Request req) {
-    try {
-        // Validar
-        if (!isValid(req)) {
-            MessageResponse failure = MessageResponse.builder()
-                .code("VALIDATION_ERROR")
-                .message("Invalid request")
-                .build();
-            
-            BaseResponse<YourDataType> response = BaseResponse.<YourDataType>builder()
-                .failure(failure)
-                .build();
-            
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        
-        // Procesar
-        YourDataType data = yourUseCase.execute(req);
-        
-        MessageResponse success = MessageResponse.builder()
-            .code("CREATED")
-            .message("Resource created successfully")
-            .build();
-        
+    // Validar
+    if (!isValid(req)) {
         BaseResponse<YourDataType> response = BaseResponse.<YourDataType>builder()
-            .data(data)
-            .success(success)
+            .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT,
+                     "Invalid request: campo X requerido"))
             .build();
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        
-    } catch (Exception ex) {
-        MessageResponse failure = MessageResponse.builder()
-            .code("INTERNAL_ERROR")
-            .message("An error occurred")
-            .build();
-        
-        BaseResponse<YourDataType> response = BaseResponse.<YourDataType>builder()
-            .failure(failure)
-            .throwable(ex.getMessage())
-            .build();
-        
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+
+    // Procesar
+    YourDataType data = yourUseCase.execute(req);
+
+    BaseResponse<YourDataType> response = BaseResponse.<YourDataType>builder()
+        .data(data)
+        .success(ResponseHelper.message(ResponseCode.RESOURCE_CREATED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
 }
 ```
+
+> 💡 Siempre usa códigos del enum `ResponseCode`. Si el código aún no existe, agrégalo antes de usarlo.
+> Consulta la guía completa en [`RESPONSE_CODES_GUIDE.md`](RESPONSE_CODES_GUIDE.md).
 
 ## ✅ Checklist para Nuevos Endpoints
 
@@ -295,11 +260,9 @@ return ResponseEntity.ok(baseResponse);
 // Códigos HTTP semánticos
 return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
-// Mensajes claros en success/failure
-MessageResponse.builder()
-    .code("USER_CREATED")
-    .message("User created successfully")
-    .build();
+// Usar ResponseHelper con ResponseCode del enum
+ResponseHelper.message(ResponseCode.RESOURCE_CREATED)
+ResponseHelper.message(ResponseCode.USER_CREATED, "User johndoe created")
 ```
 
 ### ❌ DON'T (No hacer)
@@ -308,11 +271,14 @@ MessageResponse.builder()
 // No retornar DTOs directamente
 return new SomeDTO(); // ❌
 
-// No usar siempre 200 OK
-return ResponseEntity.ok(errorResponse); // ❌ para errores
+// No usar siempre 200 OK para errores
+return ResponseEntity.ok(errorResponse); // ❌
 
-// No usar mensajes genéricos
-.message("Error") // ❌ Poco informativo
+// No hardcodear strings como código
+ResponseHelper.message("CUSTOM_CODE", "msg") // ❌ si ya existe en el enum
+
+// No mensajes genéricos sin ResponseCode
+MessageResponse.builder().code("SUCCESS").build() // ❌ usar ResponseCode
 ```
 
 ## 📊 Resumen

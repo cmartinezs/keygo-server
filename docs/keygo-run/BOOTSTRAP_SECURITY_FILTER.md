@@ -5,6 +5,39 @@
 **Version**: 1.0  
 **Author / Autor**: cmartinezs
 
+## ⚠️ Known Issue: context-path / Problema Conocido: context-path
+
+El filtro usa `request.getRequestURI()`, que **incluye** el `context-path` del servidor.
+
+Con `server.servlet.context-path=/keygo-server` (configuración actual), todos los URIs
+que el filtro recibe tienen el prefijo `/keygo-server/`:
+
+| Path solicitado | URI en el filtro | ¿Coincide con el prefijo configurado? |
+|---|---|---|
+| `/keygo-server/actuator/health` | `/keygo-server/actuator/health` | ❌ No coincide con `/actuator/` |
+| `/keygo-server/api/v1/service/info` | `/keygo-server/api/v1/service/info` | ❌ No coincide con `/api/` |
+
+**Resultado actual:** Con `context-path` activo, **ninguna regla del filtro aplica** — todas las
+peticiones pasan sin autenticación (como si `bootstrap.enabled=false`).
+
+### Fix recomendado / Recommended Fix
+
+Reemplazar `request.getRequestURI()` por `request.getServletPath()`, que devuelve el path
+**sin** el context-path:
+
+```java
+// Antes (incorrecto con context-path)
+String requestPath = request.getRequestURI();
+
+// Después (correcto)
+String requestPath = request.getServletPath();
+```
+
+Los tests unitarios actuales pasan porque usan mocks con paths directos (sin context-path),
+por lo que no detectan este problema en entornos reales.
+
+---
+
 ## Overview / Descripción General
 
 The Bootstrap Admin Key Filter provides authentication and authorization for API endpoints using a configurable admin key. It implements a `OncePerRequestFilter` to intercept HTTP requests and validate admin credentials before allowing access to protected resources.
@@ -25,12 +58,7 @@ El Filtro de Clave de Administrador Bootstrap proporciona autenticación y autor
    - Uniform exception handling
    - Standardized error responses
 
-3. **GlobalErrorController** (keygo-api)
-   - Error endpoint handler
-   - Spring error interception
-   - HTTP status code mapping
-
-4. **UnauthorizedException** (keygo-api)
+3. **UnauthorizedException** (keygo-api)
    - Custom exception for authentication failures
    - @ResponseStatus(UNAUTHORIZED)
 
@@ -110,10 +138,14 @@ curl -X GET http://localhost:8080/keygo-server/api/v1/response-codes \
 ### Public Endpoints / Endpoints Públicos
 
 ```bash
-# No authentication required
+# No authentication required / Sin autenticación requerida
 curl -X GET http://localhost:8080/keygo-server/actuator/health
-curl -X GET http://localhost:8080/keygo-server/service/info
 ```
+
+> ⚠️ **Nota:** El endpoint `GET /api/v1/service/info` (ServiceInfoController) está bajo `/api/`
+> y por lo tanto el filtro lo considera **protegido**, no público.
+> El prefijo `/service/info` configurado en `keygo.bootstrap.service-info-path-prefix`
+> actualmente **no coincide** con ningún path real del sistema.
 
 ## Error Handling / Manejo de Errores
 
@@ -187,11 +219,11 @@ private boolean validateAdminKey(HttpServletRequest request) {
 
 ### Test Coverage / Cobertura de Pruebas
 
-**Total Tests / Pruebas Totales**: 73  
-- keygo-api: 40 tests ✓
-- keygo-run: 33 tests ✓
+**Total Tests / Pruebas Totales**: 76  
+- keygo-api: 33 tests ✓
+- keygo-run: 43 tests ✓
 
-#### BootstrapAdminKeyFilter Tests (10 tests)
+#### BootstrapAdminKeyFilter Tests (13 tests)
 
 - ✓ Allow request when bootstrap disabled
 - ✓ Allow actuator paths without auth
@@ -203,6 +235,7 @@ private boolean validateAdminKey(HttpServletRequest request) {
 - ✓ Allow non-API paths without auth
 - ✓ Handle null admin key in properties
 - ✓ Handle blank admin key in properties
+- ✓ (3 escenarios adicionales: variantes edge case y bootstrap deshabilitado)
 
 #### GlobalExceptionHandler Tests (6 tests)
 
@@ -213,15 +246,43 @@ private boolean validateAdminKey(HttpServletRequest request) {
 - ✓ All handlers return non-null response
 - ✓ All handlers have failure message
 
-#### GlobalErrorController Tests (7 tests)
+#### ResponseCodeController Tests (7 tests)
 
-- ✓ Handle 401 Unauthorized
-- ✓ Handle 404 Not Found
-- ✓ Handle 400 Bad Request
-- ✓ Handle 403 Forbidden
-- ✓ Handle missing status code
-- ✓ Handle unmapped status codes
-- ✓ Handle exceptions in request attributes
+- ✓ Retrieve response codes catalog with correct structure
+
+#### ServiceInfoController Tests (4 tests)
+
+- ✓ Get service info returns expected data wrapped in BaseResponse
+
+#### ResponseCode Tests (7 tests)
+
+- ✓ All enum codes have valid code and message values
+
+#### ResponseHelper Tests (5 tests)
+
+- ✓ Build MessageResponse from ResponseCode
+- ✓ Build MessageResponse with custom message
+- ✓ Build MessageResponse from string code
+
+#### UnauthorizedException Tests (4 tests)
+
+- ✓ Exception creation and message propagation
+
+#### ApplicationConfig Tests (4 tests) — keygo-run
+
+- ✓ Bean wiring for GetServiceInfoUseCase
+
+#### ServiceInfoProperties Tests (8 tests) — keygo-run
+
+- ✓ Properties read from application.yml via @ConfigurationProperties
+
+#### KeyGoBootstrapProperties Tests (18 tests) — keygo-run
+
+- ✓ Default values testing
+- ✓ Getters and setters testing
+- ✓ Validation: enabled=false with null/blank adminKey is valid
+- ✓ Validation: enabled=true with valid adminKey is valid
+- ✓ Validation: enabled=true with null/empty/blank adminKey is invalid
 
 ## Security Considerations / Consideraciones de Seguridad
 
@@ -299,7 +360,7 @@ private boolean validateAdminKey(HttpServletRequest request) {
 ## Related Documentation / Documentación Relacionada
 
 - [Bootstrap Properties Documentation](BOOTSTRAP_PROPERTIES.md)
-- [Response Codes Guide](RESPONSE_CODES_GUIDE.md)
+- [Response Codes Guide](../keygo-api/RESPONSE_CODES_GUIDE.md)
 - [API Documentation](../README.md)
 
 ## Troubleshooting / Solución de Problemas
@@ -321,10 +382,13 @@ echo $KEYGO_ADMIN_KEY
 # BootstrapAdminKeyFilter should be @Component
 ```
 
-**Public paths blocked**
+**Public paths blocked / Rutas públicas bloqueadas**
 ```bash
-# Verify path patterns
-# /actuator/** and /service/info** are public
+# Verify path patterns configured
+grep "path-prefix" keygo-run/src/main/resources/application.yml
+
+# Note: with context-path active, the filter effectively does NOT apply (see Known Issue above)
+# Nota: con context-path activo, el filtro NO aplica efectivamente (ver Problema Conocido arriba)
 ```
 
 ## Conclusion / Conclusión

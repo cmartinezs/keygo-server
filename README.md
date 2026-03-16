@@ -41,7 +41,7 @@ Servicio de autenticación de usuarios como alternativa open source para empresa
 ## Requirements / Requisitos
 
 **English:**
-- Java 25
+- Java 21
 
 > The project includes Maven Wrapper (`.mvn`), so Maven installation is not required.
 > 
@@ -51,7 +51,7 @@ Servicio de autenticación de usuarios como alternativa open source para empresa
 > ```
 
 **Español:**
-- Java 25
+- Java 21
 
 > El proyecto incluye Maven Wrapper (`.mvn`), por lo que no es necesario tener Maven instalado.
 > 
@@ -128,7 +128,7 @@ docker build -t keygo-server:1.0-SNAPSHOT .
 docker run -d -p 8080:8080 --name keygo-server keygo-server:1.0-SNAPSHOT
 ```
 
-**See full Docker documentation / Ver documentación completa de Docker:** [docs/DOCKER.md](docs/DOCKER.md)
+**See full Docker documentation / Ver documentación completa de Docker:** [docs/keygo-server/DOCKER.md](docs/keygo-server/DOCKER.md)
 
 ---
 

@@ -90,7 +90,7 @@ Then open a Pull Request on GitHub with:
 ### Code Standards
 
 #### Java
-- Use Java 25
+- Use Java 21
 - Follow standard Java naming conventions
 - Document public classes and methods with JavaDoc
 - Keep methods small and cohesive
@@ -245,7 +245,7 @@ Luego abre un Pull Request en GitHub con:
 ### Estándares de Código
 
 #### Java
-- Usar Java 25
+- Usar Java 21
 - Seguir convenciones de nombres estándar de Java
 - Documentar clases y métodos públicos con JavaDoc
 - Mantener métodos pequeños y cohesivos

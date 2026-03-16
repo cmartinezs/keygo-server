@@ -1,5 +1,9 @@
 # Tests Unitarios Agregados / Unit Tests Added
 
+> ℹ️ **Documento histórico:** Describe el estado al commit en que se agregaron los tests iniciales (38 tests).
+> Los conteos actuales son: **79 tests** — keygo-api: 33, keygo-app: 3, keygo-run: 43.
+> Ver [`BOOTSTRAP_SECURITY_FILTER.md`](../../keygo-run/BOOTSTRAP_SECURITY_FILTER.md) para el detalle actualizado.
+
 ## Fecha / Date
 2026-01-12
 

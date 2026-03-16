@@ -14,7 +14,7 @@ La implementación sigue el patrón de arquitectura hexagonal (puertos y adaptad
 ┌─────────────────────────────────────────────────────────────────┐
 │                         keygo-api (API Layer)                    │
 │  ┌─────────────────────┐         ┌─────────────────────────┐   │
-│  │ ServiceInfoController│ ───────▶│  ServiceInfoResponse    │   │
+│  │ ServiceInfoController│ ───────▶│    ServiceInfoData      │   │
 │  │  (REST Controller)   │         │      (DTO)              │   │
 │  └──────────┬───────────┘         └─────────────────────────┘   │
 └─────────────┼───────────────────────────────────────────────────┘
@@ -70,9 +70,9 @@ La implementación sigue el patrón de arquitectura hexagonal (puertos y adaptad
 
 ### 2. **keygo-api** - API Layer (REST Controllers)
 
-#### `ServiceInfoResponse` (DTO)
-- **Ubicación / Location**: `keygo-api/src/main/java/io/cmartinezs/keygo/api/dto/ServiceInfoResponse.java`
-- **Tipo / Type**: Java Record
+#### `ServiceInfoData` (DTO)
+- **Ubicación / Location**: `keygo-api/src/main/java/io/cmartinezs/keygo/api/dto/reponse/ServiceInfoData.java`
+- **Tipo / Type**: Java class con Lombok `@Getter @Builder`
 - **Campos / Fields**:
   - `String title`
   - `String name`
@@ -82,7 +82,7 @@ La implementación sigue el patrón de arquitectura hexagonal (puertos y adaptad
 - **Ubicación / Location**: `keygo-api/src/main/java/io/cmartinezs/keygo/api/controller/ServiceInfoController.java`
 - **Mapping**: `@RequestMapping("/api/v1/service")`
 - **Endpoint**: `GET /api/v1/service/info`
-- **Respuesta / Response**: `ServiceInfoResponse` (JSON)
+- **Respuesta / Response**: `ResponseEntity<BaseResponse<ServiceInfoData>>`
 - **Dependencias / Dependencies**: `GetServiceInfoUseCase`
 
 ### 3. **keygo-run** - Infrastructure Layer (Configuration & Implementation)
@@ -136,14 +136,22 @@ java -jar keygo-run/target/keygo-run-1.0-SNAPSHOT.jar --server.port=8081
 ### Probar el Endpoint / Test the Endpoint
 
 ```bash
-# Usando curl
-curl http://localhost:8080/keygo-server/api/v1/service/info
+# Usando curl (requiere header X-KEYGO-ADMIN bajo /api/)
+curl -s http://localhost:8080/keygo-server/api/v1/service/info \
+  -H "X-KEYGO-ADMIN: $KEYGO_ADMIN_KEY"
 
 # Respuesta esperada / Expected response:
 # {
-#   "title": "KeyGo Server",
-#   "name": "keygo-server",
-#   "version": "1.0-SNAPSHOT"
+#   "date": "2026-01-12T00:59:00",
+#   "success": {
+#     "code": "SERVICE_INFO_RETRIEVED",
+#     "message": "Service information retrieved successfully"
+#   },
+#   "data": {
+#     "title": "KeyGo Server",
+#     "name": "keygo-server",
+#     "version": "1.0-SNAPSHOT"
+#   }
 # }
 ```
 
@@ -182,16 +190,15 @@ http://localhost:8080/keygo-server/api/v1/service/info
 3. UseCase → ServiceInfoProvider (interface)
 4. ServiceInfoProperties (implementation) → application.yml values
 5. Return values → UseCase → Controller
-6. Controller → ServiceInfoResponse (DTO)
-7. Spring → JSON serialization
-8. HTTP Response (JSON)
+6. Controller builds `ServiceInfoData` (DTO)
+7. Controller wraps in `BaseResponse<ServiceInfoData>` with `ResponseCode.SERVICE_INFO_RETRIEVED`
+8. Spring → JSON serialization
+9. HTTP Response (JSON)
 ```
 
 ## Próximos Pasos / Next Steps
 
-- [ ] Agregar tests unitarios / Add unit tests
 - [ ] Agregar documentación OpenAPI/Swagger
-- [ ] Agregar validación de datos
 - [ ] Agregar cache para mejorar performance
 - [ ] Agregar métricas con Actuator
 

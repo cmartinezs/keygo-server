@@ -11,6 +11,8 @@ Esta guía explica cómo integrar el módulo keygo-supabase con el resto de la a
 
 ## 📦 Step 1: Add Dependency to keygo-run / Agregar Dependencia a keygo-run
 
+> ✅ **Ya implementado / Already implemented:** `keygo-run/pom.xml` ya incluye esta dependencia.
+
 Edit `keygo-run/pom.xml` and add the supabase dependency:
 
 ```xml
@@ -62,6 +64,10 @@ spring:
 ---
 
 ## 🔧 Step 3: Enable Component Scanning / Habilitar Escaneo de Componentes
+
+> ✅ **Ya implementado / Already implemented:**  
+> `ApplicationConfig` ya incluye `"io.cmartinezs.keygo.supabase"` en su `@ComponentScan`.  
+> `SupabaseJpaConfig` maneja `@EntityScan` y `@EnableJpaRepositories` automáticamente.
 
 Edit `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/ApplicationConfig.java`:
 
@@ -148,84 +154,75 @@ SUPABASE_PASSWORD=postgres \
 
 ### Test Database Connection
 
-Create a test endpoint in `keygo-api`:
+> ⚠️ **Nota de arquitectura / Architecture note:** En un entorno hexagonal, `keygo-api` **no debe** depender directamente de `keygo-supabase` ni de sus repositorios JPA. La integración correcta pasa por puertos en `keygo-app`. El ejemplo a continuación es solo para verificación rápida en desarrollo — **no usar en producción**.
 
-```java
-package io.cmartinezs.keygo.api.controller;
-
-import io.cmartinezs.keygo.supabase.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-@RestController
-@RequestMapping("/api/test")
-@RequiredArgsConstructor
-public class TestController {
-    
-    private final UserRepository userRepository;
-    
-    @GetMapping("/users/count")
-    public long getUserCount() {
-        return userRepository.count();
-    }
-}
-```
-
-Test the endpoint:
+Para verificar la conexión a la base de datos, comprueba los logs al arrancar con el perfil `supabase`:
 
 ```bash
-curl http://localhost:8080/api/test/users/count
-# Expected: 1 (the admin user)
+export SPRING_PROFILES_ACTIVE="supabase,local"
+export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
+export SUPABASE_USER="postgres"
+export SUPABASE_PASSWORD="postgres"
+./mvnw spring-boot:run -pl keygo-run
+```
+
+Busca en los logs:
+```
+HikariPool-1 - Start completed.
+Successfully applied N migration(s) to schema "public"
+```
+
+También puedes usar el actuator para verificar que la app está corriendo:
+
+```bash
+curl http://localhost:8080/keygo-server/actuator/health
+# Expected: {"status":"UP"}
 ```
 
 ---
 
-## 📝 Step 7: Create User Service (Optional) / Crear Servicio de Usuario
+## 📝 Step 7: Create Use Case + Port (Hexagonal) / Crear Caso de Uso + Puerto
 
-Create a service layer in `keygo-app`:
+> ⚠️ **Arquitectura hexagonal:** `keygo-app` **no debe** importar clases de `keygo-supabase` directamente.
+> El patrón correcto es definir un puerto OUT en `keygo-app` e implementarlo en `keygo-supabase`.
+
+### 7.1 Puerto OUT en `keygo-app`
 
 ```java
-package io.cmartinezs.keygo.app.service;
-
-import io.cmartinezs.keygo.supabase.entity.UserEntity;
-import io.cmartinezs.keygo.supabase.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+// keygo-app/src/main/java/io/cmartinezs/keygo/app/port/out/UserRepositoryPort.java
+package io.cmartinezs.keygo.app.port.out;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service
-@RequiredArgsConstructor
-public class UserService {
-    
-    private final UserRepository userRepository;
-    
-    @Transactional(readOnly = true)
-    public List<UserEntity> findAllUsers() {
-        return userRepository.findAll();
-    }
-    
-    @Transactional(readOnly = true)
-    public Optional<UserEntity> findUserById(UUID id) {
-        return userRepository.findById(id);
-    }
-    
-    @Transactional(readOnly = true)
-    public Optional<UserEntity> findUserByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
-    
-    @Transactional
-    public UserEntity createUser(UserEntity user) {
-        return userRepository.save(user);
-    }
+public interface UserRepositoryPort {
+    // Sustituir Object por la entidad de dominio cuando keygo-domain esté implementado
+    List<Object> findAll();
+    Optional<Object> findById(UUID id);
 }
 ```
+
+### 7.2 Implementación en `keygo-supabase`
+
+```java
+// keygo-supabase/src/main/java/io/cmartinezs/keygo/supabase/adapter/UserRepositoryAdapter.java
+package io.cmartinezs.keygo.supabase.adapter;
+
+import io.cmartinezs.keygo.app.port.out.UserRepositoryPort;
+import io.cmartinezs.keygo.supabase.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class UserRepositoryAdapter implements UserRepositoryPort {
+    private final UserRepository jpaRepository;
+    // implementar métodos del puerto
+}
+```
+
+> 💡 Este patrón mantiene `keygo-app` libre de dependencias de infraestructura.
 
 ---
 
@@ -239,17 +236,9 @@ package io.cmartinezs.keygo.run.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
-    
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -375,15 +364,14 @@ echo $SUPABASE_USER
 
 ## ✅ Checklist / Lista de Verificación
 
-- [ ] Add dependency to keygo-run/pom.xml
+- [x] Add dependency to keygo-run/pom.xml ✅ ya incluido
 - [ ] Configure environment variables
-- [ ] Enable component scanning
+- [x] Enable component scanning ✅ ya configurado en ApplicationConfig + SupabaseJpaConfig
 - [ ] Start local database
 - [ ] Run migrations
 - [ ] Start application
 - [ ] Test database connection
-- [ ] Create service layer (optional)
-- [ ] Add security configuration (optional)
+- [ ] Create use cases + ports + adapters (hexagonal)
 - [ ] Run tests
 
 ---

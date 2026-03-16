@@ -35,15 +35,16 @@
 
 ## Módulos y sus roles
 
-| Módulo | Rol |
-|---|---|
-| `keygo-domain` | Dominio puro. Sin Spring. |
-| `keygo-app` | Usecases + puertos (interfaces OUT). |
-| `keygo-infra` | Implementaciones de puertos. |
-| `keygo-api` | REST controllers + DTOs + error handlers. |
-| `keygo-supabase` | JPA/Flyway + entidades + repos de Supabase. |
-| `keygo-run` | Main + wiring + `application.yml`. |
-| `keygo-bom` | Gestión de versiones de dependencias. |
+| Módulo | Rol | Estado |
+|---|---|---|
+| `keygo-domain` | Dominio puro. Sin Spring. | 🚧 Stub vacío |
+| `keygo-app` | Usecases + puertos (interfaces OUT). | ✅ Activo |
+| `keygo-infra` | Implementaciones de puertos. | 🚧 Stub vacío |
+| `keygo-api` | REST controllers + DTOs + error handlers. | ✅ Activo |
+| `keygo-supabase` | JPA/Flyway + entidades + repos de Supabase. | ✅ Activo |
+| `keygo-run` | Main + wiring + `application.yml`. | ✅ Activo |
+| `keygo-bom` | Gestión de versiones de dependencias. | ✅ Activo |
+| `keygo-common` | Utilidades compartidas. | 🚧 Stub vacío |
 
 ## Conocimiento específico útil
 
