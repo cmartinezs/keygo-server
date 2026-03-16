@@ -47,6 +47,20 @@ Adicionalmente, consultar los documentos específicos de los módulos involucrad
 - El agente **nunca debe ejecutar comandos `git`** (commit, push, merge, rebase, etc.) directamente.
 - Si un flujo requiere operaciones de git, listar los comandos sugeridos para que el usuario los ejecute manualmente.
 
+### 6 · Propuesta de mejoras futuras
+
+Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc.), el agente **debe** incluir una sección de propuestas organizadas en tres horizontes temporales:
+
+| Horizonte | Criterio orientativo | Ejemplos |
+|---|---|---|
+| **Corto plazo** | Mejoras directamente relacionadas con lo que se acaba de implementar; bajo esfuerzo | Agregar validaciones, ampliar tests, limpiar TODOs |
+| **Mediano plazo** | Evoluciones naturales de la funcionalidad actual; esfuerzo moderado | Nuevos endpoints relacionados, caché, paginación |
+| **Largo plazo** | Capacidades estratégicas del sistema; alto esfuerzo o dependencias externas | Autenticación OAuth2, multi-tenancy, observabilidad avanzada |
+
+- Las propuestas deben ser **concretas y accionables**, no genéricas.
+- No es necesario implementarlas; solo describirlas para orientar la hoja de ruta.
+- Si una propuesta es recurrente o relevante para el proyecto, registrarla también en `AI_CONTEXT.md` bajo `## Propuestas de mejoras futuras`.
+
 ## Contexto del repositorio
 
 - Monorepo Maven multi-módulo (Java 21, Spring Boot).

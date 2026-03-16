@@ -51,6 +51,19 @@ Adicionalmente, leer los docs específicos del módulo involucrado (`docs/keygo-
 - El agente **nunca debe ejecutar comandos `git`** directamente (commit, push, merge, rebase, etc.).
 - Listar los comandos sugeridos para que el usuario los ejecute manualmente.
 
+### Propuesta de mejoras futuras
+
+Al concluir cualquier tarea, el agente **debe** incluir propuestas organizadas en tres horizontes:
+
+| Horizonte | Criterio orientativo |
+|---|---|
+| **Corto plazo** | Relacionado con lo recién implementado; bajo esfuerzo |
+| **Mediano plazo** | Evoluciones naturales; esfuerzo moderado |
+| **Largo plazo** | Capacidades estratégicas; alto esfuerzo o dependencias externas |
+
+- Las propuestas deben ser **concretas y accionables**, no genéricas.
+- Si son recurrentes o relevantes para el proyecto, registrarlas en `AI_CONTEXT.md` bajo `## Propuestas de mejoras futuras`.
+
 ## Reglas de oro
 
 1. **No inventes** estructura del repo: apóyate en los módulos existentes (`keygo-api`, `keygo-app`, etc.).

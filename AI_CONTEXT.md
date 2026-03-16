@@ -164,6 +164,19 @@ Documenta endpoints considerando que el context-path es /keygo-server.
 - El agente **nunca debe ejecutar comandos `git`** directamente (commit, push, merge, rebase, etc.).
 - Si el flujo requiere operaciones git, listar los comandos sugeridos para ejecución manual por el usuario.
 
+### Propuesta de mejoras futuras
+
+Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc.), el agente **debe** incluir propuestas en tres horizontes:
+
+| Horizonte | Criterio orientativo | Ejemplos |
+|---|---|---|
+| **Corto plazo** | Relacionado directamente con lo recién implementado; bajo esfuerzo | Validaciones, tests adicionales, TODOs |
+| **Mediano plazo** | Evoluciones naturales de la funcionalidad; esfuerzo moderado | Endpoints relacionados, caché, paginación |
+| **Largo plazo** | Capacidades estratégicas; alto esfuerzo o dependencias externas | OAuth2, multi-tenancy, observabilidad avanzada |
+
+- Las propuestas deben ser **concretas y accionables**.
+- Si son recurrentes o relevantes para el proyecto, registrarlas en `## Propuestas de mejoras futuras` (sección de este archivo).
+
 ## Lecciones aprendidas
 
 > Sección de aprendizaje continuo. Registrar aquí cualquier falla, corrección, buena práctica nueva
@@ -175,4 +188,22 @@ Documenta endpoints considerando que el context-path es /keygo-server.
 **Problema:** Qué falló o qué se detectó.
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
+
+## Propuestas de mejoras futuras
+
+> Acumulador de propuestas concretas generadas al concluir tareas.
+> Organizadas por horizonte temporal. Actualizar conforme se agreguen o descarten.
+
+### Corto plazo
+
+<!-- Mejoras de bajo esfuerzo relacionadas con funcionalidades recientes -->
+
+### Mediano plazo
+
+<!-- Evoluciones naturales del sistema; esfuerzo moderado -->
+
+### Largo plazo
+
+<!-- Capacidades estratégicas; alto esfuerzo o dependencias externas -->
+
 
