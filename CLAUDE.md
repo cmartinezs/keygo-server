@@ -39,6 +39,7 @@ Antes de cualquier acción consultar:
 | Guía de agentes | `AGENTS.md` | Quick-start: módulos, comandos, patrones y flujos concretos |
 | Instrucciones Copilot | `.github/copilot-instructions.md` | Lineamientos para Copilot Chat / agent mode |
 | Este archivo | `CLAUDE.md` | Reglas de oro del agente |
+| Roadmap de mejoras | `ROADMAP.md` | Propuestas técnicas (T-NNN) y funcionales (F-NNN) activas y completadas |
 
 Adicionalmente, leer los docs específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.).
 
@@ -52,7 +53,10 @@ Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de es
 | Mejor patrón de implementación encontrado | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
 | Cambio de versión de dependencia o tecnología | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
 | Nueva convención acordada | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Propuesta recurrente o de alto valor | `AI_CONTEXT.md` | `## Propuestas de mejoras futuras` |
+| Propuesta recurrente o de alto valor | `AI_CONTEXT.md` + `ROADMAP.md` | `## Propuestas de mejoras futuras` + tabla técnica o funcional |
+| Propuesta técnica concreta generada al concluir tarea | `ROADMAP.md` | Tabla **Propuestas técnicas** (horizonte correspondiente) con ID `T-NNN` |
+| Propuesta funcional nueva o aclaración de épica | `ROADMAP.md` | Tabla **Propuestas funcionales** con ID `F-NNN` |
+| Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` | Sección correspondiente |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita". Los documentos

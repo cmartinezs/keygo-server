@@ -1,6 +1,6 @@
 # AGENTS.md — KeyGo Server
 
-> Quick-start guide for AI coding agents. Full context in `AI_CONTEXT.md`, `ARCHITECTURE.md`, `CLAUDE.md`.
+> Quick-start guide for AI coding agents. Full context in `AI_CONTEXT.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `ROADMAP.md`.
 
 ## Module map & dependency rules
 
@@ -83,7 +83,7 @@ return ResponseEntity.status(HttpStatus.OK).body(response);
 | `IllegalArgumentException` | 400 | `INVALID_INPUT` |
 | `Exception` (catch-all) | 500 | `OPERATION_FAILED` |
 
-To signal an auth error from any layer, throw `UnauthorizedException` (located in `keygo-api/exception/`).
+To signal an auth error from any layer, throw `UnauthorizedException` (located in `keygo-api/error/`).
 
 ## Hexagonal flow: adding a feature
 
@@ -165,11 +165,28 @@ List suggested `git` commands for the user; do not run them.
 
 Do not auto-generate or modify `.md` files unless the user explicitly asks. Place docs in `docs/<module>/` or the project root as appropriate.
 
+## ROADMAP.md — propuestas de mejoras (excepción a la regla anterior)
+
+`ROADMAP.md` en la raíz del repositorio **es parte del ciclo de trabajo del agente**, al igual que `AI_CONTEXT.md` y `AGENTS.md`.  
+Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla alguna de estas condiciones:
+
+| Evento | Acción en ROADMAP.md |
+|---|---|
+| Se completa una propuesta técnica (T-NNN) o funcional (F-NNN) | Mover fila a **"Historial de propuestas completadas"** con fecha y referencia |
+| Se genera nueva propuesta técnica al concluir una tarea | Agregar en tabla **Propuestas técnicas** (horizonte correspondiente) con ID correlativo `T-NNN` |
+| Se decide descartar o posponer una propuesta | Mover a **"Features fuera del MVP v1"** o eliminar con justificación |
+| Se cambia el horizonte temporal de una propuesta | Mover la fila a la tabla del nuevo horizonte |
+
+**Regla de IDs:** `T-NNN` para técnicas, `F-NNN` para funcionales. Continuar desde el último ID existente.
+
 ## Registro de cambios
 
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-17] Creación de ROADMAP.md y referencias en docs AI
+Se creó `ROADMAP.md` en la raíz del repositorio con 22 propuestas técnicas (T-001 a T-022) y 38 propuestas funcionales (F-001 a F-038) organizadas por horizonte y fase de implementación. Se actualizaron `AI_CONTEXT.md` y `AGENTS.md` para referenciar y mantener el archivo. La sección `## Propuestas de mejoras futuras` de `AI_CONTEXT.md` ahora delega al ROADMAP.md como fuente principal.
 
 ### [2026-03-17] Reorganización de paquetes internos por feature
 Se reorganizaron los paquetes de cuatro módulos de organización técnica genérica a organización por feature:

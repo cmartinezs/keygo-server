@@ -145,6 +145,7 @@ Documenta endpoints considerando que el context-path es /keygo-server.
    - `AGENTS.md`
    - `CLAUDE.md`
    - `.github/copilot-instructions.md`
+   - `ROADMAP.md` — para entender qué está planificado y evitar duplicar trabajo
    - Documentos específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
 2. **Presentar un plan explícito** (módulos, archivos, flujo, tests) antes de escribir código.
 3. **Implementar** solo después de tener el plan.
@@ -159,16 +160,19 @@ Documenta endpoints considerando que el context-path es /keygo-server.
 
 Al concluir **cualquier tarea** (feature, corrección, refactor, configuración, etc.), el agente **debe** evaluar si ocurrió alguno de los eventos listados a continuación y, si es así, actualizar el documento correspondiente **antes de cerrar la tarea**:
 
-| Evento | Documento a actualizar | Sección destino |
-|---|---|---|
-| Error de compilación encontrado y resuelto | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Test fallido detectado y corregido | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Comportamiento inesperado descubierto (bug, quirk del framework) | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Mejor forma de implementar un patrón ya existente | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Cambio de versión de dependencia o tecnología relevante | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Nueva convención establecida o patrón acordado | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
-| Propuesta recurrente o de alto valor para el proyecto | `AI_CONTEXT.md` | `## Propuestas de mejoras futuras` |
-| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
+ Evento  Documento a actualizar  Sección destino 
+---------
+ Error de compilación encontrado y resuelto  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
+ Test fallido detectado y corregido  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
+ Comportamiento inesperado descubierto (bug, quirk del framework)  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
+ Mejor forma de implementar un patrón ya existente  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
+ Cambio de versión de dependencia o tecnología relevante  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
+ Nueva convención establecida o patrón acordado  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
+ Propuesta recurrente o de alto valor para el proyecto  `AI_CONTEXT.md` + `ROADMAP.md`  `## Propuestas de mejoras futuras` + tabla técnica o funcional correspondiente 
+ Propuesta técnica concreta generada al concluir tarea  `ROADMAP.md`  Tabla **Propuestas técnicas** (horizonte correspondiente) 
+ Propuesta funcional nueva o aclaración de épica existente  `ROADMAP.md`  Tabla **Propuestas funcionales** 
+ Propuesta completada / implementada  `ROADMAP.md`  Tabla **Historial de propuestas completadas** 
+ Cambio en módulos, rutas, comandos o URLs del quick-start  `AGENTS.md`  Sección correspondiente 
 
 > ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita", ya que los documentos
 > de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente,
@@ -240,27 +244,26 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 
 ## Propuestas de mejoras futuras
 
-> Acumulador de propuestas concretas generadas al concluir tareas.
-> Organizadas por horizonte temporal. Actualizar conforme se agreguen o descarten.
+> El acumulador principal de propuestas es **[`ROADMAP.md`](ROADMAP.md)** en la raíz del repositorio.
+> Esta sección resume las más relevantes con referencia al ID en ROADMAP.md.
+> Al registrar aquí una propuesta, agregarla también en la tabla correspondiente de ROADMAP.md.
 
 ### Corto plazo
 
-- Agregar `request/` bajo `keygo-api/platform/` cuando se necesiten DTOs de entrada en los endpoints existentes.
-- Crear sub-paquetes `command/`, `query/` y `result/` en `keygo-app/platform/` al implementar el primer caso de uso que reciba y retorne DTOs propios.
-- Renombrar la configuración de IntelliJ `.run/KeyGo Runner.run.xml` para reflejar el nuevo nombre `KeygoApplication` (ya actualizada la referencia interna).
-- Agregar mapper `platform/` en `keygo-api` para mapear entre `ServiceInfoProvider` y `ServiceInfoData` sin que el controller haga la transformación directamente.
+- **T-001** — Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`): todas las rutas son actualmente públicas. Ver `ROADMAP.md T-001`.
+- **T-002** — Agregar mapper en `keygo-api/platform/` para descargar al controller del mapeo `ServiceInfoProvider → ServiceInfoData`. Ver `ROADMAP.md T-002`.
+- **T-006** — Configurar GitHub Actions con pipeline mínimo (test + package) en cada PR. Ver `ROADMAP.md T-006`.
 
 ### Mediano plazo
 
-- Introducir el paquete `keygo-api/security/filter/` y mover `BootstrapAdminKeyFilter` desde `keygo-run` una vez que se defina una interfaz de propiedades en `keygo-api` que `KeyGoBootstrapProperties` implemente (elimina la dependencia circular actual).
-- Implementar features reales por subdominio (`user/`, `auth/`, `tenant/`) siguiendo el patrón `keygo-app/platform/` ya establecido.
-- Agregar sub-paquete `persistence/` en `keygo-supabase` como capa intermedia entre `config/` y las features, según la estructura objetivo en `docs/arch/keygo_server_project_structure.md`.
-- Crear `keygo-supabase/support/` para utilidades de persistencia transversales (converters, listeners, etc.).
+- **T-009** — Poblar `keygo-domain` con las primeras entidades de dominio puras: `Tenant`, `User`, `ClientApp`, `Membership`. Ver `ROADMAP.md T-009`.
+- **T-010** — Poblar `keygo-infra` con puertos de infraestructura transversal: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`. Ver `ROADMAP.md T-010`.
+- **T-013** — Implementar tests de integración con Testcontainers para `keygo-supabase`. Ver `ROADMAP.md T-013`.
 
 ### Largo plazo
 
-- Evaluar renombrar `keygo-supabase` a `keygo-adapter-persistence-postgres` cuando el stack sea estable, para neutralizar el nombre respecto al proveedor.
-- Implementar puertos de salida para infraestructura transversal en `keygo-infra`: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`.
-- Implementar ADRs (Architecture Decision Records) sugeridos en `docs/arch/keygo_server_project_structure.md` secciones 11 y 12.
+- **T-017** — Renombrar `keygo-supabase` → `keygo-adapter-persistence-postgres` para neutralizar acoplamiento al proveedor. Ver `ROADMAP.md T-017`.
+- **T-020** — Observabilidad avanzada con OpenTelemetry + Prometheus + Grafana. Ver `ROADMAP.md T-020`.
+- **F-010 a F-016** — Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE. Ver `ROADMAP.md` Fase 1.
 
 
