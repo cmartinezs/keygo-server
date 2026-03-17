@@ -32,15 +32,40 @@ Antes de cualquier acción, el agente debe consultar:
 |---|---|---|
 | Contexto general AI | `AI_CONTEXT.md` | Estado del proyecto, bugs conocidos, convenciones |
 | Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño y estructura de módulos |
+| Guía de agentes | `AGENTS.md` | Quick-start: módulos, comandos, patrones y flujos concretos |
 | Reglas de agentes | `CLAUDE.md` | Reglas de oro y flujo de trabajo |
 | Instrucciones Copilot | `.github/copilot-instructions.md` | Este mismo archivo |
 
 Adicionalmente, consultar los documentos específicos de los módulos involucrados en la tarea (p. ej. `docs/keygo-api/`, `docs/keygo-run/`).
 
-### 4 · Aprendizaje continuo
+### 4 · Aprendizaje continuo y retroalimentación obligatoria
 
-- Si una acción produce un resultado **no satisfactorio** (error de compilación, test fallido, comportamiento inesperado), documentar el aprendizaje en `AI_CONTEXT.md` bajo la sección `## Lecciones aprendidas` antes de reintentar.
-- Las **buenas prácticas nuevas**, actualizaciones de versiones de dependencias o cambios tecnológicos detectados durante una tarea deben registrarse también en `AI_CONTEXT.md` para que estén disponibles en futuras tareas.
+Al concluir **cualquier tarea** (feature, corrección, refactor, configuración, etc.), el agente **debe** evaluar si ocurrió alguno de los eventos listados a continuación y, si es así, actualizar el documento correspondiente **antes de cerrar la tarea**:
+
+| Evento | Documento a actualizar | Sección destino |
+|---|---|---|
+| Error de compilación encontrado y resuelto | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Test fallido detectado y corregido | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Comportamiento inesperado descubierto (bug, quirk del framework) | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Mejor forma de implementar un patrón ya existente | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Cambio de versión de dependencia o tecnología relevante | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Nueva convención establecida o patrón acordado | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Propuesta recurrente o de alto valor para el proyecto | `AI_CONTEXT.md` | `## Propuestas de mejoras futuras` |
+| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
+
+> ⚠️ Esta actualización **no está sujeta** a la regla del punto 2 (solo bajo orden explícita), ya que
+> los documentos de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de
+> trabajo del agente, no documentación de producto.
+
+**Formato obligatorio para entradas en `## Lecciones aprendidas`:**
+
+```markdown
+### [YYYY-MM-DD] Título descriptivo de la lección
+**Contexto:** Breve descripción de la tarea o escenario que generó el aprendizaje.
+**Problema:** Qué falló, qué comportamiento inesperado se detectó o qué patrón mejoró.
+**Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
+**Archivos clave:** (opcional) Rutas relevantes para contextualizar la solución.
+```
 
 ### 5 · Git — prohibición de ejecución directa
 

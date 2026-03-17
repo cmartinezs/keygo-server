@@ -36,15 +36,36 @@ Antes de cualquier acción consultar:
 |---|---|---|
 | Contexto general AI | `AI_CONTEXT.md` | Estado del proyecto, bugs, convenciones, lecciones aprendidas |
 | Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño y estructura de módulos |
+| Guía de agentes | `AGENTS.md` | Quick-start: módulos, comandos, patrones y flujos concretos |
 | Instrucciones Copilot | `.github/copilot-instructions.md` | Lineamientos para Copilot Chat / agent mode |
 | Este archivo | `CLAUDE.md` | Reglas de oro del agente |
 
 Adicionalmente, leer los docs específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.).
 
-### Aprendizaje continuo
+### Aprendizaje continuo y retroalimentación obligatoria
 
-- Si una acción produce resultado **no satisfactorio** (error de compilación, test fallido, comportamiento inesperado): documentar el aprendizaje en `AI_CONTEXT.md` → sección `## Lecciones aprendidas` **antes** de reintentar.
-- Buenas prácticas nuevas, actualizaciones de versiones o cambios tecnológicos detectados durante una tarea deben registrarse en `AI_CONTEXT.md` para futuras sesiones.
+Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de estos eventos y actualizar el documento correspondiente **antes de cerrar la tarea**:
+
+| Evento | Documento | Sección |
+|---|---|---|
+| Error resuelto (compilación, test, comportamiento inesperado) | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Mejor patrón de implementación encontrado | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Cambio de versión de dependencia o tecnología | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Nueva convención acordada | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Propuesta recurrente o de alto valor | `AI_CONTEXT.md` | `## Propuestas de mejoras futuras` |
+| Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` | Sección correspondiente |
+
+> ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita". Los documentos
+> de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente.
+
+**Formato de entrada en `## Lecciones aprendidas`:**
+```markdown
+### [YYYY-MM-DD] Título descriptivo
+**Contexto:** Tarea o escenario que generó el aprendizaje.
+**Problema:** Qué falló o qué patrón mejoró.
+**Solución / Buena práctica:** Cómo se resolvió o qué hacer en el futuro.
+**Archivos clave:** (opcional) Rutas relevantes.
+```
 
 ### Git — prohibición de ejecución directa
 

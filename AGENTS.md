@@ -20,10 +20,16 @@ keygo-common   ← shared utils                               [🚧 stub]
 ## Essential commands
 
 ```bash
-./mvnw clean package          # full build
-./mvnw test                   # all tests
-./mvnw -pl keygo-api test     # single module
+./mvnw clean package                   # full build
+./mvnw test                            # all tests
+./mvnw -pl keygo-api test              # single module
 ./mvnw spring-boot:run -pl keygo-run   # run locally
+
+# Verificar actividad de retroalimentación del agente AI
+./scripts/check-ai-docs.sh            # umbral por defecto: 30 días
+./scripts/check-ai-docs.sh --days 60  # umbral personalizado
+./scripts/check-ai-docs.sh --quiet    # solo exit code (útil en CI)
+# Exit: 0=OK  1=sin actividad reciente  2=sin entradas  3=archivo no encontrado
 ```
 
 ## API response pattern (mandatory)
@@ -93,4 +99,15 @@ List suggested `git` commands for the user; do not run them.
 ## Docs — only on explicit request
 
 Do not auto-generate or modify `.md` files unless the user explicitly asks. Place docs in `docs/<module>/` or the project root as appropriate.
+
+## Registro de cambios
+
+> Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
+> que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
+> Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-17] Creación inicial + script check-ai-docs.sh
+Generación del archivo de guía rápida para agentes AI. Se agregó `check-ai-docs.sh` a los
+comandos esenciales (flags `--days`, `--quiet`, `--help`; códigos de salida 0-3). Se extendió
+el script para verificar también `AGENTS.md → ## Registro de cambios`.
 

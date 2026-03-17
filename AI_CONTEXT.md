@@ -142,6 +142,7 @@ Documenta endpoints considerando que el context-path es /keygo-server.
 1. **Leer** los documentos de referencia obligatorios antes de cualquier acción:
    - `AI_CONTEXT.md` (este archivo)
    - `ARCHITECTURE.md`
+   - `AGENTS.md`
    - `CLAUDE.md`
    - `.github/copilot-instructions.md`
    - Documentos específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
@@ -154,10 +155,34 @@ Documenta endpoints considerando que el context-path es /keygo-server.
 - Solo crear/actualizar documentación cuando el usuario lo ordene de forma explícita.
 - Toda documentación debe colocarse en **la ruta que le corresponde** (`docs/<módulo>/`, raíz, etc.).
 
-### Aprendizaje continuo
+### Aprendizaje continuo y retroalimentación obligatoria
 
-- Si una acción produce un resultado no satisfactorio (error de compilación, test fallido, comportamiento inesperado): **registrar el aprendizaje** en la sección `## Lecciones aprendidas` de este archivo **antes** de reintentar.
-- Buenas prácticas nuevas, actualizaciones de versiones o cambios tecnológicos detectados deben registrarse también en `## Lecciones aprendidas`.
+Al concluir **cualquier tarea** (feature, corrección, refactor, configuración, etc.), el agente **debe** evaluar si ocurrió alguno de los eventos listados a continuación y, si es así, actualizar el documento correspondiente **antes de cerrar la tarea**:
+
+| Evento | Documento a actualizar | Sección destino |
+|---|---|---|
+| Error de compilación encontrado y resuelto | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Test fallido detectado y corregido | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Comportamiento inesperado descubierto (bug, quirk del framework) | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Mejor forma de implementar un patrón ya existente | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Cambio de versión de dependencia o tecnología relevante | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Nueva convención establecida o patrón acordado | `AI_CONTEXT.md` | `## Lecciones aprendidas` |
+| Propuesta recurrente o de alto valor para el proyecto | `AI_CONTEXT.md` | `## Propuestas de mejoras futuras` |
+| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
+
+> ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita", ya que los documentos
+> de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente,
+> no documentación de producto.
+
+**Formato obligatorio para entradas en `## Lecciones aprendidas`:**
+
+```markdown
+### [YYYY-MM-DD] Título descriptivo de la lección
+**Contexto:** Breve descripción de la tarea o escenario que generó el aprendizaje.
+**Problema:** Qué falló, qué comportamiento inesperado se detectó o qué patrón mejoró.
+**Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
+**Archivos clave:** (opcional) Rutas relevantes para contextualizar la solución.
+```
 
 ### Git — prohibición de ejecución directa
 
@@ -188,6 +213,18 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Problema:** Qué falló o qué se detectó.
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
+
+### [2026-03-17] Retroalimentación obligatoria de documentos AI tras cada tarea
+**Contexto:** Revisión y consolidación de los documentos de guía para agentes (`AI_CONTEXT.md`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
+**Problema:** Los documentos de referencia para agentes no incluían `AGENTS.md` en la lista de lectura obligatoria. Tampoco había instrucciones explícitas sobre cuándo y cómo actualizar estos mismos documentos al finalizar una tarea (retroalimentación).
+**Solución / Buena práctica:** Se agregó `AGENTS.md` como documento obligatorio en los cuatro archivos de guía. Se estableció que los documentos AI (`AI_CONTEXT.md`, `AGENTS.md`) son "base de conocimiento del agente" y **deben** actualizarse al concluir cualquier tarea donde ocurra: error resuelto, mejor patrón encontrado, cambio tecnológico, nueva convención o propuesta relevante. Esta regla es **independiente** de la regla "documentación solo bajo orden explícita" (que aplica únicamente a docs de producto: README, ARCHITECTURE, docs/).
+**Archivos clave:** `AI_CONTEXT.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`
+
+### [2026-03-17] Script de verificación de actividad del agente AI (extendido a AGENTS.md)
+**Contexto:** Creación y extensión de `scripts/check-ai-docs.sh` para verificar actividad reciente en los documentos de base de conocimiento AI.
+**Problema:** Inicialmente el script solo verificaba `AI_CONTEXT.md → ## Lecciones aprendidas`. `AGENTS.md` podía quedar desactualizado sin detectarse. Además, la lógica de escaneo estaba duplicada para cada archivo.
+**Solución / Buena práctica:** Se refactorizó con una función reutilizable `check_section(FILE, SECTION_LABEL)` que usa arrays globales `_check_found` y `_check_recent` para evitar namerefs (requieren bash 4.3+). Una función `report_result(FILE, LABEL, SECTION)` orquesta la llamada y el reporte por documento. Se añadió `## Registro de cambios` a `AGENTS.md` como sección objetivo. El exit code final es el peor de los dos documentos (`worst = max(exit_ai, exit_agents)`). Los bloques `<!-- -->` se ignoran para evitar falsos positivos con templates de ejemplo. Compatible con GNU date (Linux) y BSD date (macOS).
+**Archivos clave:** `scripts/check-ai-docs.sh`, `AI_CONTEXT.md`, `AGENTS.md`
 
 ## Propuestas de mejoras futuras
 
