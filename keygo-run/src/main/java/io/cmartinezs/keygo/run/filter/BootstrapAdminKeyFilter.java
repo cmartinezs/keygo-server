@@ -1,9 +1,9 @@
 package io.cmartinezs.keygo.run.filter;
 
 import tools.jackson.databind.json.JsonMapper;
-import io.cmartinezs.keygo.api.constant.ResponseCode;
-import io.cmartinezs.keygo.api.dto.reponse.BaseResponse;
-import io.cmartinezs.keygo.api.helper.ResponseHelper;
+import io.cmartinezs.keygo.api.shared.ResponseCode;
+import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

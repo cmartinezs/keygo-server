@@ -220,6 +220,18 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Se agregó `AGENTS.md` como documento obligatorio en los cuatro archivos de guía. Se estableció que los documentos AI (`AI_CONTEXT.md`, `AGENTS.md`) son "base de conocimiento del agente" y **deben** actualizarse al concluir cualquier tarea donde ocurra: error resuelto, mejor patrón encontrado, cambio tecnológico, nueva convención o propuesta relevante. Esta regla es **independiente** de la regla "documentación solo bajo orden explícita" (que aplica únicamente a docs de producto: README, ARCHITECTURE, docs/).
 **Archivos clave:** `AI_CONTEXT.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`
 
+### [2026-03-17] Reorganización de paquetes internos por feature en monorepo multi-módulo
+**Contexto:** Reorganización completa de los paquetes internos de `keygo-api`, `keygo-app`, `keygo-run` y `keygo-supabase` de organización técnica genérica (constant, helper, dto, controller, exception, entity, repository) a organización por feature (shared, platform, error, user, membership).
+**Problema:** Al ejecutar `./mvnw -pl keygo-run test` después de actualizar solo keygo-api y keygo-app, Maven usaba los JARs viejos del repositorio local, causando errores de compilación ("cannot find symbol", "package does not exist"). El orden correcto es: primero `install` los módulos dependidos, luego `test` el módulo consumidor.
+**Solución / Buena práctica:** Cuando se reorganizan paquetes en módulos de los que dependen otros, ejecutar `./mvnw -pl <modulos-actualizados> install -DskipTests` antes de compilar/probar los módulos que los consumen. Solo el build completo (`./mvnw clean package`) garantiza el orden correcto de forma automática.
+**Archivos clave:** `keygo-app/platform/port`, `keygo-app/platform/usecase`, `keygo-api/shared`, `keygo-api/platform`, `keygo-api/error`, `keygo-supabase/user`, `keygo-supabase/membership`, `keygo-supabase/config/SupabaseJpaConfig.java`
+
+### [2026-03-17] SupabaseJpaConfig requiere basePackages ampliado al reorganizar entidades por feature
+**Contexto:** Reorganización de entidades JPA y repositories de paquetes planos (`supabase.entity`, `supabase.repository`) a sub-paquetes por feature (`supabase.user.entity`, `supabase.membership.entity`, etc.).
+**Problema:** Las anotaciones `@EntityScan(basePackages = "io.cmartinezs.keygo.supabase.entity")` y `@EnableJpaRepositories(basePackages = "io.cmartinezs.keygo.supabase.repository")` apuntan a rutas exactas que ya no existen tras el refactor, causando que Spring no encuentre entidades ni repositorios al arrancar con perfil `supabase`.
+**Solución / Buena práctica:** Usar el paquete raíz del módulo como basePackage: `"io.cmartinezs.keygo.supabase"`. Spring Data escaneará recursivamente todos los sub-paquetes, independientemente de cuántos features se agreguen en el futuro. Este cambio es obligatorio y debe hacerse en el mismo commit que la reorganización de paquetes.
+**Archivos clave:** `keygo-supabase/src/main/java/io/cmartinezs/keygo/supabase/config/SupabaseJpaConfig.java`
+
 ### [2026-03-17] Script de verificación de actividad del agente AI (extendido a AGENTS.md)
 **Contexto:** Creación y extensión de `scripts/check-ai-docs.sh` para verificar actividad reciente en los documentos de base de conocimiento AI.
 **Problema:** Inicialmente el script solo verificaba `AI_CONTEXT.md → ## Lecciones aprendidas`. `AGENTS.md` podía quedar desactualizado sin detectarse. Además, la lógica de escaneo estaba duplicada para cada archivo.
@@ -233,14 +245,22 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 
 ### Corto plazo
 
-<!-- Mejoras de bajo esfuerzo relacionadas con funcionalidades recientes -->
+- Agregar `request/` bajo `keygo-api/platform/` cuando se necesiten DTOs de entrada en los endpoints existentes.
+- Crear sub-paquetes `command/`, `query/` y `result/` en `keygo-app/platform/` al implementar el primer caso de uso que reciba y retorne DTOs propios.
+- Renombrar la configuración de IntelliJ `.run/KeyGo Runner.run.xml` para reflejar el nuevo nombre `KeygoApplication` (ya actualizada la referencia interna).
+- Agregar mapper `platform/` en `keygo-api` para mapear entre `ServiceInfoProvider` y `ServiceInfoData` sin que el controller haga la transformación directamente.
 
 ### Mediano plazo
 
-<!-- Evoluciones naturales del sistema; esfuerzo moderado -->
+- Introducir el paquete `keygo-api/security/filter/` y mover `BootstrapAdminKeyFilter` desde `keygo-run` una vez que se defina una interfaz de propiedades en `keygo-api` que `KeyGoBootstrapProperties` implemente (elimina la dependencia circular actual).
+- Implementar features reales por subdominio (`user/`, `auth/`, `tenant/`) siguiendo el patrón `keygo-app/platform/` ya establecido.
+- Agregar sub-paquete `persistence/` en `keygo-supabase` como capa intermedia entre `config/` y las features, según la estructura objetivo en `docs/arch/keygo_server_project_structure.md`.
+- Crear `keygo-supabase/support/` para utilidades de persistencia transversales (converters, listeners, etc.).
 
 ### Largo plazo
 
-<!-- Capacidades estratégicas; alto esfuerzo o dependencias externas -->
+- Evaluar renombrar `keygo-supabase` a `keygo-adapter-persistence-postgres` cuando el stack sea estable, para neutralizar el nombre respecto al proveedor.
+- Implementar puertos de salida para infraestructura transversal en `keygo-infra`: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`.
+- Implementar ADRs (Architecture Decision Records) sugeridos en `docs/arch/keygo_server_project_structure.md` secciones 11 y 12.
 
 

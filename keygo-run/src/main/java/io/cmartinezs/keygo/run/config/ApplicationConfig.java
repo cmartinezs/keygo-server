@@ -1,8 +1,8 @@
 package io.cmartinezs.keygo.run.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.cmartinezs.keygo.app.port.out.ServiceInfoProvider;
-import io.cmartinezs.keygo.app.usecase.GetServiceInfoUseCase;
+import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
+import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
 import java.util.TimeZone;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;

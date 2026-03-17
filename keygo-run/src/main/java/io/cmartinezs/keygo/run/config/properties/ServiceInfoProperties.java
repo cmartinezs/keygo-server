@@ -1,6 +1,6 @@
 package io.cmartinezs.keygo.run.config.properties;
 
-import io.cmartinezs.keygo.app.port.out.ServiceInfoProvider;
+import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;

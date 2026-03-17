@@ -87,14 +87,15 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 
 ## Hexagonal flow: adding a feature
 
-1. **Port OUT** — interface in `keygo-app/src/main/java/.../port/out/`  
-   (example: `ServiceInfoProvider`)
-2. **UseCase** — plain Java class in `keygo-app/src/main/java/.../usecase/`  
-   (example: `GetServiceInfoUseCase`)
+1. **Port OUT** — interface in `keygo-app/src/main/java/.../app/<feature>/port/`  
+   (example: `platform/port/ServiceInfoProvider`)
+2. **UseCase** — plain Java class in `keygo-app/src/main/java/.../app/<feature>/usecase/`  
+   (example: `platform/usecase/GetServiceInfoUseCase`)
 3. **Adapter (impl)** — `@ConfigurationProperties` or Spring component in `keygo-run` or `keygo-supabase`  
    (example: `ServiceInfoProperties implements ServiceInfoProvider`)
 4. **Wiring** — `@Bean` factory in `keygo-run/config/ApplicationConfig.java`
-5. **Controller** — `@RestController` in `keygo-api`, path `/api/v1/<resource>/...`
+5. **Controller** — `@RestController` in `keygo-api/<feature>/controller/`, path `/api/v1/<resource>/...`  
+   Response DTOs go in `keygo-api/<feature>/response/`
 
 ## context-path is always active
 
@@ -115,15 +116,20 @@ Set `keygo.bootstrap.enabled=false` in `application.yml` (or `KEYGO_BOOTSTRAP_EN
 
 Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@CreationTimestamp`/`@UpdateTimestamp` for timestamps, Lombok `@Data @Builder @NoArgsConstructor @AllArgsConstructor`. Schema is managed by Flyway (`db/migration/V<n>__description.sql`). `ddl-auto: validate`.
 
-**Existing entities (package `io.cmartinezs.keygo.supabase.entity`):**
+**Existing entities (packages under `io.cmartinezs.keygo.supabase`):**
 
-| Entity | Table | Key relationships |
-|---|---|---|
-| `UserEntity` | `users` | `@ManyToMany` → `RoleEntity` via `user_roles` |
-| `RoleEntity` | `roles` | `@ManyToMany` → `PermissionEntity` via `role_permissions` |
-| `PermissionEntity` | `permissions` | `action` field is `enum Action {CREATE,READ,UPDATE,DELETE,EXECUTE}` |
+| Entity | Package | Table | Key relationships |
+|---|---|---|---|
+| `UserEntity` | `user.entity` | `users` | `@ManyToMany` → `RoleEntity` via `user_roles` |
+| `RoleEntity` | `membership.entity` | `roles` | `@ManyToMany` → `PermissionEntity` via `role_permissions` |
+| `PermissionEntity` | `membership.entity` | `permissions` | `action` field is `enum Action {CREATE,READ,UPDATE,DELETE,EXECUTE}` |
 
-**Existing repositories:** `UserRepository`, `RoleRepository` (both extend `JpaRepository<Entity, UUID>`).
+**Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
+
+| Repository | Package |
+|---|---|
+| `UserRepository` | `user.repository` |
+| `RoleRepository` | `membership.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
@@ -164,6 +170,16 @@ Do not auto-generate or modify `.md` files unless the user explicitly asks. Plac
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-17] Reorganización de paquetes internos por feature
+Se reorganizaron los paquetes de cuatro módulos de organización técnica genérica a organización por feature:
+- **`keygo-app`**: `port/out/` + `usecase/` → `platform/port/` + `platform/usecase/`
+- **`keygo-api`**: `constant/` + `helper/` + `dto/reponse/` + `controller/` + `exception/` → `shared/` + `shared/response/` + `platform/controller/` + `platform/response/` + `error/`  
+  Typo histórico `dto/reponse/` corregido a `shared/response/`.
+- **`keygo-supabase`**: `entity/` + `repository/` → `user/entity/` + `user/repository/` + `membership/entity/` + `membership/repository/`
+- **`keygo-run`**: solo actualización de imports; `KeyGoRunner` renombrado a `KeygoApplication`.
+- **`SupabaseJpaConfig`**: `@EntityScan` y `@EnableJpaRepositories` cambiados a `basePackages = "io.cmartinezs.keygo.supabase"`.
+- **IntelliJ run config** `.run/KeyGo Runner.run.xml`: referencia a `KeygoApplication` actualizada.
 
 ### [2026-03-17] Creación inicial + script check-ai-docs.sh
 Generación del archivo de guía rápida para agentes AI. Se agregó `check-ai-docs.sh` a los

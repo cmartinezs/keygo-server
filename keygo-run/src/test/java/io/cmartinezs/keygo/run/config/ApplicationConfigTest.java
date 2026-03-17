@@ -1,7 +1,7 @@
 package io.cmartinezs.keygo.run.config;
 
-import io.cmartinezs.keygo.app.port.out.ServiceInfoProvider;
-import io.cmartinezs.keygo.app.usecase.GetServiceInfoUseCase;
+import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
+import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

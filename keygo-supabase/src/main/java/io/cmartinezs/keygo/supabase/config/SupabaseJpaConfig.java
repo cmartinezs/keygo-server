@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @version 1.0
  */
 @Configuration
-@EntityScan(basePackages = "io.cmartinezs.keygo.supabase.entity")
-@EnableJpaRepositories(basePackages = "io.cmartinezs.keygo.supabase.repository")
+@EntityScan(basePackages = "io.cmartinezs.keygo.supabase")
+@EnableJpaRepositories(basePackages = "io.cmartinezs.keygo.supabase")
 @EnableTransactionManagement
 public class SupabaseJpaConfig {
 }
