@@ -26,6 +26,10 @@ import static org.mockito.Mockito.*;
 @DisplayName("TenantResolutionFilter")
 class TenantResolutionFilterTest {
 
+  private static final String ACTIVE_SLUG = "my-tenant";
+  private static final String SUSPENDED_SLUG = "suspended-org";
+  private static final String UNKNOWN_SLUG = "unknown";
+
   @Mock
   private GetTenantBySlugUseCase getTenantBySlugUseCase;
 
@@ -53,8 +57,8 @@ class TenantResolutionFilterTest {
         .build();
   }
 
-  private Tenant suspendedTenant(String slug) {
-    Tenant t = activeTenant(slug);
+  private Tenant suspendedTenant() {
+    Tenant t = activeTenant(SUSPENDED_SLUG);
     t.suspend();
     return t;
   }
@@ -77,8 +81,8 @@ class TenantResolutionFilterTest {
   @DisplayName("should set tenant context and proceed when tenant is active")
   void shouldSetContextForActiveTenant() throws ServletException, IOException {
     // Given
-    request.addHeader(TenantResolutionFilter.TENANT_SLUG_HEADER, "my-tenant");
-    when(getTenantBySlugUseCase.execute("my-tenant")).thenReturn(activeTenant("my-tenant"));
+    request.addHeader(TenantResolutionFilter.TENANT_SLUG_HEADER, ACTIVE_SLUG);
+    when(getTenantBySlugUseCase.execute(ACTIVE_SLUG)).thenReturn(activeTenant(ACTIVE_SLUG));
 
     // When
     filter.doFilterInternal(request, response, filterChain);
@@ -92,8 +96,8 @@ class TenantResolutionFilterTest {
   @DisplayName("should return 404 when tenant is not found")
   void shouldReturn404WhenTenantNotFound() throws ServletException, IOException {
     // Given
-    request.addHeader(TenantResolutionFilter.TENANT_SLUG_HEADER, "unknown");
-    when(getTenantBySlugUseCase.execute("unknown")).thenThrow(new TenantNotFoundException("unknown"));
+    request.addHeader(TenantResolutionFilter.TENANT_SLUG_HEADER, UNKNOWN_SLUG);
+    when(getTenantBySlugUseCase.execute(UNKNOWN_SLUG)).thenThrow(new TenantNotFoundException(UNKNOWN_SLUG));
 
     // When
     filter.doFilterInternal(request, response, filterChain);
@@ -107,8 +111,8 @@ class TenantResolutionFilterTest {
   @DisplayName("should return 403 when tenant is suspended")
   void shouldReturn403WhenTenantSuspended() throws ServletException, IOException {
     // Given
-    request.addHeader(TenantResolutionFilter.TENANT_SLUG_HEADER, "suspended-org");
-    when(getTenantBySlugUseCase.execute("suspended-org")).thenReturn(suspendedTenant("suspended-org"));
+    request.addHeader(TenantResolutionFilter.TENANT_SLUG_HEADER, SUSPENDED_SLUG);
+    when(getTenantBySlugUseCase.execute(SUSPENDED_SLUG)).thenReturn(suspendedTenant());
 
     // When
     filter.doFilterInternal(request, response, filterChain);
