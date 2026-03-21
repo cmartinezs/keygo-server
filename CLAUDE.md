@@ -68,6 +68,7 @@ Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de es
 | Propuesta funcional nueva o aclaración de épica | `ROADMAP.md` | Tabla **Propuestas funcionales** con ID `F-NNN` |
 | Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` | Sección correspondiente |
+| Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita". Los documentos
 > de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente.
@@ -114,13 +115,15 @@ Al concluir cualquier tarea, el agente **debe** incluir propuestas organizadas e
    ./mvnw test
    ./mvnw clean package
    ```
+7. **Al crear o modificar cualquier endpoint REST**, actualizar `postman/KeyGo-Server.postman_collection.json` con el request correspondiente **antes de cerrar la tarea**. La actualización de Postman **no requiere orden explícita** del usuario — es parte del ciclo de trabajo estándar de un endpoint.
 
 ## Cómo trabajar al implementar una feature
 
 1. **Diseño mínimo primero:** consulta los documentos de referencia, luego describe clases, módulos afectados y flujo antes de generar código.
 2. **Cambios pequeños:** genera un commit lógico por vez.
 3. **Tests:** agrega tests unitarios (JUnit 5 + Mockito/AssertJ).
-4. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` **solo si el usuario lo solicita explícitamente**.
+4. **Postman:** agrega o actualiza el request en `postman/KeyGo-Server.postman_collection.json` incluyendo scripts `pm.test()` que validen status code, estructura `BaseResponse` y campos de negocio.
+5. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` **solo si el usuario lo solicita explícitamente**.
 
 ## Módulos y sus roles
 

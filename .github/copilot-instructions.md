@@ -77,6 +77,7 @@ Al concluir **cualquier tarea** (feature, corrección, refactor, configuración,
 | Propuesta funcional nueva o aclaración de épica | `ROADMAP.md` | Tabla **Propuestas funcionales** con ID `F-NNN` |
 | Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
+| Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla del punto 2 (solo bajo orden explícita), ya que
 > los documentos de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de
@@ -126,6 +127,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - Sigue el versionado `/api/v1/...` para endpoints nuevos.
 - La lógica de negocio va en usecases dentro de `keygo-app`.
 - Implementaciones concretas (repos, clients externos) van en `keygo-infra` o `keygo-supabase`.
+- **Al crear o modificar cualquier endpoint REST**, agregar o actualizar el request correspondiente en `postman/KeyGo-Server.postman_collection.json` **antes de cerrar la tarea**. Incluir: método, URL con variables de entorno, headers necesarios, body de ejemplo (si aplica) y scripts `pm.test()` que validen status code y estructura `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
 - Si necesitas DB:
   - Perfil `supabase` debe estar activo (`SPRING_PROFILES_ACTIVE`).
   - Variables requeridas: `SUPABASE_URL`, `SUPABASE_USER`, `SUPABASE_PASSWORD`.

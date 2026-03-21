@@ -100,6 +100,9 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 4. **Wiring** — `@Bean` factory in `keygo-run/config/ApplicationConfig.java`
 5. **Controller** — `@RestController` in `keygo-api/<feature>/controller/`, path `/api/v1/<resource>/...`  
    Response DTOs go in `keygo-api/<feature>/response/`
+6. **Postman** — add or update the request in `postman/KeyGo-Server.postman_collection.json` **before closing the task**.  
+   Include: HTTP method, URL with env variables (`{{fullBaseUrl}}/api/v1/...`), required headers, example body (if applicable), and `pm.test()` scripts validating status code, `BaseResponse` structure and business fields.  
+   This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
 
 ## context-path is always active
 

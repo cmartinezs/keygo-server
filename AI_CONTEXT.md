@@ -181,8 +181,9 @@ Al concluir **cualquier tarea** (feature, corrección, refactor, configuración,
  Propuesta recurrente o de alto valor para el proyecto  `AI_CONTEXT.md` + `ROADMAP.md`  `## Propuestas de mejoras futuras` + tabla técnica o funcional correspondiente 
  Propuesta técnica concreta generada al concluir tarea  `ROADMAP.md`  Tabla **Propuestas técnicas** (horizonte correspondiente) 
  Propuesta funcional nueva o aclaración de épica existente  `ROADMAP.md`  Tabla **Propuestas funcionales** 
- Propuesta completada / implementada  `ROADMAP.md`  Tabla **Historial de propuestas completadas** 
- Cambio en módulos, rutas, comandos o URLs del quick-start  `AGENTS.md`  Sección correspondiente 
+| Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
+| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
+| Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita", ya que los documentos
 > de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente,
