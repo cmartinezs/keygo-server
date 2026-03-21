@@ -3,21 +3,22 @@ package io.cmartinezs.keygo.supabase.membership.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Permission entity for Supabase
- * Entidad de permiso para Supabase
- *
+ * Permission entity for Supabase.
+ * <p>Entidad de permiso para Supabase.
  * @author cmartinezs
  * @version 1.0
  */
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,9 +50,7 @@ public class PermissionEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    /**
-     * Permission actions / Acciones de permisos
-     */
+    /* Permission actions / Acciones de permisos */
     public enum Action {
         CREATE,
         READ,

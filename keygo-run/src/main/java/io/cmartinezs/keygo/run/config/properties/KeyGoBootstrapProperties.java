@@ -9,8 +9,7 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * Configuration properties for KeyGo bootstrap settings.
- * Propiedades de configuración para ajustes de arranque de KeyGo.
- *
+ * <p>Propiedades de configuración para ajustes de arranque de KeyGo.
  * @author cmartinezs
  * @version 1.0
  */
@@ -21,51 +20,39 @@ import org.springframework.validation.annotation.Validated;
 @Setter
 public class KeyGoBootstrapProperties {
 
-  /**
-   * Whether bootstrap is enabled. Default is true.
-   * Si el arranque está habilitado. Por defecto es true.
-   */
+  /* Whether bootstrap is enabled. Default is true.
+   * Si el arranque está habilitado. Por defecto es true. */
   private boolean enabled = true;
 
-  /**
-   * Admin key for bootstrap operations.
-   * Clave de administrador para operaciones de arranque.
-   */
+  /* Admin key for bootstrap operations.
+   * Clave de administrador para operaciones de arranque. */
   private String adminKey;
 
-  /**
-   * API path prefix that requires authentication.
+  /* API path prefix that requires authentication.
    * Prefijo de ruta de API que requiere autenticación.
    * Must be configured in application.yml (e.g., "/api/")
-   * Debe ser configurado en application.yml (ej., "/api/")
-   */
+   * Debe ser configurado en application.yml (ej., "/api/") */
   private String apiPathPrefix;
 
-  /**
-   * Actuator path prefix that is public.
+  /* Actuator path prefix that is public.
    * Prefijo de ruta de actuator que es público.
    * Must be configured in application.yml (e.g., "/actuator/")
-   * Debe ser configurado en application.yml (ej., "/actuator/")
-   */
+   * Debe ser configurado en application.yml (ej., "/actuator/") */
   private String actuatorPathPrefix;
 
-  /**
-   * Service info path prefix that is public.
+  /* Service info path prefix that is public.
    * Prefijo de ruta de información de servicio que es público.
    * Must be configured in application.yml (e.g., "/service/info")
-   * Debe ser configurado en application.yml (ej., "/service/info")
-   */
+   * Debe ser configurado en application.yml (ej., "/service/info") */
   private String serviceInfoPathPrefix;
 
   /**
    * Validates that adminKey is not blank when enabled is true.
-   * Valida que adminKey no esté vacía cuando enabled es true.
-   *
+   * <p>Valida que adminKey no esté vacía cuando enabled es true.
    * <p>This method is invoked by Jakarta Validation framework via reflection
    * when the @AssertTrue annotation is processed during bean validation.
-   * Este método es invocado por el framework Jakarta Validation mediante reflexión
+   * <p>Este método es invocado por el framework Jakarta Validation mediante reflexión
    * cuando se procesa la anotación @AssertTrue durante la validación del bean.
-   *
    * @return true if validation passes
    */
   @AssertTrue(message = "adminKey must not be blank when bootstrap is enabled")

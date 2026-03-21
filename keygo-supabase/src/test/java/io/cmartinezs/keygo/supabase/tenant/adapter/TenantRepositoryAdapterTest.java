@@ -24,6 +24,10 @@ import static org.mockito.Mockito.*;
 @DisplayName("TenantRepositoryAdapter")
 class TenantRepositoryAdapterTest {
 
+  private static final String TEST_SLUG = "my-org";
+  private static final String TEST_NAME = "Test Tenant";
+  private static final String TEST_EMAIL = "owner@test.com";
+
   @Mock
   private TenantJpaRepository jpaRepository;
 
@@ -38,18 +42,18 @@ class TenantRepositoryAdapterTest {
     return TenantEntity.builder()
         .id(UUID.randomUUID())
         .slug(slug)
-        .name("Test Tenant")
-        .ownerEmail("owner@test.com")
+        .name(TEST_NAME)
+        .ownerEmail(TEST_EMAIL)
         .status(TenantStatus.ACTIVE)
         .build();
   }
 
-  private Tenant domainTenant(String slug) {
+  private Tenant domainTenant() {
     return Tenant.builder()
         .id(TenantId.generate())
-        .slug(TenantSlug.of(slug))
-        .name("Test Tenant")
-        .ownerEmail("owner@test.com")
+        .slug(TenantSlug.of(TEST_SLUG))
+        .name(TEST_NAME)
+        .ownerEmail(TEST_EMAIL)
         .status(TenantStatus.ACTIVE)
         .build();
   }
@@ -58,8 +62,8 @@ class TenantRepositoryAdapterTest {
   @DisplayName("save should persist and return the mapped domain tenant")
   void shouldSaveAndReturnDomainTenant() {
     // Given
-    Tenant tenant = domainTenant("my-org");
-    TenantEntity savedEntity = entityFor("my-org");
+    Tenant tenant = domainTenant();
+    TenantEntity savedEntity = entityFor(TEST_SLUG);
     when(jpaRepository.save(any())).thenReturn(savedEntity);
 
     // When
@@ -67,7 +71,7 @@ class TenantRepositoryAdapterTest {
 
     // Then
     assertThat(result).isNotNull();
-    assertThat(result.getSlug().value()).isEqualTo("my-org");
+    assertThat(result.getSlug().value()).isEqualTo(TEST_SLUG);
     verify(jpaRepository).save(any(TenantEntity.class));
   }
 
