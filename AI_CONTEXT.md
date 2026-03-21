@@ -228,6 +228,18 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
 
+### [2026-03-21] Configuración de JaCoCo en monorepo Maven multi-módulo con Spring Boot 4
+**Contexto:** Implementación de la propuesta T-016 — configurar JaCoCo para cobertura de tests con umbral mínimo y reporte consolidado.
+**Problema:** Tres puntos de atención en monorepos multi-módulo con JaCoCo: (1) los módulos sin código (`keygo-infra`, `keygo-common`) fallan silenciosamente el check si no se excluyen; (2) `keygo-bom` (empaquetado `pom`) también ejecuta JaCoCo aunque no tenga código — JaCoCo lo maneja con "Skipping due to missing execution data file", sin bloquear el build; (3) el goal `report-aggregate` requiere que el módulo ejecutor tenga como dependencias (directas o transitivas) todos los módulos que se quieren reportar — `keygo-run` es el candidato natural porque ya depende de todos.
+**Solución / Buena práctica:**
+- Configurar `prepare-agent` + `report` + `check` en `pluginManagement` del POM raíz y referenciarlos en `<build><plugins>` para que hereden todos los módulos.
+- Marcar módulos stub vacíos con `<jacoco.skip>true</jacoco.skip>` en sus `<properties>` para desactivar el agente, reporte y check.
+- Agregar el goal `report-aggregate` **solo** en `keygo-run` (módulo que depende de todos los demás), en una ejecución separada con su propio `id`.
+- Usar `<jacoco.minimum.coverage>` como propiedad parametrizable para poder sobrescribir en CI (`-Djacoco.minimum.coverage=0`) sin cambiar el POM.
+- En CI (`ci.yml`): cambiar `./mvnw test` → `./mvnw verify` para que las fases `jacoco-report` y `jacoco-check` se ejecuten. El step de `package` puede seguir usando `-DskipTests`.
+- Versión recomendada: `0.8.12` (última estable con soporte pleno de Java 21 bytecode).
+**Archivos clave:** `pom.xml` (raíz), `keygo-run/pom.xml`, `keygo-infra/pom.xml`, `keygo-common/pom.xml`, `.github/workflows/ci.yml`
+
 ### [2026-03-21] Convenciones de coding Java adoptadas para el codebase
 **Contexto:** Revisión y corrección masiva de estilo de código en todos los módulos activos.
 **Problema:** Se detectaron cuatro patrones de código que generan alertas de IDE (IntelliJ) y/o problemas de performance: (1) líneas en blanco dentro de bloques JavaDoc; (2) comentarios `/** */` en atributos/campos en lugar de `/* */`; (3) entidades JPA con `@Data` de Lombok (genera `equals`/`hashCode`/`toString` sobre todas las claves incluyendo colecciones lazy); (4) literales de string duplicados en tests de la misma clase; (5) `@Override toString()` sin `@NotNull` en IntelliJ (warning de nullability).

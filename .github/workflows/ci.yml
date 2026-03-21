@@ -22,8 +22,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run tests
-        run: ./mvnw test --no-transfer-progress
+      - name: Run tests & coverage
+        run: ./mvnw verify --no-transfer-progress
 
       - name: Build package
         run: ./mvnw clean package -DskipTests --no-transfer-progress
@@ -36,3 +36,12 @@ jobs:
           path: '**/target/surefire-reports/'
           retention-days: 7
 
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-reports
+          path: |
+            **/target/site/jacoco/
+            keygo-run/target/site/jacoco-aggregate/
+          retention-days: 14

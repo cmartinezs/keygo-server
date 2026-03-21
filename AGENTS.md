@@ -21,7 +21,8 @@ keygo-common   ← shared utils                               [🚧 stub]
 
 ```bash
 ./mvnw clean package                   # full build
-./mvnw test                            # all tests
+./mvnw verify                          # all tests + JaCoCo coverage check
+./mvnw test                            # tests only (no coverage check)
 ./mvnw -pl keygo-api test              # single module
 ./mvnw spring-boot:run -pl keygo-run   # run locally
 
@@ -229,6 +230,14 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-21] JaCoCo implementado — comando de CI cambiado a `./mvnw verify`
+Se configuró JaCoCo 0.8.12 en el POM raíz con tres ejecuciones heredadas a todos los módulos:
+`prepare-agent` (antes de tests), `report` (HTML/XML por módulo) y `check` (umbral 60% instrucciones).
+Módulos stub (`keygo-infra`, `keygo-common`) marcados con `jacoco.skip=true`.
+`keygo-run` genera el reporte agregado consolidado vía `report-aggregate`.
+CI actualizado: `./mvnw test` → `./mvnw verify`; se sube `jacoco-reports` como artefacto.
+T-016 movida a historial de completadas en ROADMAP.md.
 
 ### [2026-03-21] Convenciones de estilo adoptadas — corrección masiva
 Se aplicaron las siguientes convenciones de estilo a todo el codebase:

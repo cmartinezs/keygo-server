@@ -52,7 +52,6 @@
 | T-013 | Implementar tests de integración con Testcontainers PostgreSQL para `keygo-supabase` | `keygo-supabase` | Actualmente sólo hay tests unitarios — la persistencia no se valida con DB real |
 | T-014 | Configurar perfiles de entorno separados: `dev`, `test`, `prod`; centralizar configuraciones sensibles en `keygo-run` | `keygo-run` | Actualmente sólo `supabase` y `local`; sin separación clara de entornos |
 | T-015 | Agregar comprobación de dependencias con `OWASP Dependency-Check` o similar en el pipeline CI | CI | Detectar CVEs en dependencias antes de merge |
-| T-016 | Configurar Jacoco para cobertura de tests y fallar el build si baja del umbral definido | CI / Build | Sin métrica de cobertura actualmente |
 
 ---
 
@@ -157,6 +156,7 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-016 | Configurar JaCoCo para cobertura de tests y fallar el build si baja del umbral definido | 2026-03-21 | Plugin en `pom.xml` raíz; umbral 60% instrucciones; `report-aggregate` en `keygo-run`; CI actualizado a `./mvnw verify` |
 | T-006 | Configurar GitHub Actions: pipeline CI mínimo con `./mvnw test` y `./mvnw clean package` en cada push/PR | 2026-03-21 | `.github/workflows/ci.yml` creado; Fase 0 cerrada |
 | — | Reorganizar paquetes internos por feature (keygo-api, keygo-app, keygo-run, keygo-supabase) | 2026-03-17 | Refactor de estructura interna |
 | F-003 | E2-H1: Modelo `Tenant` — entidad de dominio, persistencia, unicidad por `slug` | 2026-03-21 | `keygo-domain/tenant/model/`, `keygo-supabase/tenant/`, migración `V4__add_tenants.sql`, puertos y use cases en `keygo-app/tenant/` |
