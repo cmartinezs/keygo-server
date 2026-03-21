@@ -25,7 +25,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
-import tools.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * Application configuration for use cases and dependency injection
@@ -120,8 +119,6 @@ public class ApplicationConfig {
     @Bean
     JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer() {
         return builder -> builder
-            // Módulos explícitos (si los necesitas)
-            .addModule(new JavaTimeModule())
 
             // Robustez ante cambios en payloads (típico en integraciones)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
