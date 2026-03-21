@@ -28,6 +28,16 @@ Antes de escribir cualquier código el agente **debe**:
 - Crear o actualizar archivos `.md` solo cuando el usuario lo ordene de forma explícita.
 - Toda documentación va en la ruta que le corresponde (`docs/<módulo>/`, raíz, etc.) — nunca en una ruta arbitraria.
 
+#### Diagramas en documentación
+
+Cuando sea necesario incluir un diagrama, usar el siguiente orden de preferencia:
+
+| Prioridad | Herramienta | Cuándo usarla |
+|---|---|---|
+| 1 | **Mermaid** | Primera opción siempre — soportado nativamente en GitHub, GitLab, Notion y la mayoría de editores Markdown |
+| 2 | **PlantUML** | Si el tipo de diagrama no es expresable con Mermaid (p. ej. diagramas de componentes complejos, C4, timing) |
+| 3 | **ASCII art** | Último recurso — solo si ni Mermaid ni PlantUML son viables en el contexto |
+
 ### Documentos de referencia obligatorios
 
 Antes de cualquier acción consultar:

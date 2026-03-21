@@ -53,4 +53,51 @@
         <module>keygo-supabase</module>
     </modules>
 
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.5.0</version>
+                    <configuration>
+                        <rules>
+                            <requireJavaVersion>
+                                <version>[21,)</version>
+                                <message>This project requires Java 21 or higher.</message>
+                            </requireJavaVersion>
+                            <requireMavenVersion>
+                                <version>[3.9,)</version>
+                                <message>This project requires Maven 3.9 or higher.</message>
+                            </requireMavenVersion>
+                            <requireProperty>
+                                <property>project.build.sourceEncoding</property>
+                                <regex>UTF-8</regex>
+                                <message>Source encoding must be UTF-8.</message>
+                            </requireProperty>
+                            <banDuplicatePomDependencyVersions/>
+                        </rules>
+                        <fail>true</fail>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>enforce-build-environment</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <phase>validate</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

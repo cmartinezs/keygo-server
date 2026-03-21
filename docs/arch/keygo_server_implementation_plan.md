@@ -67,7 +67,7 @@ El plan no parte de cero: parte desde tu estructura actual y la ordena hacia el 
 
 ## 4. Orden de implementación recomendado
 
-## Fase 0. Endurecimiento estructural inicial
+## Fase 0. Endurecimiento estructural inicial ✅ COMPLETADA (2026-03-21)
 
 ### Objetivo
 Asegurar que la base técnica no se degrade antes de empezar a meter lógica real.
@@ -81,35 +81,38 @@ Asegurar que la base técnica no se degrade antes de empezar a meter lógica rea
 
 ### Trabajo
 
-#### 0.1. Validar dependencias Maven entre módulos
-Objetivo:
-- confirmar que `keygo-api` no dependa de persistencia concreta,
-- confirmar que `keygo-app` solo dependa de `keygo-domain`,
-- confirmar que `keygo-run` sea el ensamblador.
+#### 0.1. Validar dependencias Maven entre módulos ✅
+- `keygo-api` → `keygo-app` (sin dependencias de persistencia directas)
+- `keygo-app` → `keygo-domain` + `keygo-common` (sin Spring)
+- `keygo-run` ensambla: `keygo-api` + `keygo-infra` + `keygo-supabase`
 
-#### 0.2. Reorganizar paquetes críticos
-Prioridad inmediata:
-- `keygo-api`: migrar gradualmente desde `helper`, `dto`, `mapper`, `filter` globales a estructura por feature/plano.
-- `keygo-app`: organizar por feature (`tenant`, `clientapp`, `user`, `membership`, `auth`).
-- `keygo-supabase`: organizar persistencia por feature.
+#### 0.2. Reorganizar paquetes críticos ✅
+Completado el 2026-03-17:
+- `keygo-api`: `platform/controller/`, `platform/response/`, `shared/`, `error/`
+- `keygo-app`: `platform/port/`, `platform/usecase/`
+- `keygo-supabase`: `user/entity/`, `user/repository/`, `membership/entity/`, `membership/repository/`
 
-#### 0.3. Definir convención de nombres
-Dejar cerradas convenciones para:
-- `UseCase`
-- `Port`
-- `Controller`
-- `Mapper`
-- `Entity`
-- `RepositoryAdapter`
+#### 0.3. Definir convención de nombres ✅
+Convenciones establecidas y documentadas en `docs/keygo-server/CODE_STYLE.md`:
+- `<Acción><Entidad>UseCase` — caso de uso
+- `<Entidad>Provider` / `<Entidad>Port` — puerto OUT
+- `<Entidad>Controller` — controlador REST
+- `<Entidad>Data` / `<Entidad>Response` — DTO de salida
+- `<Entidad>Entity` — entidad JPA
+- `<Entidad>Repository` / `<Entidad>RepositoryAdapter` — persistencia
 
-#### 0.4. Configurar base de calidad
-- pipeline CI mínimo
-- format/lint
-- tests de integración básicos
-- perfiles por ambiente
+#### 0.4. Configurar base de calidad ✅
+- **Pipeline CI**: `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package` en push/PR a `main`/`develop`
+- **Format/lint**: Convención documentada en `docs/keygo-server/CODE_STYLE.md` (2 espacios, Google Java Style); enforcement automático como T-023 en ROADMAP
+- **Tests unitarios**: 80+ tests con JUnit 5 + Mockito + AssertJ
+- **Infraestructura de tests de integración**: Testcontainers configurado en `keygo-supabase/pom.xml`; tests reales pendientes a Fase 1+
+- **Perfiles por ambiente**: `supabase`, `local` activos; separación `dev`/`prod` como T-014 en ROADMAP
+- **Maven Enforcer Plugin**: valida Java 21+, Maven 3.9+, UTF-8, sin dependencias duplicadas
 
-### Resultado esperado
-Una base estructural limpia, sin deuda obvia de organización, lista para agregar negocio.
+### Resultado esperado ✅ ALCANZADO
+Base estructural limpia, sin deuda obvia de organización, lista para agregar negocio.
+
+> **Siguiente fase:** Fase 1 — Núcleo de multitenancy
 
 ---
 
@@ -788,9 +791,9 @@ ya existan y estén razonablemente estables.
 
 ## 7. Plan sugerido por sprint
 
-## Sprint 0
-- Fase 0 completa
-- Fase 1 parcial o completa
+## Sprint 0 ✅ COMPLETADO (2026-03-21)
+- Fase 0 completa ✅
+- Fase 1 parcial o completa → **pendiente**
 
 ## Sprint 1
 - completar Fase 1

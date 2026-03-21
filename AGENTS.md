@@ -176,7 +176,7 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 
 | Phase | Focus | Status |
 |---|---|---|
-| 0 | Structural hardening (module deps, package org, conventions) | ✅ Done |
+| 0 | Structural hardening (module deps, package org, conventions, CI, quality baseline) | ✅ Done (2026-03-21) |
 | 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | 🔜 Next |
 | 2 | Client app model (`ClientApp`, redirect URIs, grants) | — |
 | 3 | User identity per tenant | — |
@@ -193,6 +193,16 @@ List suggested `git` commands for the user; do not run them.
 ## Docs — only on explicit request
 
 Do not auto-generate or modify `.md` files unless the user explicitly asks. Place docs in `docs/<module>/` or the project root as appropriate.
+
+### Diagrams in documentation
+
+When a diagram is needed, use this priority order:
+
+| Priority | Tool | When to use |
+|---|---|---|
+| 1 | **Mermaid** | Always first — natively supported in GitHub, GitLab, Notion and most Markdown editors |
+| 2 | **PlantUML** | If the diagram type cannot be expressed in Mermaid (e.g. complex component diagrams, C4, timing) |
+| 3 | **ASCII art** | Last resort — only if neither Mermaid nor PlantUML is viable in the context |
 
 ## ROADMAP.md — propuestas de mejoras (excepción a la regla anterior)
 
@@ -213,6 +223,14 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-21] Cierre de Fase 0 — base de calidad completada
+Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de calidad):
+- **CI Pipeline**: creado `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package` en push/PR a `main`/`develop`. Sube artefactos de surefire si el build falla.
+- **Maven Enforcer Plugin**: configurado en el `pom.xml` raíz, fase `validate`. Verifica Java 21+, Maven 3.9+, encoding UTF-8 y sin dependencias duplicadas.
+- **Convención de estilo documentada**: `docs/keygo-server/CODE_STYLE.md` formaliza indentación 2 espacios, nombres de clases por tipo arquitectónico, orden de imports y reglas de tests. Lint automático (T-023) pendiente de ROADMAP.
+- **ROADMAP.md**: T-006 movida a historial de completadas, T-023 agregada a corto plazo, estado del producto actualizado a "Fase 0 ✅ completa".
+- **Plan de implementación**: `docs/arch/keygo_server_implementation_plan.md` actualizado con detalle de todos los sub-puntos completados de la Fase 0.
 
 ### [2026-03-21] Actualización tras análisis del codebase (segunda ronda)
 Se identificaron y corrigieron cinco brechas entre el doc y el código real:

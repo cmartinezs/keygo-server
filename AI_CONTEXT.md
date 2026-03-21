@@ -156,6 +156,16 @@ Documenta endpoints considerando que el context-path es /keygo-server.
 - Solo crear/actualizar documentación cuando el usuario lo ordene de forma explícita.
 - Toda documentación debe colocarse en **la ruta que le corresponde** (`docs/<módulo>/`, raíz, etc.).
 
+#### Diagramas en documentación
+
+Cuando sea necesario incluir un diagrama, usar el siguiente orden de preferencia:
+
+| Prioridad | Herramienta | Cuándo usarla |
+|---|---|---|
+| 1 | **Mermaid** | Primera opción siempre — soportado nativamente en GitHub, GitLab, Notion y la mayoría de editores Markdown |
+| 2 | **PlantUML** | Si el tipo de diagrama no es expresable con Mermaid (p. ej. diagramas de componentes complejos, C4, timing) |
+| 3 | **ASCII art** | Último recurso — solo si ni Mermaid ni PlantUML son viables en el contexto |
+
 ### Aprendizaje continuo y retroalimentación obligatoria
 
 Al concluir **cualquier tarea** (feature, corrección, refactor, configuración, etc.), el agente **debe** evaluar si ocurrió alguno de los eventos listados a continuación y, si es así, actualizar el documento correspondiente **antes de cerrar la tarea**:
@@ -236,6 +246,12 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Usar el paquete raíz del módulo como basePackage: `"io.cmartinezs.keygo.supabase"`. Spring Data escaneará recursivamente todos los sub-paquetes, independientemente de cuántos features se agreguen en el futuro. Este cambio es obligatorio y debe hacerse en el mismo commit que la reorganización de paquetes.
 **Archivos clave:** `keygo-supabase/src/main/java/io/cmartinezs/keygo/supabase/config/SupabaseJpaConfig.java`
 
+### [2026-03-21] Fase 0 cerrada: qué faltaba vs. qué se asumía como completo
+**Contexto:** Verificación del estado real de la Fase 0 del plan de implementación (`docs/arch/keygo_server_implementation_plan.md`). El documento `AGENTS.md` la marcaba como `✅ Done` tras la reorganización de paquetes (2026-03-17), pero el punto 0.4 (base de calidad) no estaba completo.
+**Problema:** La reorganización de paquetes (0.2) se completó y se marcó la fase como hecha, pero faltaban: (a) pipeline CI — no había ningún archivo en `.github/workflows/`; (b) enforcement automático de format/lint; (c) las convenciones de código no estaban documentadas formalmente.
+**Solución / Buena práctica:** Al marcar una fase como completa, verificar **cada sub-punto** de la lista, no solo el trabajo más visible. Para el CI: crear `.github/workflows/ci.yml`. Para calidad de código: usar Maven Enforcer Plugin (fácil de pasar) para reglas de proyecto, y documentar el estilo en `docs/keygo-server/CODE_STYLE.md`. El Checkstyle/Spotless se deja como T-023 en el ROADMAP para no bloquear el cierre de la fase. Esta separación —"convención documentada" vs. "enforcement automático"— es pragmática y accionable.
+**Archivos clave:** `.github/workflows/ci.yml`, `pom.xml` (raíz — Maven Enforcer Plugin), `docs/keygo-server/CODE_STYLE.md`, `ROADMAP.md` (T-023, T-006 completada)
+
 ### [2026-03-17] Script de verificación de actividad del agente AI (extendido a AGENTS.md)
 **Contexto:** Creación y extensión de `scripts/check-ai-docs.sh` para verificar actividad reciente en los documentos de base de conocimiento AI.
 **Problema:** Inicialmente el script solo verificaba `AI_CONTEXT.md → ## Lecciones aprendidas`. `AGENTS.md` podía quedar desactualizado sin detectarse. Además, la lógica de escaneo estaba duplicada para cada archivo.
@@ -252,7 +268,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 
 - **T-001** — Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`): todas las rutas son actualmente públicas. Ver `ROADMAP.md T-001`.
 - **T-002** — Agregar mapper en `keygo-api/platform/` para descargar al controller del mapeo `ServiceInfoProvider → ServiceInfoData`. Ver `ROADMAP.md T-002`.
-- **T-006** — Configurar GitHub Actions con pipeline mínimo (test + package) en cada PR. Ver `ROADMAP.md T-006`.
+- **T-023** — Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless). Convención ya documentada en `docs/keygo-server/CODE_STYLE.md`. Ver `ROADMAP.md T-023`.
 
 ### Mediano plazo
 

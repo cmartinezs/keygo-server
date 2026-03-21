@@ -3,7 +3,7 @@
 > **Documento vivo.** Los agentes AI deben actualizar este archivo cuando generen nuevas propuestas
 > concretas al concluir tareas. Ver instrucciones de mantenimiento al final.
 
-## Estado actual del producto (2026-03-17)
+## Estado actual del producto (2026-03-21)
 
 | Dimensión | Estado |
 |---|---|
@@ -11,9 +11,10 @@
 | Autenticación | Sin implementar — sólo filtro Bootstrap de clave admin |
 | Persistencia | Entidades y repositorios JPA base (User, Role, Permission), sin conectar a puertos de negocio |
 | API pública | 2 endpoints: `GET /api/v1/service/info` y `GET /api/v1/response-codes` |
-| CI/CD | Sin pipelines activos |
+| CI/CD | ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) |
 | Stubs vacíos | `keygo-domain`, `keygo-infra`, `keygo-common` |
-| Tests | 80 tests unitarios — sin integración ni e2e |
+| Tests | 80+ tests unitarios — sin integración ni e2e |
+| Fase actual | **Fase 0 ✅ completa** — Siguiente: Fase 1 (Multitenancy) |
 
 ---
 
@@ -30,8 +31,8 @@
 | T-003 | Agregar `request/` bajo `keygo-api/platform/` para DTOs de entrada cuando aparezcan endpoints con body o query params | `keygo-api` | Anticipa crecimiento ordenado |
 | T-004 | Crear sub-paquetes `command/`, `query/` y `result/` en `keygo-app/platform/` al implementar el primer use case con entrada/salida propia | `keygo-app` | Patrón CQRS mínimo para separar intención |
 | T-005 | Restringir `management.endpoints.web.exposure.include` a `health,info` en el perfil `prod` | `keygo-run` | Actuator actualmente expone todos los endpoints (`"*"`) — riesgo de seguridad |
-| T-006 | Configurar GitHub Actions: pipeline mínimo que ejecute `./mvnw test` y `./mvnw clean package` en cada PR | CI | Sin CI activo, nada verifica builds automáticamente |
 | T-007 | Renombrar config de IntelliJ `.run/KeyGo Runner.run.xml` a `.run/KeygoApplication.run.xml` para reflejar el nombre actual de la clase principal | Infra dev | Consistencia tras renombrado de `KeyGoRunner` → `KeygoApplication` |
+| T-023 | Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless) en el `pom.xml` raíz; integrar como paso en CI | `pom.xml` raíz / CI | La convención de 2 espacios ya está documentada en `docs/keygo-server/CODE_STYLE.md`; falta enforcement automático |
 
 ---
 
@@ -154,6 +155,7 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-006 | Configurar GitHub Actions: pipeline CI mínimo con `./mvnw test` y `./mvnw clean package` en cada push/PR | 2026-03-21 | `.github/workflows/ci.yml` creado; Fase 0 cerrada |
 | — | Reorganizar paquetes internos por feature (keygo-api, keygo-app, keygo-run, keygo-supabase) | 2026-03-17 | Refactor de estructura interna |
 
 ---
