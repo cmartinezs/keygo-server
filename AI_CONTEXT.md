@@ -35,6 +35,8 @@ java -jar keygo-run/target/keygo-run-1.0-SNAPSHOT.jar
 - Service info: `GET /keygo-server/api/v1/service/info`
 - Response codes: `GET /keygo-server/api/v1/response-codes`
 - Health: `GET /keygo-server/actuator/health`
+- **Swagger UI:** `GET /keygo-server/swagger-ui/index.html` (público)
+- **OpenAPI spec:** `GET /keygo-server/v3/api-docs` (público)
 
 ## DB local (perfil supabase)
 
@@ -229,8 +231,18 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
 
-### [2026-03-21] Configuración de JaCoCo en monorepo Maven multi-módulo con Spring Boot 4
-**Contexto:** Implementación de la propuesta T-016 — configurar JaCoCo para cobertura de tests con umbral mínimo y reporte consolidado.
+### [2026-03-21] SpringDoc 3.0.1 con Spring Boot 4.x — integración y anotaciones de seguridad
+**Contexto:** Integración de Swagger / OpenAPI al proyecto usando `springdoc-openapi-starter-webmvc-ui`.
+**Problema:** Dos puntos críticos encontrados: (1) `@SecurityRequirementsOptional` **no existe** en `swagger-annotations-jakarta` — el compilador falla con "cannot find symbol". (2) La versión correcta para Spring Boot 4.x es **SpringDoc 3.x** (`springdoc-openapi-starter-webmvc-ui:3.0.1`); SpringDoc 2.x usa Spring Boot 3.x parent y puede no ser compatible con Spring 7/Jackson 3.
+**Solución / Buena práctica:**
+- Usar `springdoc-openapi-starter-webmvc-ui:3.0.1` (parent `spring-boot-starter-parent:4.0.1` confirmado en el POM).
+- Para marcar endpoints como **públicos** (sin autenticación en la UI): **no** usar ninguna anotación de seguridad en esos controllers/métodos. Si hay un `SecurityRequirement` global en `OpenAPI`, quitarlo y poner `@SecurityRequirement(name="...")` solo en los controllers que realmente lo necesitan.
+- La anotación correcta para controladores protegidos es `@SecurityRequirement(name = "AdminKeyAuth")` a nivel de clase o método.
+- La anotación `@SecurityRequirements({})` con array vacío también funciona para sobrescribir el global en un endpoint específico, pero es más limpio no tener global.
+- Agregar los prefijos `/swagger-ui` y `/v3/api-docs` en `KeyGoBootstrapProperties` + `BootstrapAdminKeyFilter.isPublicPath()` para preparar el futuro fix del bug T-001.
+**Archivos clave:** `keygo-run/config/OpenApiConfig.java`, `keygo-api/pom.xml`, `pom.xml` (raíz — propiedad `springdoc.version`), `BootstrapAdminKeyFilter.java`, `KeyGoBootstrapProperties.java`, `application.yml`
+
+### [2026-03-21] Configuración de JaCoCo en monorepo Maven multi-módulo con Spring Boot 4**Contexto:** Implementación de la propuesta T-016 — configurar JaCoCo para cobertura de tests con umbral mínimo y reporte consolidado.
 **Problema:** Tres puntos de atención en monorepos multi-módulo con JaCoCo: (1) los módulos sin código (`keygo-infra`, `keygo-common`) fallan silenciosamente el check si no se excluyen; (2) `keygo-bom` (empaquetado `pom`) también ejecuta JaCoCo aunque no tenga código — JaCoCo lo maneja con "Skipping due to missing execution data file", sin bloquear el build; (3) el goal `report-aggregate` requiere que el módulo ejecutor tenga como dependencias (directas o transitivas) todos los módulos que se quieren reportar — `keygo-run` es el candidato natural porque ya depende de todos.
 **Solución / Buena práctica:**
 - Configurar `prepare-agent` + `report` + `check` en `pluginManagement` del POM raíz y referenciarlos en `<build><plugins>` para que hereden todos los módulos.

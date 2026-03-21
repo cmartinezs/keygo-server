@@ -118,6 +118,8 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}` (PUT — update client app)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/rotate-secret` (POST — rotate secret)
 - `http://localhost:8080/keygo-server/actuator/health`
+- **`http://localhost:8080/keygo-server/swagger-ui/index.html`** — Swagger UI interactiva (público)
+- **`http://localhost:8080/keygo-server/v3/api-docs`** — OpenAPI JSON spec (público)
 
 ⚠️ **Known bug — `BootstrapAdminKeyFilter`:** uses `request.getRequestURI()` (returns `/keygo-server/api/...`) but path prefixes in `application.yml` are `/api/`, `/actuator/`, `/service/info` (no context-path prefix) → **filter never matches; all routes are currently public**. Fix: use `request.getServletPath()` instead.
 
@@ -128,6 +130,8 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.api-path-prefix` | `/api/` | Protected — requires `X-KEYGO-ADMIN` |
 | `keygo.bootstrap.actuator-path-prefix` | `/actuator/` | Public |
 | `keygo.bootstrap.service-info-path-prefix` | `/service/info` | Public |
+| `keygo.bootstrap.swagger-ui-path-prefix` | `/swagger-ui` | Public |
+| `keygo.bootstrap.api-docs-path-prefix` | `/v3/api-docs` | Public |
 
 ## Security header
 
@@ -319,8 +323,19 @@ Generación del archivo de guía rápida para agentes AI. Se agregó `check-ai-d
 comandos esenciales (flags `--days`, `--quiet`, `--help`; códigos de salida 0-3). Se extendió
 el script para verificar también `AGENTS.md → ## Registro de cambios`.
 
-### [2026-03-21] Fase 2 marcada como completada — Modelo de aplicaciones cliente
-Se implementó el modelo completo de aplicaciones cliente OAuth2 en los cinco módulos activos:
+### [2026-03-21] Swagger / OpenAPI integrado con SpringDoc 3.0.1
+Se integró documentación interactiva Swagger UI al proyecto usando `springdoc-openapi-starter-webmvc-ui:3.0.1` (compatible con Spring Boot 4.x):
+- **`keygo-api/pom.xml`**: dependencia `springdoc-openapi-starter-webmvc-ui:3.0.1` agregada.
+- **`pom.xml` raíz**: propiedad `<springdoc.version>3.0.1</springdoc.version>`.
+- **`application.yml`**: bloque `springdoc:` con configuración de UI; prefijos `swagger-ui-path-prefix` y `api-docs-path-prefix` en `keygo.bootstrap`.
+- **`KeyGoBootstrapProperties`**: campos `swaggerUiPathPrefix` y `apiDocsPathPrefix`.
+- **`BootstrapAdminKeyFilter`**: `isPublicPath()` extendido para incluir ambos prefijos.
+- **`OpenApiConfig`** (nuevo en `keygo-run`): bean `OpenAPI` con info, licencia, contacto y `SecurityScheme` de tipo API Key (`X-KEYGO-ADMIN`); 3 `GroupedOpenApi` beans: `platform`, `tenants`, `client-apps`.
+- **Controllers anotados** con `@Tag`, `@Operation`, `@ApiResponse`/`@ApiResponses`, `@Parameter`, `@SecurityRequirement` donde corresponde.
+- Swagger UI en: `http://localhost:8080/keygo-server/swagger-ui/index.html`
+- OpenAPI spec en: `http://localhost:8080/keygo-server/v3/api-docs`
+
+### [2026-03-21] Fase 2 marcada como completada — Modelo de aplicaciones clienteSe implementó el modelo completo de aplicaciones cliente OAuth2 en los cinco módulos activos:
 - **`keygo-domain`**: entidades de dominio puras `ClientApp`, `ClientAppId`, `ClientId`, `ClientType`, `ClientAppStatus`, `AllowedGrant`, `AllowedScope`, `RedirectUri`, `AccessPolicy`; excepciones `ClientAppNotFoundException`, `InvalidRedirectUriException`, `UnsupportedGrantTypeException`. Sin Spring ni JPA.
 - **`keygo-app`**: puertos `ClientAppRepositoryPort`, `ClientSecretEncoderPort`, `ClientCredentialGeneratorPort`; comandos `CreateClientAppCommand`, `UpdateClientAppCommand`; result records `CreateClientAppResult`, `RotateSecretResult`; casos de uso `CreateClientAppUseCase`, `ListClientAppsUseCase`, `GetClientAppUseCase`, `UpdateClientAppUseCase`, `RotateClientSecretUseCase`, `ResolveClientAppForAuthorizationUseCase`.
 - **`keygo-supabase`**: `ClientAppEntity`, `ClientRedirectUriEntity`, `ClientAllowedGrantEntity`, `ClientAllowedScopeEntity` (JPA), `ClientAppJpaRepository`, `ClientAppPersistenceMapper`, `ClientAppRepositoryAdapter` (`@Repository`), migración `V5__add_client_apps.sql`.

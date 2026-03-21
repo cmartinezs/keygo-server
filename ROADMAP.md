@@ -158,6 +158,7 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-027 | Integrar Swagger / OpenAPI con SpringDoc 3.0.1 (compatible Spring Boot 4.x): `OpenApiConfig` en `keygo-run`, anotaciones `@Tag`/`@Operation`/`@ApiResponses` en los 4 controllers, 3 grupos de API, SecurityScheme `AdminKeyAuth` | 2026-03-21 | `keygo-run/config/OpenApiConfig.java` nuevo; `keygo-api/pom.xml` dependencia springdoc 3.0.1; controllers anotados; Swagger UI en `/keygo-server/swagger-ui/index.html` |
 | T-016 | Configurar JaCoCo para cobertura de tests y fallar el build si baja del umbral definido | 2026-03-21 | Plugin en `pom.xml` raíz; umbral 60% instrucciones; `report-aggregate` en `keygo-run`; CI actualizado a `./mvnw verify` |
 | T-006 | Configurar GitHub Actions: pipeline CI mínimo con `./mvnw test` y `./mvnw clean package` en cada push/PR | 2026-03-21 | `.github/workflows/ci.yml` creado; Fase 0 cerrada |
 | — | Reorganizar paquetes internos por feature (keygo-api, keygo-app, keygo-run, keygo-supabase) | 2026-03-17 | Refactor de estructura interna |

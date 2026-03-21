@@ -46,6 +46,14 @@ public class KeyGoBootstrapProperties {
    * Debe ser configurado en application.yml (ej., "/service/info") */
   private String serviceInfoPathPrefix;
 
+  /* Swagger UI path prefix that is public.
+   * Prefijo de ruta de Swagger UI que es público. */
+  private String swaggerUiPathPrefix;
+
+  /* API docs path prefix that is public.
+   * Prefijo de ruta de API docs que es público. */
+  private String apiDocsPathPrefix;
+
   /**
    * Validates that adminKey is not blank when enabled is true.
    * <p>Valida que adminKey no esté vacía cuando enabled es true.

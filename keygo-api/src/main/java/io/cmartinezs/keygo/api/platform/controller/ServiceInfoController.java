@@ -6,6 +6,11 @@ import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.platform.response.ServiceInfoData;
 import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
 import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/service")
+@Tag(name = "Platform", description = "Public platform endpoints — no authentication required")
 public class ServiceInfoController {
 
   private final GetServiceInfoUseCase getServiceInfoUseCase;
@@ -36,6 +42,14 @@ public class ServiceInfoController {
    * @return ResponseEntity with BaseResponse containing service information
    */
   @GetMapping("/info")
+  @Operation(
+      summary = "Get service information",
+      description = "Returns public metadata about the running service: title, name, and version. "
+                    + "This endpoint does not require authentication.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Service information retrieved successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<ServiceInfoData>> getServiceInfo() {
     ServiceInfoProvider info = getServiceInfoUseCase.execute();
 

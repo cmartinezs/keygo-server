@@ -40,6 +40,8 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flyway.version>11.20.3</flyway.version>
+        <!-- SpringDoc OpenAPI -->
+        <springdoc.version>3.0.1</springdoc.version>
         <!-- JaCoCo -->
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.skip>false</jacoco.skip>

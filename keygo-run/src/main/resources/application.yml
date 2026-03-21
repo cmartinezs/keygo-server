@@ -9,6 +9,17 @@ keygo:
     api-path-prefix: "/api/"
     actuator-path-prefix: "/actuator/"
     service-info-path-prefix: "/service/info"
+    swagger-ui-path-prefix: "/swagger-ui"
+    api-docs-path-prefix: "/v3/api-docs"
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+  show-actuator: false
 spring:
   application:
     name: "${keygo.info.name}-${keygo.info.version}"

@@ -19,6 +19,13 @@ import io.cmartinezs.keygo.app.clientapp.usecase.UpdateClientAppUseCase;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedScope;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.RedirectUri;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +41,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps")
+@Tag(name = "Client Apps", description = "OAuth2 client application management per tenant — requires X-KEYGO-ADMIN header")
+@SecurityRequirement(name = "AdminKeyAuth")
 public class TenantClientAppController {
 
   private final CreateClientAppUseCase createClientAppUseCase;
@@ -63,8 +72,20 @@ public class TenantClientAppController {
    * @return 201 Created with clientId and raw secret
    */
   @PostMapping
+  @Operation(
+      summary = "Create a client application",
+      description = "Registers a new OAuth2 client application under the specified tenant. "
+                    + "Returns the `clientId` and a one-time visible `clientSecret` — store it securely.")
+  @ApiResponse(responseCode = "201", description = "Client app created successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid request body",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppSecretData>> createClientApp(
-      @PathVariable String tenantSlug,
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Valid @RequestBody CreateClientAppRequest request) {
 
     CreateClientAppResult result = createClientAppUseCase.execute(
@@ -97,8 +118,17 @@ public class TenantClientAppController {
    * @return 200 OK with the list of client apps
    */
   @GetMapping
+  @Operation(
+      summary = "List client applications",
+      description = "Returns all OAuth2 client applications registered under the specified tenant.")
+  @ApiResponse(responseCode = "200", description = "Client apps retrieved successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<List<ClientAppData>>> listClientApps(
-      @PathVariable String tenantSlug) {
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
 
     List<ClientApp> apps = listClientAppsUseCase.execute(tenantSlug);
 
@@ -122,9 +152,18 @@ public class TenantClientAppController {
    * @return 200 OK with the client app data
    */
   @GetMapping("/{clientId}")
+  @Operation(
+      summary = "Get client application",
+      description = "Retrieves details of a specific OAuth2 client application by its `clientId`.")
+  @ApiResponse(responseCode = "200", description = "Client app retrieved successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppData>> getClientApp(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "OAuth2 client_id", example = "a1b2c3d4-e5f6-...") @PathVariable String clientId) {
 
     ClientApp clientApp = getClientAppUseCase.execute(tenantSlug, clientId);
 
@@ -145,9 +184,20 @@ public class TenantClientAppController {
    * @return 200 OK with the updated client app data
    */
   @PutMapping("/{clientId}")
+  @Operation(
+      summary = "Update client application",
+      description = "Updates name, description, redirect URIs, grants or scopes of an existing client app.")
+  @ApiResponse(responseCode = "200", description = "Client app updated successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid request body",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppData>> updateClientApp(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId,
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "OAuth2 client_id", example = "a1b2c3d4-e5f6-...") @PathVariable String clientId,
       @Valid @RequestBody UpdateClientAppRequest request) {
 
     ClientApp clientApp = updateClientAppUseCase.execute(
@@ -176,9 +226,19 @@ public class TenantClientAppController {
    * @return 200 OK with the new raw secret
    */
   @PostMapping("/{clientId}/rotate-secret")
+  @Operation(
+      summary = "Rotate client secret",
+      description = "Generates a new `clientSecret` for a confidential client app, invalidating the previous one. "
+                    + "The new secret is returned once — store it securely.")
+  @ApiResponse(responseCode = "200", description = "Client secret rotated successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppSecretData>> rotateClientSecret(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "OAuth2 client_id", example = "a1b2c3d4-e5f6-...") @PathVariable String clientId) {
 
     RotateSecretResult result = rotateClientSecretUseCase.execute(tenantSlug, clientId);
 

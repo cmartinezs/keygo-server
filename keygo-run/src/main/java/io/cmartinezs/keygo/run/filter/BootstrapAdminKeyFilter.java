@@ -86,7 +86,11 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
    */
   private boolean isPublicPath(String path) {
     return path.startsWith(bootstrapProperties.getActuatorPathPrefix())
-        || path.startsWith(bootstrapProperties.getServiceInfoPathPrefix());
+        || path.startsWith(bootstrapProperties.getServiceInfoPathPrefix())
+        || (bootstrapProperties.getSwaggerUiPathPrefix() != null
+            && path.startsWith(bootstrapProperties.getSwaggerUiPathPrefix()))
+        || (bootstrapProperties.getApiDocsPathPrefix() != null
+            && path.startsWith(bootstrapProperties.getApiDocsPathPrefix()));
   }
 
   /**

@@ -10,6 +10,13 @@ import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +31,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/tenants")
+@Tag(name = "Tenants", description = "Tenant lifecycle management — requires X-KEYGO-ADMIN header")
+@SecurityRequirement(name = "AdminKeyAuth")
 public class PlatformTenantController {
 
   private final CreateTenantUseCase createTenantUseCase;
@@ -47,6 +56,16 @@ public class PlatformTenantController {
    * @return 201 Created with the tenant data / 201 Created con los datos del tenant
    */
   @PostMapping
+  @Operation(
+      summary = "Create a new tenant",
+      description = "Creates a new tenant with the given name, slug, and owner email. "
+                    + "The slug must be unique and lowercase alphanumeric with optional hyphens.")
+  @ApiResponse(responseCode = "201", description = "Tenant created successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid request body",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<TenantData>> createTenant(
       @Valid @RequestBody CreateTenantRequest request) {
 
@@ -69,7 +88,18 @@ public class PlatformTenantController {
    * @return 200 OK with the tenant data / 200 OK con los datos del tenant
    */
   @GetMapping("/{slug}")
-  public ResponseEntity<BaseResponse<TenantData>> getTenantBySlug(@PathVariable String slug) {
+  @Operation(
+      summary = "Get tenant by slug",
+      description = "Retrieves tenant details by its unique slug identifier.")
+  @ApiResponse(responseCode = "200", description = "Tenant retrieved successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  public ResponseEntity<BaseResponse<TenantData>> getTenantBySlug(
+      @Parameter(description = "Unique slug identifier of the tenant", example = "my-company")
+      @PathVariable String slug) {
 
     Tenant tenant = getTenantBySlugUseCase.execute(slug);
 
@@ -89,7 +119,20 @@ public class PlatformTenantController {
    * @return 200 OK with the suspended tenant data / 200 OK con los datos del tenant suspendido
    */
   @PutMapping("/{slug}/suspend")
-  public ResponseEntity<BaseResponse<TenantData>> suspendTenant(@PathVariable String slug) {
+  @Operation(
+      summary = "Suspend a tenant",
+      description = "Suspends an active tenant. A suspended tenant cannot be used for authentication.")
+  @ApiResponse(responseCode = "200", description = "Tenant suspended successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "403", description = "Tenant is already suspended",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  public ResponseEntity<BaseResponse<TenantData>> suspendTenant(
+      @Parameter(description = "Unique slug identifier of the tenant", example = "my-company")
+      @PathVariable String slug) {
 
     Tenant tenant = suspendTenantUseCase.execute(slug);
 
