@@ -24,6 +24,13 @@ public enum ResponseCode {
   TENANT_RETRIEVED("TENANT_RETRIEVED", "Tenant retrieved successfully"),
   TENANT_SUSPENDED("TENANT_SUSPENDED", "Tenant suspended successfully"),
 
+  // Client App Operations
+  CLIENT_APP_CREATED("CLIENT_APP_CREATED", "Client application created successfully"),
+  CLIENT_APP_RETRIEVED("CLIENT_APP_RETRIEVED", "Client application retrieved successfully"),
+  CLIENT_APP_LIST_RETRIEVED("CLIENT_APP_LIST_RETRIEVED", "Client application list retrieved successfully"),
+  CLIENT_APP_UPDATED("CLIENT_APP_UPDATED", "Client application updated successfully"),
+  CLIENT_APP_SECRET_ROTATED("CLIENT_APP_SECRET_ROTATED", "Client application secret rotated successfully"),
+
   // Generic Operations (use when no specific code applies)
   OPERATION_COMPLETED("OPERATION_COMPLETED", "Operation completed successfully"),
   RESOURCE_CREATED("RESOURCE_CREATED", "Resource created successfully"),

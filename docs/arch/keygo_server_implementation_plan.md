@@ -116,7 +116,7 @@ Base estructural limpia, sin deuda obvia de organización, lista para agregar ne
 
 ---
 
-## Fase 1. Núcleo de multitenancy
+## Fase 1. Núcleo de multitenancy ✅ COMPLETADA (2026-03-21)
 
 ### Objetivo
 Introducir tenant como concepto obligatorio antes de cualquier flujo funcional serio.
@@ -130,59 +130,82 @@ Introducir tenant como concepto obligatorio antes de cualquier flujo funcional s
 
 ### Componentes a crear
 
-## 1.1. Dominio
+## 1.1. Dominio ✅
 
 ### `tenant/model`
-- `Tenant`
-- `TenantId`
-- `TenantSlug`
-- `TenantStatus`
+- `Tenant` ✅
+- `TenantId` ✅
+- `TenantSlug` ✅
+- `TenantStatus` ✅
 
 ### `tenant/exception`
-- `TenantNotFoundException`
-- `TenantSuspendedException`
+- `TenantNotFoundException` ✅
+- `TenantSuspendedException` ✅
 
-## 1.2. Aplicación
+## 1.2. Aplicación ✅
 
 ### Puertos
-- `TenantRepositoryPort`
+- `TenantRepositoryPort` ✅
 
 ### Casos de uso mínimos
-- `CreateTenantUseCase`
-- `GetTenantBySlugUseCase`
-- `SuspendTenantUseCase`
+- `CreateTenantUseCase` ✅
+- `GetTenantBySlugUseCase` ✅
+- `SuspendTenantUseCase` ✅
 
-## 1.3. Persistencia
+### Comando
+- `CreateTenantCommand` ✅
+
+### Contexto
+- `TenantContextHolder` (ThreadLocal, sin Spring) ✅
+
+## 1.3. Persistencia ✅
 
 ### En `keygo-supabase`
-- `TenantJpaEntity`
-- `TenantJpaRepository`
-- `TenantPersistenceMapper`
-- `TenantRepositoryAdapter`
+- `TenantEntity` ✅ (renombrado de `TenantJpaEntity`)
+- `TenantJpaRepository` ✅
+- `TenantPersistenceMapper` ✅
+- `TenantRepositoryAdapter` ✅
 
 ### Migración inicial
-- tabla `tenant`
+- tabla `tenants` — `V4__add_tenants.sql` ✅
 
-## 1.4. API
+## 1.4. API ✅
 
 ### Control plane básico
-- `PlatformTenantController`
+- `PlatformTenantController` ✅
+  - `POST /api/v1/tenants` — crear tenant ✅
+  - `GET /api/v1/tenants/{slug}` — consultar tenant ✅
+  - `PUT /api/v1/tenants/{slug}/suspend` — suspender tenant ✅
+
+### DTOs
+- `CreateTenantRequest` (record con `@Valid`) ✅
+- `TenantData` (Lombok builder) ✅
+
+### Response codes
+- `TENANT_CREATED`, `TENANT_RETRIEVED`, `TENANT_SUSPENDED` ✅
+
+### Error handlers en `GlobalExceptionHandler`
+- `TenantNotFoundException` → 404 ✅
+- `TenantSuspendedException` → 403 ✅
 
 ### Seguridad / contexto
-- `TenantResolver`
-- `TenantContextHolder` o equivalente
-- estrategia de resolución por subdominio
+- `TenantResolutionFilter` (header `X-Tenant-Slug` → valida tenant → guarda en `TenantContextHolder`) ✅
 
-### Resultado esperado
+### Tests
+- 39 tests unitarios nuevos: 28 domain, 8 app, 4 api, 4 supabase, 4 run ✅
+
+### Resultado esperado ✅ ALCANZADO
 Ya se puede:
 - crear tenant,
 - consultar tenant,
 - resolver tenant por request,
 - bloquear operación si tenant está suspendido.
 
+> **Siguiente fase:** Fase 2 — Modelo de aplicaciones cliente
+
 ---
 
-## Fase 2. Modelo de aplicaciones cliente
+## Fase 2. Modelo de aplicaciones cliente ✅ COMPLETADA (2026-03-21)
 
 ### Objetivo
 Permitir que el tenant registre apps para autenticarse vía Key-go.
@@ -192,73 +215,110 @@ Permitir que el tenant registre apps para autenticarse vía Key-go.
 - `keygo-app`
 - `keygo-supabase`
 - `keygo-api`
+- `keygo-run`
 
-### Componentes a crear
+### Componentes creados
 
-## 2.1. Dominio
+## 2.1. Dominio ✅
 
 ### `clientapp/model`
-- `ClientApp`
-- `ClientAppId`
-- `ClientId`
-- `ClientType`
-- `RedirectUri`
-- `AccessPolicy`
-- `AllowedGrant`
-- `AllowedScope`
-- `ClientAppStatus`
+- `ClientApp` ✅
+- `ClientAppId` ✅
+- `ClientId` ✅
+- `ClientType` ✅ (PUBLIC, CONFIDENTIAL)
+- `ClientAppStatus` ✅ (ACTIVE, SUSPENDED, PENDING)
+- `AllowedGrant` ✅ (AUTHORIZATION_CODE, CLIENT_CREDENTIALS, REFRESH_TOKEN, IMPLICIT)
+- `AllowedScope` ✅
+- `RedirectUri` ✅
+- `AccessPolicy` ✅
 
 ### `clientapp/exception`
-- `ClientAppNotFoundException`
-- `InvalidRedirectUriException`
-- `UnsupportedGrantTypeException`
+- `ClientAppNotFoundException` ✅
+- `InvalidRedirectUriException` ✅
+- `UnsupportedGrantTypeException` ✅
 
-## 2.2. Aplicación
+## 2.2. Aplicación ✅
 
 ### Puertos
-- `ClientAppRepositoryPort`
-- `ClientSecretEncoderPort`
-- `ClientCredentialGeneratorPort`
+- `ClientAppRepositoryPort` ✅
+- `ClientSecretEncoderPort` ✅
+- `ClientCredentialGeneratorPort` ✅
+
+### Comandos
+- `CreateClientAppCommand` ✅
+- `UpdateClientAppCommand` ✅
+
+### Result records
+- `CreateClientAppResult` ✅ (devuelve rawSecret solo en creación)
+- `RotateSecretResult` ✅ (devuelve newRawSecret solo al rotar)
 
 ### Casos de uso mínimos
-- `CreateClientAppUseCase`
-- `ListClientAppsUseCase`
-- `GetClientAppUseCase`
-- `UpdateClientAppUseCase`
-- `RotateClientSecretUseCase`
-- `ResolveClientAppForAuthorizationUseCase`
+- `CreateClientAppUseCase` ✅
+- `ListClientAppsUseCase` ✅
+- `GetClientAppUseCase` ✅
+- `UpdateClientAppUseCase` ✅
+- `RotateClientSecretUseCase` ✅
+- `ResolveClientAppForAuthorizationUseCase` ✅
 
-## 2.3. Persistencia
-- `ClientAppJpaEntity`
-- `ClientRedirectUriJpaEntity`
-- `ClientAllowedGrantJpaEntity`
-- `ClientAllowedScopeJpaEntity`
-- `ClientAppJpaRepository`
-- `ClientAppRepositoryAdapter`
+## 2.3. Persistencia ✅
+
+### Entidades JPA (`keygo-supabase`)
+- `ClientAppEntity` ✅
+- `ClientRedirectUriEntity` ✅
+- `ClientAllowedGrantEntity` ✅
+- `ClientAllowedScopeEntity` ✅
+- `ClientAppJpaRepository` ✅
+- `ClientAppPersistenceMapper` ✅
+- `ClientAppRepositoryAdapter` ✅
 
 ### Migraciones
-- tabla `client_app`
-- tabla `client_redirect_uri`
-- tabla `client_allowed_grant`
-- tabla `client_allowed_scope`
+- `V5__add_client_apps.sql` ✅ — tablas: `client_apps`, `client_redirect_uris`, `client_allowed_grants`, `client_allowed_scopes`
 
-## 2.4. API
+## 2.4. API ✅
 
-### Tenant plane
-- `TenantAdminAppController`
+### Controller
+- `TenantClientAppController` ✅
 
-### DTOs mínimos
-- create app request/response
-- update app request/response
-- rotate secret response
+### Endpoints implementados
+- `POST /api/v1/tenants/{slug}/apps` ✅ — crear app (devuelve clientId + secret)
+- `GET /api/v1/tenants/{slug}/apps` ✅ — listar apps
+- `GET /api/v1/tenants/{slug}/apps/{clientId}` ✅ — obtener app
+- `PUT /api/v1/tenants/{slug}/apps/{clientId}` ✅ — actualizar app
+- `POST /api/v1/tenants/{slug}/apps/{clientId}/rotate-secret` ✅ — rotar secret
 
-### Resultado esperado
+### DTOs
+- `CreateClientAppRequest` ✅
+- `UpdateClientAppRequest` ✅
+- `ClientAppData` ✅
+- `ClientAppSecretData` ✅
+
+### Response codes
+- `CLIENT_APP_CREATED`, `CLIENT_APP_RETRIEVED`, `CLIENT_APP_LIST_RETRIEVED`, `CLIENT_APP_UPDATED`, `CLIENT_APP_SECRET_ROTATED` ✅
+
+### Error handlers en `GlobalExceptionHandler`
+- `ClientAppNotFoundException` → 404 ✅
+- `InvalidRedirectUriException` → 400 ✅
+- `UnsupportedGrantTypeException` → 400 ✅
+
+## 2.5. Run ✅
+- `BCryptClientSecretEncoder` (`ClientSecretEncoderPort`) ✅
+- `UuidClientCredentialGenerator` (`ClientCredentialGeneratorPort`) ✅
+- dependencia `spring-security-crypto` ✅
+- 8 `@Bean` nuevos en `ApplicationConfig` ✅
+
+### Tests
+- ~40 tests unitarios: domain (36), app (16), api (7), supabase (2) ✅
+
+### Resultado alcanzado ✅
 El admin del tenant ya puede:
-- registrar apps,
+- registrar apps (PUBLIC o CONFIDENTIAL),
 - configurar redirect URIs,
-- definir grants,
-- obtener `client_id`,
-- rotar secret.
+- definir grants y scopes,
+- obtener `client_id` generado automáticamente,
+- obtener el `client_secret` en texto plano una sola vez (CONFIDENTIAL),
+- rotar el secret cuando sea necesario.
+
+> **Siguiente fase:** Fase 3 — Identidad de usuario
 
 ---
 
@@ -793,12 +853,12 @@ ya existan y estén razonablemente estables.
 
 ## Sprint 0 ✅ COMPLETADO (2026-03-21)
 - Fase 0 completa ✅
-- Fase 1 parcial o completa → **pendiente**
+- Fase 1 completa ✅
+- Fase 2 completa ✅
 
 ## Sprint 1
-- completar Fase 1
-- completar Fase 2
-- avanzar Fase 3
+- completar Fase 3
+- avanzar Fase 4
 
 ## Sprint 2
 - completar Fase 3

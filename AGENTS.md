@@ -5,7 +5,7 @@
 ## Module map & dependency rules
 
 ```
-keygo-domain   ← pure Java, NO Spring, NO internal deps  [Tenant model ✅]
+keygo-domain   ← pure Java, NO Spring, NO internal deps  [Tenant ✅, ClientApp ✅]
 keygo-app      ← usecases + port interfaces (OUT); depends on domain
 keygo-infra    ← generic port impls; depends on app         [🚧 stub]
 keygo-api      ← REST controllers + DTOs; depends on app
@@ -112,6 +112,11 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants` (POST — create)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}` (GET — retrieve)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/suspend` (PUT — suspend)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps` (POST — create client app)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps` (GET — list client apps)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}` (GET — get client app)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}` (PUT — update client app)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/rotate-secret` (POST — rotate secret)
 - `http://localhost:8080/keygo-server/actuator/health`
 
 ⚠️ **Known bug — `BootstrapAdminKeyFilter`:** uses `request.getRequestURI()` (returns `/keygo-server/api/...`) but path prefixes in `application.yml` are `/api/`, `/actuator/`, `/service/info` (no context-path prefix) → **filter never matches; all routes are currently public**. Fix: use `request.getServletPath()` instead.
@@ -144,6 +149,10 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `RoleEntity` | `membership.entity` | `roles` | `@ManyToMany` → `PermissionEntity` via `role_permissions` |
 | `PermissionEntity` | `membership.entity` | `permissions` | `action` field is `enum Action {CREATE,READ,UPDATE,DELETE,EXECUTE}` |
 | `TenantEntity` | `tenant.entity` | `tenants` | `slug` unique index; `status` enum `ACTIVE\|SUSPENDED\|PENDING` |
+| `ClientAppEntity` | `clientapp.entity` | `client_apps` | `@ManyToOne` → `TenantEntity`; `@OneToMany(cascade=ALL, orphanRemoval=true)` → redirect URIs, grants, scopes |
+| `ClientRedirectUriEntity` | `clientapp.entity` | `client_redirect_uris` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
+| `ClientAllowedGrantEntity` | `clientapp.entity` | `client_allowed_grants` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`; `grantType` mapped as `AllowedGrant` enum |
+| `ClientAllowedScopeEntity` | `clientapp.entity` | `client_allowed_scopes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -152,14 +161,16 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `UserRepository` | `user.repository` |
 | `RoleRepository` | `membership.repository` |
 | `TenantJpaRepository` | `tenant.repository` |
+| `ClientAppJpaRepository` | `clientapp.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
 - `V2__seed_data.sql` — seed data
 - `V3__add_oauth_support.sql` — oauth_providers, oauth_tokens tables
 - `V4__add_tenants.sql` — tenants table (slug unique, status check constraint)
+- `V5__add_client_apps.sql` — client_apps, client_redirect_uris, client_allowed_grants, client_allowed_scopes tables
 
-Next migration must be `V5__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V6__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -187,8 +198,8 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | Phase | Focus | Status |
 |---|---|---|
 | 0 | Structural hardening (module deps, package org, conventions, CI, quality baseline) | ✅ Done (2026-03-21) |
-| 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | 🔄 In progress (2026-03-21) |
-| 2 | Client app model (`ClientApp`, redirect URIs, grants) | — |
+| 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | ✅ Done (2026-03-21) |
+| 2 | Client app model (`ClientApp`, redirect URIs, grants, secret rotation) | ✅ Done (2026-03-21) |
 | 3 | User identity per tenant | — |
 | 4 | Memberships & roles per app | — |
 | 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | — |
@@ -233,6 +244,13 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-21] Fase 1 marcada como completada — estado sincronizado
+La Fase 1 (Núcleo de multitenancy) ya estaba implementada pero no estaba marcada como completada en los documentos de referencia.
+Se actualizaron los siguientes archivos:
+- **`AGENTS.md`** (`## Implementation plan`): Fase 1 cambiada de `🔄 In progress` a `✅ Done`.
+- **`ROADMAP.md`** (`Estado actual del producto`): "Fase actual" actualizada a "Fase 2 — siguiente".
+- **`docs/arch/keygo_server_implementation_plan.md`**: sección Fase 1 decorada con `✅ COMPLETADA (2026-03-21)`, todos los componentes marcados con ✅, y Sprint 0 actualizado para reflejar que ambas fases están completas.
 
 ### [2026-03-21] Colecciones Postman creadas en `postman/`
 Se crearon dos archivos bajo `postman/` para pruebas funcionales manuales:
@@ -301,7 +319,17 @@ Generación del archivo de guía rápida para agentes AI. Se agregó `check-ai-d
 comandos esenciales (flags `--days`, `--quiet`, `--help`; códigos de salida 0-3). Se extendió
 el script para verificar también `AGENTS.md → ## Registro de cambios`.
 
-### [2026-03-17] Actualización tras análisis del codebase
+### [2026-03-21] Fase 2 marcada como completada — Modelo de aplicaciones cliente
+Se implementó el modelo completo de aplicaciones cliente OAuth2 en los cinco módulos activos:
+- **`keygo-domain`**: entidades de dominio puras `ClientApp`, `ClientAppId`, `ClientId`, `ClientType`, `ClientAppStatus`, `AllowedGrant`, `AllowedScope`, `RedirectUri`, `AccessPolicy`; excepciones `ClientAppNotFoundException`, `InvalidRedirectUriException`, `UnsupportedGrantTypeException`. Sin Spring ni JPA.
+- **`keygo-app`**: puertos `ClientAppRepositoryPort`, `ClientSecretEncoderPort`, `ClientCredentialGeneratorPort`; comandos `CreateClientAppCommand`, `UpdateClientAppCommand`; result records `CreateClientAppResult`, `RotateSecretResult`; casos de uso `CreateClientAppUseCase`, `ListClientAppsUseCase`, `GetClientAppUseCase`, `UpdateClientAppUseCase`, `RotateClientSecretUseCase`, `ResolveClientAppForAuthorizationUseCase`.
+- **`keygo-supabase`**: `ClientAppEntity`, `ClientRedirectUriEntity`, `ClientAllowedGrantEntity`, `ClientAllowedScopeEntity` (JPA), `ClientAppJpaRepository`, `ClientAppPersistenceMapper`, `ClientAppRepositoryAdapter` (`@Repository`), migración `V5__add_client_apps.sql`.
+- **`keygo-api`**: `TenantClientAppController` con 5 endpoints, `CreateClientAppRequest`, `UpdateClientAppRequest`, `ClientAppData`, `ClientAppSecretData`, 5 `ResponseCode` nuevos (`CLIENT_APP_CREATED`, `CLIENT_APP_RETRIEVED`, `CLIENT_APP_LIST_RETRIEVED`, `CLIENT_APP_UPDATED`, `CLIENT_APP_SECRET_ROTATED`), 3 handlers en `GlobalExceptionHandler` para las excepciones de dominio.
+- **`keygo-run`**: `BCryptClientSecretEncoder`, `UuidClientCredentialGenerator`; dependencia `spring-security-crypto`; 8 `@Bean` nuevos en `ApplicationConfig`.
+- **Tests**: ~40 tests unitarios nuevos distribuidos en domain (36), app (16), api (7), supabase (2).
+- **Postman**: carpeta `📦 Client Apps` con 5 requests y variable `clientId` en el entorno local.
+
+### [2026-03-17] Creación inicial + script check-ai-docs.sh
 Se agregaron las siguientes secciones y datos faltantes identificados al comparar el doc con el código real:
 - **Spring Boot 4.0.3 + Jackson 3.x**: nueva sección con los imports correctos (`tools.jackson.*`) y los incorrectos (`com.fasterxml.jackson.*`). Crítico para compilación.
 - **GlobalExceptionHandler**: tabla de excepciones → HTTP status → `ResponseCode` mapeadas por el `@RestControllerAdvice` en `keygo-api`.

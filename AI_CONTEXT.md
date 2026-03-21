@@ -295,6 +295,24 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Crear archivos bajo `postman/` siguiendo el schema Postman Collection v2.1.0. Puntos clave: (1) autenticación `apikey` a nivel de colección con `X-KEYGO-ADMIN` → heredada automáticamente por todos los requests protegidos; (2) pre-request script global que compone `{{fullBaseUrl}}` desde variables de entorno; (3) pre-request en `POST Create Tenant` que genera slug único con timestamp para evitar conflictos entre ejecuciones; (4) script post-request guarda `tenantSlug` en el entorno para reutilizarlo en requests subsiguientes; (5) los endpoints públicos (Service Info, Actuator) overridean auth a `noauth`. Incluir siempre respuestas de ejemplo en cada request facilita la comprensión sin ejecutar.
 **Archivos clave:** `postman/KeyGo-Server.postman_collection.json`, `postman/KeyGo-Server-Local.postman_environment.json`
 
+### [2026-03-21] Fase 2 — ClientApp: import faltante de enum en use case
+**Contexto:** Implementación de la Fase 2 (modelo de aplicaciones cliente) — creación de `CreateClientAppUseCase` que referencia `ClientType.CONFIDENTIAL`.
+**Problema:** El compilador reportó "package ClientType does not exist" porque `ClientType` no estaba importado explícitamente, aunque otros tipos del mismo paquete (`ClientApp`, `ClientAppId`, etc.) sí lo estaban. Ocurre cuando se agrega un tipo de dominio en un if-check dentro del mismo método sin recordar el import.
+**Solución / Buena práctica:** Al agregar comparaciones de enum (`ClientType.CONFIDENTIAL.equals(...)`) en un use case, siempre verificar que el enum esté en la lista de imports. El compilador de javac no infiere imports implícitos. La detección fue rápida al ejecutar `./mvnw test --also-make -pl keygo-app` en lugar del build completo.
+**Archivos clave:** `keygo-app/.../clientapp/usecase/CreateClientAppUseCase.java`
+
+### [2026-03-21] Fase 2 — Patrón de orphanRemoval en colecciones JPA de entidades hijo
+**Contexto:** Diseño de `ClientAppEntity` con colecciones `@OneToMany(cascade=ALL, orphanRemoval=true)` para `ClientRedirectUriEntity`, `ClientAllowedGrantEntity`, `ClientAllowedScopeEntity`.
+**Problema:** Si al actualizar la entidad padre se reasigna directamente la referencia de la lista (`entity.setRedirectUris(newList)`), `orphanRemoval` no elimina los hijos anteriores porque Hibernate pierde el tracking de la colección original. Esto genera registros huérfanos en DB.
+**Solución / Buena práctica:** Para que `orphanRemoval` funcione correctamente al actualizar colecciones: usar `entity.getRedirectUris().clear()` seguido de `entity.getRedirectUris().addAll(nuevaLista)`. Nunca reasignar la referencia de la colección. Este patrón está implementado en `ClientAppPersistenceMapper.toEntity()`. Aplicar también en futuros adapters con relaciones `@OneToMany` + `orphanRemoval`.
+**Archivos clave:** `keygo-supabase/.../clientapp/mapper/ClientAppPersistenceMapper.java`, `keygo-supabase/.../clientapp/entity/ClientAppEntity.java`
+
+### [2026-03-21] Fase 2 — TenantEntity como referencia no-managed en ClientAppRepositoryAdapter
+**Contexto:** Al guardar un `ClientApp`, el adapter necesita asociar el `TenantEntity` correcto en la FK `tenant_id` de `ClientAppEntity` sin cargar el tenant desde la DB.
+**Problema:** JPA requiere una referencia a una entidad para la asociación `@ManyToOne`. No es posible pasar un UUID directamente como FK en la entidad. Pero cargar el `TenantEntity` completo solo para asociarlo sería ineficiente.
+**Solución / Buena práctica:** Crear una instancia de `TenantEntity` con solo el `id` seteado (`new TenantEntity(); tenantRef.setId(id)`) y asignarla a `entity.setTenant(tenantRef)`. JPA/Hibernate trata esto como una referencia a un proxy de la entidad existente, resolviendo la FK sin hacer una query adicional. Este patrón es seguro cuando la FK ya existe en DB. Alternativa más idiomática en JPA: usar `entityManager.getReference(TenantEntity.class, id)`.
+**Archivos clave:** `keygo-supabase/.../clientapp/adapter/ClientAppRepositoryAdapter.java`
+
 ## Propuestas de mejoras futuras
 
 > El acumulador principal de propuestas es **[`ROADMAP.md`](ROADMAP.md)** en la raíz del repositorio.

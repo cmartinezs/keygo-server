@@ -3,6 +3,9 @@ package io.cmartinezs.keygo.api.error;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
+import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import lombok.extern.slf4j.Slf4j;
@@ -124,6 +127,51 @@ public class GlobalExceptionHandler {
         .build();
 
     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+  }
+
+  /**
+   * Handles ClientAppNotFoundException - returns 404 Not Found.
+   * Maneja ClientAppNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(ClientAppNotFoundException.class)
+  public ResponseEntity<BaseResponse<Void>> handleClientAppNotFoundException(ClientAppNotFoundException ex) {
+    log.error("Client app not found: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+  }
+
+  /**
+   * Handles InvalidRedirectUriException - returns 400 Bad Request.
+   * Maneja InvalidRedirectUriException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidRedirectUriException.class)
+  public ResponseEntity<BaseResponse<Void>> handleInvalidRedirectUriException(InvalidRedirectUriException ex) {
+    log.error("Invalid redirect URI: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles UnsupportedGrantTypeException - returns 400 Bad Request.
+   * Maneja UnsupportedGrantTypeException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(UnsupportedGrantTypeException.class)
+  public ResponseEntity<BaseResponse<Void>> handleUnsupportedGrantTypeException(UnsupportedGrantTypeException ex) {
+    log.error("Unsupported grant type: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
   }
 
   /**

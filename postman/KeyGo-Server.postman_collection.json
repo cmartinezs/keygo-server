@@ -999,6 +999,227 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "📦 Client Apps",
+      "description": "CRUD de aplicaciones cliente OAuth2 bajo un tenant. Requiere que el tenant exista (variable {{tenantSlug}}) y el header X-KEYGO-ADMIN.",
+      "item": [
+        {
+          "name": "POST Create Client App",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('success.code es CLIENT_APP_CREATED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'CLIENT_APP_CREATED');",
+                  "});",
+                  "",
+                  "pm.test('data tiene clientId', function () {",
+                  "    pm.expect(body.data).to.have.property('clientId');",
+                  "    pm.expect(body.data.clientId).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('data tiene clientSecret (CONFIDENTIAL)', function () {",
+                  "    pm.expect(body.data).to.have.property('clientSecret');",
+                  "});",
+                  "",
+                  "if (body.data && body.data.clientId) {",
+                  "    pm.environment.set('clientId', body.data.clientId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Test App\",\n  \"description\": \"App creada desde Postman\",\n  \"type\": \"CONFIDENTIAL\",\n  \"redirectUris\": [\"https://myapp.example.com/callback\"],\n  \"grants\": [\"AUTHORIZATION_CODE\", \"REFRESH_TOKEN\"],\n  \"scopes\": [\"openid\", \"profile\", \"email\"]\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps"]
+            },
+            "description": "Crea una nueva aplicación cliente OAuth2 bajo el tenant especificado. Devuelve el clientId y el clientSecret en texto plano (solo disponible en este momento)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET List Client Apps",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('success.code es CLIENT_APP_LIST_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'CLIENT_APP_LIST_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data es un array', function () {",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps"]
+            },
+            "description": "Lista todas las aplicaciones cliente registradas bajo el tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Client App",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('success.code es CLIENT_APP_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'CLIENT_APP_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data.clientId coincide con la variable de entorno', function () {",
+                  "    pm.expect(body.data.clientId).to.eql(pm.environment.get('clientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps", "{{clientId}}"]
+            },
+            "description": "Obtiene los datos de una aplicación cliente específica."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Client App",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('success.code es CLIENT_APP_UPDATED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'CLIENT_APP_UPDATED');",
+                  "});",
+                  "",
+                  "pm.test('data.name fue actualizado', function () {",
+                  "    pm.expect(body.data.name).to.eql('My Updated App');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Updated App\",\n  \"description\": \"Descripción actualizada\",\n  \"redirectUris\": [\"https://myapp.example.com/callback\", \"https://myapp.example.com/callback2\"],\n  \"grants\": [\"AUTHORIZATION_CODE\", \"REFRESH_TOKEN\"],\n  \"scopes\": [\"openid\", \"profile\"]\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps", "{{clientId}}"]
+            },
+            "description": "Actualiza los datos de una aplicación cliente existente (nombre, descripción, redirect URIs, grants, scopes)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Rotate Client Secret",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('success.code es CLIENT_APP_SECRET_ROTATED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'CLIENT_APP_SECRET_ROTATED');",
+                  "});",
+                  "",
+                  "pm.test('data tiene nuevo clientSecret', function () {",
+                  "    pm.expect(body.data).to.have.property('clientSecret');",
+                  "    pm.expect(body.data.clientSecret).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/rotate-secret",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps", "{{clientId}}", "rotate-secret"]
+            },
+            "description": "Rota el client secret de una aplicación confidencial. El nuevo secret solo está disponible en esta respuesta."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

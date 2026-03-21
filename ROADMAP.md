@@ -9,13 +9,13 @@
 |---|---|
 | Arquitectura | Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-run`, `keygo-supabase` |
 | Autenticación | Sin implementar — sólo filtro Bootstrap de clave admin |
-| Persistencia | Entidades y repositorios JPA base (User, Role, Permission, **Tenant**), Tenant conectado a puerto de negocio |
-| API pública | 4 endpoints: `GET /api/v1/service/info`, `GET /api/v1/response-codes`, `POST /api/v1/tenants`, `GET /api/v1/tenants/{slug}`, `PUT /api/v1/tenants/{slug}/suspend` |
+| Persistencia | Entidades y repositorios JPA base (User, Role, Permission, **Tenant**, **ClientApp** con redirect URIs, grants, scopes), ambos conectados a puertos de negocio |
+| API pública | 9 endpoints: `GET /service/info`, `GET /response-codes`, Tenants (3), **Client Apps (5: create, list, get, update, rotate-secret)** |
 | CI/CD | ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) |
-| Stubs vacíos | `keygo-infra`, `keygo-common` (`keygo-domain` ya tiene modelo Tenant) |
-| Tests | 128+ tests unitarios — sin integración ni e2e |
-| Postman | ✅ Colecciones en `postman/` — 15 requests en 4 carpetas con scripts `pm.test()` y entorno local |
-| Fase actual | **Fase 1 🔄 en progreso** — Núcleo de multitenancy (modelo + persistencia + API + resolver) |
+| Stubs vacíos | `keygo-infra`, `keygo-common` |
+| Tests | ~165+ tests unitarios — sin integración ni e2e |
+| Postman | ✅ Colecciones en `postman/` — 20 requests en 5 carpetas con scripts `pm.test()` y entorno local |
+| Fase actual | **Fase 3 — siguiente** — Identidad de usuario por tenant (`User`, `UserRepositoryPort`, credenciales) |
 
 ---
 
