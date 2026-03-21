@@ -40,7 +40,7 @@ keygo-common   ← shared utils                               [🚧 stub]
 ## Spring Boot 4.x & Jackson 3 (⚠️ import namespace changed)
 
 This project uses **Spring Boot 4.0.3** with **Jackson 3.x** (`tools.jackson.datatype:jackson-datatype-jsr310:3.0.0-rc2`).  
-Jackson 3 moved to a new Maven group **and** Java package: `tools.jackson.*` (not `com.fasterxml.jackson.*`).
+Jackson 3 moved the **databind and datatype** classes to a new Maven group **and** Java package: `tools.jackson.*`.
 
 ```java
 // ✅ Correct imports (Jackson 3 / Spring Boot 4)
@@ -49,8 +49,11 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.datatype.jsr310.JavaTimeModule;
 
-// ❌ Wrong — will not compile
+// ❌ Wrong — will not compile (databind moved to tools.jackson.*)
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+// ✅ Still OK — annotation namespace did NOT change
+import com.fasterxml.jackson.annotation.JsonInclude;  // used in BaseResponse, ApplicationConfig
 ```
 
 Jackson is customized globally in `keygo-run` via a `JsonMapperBuilderCustomizer` bean in `ApplicationConfig`:  
@@ -104,13 +107,23 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/response-codes`
 - `http://localhost:8080/keygo-server/actuator/health`
 
-⚠️ **Known bug — `BootstrapAdminKeyFilter`:** uses `request.getRequestURI()` (returns `/keygo-server/api/...`) but path prefixes in `application.yml` are `/api/`, `/actuator/` (no context-path prefix) → **filter never matches; all routes are currently public**. Fix: use `request.getServletPath()` instead.
+⚠️ **Known bug — `BootstrapAdminKeyFilter`:** uses `request.getRequestURI()` (returns `/keygo-server/api/...`) but path prefixes in `application.yml` are `/api/`, `/actuator/`, `/service/info` (no context-path prefix) → **filter never matches; all routes are currently public**. Fix: use `request.getServletPath()` instead.
+
+The filter has three path categories (see `KeyGoBootstrapProperties`):
+
+| Property | `application.yml` value | Behaviour |
+|---|---|---|
+| `keygo.bootstrap.api-path-prefix` | `/api/` | Protected — requires `X-KEYGO-ADMIN` |
+| `keygo.bootstrap.actuator-path-prefix` | `/actuator/` | Public |
+| `keygo.bootstrap.service-info-path-prefix` | `/service/info` | Public |
 
 ## Security header
 
 Protected routes require `X-KEYGO-ADMIN: <value of KEYGO_ADMIN_KEY>`.  
 Default dev key: `changeMe` — **never use in production**.  
 Set `keygo.bootstrap.enabled=false` in `application.yml` (or `KEYGO_BOOTSTRAP_ENABLED=false`) to disable the filter entirely and make all routes public (useful in tests).
+
+`KeyGoBootstrapProperties` has `@AssertTrue` bean validation: **the app fails to start** if `keygo.bootstrap.enabled=true` and `adminKey` is null or blank. Use `keygo.bootstrap.enabled=false` in tests to bypass both the filter and this validation.
 
 ## JPA entities (keygo-supabase)
 
@@ -154,8 +167,24 @@ cd keygo-supabase && ./scripts/dev-stop.sh    # stops Postgres + PgAdmin
 ## Testing conventions
 
 - Unit tests: `@ExtendWith(MockitoExtension.class)` + AssertJ + Mockito — **no Spring context**.
-- Integration tests (supabase): Testcontainers PostgreSQL.
+- Integration tests (supabase): Testcontainers PostgreSQL is configured in `pom.xml` and `src/test/resources/application-test.yml` (uses TC JDBC URL `jdbc:tc:postgresql:15-alpine:///testdb`) but **no integration tests are written yet** — `UserRepositoryTest` is a pure unit test using the Lombok builder.
 - Pattern: Given/When/Then comments in every test method.
+
+## Implementation plan
+
+Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ordered by dependency.
+
+| Phase | Focus | Status |
+|---|---|---|
+| 0 | Structural hardening (module deps, package org, conventions) | ✅ Done |
+| 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | 🔜 Next |
+| 2 | Client app model (`ClientApp`, redirect URIs, grants) | — |
+| 3 | User identity per tenant | — |
+| 4 | Memberships & roles per app | — |
+| 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | — |
+| 6–11 | Token signing, JWKS, refresh, self-service, hardening | — |
+
+**Golden rule from the plan:** never implement `/oauth2/authorize` before tenant, client app, user, and membership are solid.
 
 ## Git — never execute directly
 
@@ -184,6 +213,14 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-21] Actualización tras análisis del codebase (segunda ronda)
+Se identificaron y corrigieron cinco brechas entre el doc y el código real:
+- **Jackson 3 annotation namespace**: aclarado que `com.fasterxml.jackson.annotation.*` (ej. `@JsonInclude`) sigue compilando; solo `databind.*` y `datatype.*` se movieron a `tools.jackson.*`. Se actualizó el bloque de código con un ✅ para el annotation import.
+- **`BootstrapAdminKeyFilter` — tercer prefijo**: se documentó el nuevo `serviceInfoPathPrefix` (`/service/info`) como ruta pública adicional. La tabla de propiedades ahora refleja las tres categorías que existen en `KeyGoBootstrapProperties` y `application.yml`.
+- **`KeyGoBootstrapProperties` `@AssertTrue` validation**: se documentó que la app falla al arrancar si `enabled=true` y `adminKey` es nulo/en blanco. La solución en tests es `keygo.bootstrap.enabled=false`.
+- **Tests de integración en keygo-supabase**: corregida afirmación "Testcontainers PostgreSQL" — Testcontainers está en el pom.xml y `application-test.yml` (TC JDBC URL) pero los tests de integración no se han escrito. `UserRepositoryTest` es un test unitario puro con el builder de Lombok.
+- **Plan de implementación**: se agregó sección `## Implementation plan` con tabla de las 11 fases (Fase 0 completa, Fase 1 = multitenancy es la siguiente) y referencia a `docs/arch/keygo_server_implementation_plan.md`.
 
 ### [2026-03-17] Creación de ROADMAP.md y referencias en docs AI
 Se creó `ROADMAP.md` en la raíz del repositorio con 22 propuestas técnicas (T-001 a T-022) y 38 propuestas funcionales (F-001 a F-038) organizadas por horizonte y fase de implementación. Se actualizaron `AI_CONTEXT.md` y `AGENTS.md` para referenciar y mantener el archivo. La sección `## Propuestas de mejoras futuras` de `AI_CONTEXT.md` ahora delega al ROADMAP.md como fuente principal.
