@@ -1,0 +1,1005 @@
+{
+  "info": {
+    "_postman_id": "col-keygo-server-v1",
+    "name": "KeyGo Server API",
+    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar las carpetas en orden (Platform → Actuator → Tenants).\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints bajo `/api/**` requieren el header `X-KEYGO-ADMIN: {{adminKey}}`.\nEl valor por defecto de desarrollo es `changeMe`.\n\n> ⚠️ **Bug conocido:** `BootstrapAdminKeyFilter` actualmente usa `getRequestURI()` en lugar de `getServletPath()`,\n> por lo que el header no se valida en la versión actual. De todas formas se incluye para futura compatibilidad.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-KEYGO-ADMIN",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{adminKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "fullBaseUrl",
+      "value": "{{baseUrl}}/{{contextPath}}",
+      "type": "string",
+      "description": "URL completa incluyendo el context-path"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Componer la URL base completa",
+          "const base = pm.environment.get('baseUrl') || 'http://localhost:8080';",
+          "const ctx  = pm.environment.get('contextPath') || 'keygo-server';",
+          "pm.collectionVariables.set('fullBaseUrl', `${base}/${ctx}`);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script de tests globales — se ejecuta en TODAS las requests de la colección",
+          "pm.test('El tiempo de respuesta es menor a 3000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+          "});",
+          "",
+          "pm.test('Content-Type es application/json', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});",
+          "",
+          "// Validar estructura BaseResponse",
+          "const body = pm.response.json();",
+          "pm.test('La respuesta tiene el campo date (BaseResponse envelope)', function () {",
+          "    pm.expect(body).to.have.property('date');",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🏠 Platform",
+      "description": "Endpoints de información de la plataforma: service info y catálogo de códigos de respuesta.",
+      "item": [
+        {
+          "name": "GET Service Info",
+          "id": "req-service-info",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/service/info",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "service", "info"]
+            },
+            "description": "Retorna información pública del servicio (nombre, versión, título).\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**ResponseCode esperado:** `SERVICE_INFO_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es SERVICE_INFO_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'SERVICE_INFO_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data contiene title, name y version', function () {",
+                  "    pm.expect(body.data).to.have.property('title');",
+                  "    pm.expect(body.data).to.have.property('name');",
+                  "    pm.expect(body.data).to.have.property('version');",
+                  "});",
+                  "",
+                  "pm.test('data.name no está vacío', function () {",
+                  "    pm.expect(body.data.name).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('No hay campo failure en respuesta exitosa', function () {",
+                  "    pm.expect(body).to.not.have.property('failure');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Service Info",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"SERVICE_INFO_RETRIEVED\",\n    \"message\": \"Service information retrieved successfully\"\n  },\n  \"data\": {\n    \"title\": \"KeyGo Server\",\n    \"name\": \"keygo-server\",\n    \"version\": \"1.0-SNAPSHOT\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Response Codes Catalog",
+          "id": "req-response-codes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/response-codes",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "response-codes"]
+            },
+            "description": "Retorna el catálogo completo de códigos de respuesta del sistema, dividido en `successCodes` y `failureCodes`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN` (heredado de la colección).\n\n**ResponseCode esperado:** `RESPONSE_CODES_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es RESPONSE_CODES_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'RESPONSE_CODES_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data contiene successCodes y failureCodes', function () {",
+                  "    pm.expect(body.data).to.have.property('successCodes');",
+                  "    pm.expect(body.data).to.have.property('failureCodes');",
+                  "});",
+                  "",
+                  "pm.test('successCodes es un array no vacío', function () {",
+                  "    pm.expect(body.data.successCodes).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('failureCodes es un array no vacío', function () {",
+                  "    pm.expect(body.data.failureCodes).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('Cada ResponseCodeInfo tiene code, message y type', function () {",
+                  "    body.data.successCodes.forEach(function(item) {",
+                  "        pm.expect(item).to.have.property('code');",
+                  "        pm.expect(item).to.have.property('message');",
+                  "        pm.expect(item).to.have.property('type', 'SUCCESS');",
+                  "    });",
+                  "    body.data.failureCodes.forEach(function(item) {",
+                  "        pm.expect(item).to.have.property('code');",
+                  "        pm.expect(item).to.have.property('message');",
+                  "        pm.expect(item).to.have.property('type', 'FAILURE');",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('TENANT_CREATED está en successCodes', function () {",
+                  "    const found = body.data.successCodes.some(c => c.code === 'TENANT_CREATED');",
+                  "    pm.expect(found).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Response Codes Catalog",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"RESPONSE_CODES_RETRIEVED\",\n    \"message\": \"Response codes catalog retrieved successfully\"\n  },\n  \"data\": {\n    \"successCodes\": [\n      { \"code\": \"SERVICE_INFO_RETRIEVED\", \"message\": \"Service information retrieved successfully\", \"type\": \"SUCCESS\" },\n      { \"code\": \"TENANT_CREATED\", \"message\": \"Tenant created successfully\", \"type\": \"SUCCESS\" }\n    ],\n    \"failureCodes\": [\n      { \"code\": \"RESOURCE_NOT_FOUND\", \"message\": \"Requested resource was not found\", \"type\": \"FAILURE\" },\n      { \"code\": \"AUTHENTICATION_REQUIRED\", \"message\": \"Authentication is required\", \"type\": \"FAILURE\" }\n    ]\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏥 Actuator",
+      "description": "Endpoints de Spring Boot Actuator. Son públicos (no requieren admin key).",
+      "item": [
+        {
+          "name": "GET Health",
+          "id": "req-actuator-health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/actuator/health",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Endpoint de salud de Spring Boot Actuator.\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('status es UP', function () {",
+                  "    pm.expect(body.status).to.equal('UP');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Health UP",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"UP\",\n  \"components\": {\n    \"ping\": { \"status\": \"UP\" }\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Actuator — All Endpoints",
+          "id": "req-actuator-all",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/actuator",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["actuator"]
+            },
+            "description": "Lista todos los endpoints de Actuator disponibles.\n\n**Ruta pública**.\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Respuesta tiene _links (formato HAL de Actuator)', function () {",
+                  "    pm.expect(body).to.have.property('_links');",
+                  "});",
+                  "",
+                  "pm.test('health está expuesto en los links', function () {",
+                  "    pm.expect(body._links).to.have.property('health');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 Tenants",
+      "description": "Operaciones CRUD sobre tenants. Todos los endpoints requieren `X-KEYGO-ADMIN`.\n\nFlujo de prueba recomendado:\n1. **POST Create Tenant** → guarda `tenantSlug` automáticamente en el entorno.\n2. **GET Tenant by Slug** → usa el `tenantSlug` guardado.\n3. **PUT Suspend Tenant** → suspende el tenant.\n4. **GET Tenant by Slug (Suspended)** → verifica el nuevo estado.",
+      "item": [
+        {
+          "name": "POST Create Tenant",
+          "id": "req-create-tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"slug\": \"acme-corp\",\n  \"ownerEmail\": \"{{tenantOwnerEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants"]
+            },
+            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n- `slug`: requerido, 3-100 chars, solo minúsculas y guiones (regex: `^[a-z0-9][a-z0-9\\-]*[a-z0-9]$`).\n- `ownerEmail`: requerido, formato email válido.\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Generar un slug único con timestamp para evitar duplicados entre ejecuciones",
+                  "const ts = Date.now();",
+                  "const slug = `acme-corp-${ts}`;",
+                  "pm.collectionVariables.set('_dynamicSlug', slug);",
+                  "",
+                  "// Actualizar el body dinámicamente",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.slug = slug;",
+                  "pm.request.body.raw = JSON.stringify(body, null, 2);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es TENANT_CREATED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'TENANT_CREATED');",
+                  "});",
+                  "",
+                  "pm.test('data contiene los campos esperados del tenant', function () {",
+                  "    pm.expect(body.data).to.have.property('id');",
+                  "    pm.expect(body.data).to.have.property('name');",
+                  "    pm.expect(body.data).to.have.property('slug');",
+                  "    pm.expect(body.data).to.have.property('ownerEmail');",
+                  "    pm.expect(body.data).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test('data.status es ACTIVE al crear', function () {",
+                  "    pm.expect(body.data.status).to.equal('ACTIVE');",
+                  "});",
+                  "",
+                  "pm.test('data.id no está vacío (UUID generado)', function () {",
+                  "    pm.expect(body.data.id).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('data.ownerEmail coincide con el enviado', function () {",
+                  "    const sentEmail = pm.environment.get('tenantOwnerEmail');",
+                  "    pm.expect(body.data.ownerEmail).to.equal(sentEmail);",
+                  "});",
+                  "",
+                  "// Guardar slug en el entorno para requests subsiguientes",
+                  "if (pm.response.code === 201 && body.data && body.data.slug) {",
+                  "    pm.environment.set('tenantSlug', body.data.slug);",
+                  "    console.log('✅ tenantSlug guardado en entorno:', body.data.slug);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created — Tenant creado",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_CREATED\",\n    \"message\": \"Tenant created successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"ACTIVE\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 Bad Request — Validación fallida",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Tenant by Slug",
+          "id": "req-get-tenant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}"]
+            },
+            "description": "Obtiene un tenant por su slug.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno (se setea automáticamente al crear un tenant).\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const slug = pm.environment.get('tenantSlug');",
+                  "if (!slug) {",
+                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es TENANT_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'TENANT_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data.slug coincide con el slug consultado', function () {",
+                  "    const expectedSlug = pm.environment.get('tenantSlug');",
+                  "    pm.expect(body.data.slug).to.equal(expectedSlug);",
+                  "});",
+                  "",
+                  "pm.test('data contiene todos los campos del tenant', function () {",
+                  "    pm.expect(body.data).to.have.all.keys('id', 'name', 'slug', 'ownerEmail', 'status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Tenant encontrado",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_RETRIEVED\",\n    \"message\": \"Tenant retrieved successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"ACTIVE\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 Not Found — Tenant no existe",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"RESOURCE_NOT_FOUND\",\n    \"message\": \"Requested resource was not found\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "PUT Suspend Tenant",
+          "id": "req-suspend-tenant",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/suspend",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "suspend"]
+            },
+            "description": "Suspende un tenant existente. El tenant pasa de estado `ACTIVE` a `SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno.\n\n**ResponseCode esperado:** `TENANT_SUSPENDED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`\n**Si ya está suspendido:** `403 Forbidden` con code `BUSINESS_RULE_VIOLATION`"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const slug = pm.environment.get('tenantSlug');",
+                  "if (!slug) {",
+                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es TENANT_SUSPENDED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'TENANT_SUSPENDED');",
+                  "});",
+                  "",
+                  "pm.test('data.status es SUSPENDED', function () {",
+                  "    pm.expect(body.data.status).to.equal('SUSPENDED');",
+                  "});",
+                  "",
+                  "pm.test('data.slug coincide con el slug suspendido', function () {",
+                  "    const expectedSlug = pm.environment.get('tenantSlug');",
+                  "    pm.expect(body.data.slug).to.equal(expectedSlug);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Tenant suspendido",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_SUSPENDED\",\n    \"message\": \"Tenant suspended successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"SUSPENDED\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 Forbidden — Tenant ya suspendido",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"BUSINESS_RULE_VIOLATION\",\n    \"message\": \"Business rule validation failed\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Tenant by Slug (después de suspender)",
+          "id": "req-get-tenant-suspended",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}"]
+            },
+            "description": "Verifica el estado del tenant después de suspenderlo. Debe retornar `status: SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nEjecutar después de **PUT Suspend Tenant** para confirmar el cambio de estado.\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es TENANT_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'TENANT_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data.status es SUSPENDED (confirmación post-suspensión)', function () {",
+                  "    pm.expect(body.data.status).to.equal('SUSPENDED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚠️ Escenarios de Error",
+      "description": "Casos negativos y de validación para verificar el manejo de errores del sistema.",
+      "item": [
+        {
+          "name": "POST Create Tenant — Body vacío (400)",
+          "id": "req-create-tenant-empty",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants"]
+            },
+            "description": "Intenta crear un tenant con body vacío. Debe retornar 400 por validación de campos requeridos.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 Bad Request por validación', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es INVALID_INPUT', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'INVALID_INPUT');",
+                  "});",
+                  "",
+                  "pm.test('No hay campo success en respuesta de error', function () {",
+                  "    pm.expect(body).to.not.have.property('success');",
+                  "});",
+                  "",
+                  "pm.test('No hay campo data en respuesta de error', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "400 Bad Request — Campos requeridos faltantes",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "POST Create Tenant — Slug inválido (400)",
+          "id": "req-create-tenant-invalid-slug",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Tenant\",\n  \"slug\": \"-slug-invalido-\",\n  \"ownerEmail\": \"test@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants"]
+            },
+            "description": "Intenta crear un tenant con un slug que viola el patrón `^[a-z0-9][a-z0-9\\-]*[a-z0-9]$` (empieza y termina con guión).\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 Bad Request por slug inválido', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es INVALID_INPUT', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'INVALID_INPUT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST Create Tenant — Email inválido (400)",
+          "id": "req-create-tenant-invalid-email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Tenant\",\n  \"slug\": \"test-tenant-ok\",\n  \"ownerEmail\": \"no-es-un-email\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants"]
+            },
+            "description": "Intenta crear un tenant con un email mal formado. Debe fallar la validación de `@Email`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 Bad Request por email inválido', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es INVALID_INPUT', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'INVALID_INPUT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET Tenant — Slug inexistente (404)",
+          "id": "req-get-tenant-not-found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/no-existe-este-tenant",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "no-existe-este-tenant"]
+            },
+            "description": "Intenta obtener un tenant con un slug que no existe en el sistema.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es RESOURCE_NOT_FOUND', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'RESOURCE_NOT_FOUND');",
+                  "});",
+                  "",
+                  "pm.test('No hay campo data en 404', function () {",
+                  "    pm.expect(body).to.not.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "404 Not Found — Tenant no existe",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"RESOURCE_NOT_FOUND\",\n    \"message\": \"Requested resource was not found\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "PUT Suspend Tenant — Slug inexistente (404)",
+          "id": "req-suspend-tenant-not-found",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/no-existe-este-tenant/suspend",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "no-existe-este-tenant", "suspend"]
+            },
+            "description": "Intenta suspender un tenant que no existe.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es RESOURCE_NOT_FOUND', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'RESOURCE_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PUT Suspend Tenant — Ya suspendido (403)",
+          "id": "req-suspend-tenant-already-suspended",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/suspend",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "suspend"]
+            },
+            "description": "Intenta suspender un tenant que ya fue suspendido previamente. Debe lanzar `TenantSuspendedException`.\n\n**Prerequisito:** Ejecutar primero **PUT Suspend Tenant** (carpeta Tenants).\n\n**HTTP Status esperado:** `403 Forbidden`\n**ResponseCode esperado:** `BUSINESS_RULE_VIOLATION`"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const slug = pm.environment.get('tenantSlug');",
+                  "if (!slug) {",
+                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant y PUT Suspend Tenant.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403 Forbidden (tenant ya suspendido)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es BUSINESS_RULE_VIOLATION', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'BUSINESS_RULE_VIOLATION');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "403 Forbidden — Tenant ya suspendido",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"BUSINESS_RULE_VIOLATION\",\n    \"message\": \"Business rule validation failed\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Ruta inexistente (404)",
+          "id": "req-not-found-route",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/ruta-que-no-existe",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "ruta-que-no-existe"]
+            },
+            "description": "Accede a una ruta que no existe para verificar que el `GlobalExceptionHandler` devuelve `404` con `RESOURCE_NOT_FOUND`.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 Not Found para ruta inexistente', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es RESOURCE_NOT_FOUND', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'RESOURCE_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

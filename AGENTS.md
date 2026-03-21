@@ -231,6 +231,12 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
 
+### [2026-03-21] Colecciones Postman creadas en `postman/`
+Se crearon dos archivos bajo `postman/` para pruebas funcionales manuales:
+- **`KeyGo-Server.postman_collection.json`** — colección Postman v2.1.0 con 15 requests en 4 carpetas (🏠 Platform, 🏥 Actuator, 🏢 Tenants, ⚠️ Escenarios de Error). Incluye autenticación `X-KEYGO-ADMIN` heredada a nivel de colección, scripts `pm.test()` por request, pre-request que genera slug único con timestamp para evitar duplicados, y post-request que guarda `tenantSlug` en el entorno tras crear un tenant.
+- **`KeyGo-Server-Local.postman_environment.json`** — entorno con las variables: `baseUrl`, `contextPath`, `adminKey`, `tenantSlug`, `tenantName`, `tenantOwnerEmail`.
+Convención para futuros endpoints: **cada nuevo endpoint debe tener su request en la colección antes de cerrar la tarea**.
+
 ### [2026-03-21] JaCoCo implementado — comando de CI cambiado a `./mvnw verify`
 Se configuró JaCoCo 0.8.12 en el POM raíz con tres ejecuciones heredadas a todos los módulos:
 `prepare-agent` (antes de tests), `report` (HTML/XML por módulo) y `check` (umbral 60% instrucciones).

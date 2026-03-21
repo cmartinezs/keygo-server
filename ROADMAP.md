@@ -14,6 +14,7 @@
 | CI/CD | ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) |
 | Stubs vacíos | `keygo-infra`, `keygo-common` (`keygo-domain` ya tiene modelo Tenant) |
 | Tests | 128+ tests unitarios — sin integración ni e2e |
+| Postman | ✅ Colecciones en `postman/` — 15 requests en 4 carpetas con scripts `pm.test()` y entorno local |
 | Fase actual | **Fase 1 🔄 en progreso** — Núcleo de multitenancy (modelo + persistencia + API + resolver) |
 
 ---
@@ -34,7 +35,8 @@
 | T-007 | Renombrar config de IntelliJ `.run/KeyGo Runner.run.xml` a `.run/KeygoApplication.run.xml` para reflejar el nombre actual de la clase principal | Infra dev | Consistencia tras renombrado de `KeyGoRunner` → `KeygoApplication` |
 | T-023 | Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless) en el `pom.xml` raíz; integrar como paso en CI | `pom.xml` raíz / CI | La convención de 2 espacios ya está documentada en `docs/keygo-server/CODE_STYLE.md`; falta enforcement automático |
 | T-024 | Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como complemento al header `X-Tenant-Slug` del `TenantResolutionFilter` actual | `keygo-run` / `keygo-api` | La Fase 5 requiere endpoints `/{tenantSlug}/oauth2/authorize`; el filtro actual solo resuelve por header |
-| T-025 | Agregar tests de integración con Testcontainers para el ciclo completo de Tenant: crear → consultar → suspender vía `TenantRepositoryAdapter` | `keygo-supabase` | El adaptador solo tiene tests unitarios con Mockito; la persistencia real no se valida aún |
+| T-025 | Agregar tests de integración con Testcontainers para el flujo completo de Tenant: crear → consultar → suspender vía `TenantRepositoryAdapter` | `keygo-supabase` | El adaptador solo tiene tests unitarios con Mockito; la persistencia real no se valida aún |
+| T-026 | Mantener colecciones Postman actualizadas: agregar nuevas requests al crear endpoints; crear un environment adicional `KeyGo-Server-Docker` para pruebas contra imagen Docker | `postman/` | Las colecciones actuales cubren los 7 endpoints existentes; cada nueva feature debe extenderlas |
 
 ---
 

@@ -288,6 +288,12 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Se refactorizó con una función reutilizable `check_section(FILE, SECTION_LABEL)` que usa arrays globales `_check_found` y `_check_recent` para evitar namerefs (requieren bash 4.3+). Una función `report_result(FILE, LABEL, SECTION)` orquesta la llamada y el reporte por documento. Se añadió `## Registro de cambios` a `AGENTS.md` como sección objetivo. El exit code final es el peor de los dos documentos (`worst = max(exit_ai, exit_agents)`). Los bloques `<!-- -->` se ignoran para evitar falsos positivos con templates de ejemplo. Compatible con GNU date (Linux) y BSD date (macOS).
 **Archivos clave:** `scripts/check-ai-docs.sh`, `AI_CONTEXT.md`, `AGENTS.md`
 
+### [2026-03-21] Generación de colecciones Postman para pruebas funcionales manuales
+**Contexto:** El proyecto no contaba con ninguna colección Postman ni entorno importable, dificultando las pruebas manuales de los endpoints existentes.
+**Problema:** Sin colecciones estándar, cada prueba manual requería configurar headers, URLs y bodies manualmente en Postman, con riesgo de error y sin scripts de validación automática de respuestas.
+**Solución / Buena práctica:** Crear archivos bajo `postman/` siguiendo el schema Postman Collection v2.1.0. Puntos clave: (1) autenticación `apikey` a nivel de colección con `X-KEYGO-ADMIN` → heredada automáticamente por todos los requests protegidos; (2) pre-request script global que compone `{{fullBaseUrl}}` desde variables de entorno; (3) pre-request en `POST Create Tenant` que genera slug único con timestamp para evitar conflictos entre ejecuciones; (4) script post-request guarda `tenantSlug` en el entorno para reutilizarlo en requests subsiguientes; (5) los endpoints públicos (Service Info, Actuator) overridean auth a `noauth`. Incluir siempre respuestas de ejemplo en cada request facilita la comprensión sin ejecutar.
+**Archivos clave:** `postman/KeyGo-Server.postman_collection.json`, `postman/KeyGo-Server-Local.postman_environment.json`
+
 ## Propuestas de mejoras futuras
 
 > El acumulador principal de propuestas es **[`ROADMAP.md`](ROADMAP.md)** en la raíz del repositorio.
@@ -300,6 +306,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - **T-002** — Agregar mapper en `keygo-api/platform/` para descargar al controller del mapeo `ServiceInfoProvider → ServiceInfoData`. Ver `ROADMAP.md T-002`.
 - **T-023** — Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless). Convención ya documentada en `docs/keygo-server/CODE_STYLE.md`. Ver `ROADMAP.md T-023`.
 - **T-024** — Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como alternativa al header `X-Tenant-Slug`, necesaria para los endpoints OAuth2 de la Fase 5. Ver `ROADMAP.md T-024`.
+- **T-026** — Mantener colecciones Postman actualizadas al agregar cada nuevo endpoint; crear environment `KeyGo-Server-Docker`. Ver `ROADMAP.md T-026`.
 
 ### Mediano plazo
 
