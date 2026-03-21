@@ -99,6 +99,17 @@
                     <version>${jacoco.version}</version>
                     <configuration>
                         <skip>${jacoco.skip}</skip>
+                        <!--
+                          Clases excluidas del reporte y del check de cobertura.
+                          Formato: ruta del .class con wildcards (NO nombre Java).
+                          Aplica a: report, report-aggregate y check.
+                        -->
+                        <excludes>
+                            <exclude>**/*Application.class</exclude>
+                            <exclude>**/*Config.class</exclude>
+                            <exclude>**/*Properties.class</exclude>
+                            <exclude>**/*Entity.class</exclude>
+                        </excludes>
                     </configuration>
                     <executions>
                         <!-- 1) Inicia el agente JaCoCo antes de los tests -->
@@ -127,13 +138,6 @@
                                 <rules>
                                     <rule>
                                         <element>BUNDLE</element>
-                                        <excludes>
-                                            <!-- Excluir clases de infraestructura Spring y JPA -->
-                                            <exclude>**/*Application</exclude>
-                                            <exclude>**/*Config</exclude>
-                                            <exclude>**/*Properties</exclude>
-                                            <exclude>**/*Entity</exclude>
-                                        </excludes>
                                         <limits>
                                             <limit>
                                                 <counter>INSTRUCTION</counter>
