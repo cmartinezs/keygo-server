@@ -19,6 +19,11 @@ public enum ResponseCode {
   SERVICE_INFO_RETRIEVED("SERVICE_INFO_RETRIEVED", "Service information retrieved successfully"),
   RESPONSE_CODES_RETRIEVED("RESPONSE_CODES_RETRIEVED", "Response codes catalog retrieved successfully"),
 
+  // Tenant Operations
+  TENANT_CREATED("TENANT_CREATED", "Tenant created successfully"),
+  TENANT_RETRIEVED("TENANT_RETRIEVED", "Tenant retrieved successfully"),
+  TENANT_SUSPENDED("TENANT_SUSPENDED", "Tenant suspended successfully"),
+
   // Generic Operations (use when no specific code applies)
   OPERATION_COMPLETED("OPERATION_COMPLETED", "Operation completed successfully"),
   RESOURCE_CREATED("RESOURCE_CREATED", "Resource created successfully"),

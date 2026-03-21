@@ -4,8 +4,9 @@ import io.cmartinezs.keygo.supabase.membership.entity.RoleEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -15,13 +16,13 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * User entity for Supabase
- * Entidad de usuario para Supabase
- *
+ * User entity for Supabase.
+ * <p>Entidad de usuario para Supabase.
  * @author cmartinezs
  * @version 1.0
  */
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

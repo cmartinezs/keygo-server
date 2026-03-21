@@ -3,9 +3,12 @@ package io.cmartinezs.keygo.api.error;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
+import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -76,6 +79,51 @@ public class GlobalExceptionHandler {
         .build();
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles @Valid validation errors - returns 400 Bad Request.
+   * Maneja errores de validación @Valid - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<BaseResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
+    log.error("Validation failed: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles TenantNotFoundException - returns 404 Not Found.
+   * Maneja TenantNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(TenantNotFoundException.class)
+  public ResponseEntity<BaseResponse<Void>> handleTenantNotFoundException(TenantNotFoundException ex) {
+    log.error("Tenant not found: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+  }
+
+  /**
+   * Handles TenantSuspendedException - returns 403 Forbidden.
+   * Maneja TenantSuspendedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(TenantSuspendedException.class)
+  public ResponseEntity<BaseResponse<Void>> handleTenantSuspendedException(TenantSuspendedException ex) {
+    log.error("Tenant suspended: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.BUSINESS_RULE_VIOLATION))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
   }
 
   /**

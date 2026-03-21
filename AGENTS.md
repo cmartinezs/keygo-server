@@ -5,7 +5,7 @@
 ## Module map & dependency rules
 
 ```
-keygo-domain   ← pure Java, NO Spring, NO internal deps  [🚧 stub]
+keygo-domain   ← pure Java, NO Spring, NO internal deps  [Tenant model ✅]
 keygo-app      ← usecases + port interfaces (OUT); depends on domain
 keygo-infra    ← generic port impls; depends on app         [🚧 stub]
 keygo-api      ← REST controllers + DTOs; depends on app
@@ -105,6 +105,9 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/service/info`
 - `http://localhost:8080/keygo-server/api/v1/response-codes`
+- `http://localhost:8080/keygo-server/api/v1/tenants` (POST — create)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}` (GET — retrieve)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/suspend` (PUT — suspend)
 - `http://localhost:8080/keygo-server/actuator/health`
 
 ⚠️ **Known bug — `BootstrapAdminKeyFilter`:** uses `request.getRequestURI()` (returns `/keygo-server/api/...`) but path prefixes in `application.yml` are `/api/`, `/actuator/`, `/service/info` (no context-path prefix) → **filter never matches; all routes are currently public**. Fix: use `request.getServletPath()` instead.
@@ -127,7 +130,7 @@ Set `keygo.bootstrap.enabled=false` in `application.yml` (or `KEYGO_BOOTSTRAP_EN
 
 ## JPA entities (keygo-supabase)
 
-Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@CreationTimestamp`/`@UpdateTimestamp` for timestamps, Lombok `@Data @Builder @NoArgsConstructor @AllArgsConstructor`. Schema is managed by Flyway (`db/migration/V<n>__description.sql`). `ddl-auto: validate`.
+Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@CreationTimestamp`/`@UpdateTimestamp` for timestamps, Lombok `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`. **Do NOT use `@Data`** — it generates `equals()`/`hashCode()`/`toString()` over all fields including lazy collections, causing performance issues and potential `LazyInitializationException`. Schema is managed by Flyway (`db/migration/V<n>__description.sql`). `ddl-auto: validate`.
 
 **Existing entities (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -136,6 +139,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `UserEntity` | `user.entity` | `users` | `@ManyToMany` → `RoleEntity` via `user_roles` |
 | `RoleEntity` | `membership.entity` | `roles` | `@ManyToMany` → `PermissionEntity` via `role_permissions` |
 | `PermissionEntity` | `membership.entity` | `permissions` | `action` field is `enum Action {CREATE,READ,UPDATE,DELETE,EXECUTE}` |
+| `TenantEntity` | `tenant.entity` | `tenants` | `slug` unique index; `status` enum `ACTIVE\|SUSPENDED\|PENDING` |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -143,13 +147,15 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 |---|---|
 | `UserRepository` | `user.repository` |
 | `RoleRepository` | `membership.repository` |
+| `TenantJpaRepository` | `tenant.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
 - `V2__seed_data.sql` — seed data
 - `V3__add_oauth_support.sql` — oauth_providers, oauth_tokens tables
+- `V4__add_tenants.sql` — tenants table (slug unique, status check constraint)
 
-Next migration must be `V4__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V5__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -177,7 +183,7 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | Phase | Focus | Status |
 |---|---|---|
 | 0 | Structural hardening (module deps, package org, conventions, CI, quality baseline) | ✅ Done (2026-03-21) |
-| 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | 🔜 Next |
+| 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | 🔄 In progress (2026-03-21) |
 | 2 | Client app model (`ClientApp`, redirect URIs, grants) | — |
 | 3 | User identity per tenant | — |
 | 4 | Memberships & roles per app | — |
@@ -223,6 +229,25 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
+
+### [2026-03-21] Convenciones de estilo adoptadas — corrección masiva
+Se aplicaron las siguientes convenciones de estilo a todo el codebase:
+- **JavaDoc sin líneas en blanco**: las líneas en blanco dentro de bloques `/** */` se reemplazan con la etiqueta `<p>` para separar párrafos; las líneas en blanco antes de tags (`@param`, `@return`, `@throws`, `@author`) se eliminan.
+- **JavaDoc solo en clases y métodos**: los atributos/campos usan comentario simple `/* */` en vez de `/** */`. Aplica también a componentes de records, constantes de enums y campos de `@ConfigurationProperties`.
+- **Lombok en domain**: se agregó Lombok como dependencia `provided` a `keygo-domain`. La clase `Tenant` fue refactorizada: builder manual eliminado, reemplazado por `@Builder` en el constructor privado + `@Getter` en la clase.
+- **Entidades JPA sin `@Data`**: `TenantEntity`, `UserEntity`, `RoleEntity` y `PermissionEntity` cambiaron de `@Data` a `@Getter @Setter` para evitar problemas de performance (lazy loading, equals/hashCode sobre colecciones).
+- **`@SuppressWarnings("NullableProblems")` en `toString()`**: aplicado en `Tenant`, `TenantId` y `TenantSlug` para resolver el warning de IntelliJ sobre métodos `@Override` que no están anotados con `@NotNull`.
+- **Tests sin literales duplicados**: `CreateTenantUseCaseTest` y `TenantTest` extraen los valores de prueba a constantes `private static final` para eliminar alertas de refactorización de IntelliJ.
+
+### [2026-03-21] Fase 1 — Núcleo de multitenancy implementado
+Se implementó el núcleo de multitenancy en los cinco módulos activos:
+- **`keygo-domain`**: entidades de dominio puras `Tenant`, `TenantId`, `TenantSlug`, `TenantStatus`; excepciones `TenantNotFoundException` y `TenantSuspendedException`. Sin Spring ni JPA.
+- **`keygo-app`**: puerto `TenantRepositoryPort`, comando `CreateTenantCommand`, casos de uso `CreateTenantUseCase`, `GetTenantBySlugUseCase`, `SuspendTenantUseCase`; `TenantContextHolder` (ThreadLocal sin Spring).
+- **`keygo-supabase`**: `TenantEntity` (JPA), `TenantJpaRepository` (Spring Data), `TenantPersistenceMapper`, `TenantRepositoryAdapter` (`@Repository`), migración `V4__add_tenants.sql`.
+- **`keygo-api`**: `PlatformTenantController` con 3 endpoints (`POST /api/v1/tenants`, `GET /api/v1/tenants/{slug}`, `PUT /api/v1/tenants/{slug}/suspend`), `CreateTenantRequest` (record con `@Valid`), `TenantData` (Lombok builder), nuevos `ResponseCode` (`TENANT_CREATED`, `TENANT_RETRIEVED`, `TENANT_SUSPENDED`), handlers en `GlobalExceptionHandler` para `TenantNotFoundException` → 404 y `TenantSuspendedException` → 403.
+- **`keygo-run`**: wiring de los 3 use cases en `ApplicationConfig`, `TenantResolutionFilter` (header `X-Tenant-Slug` → valida tenant → guarda en `TenantContextHolder`).
+- **Tests**: 128+ tests unitarios en total; +39 nuevos (28 domain, 8 app, 4 api, 4 supabase, 4 run).
+- **Lección aprendida**: `jakarta.validation-api` debe declararse explícitamente en `keygo-api/pom.xml`.
 
 ### [2026-03-21] Cierre de Fase 0 — base de calidad completada
 Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de calidad):

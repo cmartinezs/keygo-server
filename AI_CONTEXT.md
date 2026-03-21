@@ -228,6 +228,24 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
 
+### [2026-03-21] Convenciones de coding Java adoptadas para el codebase
+**Contexto:** Revisión y corrección masiva de estilo de código en todos los módulos activos.
+**Problema:** Se detectaron cuatro patrones de código que generan alertas de IDE (IntelliJ) y/o problemas de performance: (1) líneas en blanco dentro de bloques JavaDoc; (2) comentarios `/** */` en atributos/campos en lugar de `/* */`; (3) entidades JPA con `@Data` de Lombok (genera `equals`/`hashCode`/`toString` sobre todas las claves incluyendo colecciones lazy); (4) literales de string duplicados en tests de la misma clase; (5) `@Override toString()` sin `@NotNull` en IntelliJ (warning de nullability).
+**Solución / Buena práctica:**
+- **JavaDoc sin líneas en blanco:** usar `<p>` para separar párrafos dentro de la descripción; eliminar la línea en blanco antes de tags (`@param`, `@return`, `@throws`, `@author`).
+- **Comentarios en campos:** usar `/* */` (comentario simple multilinea), **no** `/** */`. Aplica a: campos de clase, componentes de records, constantes de enums, campos de `@ConfigurationProperties`.
+- **Entidades JPA:** reemplazar `@Data` por `@Getter @Setter`. Mantener `@Builder @NoArgsConstructor @AllArgsConstructor` por separado. Esto evita `equals`/`hashCode`/`toString` sobre colecciones lazy que pueden causar `LazyInitializationException` y degradación de performance.
+- **Literales duplicados en tests:** extraer a constantes `private static final` en la clase de test.
+- **`toString()` override:** anotar con `@SuppressWarnings("NullableProblems")` para suprimir el warning de IntelliJ sin agregar dependencias externas.
+- **Lombok en domain:** agregar Lombok como dependencia `provided` a `keygo-domain` y usar `@Builder` en el constructor privado de la clase (en vez de builder manual) + `@Getter` a nivel de clase.
+**Archivos clave:** `keygo-domain/pom.xml`, `Tenant.java`, `TenantId.java`, `TenantSlug.java`, `TenantStatus.java`, `TenantEntity.java`, `UserEntity.java`, `RoleEntity.java`, `PermissionEntity.java`, `CreateTenantUseCaseTest.java`, `TenantTest.java`
+
+### [2026-03-21] jakarta.validation-api no es transitivo en keygo-api
+**Contexto:** Implementación de la Fase 1 (multitenancy) — creación de `CreateTenantRequest` record con anotaciones `@NotBlank`, `@Size`, `@Email`, `@Pattern`, y uso de `@Valid` en el controller.
+**Problema:** El build falló con "package jakarta.validation.constraints does not exist" porque `keygo-api` solo tiene `spring-boot-starter-web` y `spring-boot-starter-actuator`, ninguno de los cuales expone `jakarta.validation-api` como dependencia transitiva directa en Spring Boot 4.
+**Solución / Buena práctica:** Agregar `jakarta.validation-api` explícitamente en `keygo-api/pom.xml` (sin scope especial). Esto da acceso a las anotaciones de constraints sin activar el motor de validación; el motor (Hibernate Validator) ya está activo en `keygo-run` mediante `spring-boot-starter-validation`. Este patrón aplica a cualquier módulo que declare DTOs con anotaciones de validación: la API de anotaciones y el runtime del motor pueden estar en módulos distintos.
+**Archivos clave:** `keygo-api/pom.xml`, `keygo-api/tenant/request/CreateTenantRequest.java`
+
 ### [2026-03-17] Retroalimentación obligatoria de documentos AI tras cada tarea
 **Contexto:** Revisión y consolidación de los documentos de guía para agentes (`AI_CONTEXT.md`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
 **Problema:** Los documentos de referencia para agentes no incluían `AGENTS.md` en la lista de lectura obligatoria. Tampoco había instrucciones explícitas sobre cuándo y cómo actualizar estos mismos documentos al finalizar una tarea (retroalimentación).
@@ -269,12 +287,14 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - **T-001** — Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`): todas las rutas son actualmente públicas. Ver `ROADMAP.md T-001`.
 - **T-002** — Agregar mapper en `keygo-api/platform/` para descargar al controller del mapeo `ServiceInfoProvider → ServiceInfoData`. Ver `ROADMAP.md T-002`.
 - **T-023** — Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless). Convención ya documentada en `docs/keygo-server/CODE_STYLE.md`. Ver `ROADMAP.md T-023`.
+- **T-024** — Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como alternativa al header `X-Tenant-Slug`, necesaria para los endpoints OAuth2 de la Fase 5. Ver `ROADMAP.md T-024`.
 
 ### Mediano plazo
 
-- **T-009** — Poblar `keygo-domain` con las primeras entidades de dominio puras: `Tenant`, `User`, `ClientApp`, `Membership`. Ver `ROADMAP.md T-009`.
+- **T-009** — Poblar `keygo-domain` con las primeras entidades de dominio puras: `Tenant`, `User`, `ClientApp`, `Membership`. Ver `ROADMAP.md T-009`. (**Tenant ya implementado en Fase 1**).
 - **T-010** — Poblar `keygo-infra` con puertos de infraestructura transversal: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`. Ver `ROADMAP.md T-010`.
-- **T-013** — Implementar tests de integración con Testcontainers para `keygo-supabase`. Ver `ROADMAP.md T-013`.
+- **T-013** — Implementar tests de integración con Testcontainers para `keygo-supabase` (incluyendo `TenantRepositoryAdapter`). Ver `ROADMAP.md T-013`.
+- **T-025** — Agregar tests de integración con Testcontainers para el flujo completo de Tenant (crear → consultar → suspender). Ver `ROADMAP.md T-025`.
 
 ### Largo plazo
 

@@ -9,12 +9,12 @@
 |---|---|
 | Arquitectura | Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-run`, `keygo-supabase` |
 | Autenticación | Sin implementar — sólo filtro Bootstrap de clave admin |
-| Persistencia | Entidades y repositorios JPA base (User, Role, Permission), sin conectar a puertos de negocio |
-| API pública | 2 endpoints: `GET /api/v1/service/info` y `GET /api/v1/response-codes` |
+| Persistencia | Entidades y repositorios JPA base (User, Role, Permission, **Tenant**), Tenant conectado a puerto de negocio |
+| API pública | 4 endpoints: `GET /api/v1/service/info`, `GET /api/v1/response-codes`, `POST /api/v1/tenants`, `GET /api/v1/tenants/{slug}`, `PUT /api/v1/tenants/{slug}/suspend` |
 | CI/CD | ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) |
-| Stubs vacíos | `keygo-domain`, `keygo-infra`, `keygo-common` |
-| Tests | 80+ tests unitarios — sin integración ni e2e |
-| Fase actual | **Fase 0 ✅ completa** — Siguiente: Fase 1 (Multitenancy) |
+| Stubs vacíos | `keygo-infra`, `keygo-common` (`keygo-domain` ya tiene modelo Tenant) |
+| Tests | 128+ tests unitarios — sin integración ni e2e |
+| Fase actual | **Fase 1 🔄 en progreso** — Núcleo de multitenancy (modelo + persistencia + API + resolver) |
 
 ---
 
@@ -33,6 +33,8 @@
 | T-005 | Restringir `management.endpoints.web.exposure.include` a `health,info` en el perfil `prod` | `keygo-run` | Actuator actualmente expone todos los endpoints (`"*"`) — riesgo de seguridad |
 | T-007 | Renombrar config de IntelliJ `.run/KeyGo Runner.run.xml` a `.run/KeygoApplication.run.xml` para reflejar el nombre actual de la clase principal | Infra dev | Consistencia tras renombrado de `KeyGoRunner` → `KeygoApplication` |
 | T-023 | Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless) en el `pom.xml` raíz; integrar como paso en CI | `pom.xml` raíz / CI | La convención de 2 espacios ya está documentada en `docs/keygo-server/CODE_STYLE.md`; falta enforcement automático |
+| T-024 | Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como complemento al header `X-Tenant-Slug` del `TenantResolutionFilter` actual | `keygo-run` / `keygo-api` | La Fase 5 requiere endpoints `/{tenantSlug}/oauth2/authorize`; el filtro actual solo resuelve por header |
+| T-025 | Agregar tests de integración con Testcontainers para el ciclo completo de Tenant: crear → consultar → suspender vía `TenantRepositoryAdapter` | `keygo-supabase` | El adaptador solo tiene tests unitarios con Mockito; la persistencia real no se valida aún |
 
 ---
 
@@ -157,6 +159,8 @@
 |---|---|---|---|
 | T-006 | Configurar GitHub Actions: pipeline CI mínimo con `./mvnw test` y `./mvnw clean package` en cada push/PR | 2026-03-21 | `.github/workflows/ci.yml` creado; Fase 0 cerrada |
 | — | Reorganizar paquetes internos por feature (keygo-api, keygo-app, keygo-run, keygo-supabase) | 2026-03-17 | Refactor de estructura interna |
+| F-003 | E2-H1: Modelo `Tenant` — entidad de dominio, persistencia, unicidad por `slug` | 2026-03-21 | `keygo-domain/tenant/model/`, `keygo-supabase/tenant/`, migración `V4__add_tenants.sql`, puertos y use cases en `keygo-app/tenant/` |
+| F-004 | E2-H2: Resolución de tenant — propagar contexto de tenant a la request desde entrada HTTP | 2026-03-21 | `TenantContextHolder` (keygo-app), `TenantResolutionFilter` por header `X-Tenant-Slug` (keygo-run) |
 
 ---
 

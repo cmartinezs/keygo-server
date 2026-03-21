@@ -3,6 +3,10 @@ package io.cmartinezs.keygo.run.config;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
 import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
+import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
+import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
+import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import java.util.TimeZone;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +33,21 @@ public class ApplicationConfig {
   @Bean
   public GetServiceInfoUseCase getServiceInfoUseCase(ServiceInfoProvider serviceInfoProvider) {
     return new GetServiceInfoUseCase(serviceInfoProvider);
+  }
+
+  @Bean
+  public CreateTenantUseCase createTenantUseCase(TenantRepositoryPort tenantRepositoryPort) {
+    return new CreateTenantUseCase(tenantRepositoryPort);
+  }
+
+  @Bean
+  public GetTenantBySlugUseCase getTenantBySlugUseCase(TenantRepositoryPort tenantRepositoryPort) {
+    return new GetTenantBySlugUseCase(tenantRepositoryPort);
+  }
+
+  @Bean
+  public SuspendTenantUseCase suspendTenantUseCase(TenantRepositoryPort tenantRepositoryPort) {
+    return new SuspendTenantUseCase(tenantRepositoryPort);
   }
 
     @Bean
