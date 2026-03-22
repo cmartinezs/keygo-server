@@ -427,7 +427,7 @@ El admin del tenant ya puede:
 
 ---
 
-## Fase 4. Memberships y roles por app
+## Fase 4. Memberships y roles por app ✅ COMPLETADA (2026-03-21)
 
 ### Objetivo
 Modelar correctamente el acceso del usuario a una app concreta.
@@ -525,7 +525,7 @@ Ya puedes:
 
 ---
 
-## Fase 5. Núcleo OAuth2/OIDC: authorization flow
+## Fase 5. Núcleo OAuth2/OIDC: authorization flow ✅ COMPLETADA (2026-03-22)
 
 ### Objetivo
 Cerrar el flujo central del producto: login Hosted + Authorization Code + PKCE.
@@ -536,66 +536,111 @@ Cerrar el flujo central del producto: login Hosted + Authorization Code + PKCE.
 - `keygo-infra`
 - `keygo-supabase`
 - `keygo-api`
+- `keygo-run`
 
-### Componentes a crear
+### Componentes creados
 
-## 5.1. Dominio
+## 5.1. Dominio ✅
 
 ### `auth/model`
-- `AuthorizationCode`
-- `AuthorizationCodeStatus`
-- `ScopeSet`
-- `AuthorizationTransactionContext` *(si decides modelarlo)*
+- `AuthorizationCode` ✅
+- `AuthorizationCodeId` ✅ (record con `.value()`)
+- `AuthorizationCodeStatus` ✅ (enum: ISSUED, CONSUMED, EXPIRED, REVOKED)
+- `CodeChallenge` ✅ (record — S256 y plain PKCE)
+- `ScopeSet` ✅
 
 ### `auth/exception`
-- `InvalidAuthorizationCodeException`
-- `AuthorizationCodeExpiredException`
-- `InvalidPkceVerificationException`
-- `AccessDeniedToClientAppException`
+- `InvalidAuthorizationCodeException` ✅
+- `AuthorizationCodeExpiredException` ✅
+- `InvalidPkceVerificationException` ✅
+- `ScopeNotGrantedException` ✅
 
-## 5.2. Aplicación
+## 5.2. Aplicación ✅
 
 ### Puertos
-- `AuthorizationCodeRepositoryPort`
-- `AuthorizationContextStorePort` *(si se maneja estado intermedio)*
-- `ClockPort`
+- `AuthorizationCodeRepositoryPort` ✅
+- `ClockPort` ✅
 
-### Casos de uso mínimos
-- `StartAuthorizationUseCase`
-- `AuthenticateUserForAuthorizationUseCase`
-- `IssueAuthorizationCodeUseCase`
-- `ExchangeAuthorizationCodeUseCase`
+### Comandos
+- `InitiateAuthorizationCommand` ✅
+- `AuthenticateUserCommand` ✅
+- `IssueAuthorizationCodeCommand` ✅
+- `ExchangeAuthorizationCodeCommand` ✅
 
-## 5.3. Infraestructura
-- `PkceVerifier`
-- `AuthorizationContextStore` si aplica
-- utilidades de generación segura de code
+### Results
+- `AuthorizationInitiatedResult` ✅
+- `AuthorizationCodeIssuedResult` ✅
+- `ExchangeAuthorizationCodeResult` ✅
 
-## 5.4. Persistencia
-- `AuthorizationCodeJpaEntity`
-- `AuthorizationCodeJpaRepository`
-- adapter correspondiente
+### Casos de uso
+- `InitiateAuthorizationUseCase` ✅
+- `AuthenticateUserForAuthorizationUseCase` ✅
+- `IssueAuthorizationCodeUseCase` ✅
+- `ExchangeAuthorizationCodeUseCase` ✅
+
+## 5.3. Infraestructura ✅
+- `PkceVerifier` ✅ (validación S256 y plain PKCE)
+
+## 5.4. Persistencia ✅
+
+### En `keygo-supabase`
+- `AuthorizationCodeEntity` ✅ (JPA)
+- `AuthorizationCodeJpaRepository` ✅ (Spring Data)
+- `AuthorizationCodePersistenceMapper` ✅
+- `AuthorizationCodeRepositoryAdapter` ✅
 
 ### Migración
-- tabla `authorization_code`
+- `V8__add_oauth_authorization_codes.sql` ✅ — tabla `authorization_codes` con índices
 
-## 5.5. API
+## 5.5. API ✅
 
-### Auth plane
-- `AuthorizationController`
-- `AccountController` *(login submit)*
+### Controller
+- `AuthorizationController` ✅ (3 endpoints)
 
-### Endpoints prioritarios
-- `GET /{tenant}/oauth2/authorize`
-- `POST /{tenant}/account/login`
-- `POST /{tenant}/oauth2/token` *(solo rama authorization_code en esta fase)*
+### Endpoints implementados
+- `GET /api/v1/tenants/{slug}/oauth2/authorize` ✅ — iniciar autorización
+- `POST /api/v1/tenants/{slug}/account/login` ✅ — autenticación del usuario
+- `POST /api/v1/tenants/{slug}/oauth2/token` ✅ — intercambio authorization_code → tokens
 
-### Resultado esperado
+### DTOs request
+- `AuthorizationRequest` ✅
+- `LoginRequest` ✅
+- `TokenRequest` ✅
+
+### DTOs response
+- `AuthorizationInitiatedData` ✅
+- `AuthorizationCodeData` ✅
+- `LoginData` ✅
+
+### Response codes
+- `AUTHORIZATION_INITIATED`, `AUTHORIZATION_CODE_ISSUED`, `AUTHORIZATION_CODE_EXCHANGED`, `LOGIN_SUCCESSFUL` ✅
+
+### Error handlers en `GlobalExceptionHandler`
+- `InvalidAuthorizationCodeException` → 400 ✅
+- `AuthorizationCodeExpiredException` → 400 ✅
+- `InvalidPkceVerificationException` → 400 ✅
+- `ScopeNotGrantedException` → 403 ✅
+- (+ handler genérico para flujo OAuth2 estándar) ✅
+
+## 5.6. Run ✅
+- `SystemClockProvider` (`ClockPort`) ✅
+- 6 `@Bean` nuevos en `ApplicationConfig` ✅
+
+### Tests
+- ~60 tests unitarios nuevos. Total proyecto: **270+ tests** (todos pasan) ✅
+
+### Postman
+- Carpeta `🔐 OAuth2 Authorization` con 3 requests (authorize, login, token exchange) ✅
+- **23 requests totales** en 6 carpetas ✅
+
+### Resultado alcanzado ✅
 Ya tienes el corazón de Key-go funcionando:
-- una app inicia login,
-- el usuario se autentica en Key-go,
-- se genera authorization code,
-- y se canjea por tokens.
+- una app inicia el flujo OAuth2 Authorization Code + PKCE,
+- el usuario se autentica en Key-go (login hosted),
+- se genera un authorization code de un solo uso,
+- y se canjea por tokens (access_token + id_token placeholder).
+
+> **Siguiente fase:** Fase 6 — Firma de tokens y metadata OIDC
 
 ---
 
@@ -936,9 +981,8 @@ ya existan y estén razonablemente estables.
 ## Sprint 2 ✅ COMPLETADO (2026-03-21)
 - Fase 4 completa ✅
 
-## Sprint 3
-- completar Fase 5
-- iniciar Fase 6
+## Sprint 3 ✅ COMPLETADO (2026-03-22)
+- Fase 5 completa ✅
 
 ## Sprint 4
 - completar Fase 6
