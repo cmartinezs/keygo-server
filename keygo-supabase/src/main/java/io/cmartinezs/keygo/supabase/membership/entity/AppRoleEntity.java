@@ -25,13 +25,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 @AllArgsConstructor
 @Entity
 @Table(
-    name = "app_role",
+    name = "app_roles",
     uniqueConstraints = {
-      @UniqueConstraint(name = "uq_app_role_client_app_code", columnNames = {"client_app_id", "code"})
+      @UniqueConstraint(name = "uq_app_roles_client_app_code", columnNames = {"client_app_id", "code"})
     },
     indexes = {
-      @Index(name = "idx_app_role_client_app_id", columnList = "client_app_id"),
-      @Index(name = "idx_app_role_code", columnList = "code")
+      @Index(name = "idx_app_roles_client_app_id", columnList = "client_app_id"),
+      @Index(name = "idx_app_roles_code", columnList = "code")
     })
 public class AppRoleEntity {
 

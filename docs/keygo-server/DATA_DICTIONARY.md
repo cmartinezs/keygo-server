@@ -66,7 +66,7 @@ Contiene:
 
 ├─ Gestión de memberships/roles
 │  ├─ Leer: ENTITY_RELATIONSHIPS.md § "Ciclo de vida de memberships"
-│  ├─ Leer: DATA_MODEL.md → tablas membership, app_role, membership_role
+│  ├─ Leer: DATA_MODEL.md → tablas memberships, app_roles, membership_roles
 │  └─ Referenciar: AGENTS.md § "Fase 4 completada"
 
 └─ Una query SQL o índice
@@ -179,15 +179,15 @@ Audiencia: Developers, QA
 
 ```
 Plan:
-1. Verificar tabla app_role → DATA_MODEL.md § "Tabla: app_role"
-2. Verificar relación membership_role → DATA_MODEL.md § "Tabla: membership_role"
+1. Verificar tabla app_roles → DATA_MODEL.md § "Tabla: app_roles"
+2. Verificar relación membership_roles → DATA_MODEL.md § "Tabla: membership_roles"
    ⚠️ PK compuesta (membership_id, role_id) — sin columna id propia; FK al rol es role_id
 3. Verificar query SQL → DATA_MODEL.md § "Guía 4: Obtener roles asignados"
 4. Entender validaciones → ENTITY_RELATIONSHIPS.md § "Matriz de decisión"
 5. Escribir código + tests
 
 Ficheros a consultar:
-├─ DATA_MODEL.md (SQL reference — tabla membership es singular)
+├─ DATA_MODEL.md (SQL reference)
 ├─ ENTITY_RELATIONSHIPS.md (access matrix, state machine membership)
 ├─ AGENTS.md (repositories: AppRoleJpaRepository, MembershipJpaRepository)
 └─ keygo-api § TenantAppRoleController.java (ejemplo de controller)
@@ -241,11 +241,10 @@ Ficheros a consultar:
 | ENUM Java | `PascalCase` | `ClientType`, `MembershipStatus` |
 | ENUM SQL | Mayúsculas (mayoría) / minúsculas (`authorization_codes.status`) | `ACTIVE` / `pending` |
 | Entidad JPA | `PascalCase + Entity` | `TenantEntity`, `ClientAppEntity` |
-| DTO | `PascalCase + Data/Request/Response` | `TenantData`, `CreateMembershipRequest` |
+| Índice | `idx_{table}_{columns}` | `idx_memberships_user_id` |
 
 > ⚠️ **Excepción importante:** `authorization_codes.status` usa valores en **minúsculas** (`pending`, `used`, `expired`, `revoked`), a diferencia del resto de tablas que usan UPPERCASE. Tener en cuenta en comparaciones Java y SQL.
 
-> ⚠️ **Nombre singular:** La tabla `membership` es singular (no `memberships`). Su PK de relación `membership_role` usa PK compuesta `(membership_id, role_id)` — **sin** columna `id` propia.
 
 ---
 
@@ -271,9 +270,10 @@ Ficheros a consultar:
 - ✅ `SigningKey` + JWT RS256 firma (V9)
 - ✅ JWKS endpoint (`/.well-known/jwks.json`)
 - ✅ OIDC Discovery (`/.well-known/openid-configuration`)
+- ✅ Tablas `memberships`, `app_roles`, `membership_roles` renombradas a plural (V10)
 
 **Fase 7 ⏳ (planificada) — Refresh Token Flow:**
-- Implementar `refresh_tokens` tabla (V10 siguiente migración)
+- Implementar `refresh_tokens` tabla (`V11__add_refresh_tokens.sql` — siguiente migración libre)
 - Implementar `POST /oauth2/token` con `grant_type=refresh_token`
 - Implementar rotación de tokens
 
@@ -285,5 +285,5 @@ Ficheros a consultar:
 ---
 
 **Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Estado:** ✅ Completo  
-**Sincronizado con:** Migraciones V1–V9 | **Fases implementadas:** 0–6
+**Sincronizado con:** Migraciones V1–V10 | **Fases implementadas:** 0–6
 

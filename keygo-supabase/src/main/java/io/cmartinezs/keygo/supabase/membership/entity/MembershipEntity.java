@@ -31,16 +31,16 @@ import org.hibernate.annotations.UpdateTimestamp;
 @AllArgsConstructor
 @Entity
 @Table(
-    name = "membership",
+    name = "memberships",
     uniqueConstraints = {
       @UniqueConstraint(
-          name = "uq_membership_user_app",
+          name = "uq_memberships_user_app",
           columnNames = {"user_id", "client_app_id"})
     },
     indexes = {
-      @Index(name = "idx_membership_user_id", columnList = "user_id"),
-      @Index(name = "idx_membership_client_app_id", columnList = "client_app_id"),
-      @Index(name = "idx_membership_status", columnList = "status")
+      @Index(name = "idx_memberships_user_id", columnList = "user_id"),
+      @Index(name = "idx_memberships_client_app_id", columnList = "client_app_id"),
+      @Index(name = "idx_memberships_status", columnList = "status")
     })
 public class MembershipEntity {
 
@@ -64,7 +64,7 @@ public class MembershipEntity {
   @Builder.Default
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
-      name = "membership_role",
+      name = "membership_roles",
       joinColumns = @JoinColumn(name = "membership_id", referencedColumnName = "id"),
       inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
   private Set<AppRoleEntity> roles = new HashSet<>();

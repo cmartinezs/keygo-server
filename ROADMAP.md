@@ -37,6 +37,7 @@
 | T-026 | Mantener colecciones Postman actualizadas: agregar nuevas requests al crear endpoints; crear un environment adicional `KeyGo-Server-Docker` para pruebas contra imagen Docker | `postman/` | Las colecciones actuales cubren los 7 endpoints existentes; cada nueva feature debe extenderlas |
 | T-027 | Agregar endpoint `POST /api/v1/tenants/{slug}/oauth2/token` con grant type `refresh_token` — Fase 7 del plan de implementación | `keygo-api`, `keygo-app`, `keygo-supabase` | El flujo Authorization Code emite tokens pero no tiene mecanismo de renovación |
 | T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) — eliminar `private_material` de la DB en producción | `keygo-infra`, `keygo-supabase` | La clave privada en DB es práctica aceptable solo en dev/staging; producción requiere HSM o KMS |
+| T-029 | Agregar columna `status VARCHAR(20)` a la tabla `app_roles` con valores `ACTIVE\|DISABLED` y migración `V11__add_app_role_status.sql`; actualizar `AppRoleEntity` y use cases para filtrar roles deshabilitados | `keygo-supabase`, `keygo-app`, `keygo-api` | La documentación original preveía este campo; permite deshabilitar un rol sin eliminarlo, útil para gestión de permisos granular en apps |
 
 ---
 
@@ -158,6 +159,7 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| — | **Re-auditoría de inconsistencias: corrección de tablas en singular → plural** — `V10__rename_membership_tables_to_plural.sql`: renombra `app_role→app_roles`, `membership→memberships`, `membership_role→membership_roles`; actualiza índices, constraints, entidades JPA (`AppRoleEntity`, `MembershipEntity`), documentación completa (`DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `INCONSISTENCIAS.datos.md`, `AGENTS.md`) | 2026-03-22 | `V10__rename_membership_tables_to_plural.sql`; `AppRoleEntity.java`; `MembershipEntity.java` |
 | T-001 | Corregir bug `BootstrapAdminKeyFilter`: `getRequestURI()` → `getServletPath()` para que el filtro funcione con `context-path` activo; +2 tests de regresión con context-path simulado | 2026-03-21 | `keygo-run/.../filter/BootstrapAdminKeyFilter.java`; `BootstrapAdminKeyFilterTest.java` — 15 tests, 0 fallos |
 | T-027 | Integrar Swagger / OpenAPI con SpringDoc 3.0.1 (compatible Spring Boot 4.x): `OpenApiConfig` en `keygo-run`, anotaciones `@Tag`/`@Operation`/`@ApiResponses` en los 4 controllers, 3 grupos de API, SecurityScheme `AdminKeyAuth` | 2026-03-21 | `keygo-run/config/OpenApiConfig.java` nuevo; `keygo-api/pom.xml` dependencia springdoc 3.0.1; controllers anotados; Swagger UI en `/keygo-server/swagger-ui/index.html` |
 | T-016 | Configurar JaCoCo para cobertura de tests y fallar el build si baja del umbral definido | 2026-03-21 | Plugin en `pom.xml` raíz; umbral 60% instrucciones; `report-aggregate` en `keygo-run`; CI actualizado a `./mvnw verify` |

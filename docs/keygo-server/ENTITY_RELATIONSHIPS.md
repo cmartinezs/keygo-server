@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V9
+> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V10
 
 ---
 
@@ -144,9 +144,10 @@ classDiagram
     AppRole "1" --> "0..*" MembershipRole : grants
 ```
 
-> ⚠️ Tabla en DB: `membership` (singular). **Sin columna `tenant_id`**.  
-> ⚠️ `membership_role` tiene **PK compuesta** `(membership_id, role_id)` — sin columna `id`.  
-> ⚠️ `app_role` no tiene columna `status` en la DB actual. El campo FK al rol es `role_id`.  
+> Tablas en DB: `memberships`, `membership_roles`, `app_roles` (renombradas a plural en V10).  
+> ⚠️ `memberships` **sin columna `tenant_id`** (redundante — user_id implica el tenant).  
+> ⚠️ `membership_roles` tiene **PK compuesta** `(membership_id, role_id)` — sin columna `id`.  
+> ⚠️ `app_roles` no tiene columna `status` en la DB actual. El campo FK al rol es `role_id`.  
 > Status de `Membership`: `ACTIVE`, `SUSPENDED`, `PENDING`.
 
 **Invariantes:**
@@ -384,7 +385,7 @@ stateDiagram-v2
 
 > ⚠️ Los estados válidos en DB son `ACTIVE`, `SUSPENDED`, `PENDING` (CHECK constraint en V7).  
 > La eliminación física de la fila equivale a revocar el acceso permanentemente (CASCADE).  
-> No existe estado `REVOKED` ni `INVITED` en la tabla `membership` actual.
+> No existe estado `REVOKED` ni `INVITED` en la tabla `memberships` actual.
 
 ---
 
@@ -396,13 +397,13 @@ graph TD
     A -->|tiene roles| C["AppRole: code=user"]
     A -->|tiene roles| D["AppRole: code=viewer"]
 
-    E["membership_role: membership_id=123, role_id=101"]
-    F["membership_role: membership_id=123, role_id=102"]
-    G["membership_role: membership_id=123, role_id=103"]
+    E["membership_roles: membership_id=123, role_id=101"]
+    F["membership_roles: membership_id=123, role_id=102"]
+    G["membership_roles: membership_id=123, role_id=103"]
 
-    B -.->|via membership_role| E
-    C -.->|via membership_role| F
-    D -.->|via membership_role| G
+    B -.->|via membership_roles| E
+    C -.->|via membership_roles| F
+    D -.->|via membership_roles| G
 
     H["AccessToken JWT claims: roles = [admin, user, viewer]"]
     E -.->|included in| H
@@ -410,7 +411,7 @@ graph TD
     G -.->|included in| H
 ```
 
-> ⚠️ `membership_role` usa columna `role_id` (FK → `app_role.id`), **no** `app_role_id`.
+> ⚠️ `membership_roles` usa columna `role_id` (FK → `app_roles.id`), **no** `app_role_id`.
 
 ---
 
@@ -494,7 +495,7 @@ sequenceDiagram
 | `SUSPENDED` | Reactivar | `ACTIVE` | Sí |
 | `SUSPENDED` | Eliminar | *(borrado)* | ❌ No |
 
-> La "revocación permanente" se implementa eliminando la fila; la cascade en DB limpia `membership_role`.
+> La "revocación permanente" se implementa eliminando la fila; la cascade en DB limpia `membership_roles`.
 
 ---
 
@@ -545,34 +546,34 @@ graph TB
 > Los índices marcados con ✅ ya existen en las migraciones Flyway. Los marcados con 💡 son sugeridos adicionales.
 
 ```sql
--- ✅ Ya aplicados por migraciones (V4-V9)
-CREATE INDEX idx_tenants_slug ON tenants(slug);                         -- V4
-CREATE INDEX idx_tenants_status ON tenants(status);                     -- V4
-CREATE INDEX idx_client_apps_tenant_id ON client_apps(tenant_id);       -- V5
-CREATE INDEX idx_client_apps_client_id ON client_apps(client_id);       -- V5
-CREATE INDEX idx_client_apps_status ON client_apps(status);             -- V5
-CREATE INDEX idx_tenant_users_tenant_id ON tenant_users(tenant_id);     -- V6
-CREATE INDEX idx_tenant_users_email ON tenant_users(email);             -- V6
-CREATE INDEX idx_tenant_users_username ON tenant_users(username);       -- V6
-CREATE INDEX idx_tenant_users_status ON tenant_users(status);           -- V6
-CREATE INDEX idx_app_role_client_app_id ON app_role(client_app_id);     -- V7
-CREATE INDEX idx_app_role_code ON app_role(code);                       -- V7
-CREATE INDEX idx_membership_user_id ON membership(user_id);             -- V7
-CREATE INDEX idx_membership_client_app_id ON membership(client_app_id); -- V7
-CREATE INDEX idx_membership_status ON membership(status);               -- V7
+-- ✅ Ya aplicados por migraciones (V4-V9, renombrados en V10)
+CREATE INDEX idx_tenants_slug ON tenants(slug);                                 -- V4
+CREATE INDEX idx_tenants_status ON tenants(status);                             -- V4
+CREATE INDEX idx_client_apps_tenant_id ON client_apps(tenant_id);               -- V5
+CREATE INDEX idx_client_apps_client_id ON client_apps(client_id);               -- V5
+CREATE INDEX idx_client_apps_status ON client_apps(status);                     -- V5
+CREATE INDEX idx_tenant_users_tenant_id ON tenant_users(tenant_id);             -- V6
+CREATE INDEX idx_tenant_users_email ON tenant_users(email);                     -- V6
+CREATE INDEX idx_tenant_users_username ON tenant_users(username);               -- V6
+CREATE INDEX idx_tenant_users_status ON tenant_users(status);                   -- V6
+CREATE INDEX idx_app_roles_client_app_id ON app_roles(client_app_id);           -- V7 (renombrado V10)
+CREATE INDEX idx_app_roles_code ON app_roles(code);                             -- V7 (renombrado V10)
+CREATE INDEX idx_memberships_user_id ON memberships(user_id);                   -- V7 (renombrado V10)
+CREATE INDEX idx_memberships_client_app_id ON memberships(client_app_id);       -- V7 (renombrado V10)
+CREATE INDEX idx_memberships_status ON memberships(status);                     -- V7 (renombrado V10)
 CREATE INDEX idx_authorization_codes_code ON authorization_codes(code);                   -- V8
 CREATE INDEX idx_authorization_codes_tenant_id ON authorization_codes(tenant_id);         -- V8
 CREATE INDEX idx_authorization_codes_client_app_id ON authorization_codes(client_app_id); -- V8
 CREATE INDEX idx_authorization_codes_user_id ON authorization_codes(user_id);             -- V8
 CREATE INDEX idx_authorization_codes_status ON authorization_codes(status);               -- V8
 CREATE INDEX idx_authorization_codes_expires_at ON authorization_codes(expires_at);       -- V8
-CREATE INDEX idx_signing_keys_status ON signing_keys(status);           -- V9
+CREATE INDEX idx_signing_keys_status ON signing_keys(status);                   -- V9
 
 -- 💡 Índices adicionales sugeridos para optimización
 CREATE INDEX idx_client_apps_tenant_status ON client_apps(tenant_id, status);
 CREATE INDEX idx_tenant_users_tenant_email ON tenant_users(tenant_id, email);
 CREATE INDEX idx_tenant_users_tenant_username ON tenant_users(tenant_id, username);
-CREATE INDEX idx_membership_user_app ON membership(user_id, client_app_id, status);
+CREATE INDEX idx_memberships_user_app ON memberships(user_id, client_app_id, status);
 CREATE INDEX idx_authorization_codes_expires_status ON authorization_codes(expires_at, status);
 ```
 

@@ -1,6 +1,11 @@
 # AGENTS.md — KeyGo Server
 
 > Quick-start guide for AI coding agents. Full context in `AI_CONTEXT.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `ROADMAP.md`.
+>
+> 📖 **Sub-documentos de este archivo:**
+> - [`AGENTS.registro.md`](AGENTS.registro.md) — Historial de cambios al quick-start
+> - [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) — Inconsistencias detectadas
+> - [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) — Lecciones aprendidas
 
 ## Module map & dependency rules
 
@@ -175,6 +180,8 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `ClientAllowedGrantEntity` | `clientapp.entity` | `client_allowed_grants` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`; `grantType` mapped as `AllowedGrant` enum |
 | `ClientAllowedScopeEntity` | `clientapp.entity` | `client_allowed_scopes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
 | `TenantUserEntity` | `user.entity` | `tenant_users` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`; `UNIQUE(tenant_id, email)`, `UNIQUE(tenant_id, username)` |
+| `AppRoleEntity` | `membership.entity` | `app_roles` | `@ManyToOne` → `ClientAppEntity`; `UNIQUE(client_app_id, code)` |
+| `MembershipEntity` | `membership.entity` | `memberships` | `@ManyToOne` → `TenantUserEntity`, `ClientAppEntity`; `@ManyToMany` → `AppRoleEntity` via `membership_roles` |
 | `AuthorizationCodeEntity` | `auth.entity` | `authorization_codes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`, `TenantEntity`, `TenantUserEntity` |
 | `SigningKeyEntity` | `auth.entity` | `signing_keys` | `kid` unique; `status` check `ACTIVE\|RETIRED\|REVOKED`; `algorithm` (RS256/RS384/RS512); `public_material` + `private_material` PEM |
 
@@ -197,11 +204,12 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V4__add_tenants.sql` — tenants table (slug unique, status check constraint)
 - `V5__add_client_apps.sql` — client_apps, client_redirect_uris, client_allowed_grants, client_allowed_scopes tables
 - `V6__add_tenant_users.sql` — tenant_users table (unique per tenant: email, username; FK → tenants ON DELETE CASCADE)
-- `V7__add_memberships.sql` — app_role, membership, membership_role tables
+- `V7__add_memberships.sql` — app_role, membership, membership_role tables (en singular; renombradas en V10)
 - `V8__add_oauth_authorization_codes.sql` — authorization_codes table
 - `V9__add_signing_keys.sql` — signing_keys table (kid unique, status check, algorithm, public/private PEM)
+- `V10__rename_membership_tables_to_plural.sql` — renames app_role→app_roles, membership→memberships, membership_role→membership_roles
 
-Next migration must be `V10__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V11__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -282,83 +290,26 @@ Se implementó el flujo OAuth 2.0 Authorization Code + PKCE en los cinco módulo
 - **`keygo-app`**: puertos `AuthorizationCodeRepositoryPort`, `ClockPort`; 4 comandos (`InitiateAuthorizationCommand`, `AuthenticateUserCommand`, `IssueAuthorizationCodeCommand`, `ExchangeAuthorizationCodeCommand`); 3 results (`AuthorizationInitiatedResult`, `AuthorizationCodeIssuedResult`, `ExchangeAuthorizationCodeResult`); 4 casos de uso (`InitiateAuthorizationUseCase`, `AuthenticateUserForAuthorizationUseCase`, `IssueAuthorizationCodeUseCase`, `ExchangeAuthorizationCodeUseCase`).
 - **`keygo-infra`**: `PkceVerifier` (validación S256 y plain PKCE).
 - **`keygo-supabase`**: `AuthorizationCodeEntity` (JPA), `AuthorizationCodeJpaRepository` (Spring Data), `AuthorizationCodePersistenceMapper`, `AuthorizationCodeRepositoryAdapter`, migración `V8__add_oauth_authorization_codes.sql` (tabla `authorization_codes` con índices).
-- **`keygo-api`**: `AuthorizationController` (3 endpoints: `GET /api/v1/tenants/{slug}/oauth2/authorize`, `POST /api/v1/tenants/{slug}/account/login`, `POST /api/v1/tenants/{slug}/oauth2/token`), 4 DTOs request (`AuthorizationRequest`, `LoginRequest`, `TokenRequest`) y 3 response (`AuthorizationInitiatedData`, `AuthorizationCodeData`, `LoginData`), 5 handlers en `GlobalExceptionHandler`.
-- **`keygo-run`**: `SystemClockProvider` (implementación de `ClockPort`), 6 `@Bean` nuevos en `ApplicationConfig` para inyección de dependencias.
-- **Tests**: ~60 tests unitarios nuevos. Total proyecto: **270+ tests** (todos pasan).
-- **Postman**: carpeta `🔐 OAuth2 Authorization` con 3 requests (authorize, login, token exchange). **23 requests totales** en 6 carpetas.
-- **ResponseCode**: 4 nuevos (`AUTHORIZATION_INITIATED`, `AUTHORIZATION_CODE_ISSUED`, `AUTHORIZATION_CODE_EXCHANGED`, `LOGIN_SUCCESSFUL`).
-- **Build**: `./mvnw clean package -DskipTests` — **SUCCESS** en todos los módulos.
-- **Lección aprendida**: Value objects — usar **records** exclusivamente para todos los value objects (exponen `.value()` como método público automáticamente), no clases con `.getValue()`. Aplicar hoy: reemplazar `AuthorizationCodeId` clase → record.
+## Registro de cambios
 
-### [2026-03-21] Fase 4 — Memberships y roles por app completada
-Se implementó el núcleo de memberships (acceso del usuario a una app) y roles por app en los cinco módulos activos:
-- **`keygo-domain`**: entidades de dominio puras `Membership`, `MembershipId`, `MembershipStatus`, `AppRole`, `AppRoleId`, `RoleCode`, `MembershipRole`; excepciones `MembershipNotFoundException`, `MembershipInactiveException`, `InvalidRoleAssignmentException`. Sin Spring ni JPA.
-- **`keygo-app`**: puertos `MembershipRepositoryPort`, `AppRoleRepositoryPort`; comando `CreateMembershipCommand`; casos de uso `CreateMembershipUseCase`, `RevokeMembershipUseCase`, `ListMembershipsUseCase`, `ListAppRolesUseCase`.
-- **`keygo-supabase`**: `MembershipEntity`, `AppRoleEntity` (JPA), `MembershipJpaRepository`, `AppRoleJpaRepository` (Spring Data), `MembershipPersistenceMapper`, `MembershipRepositoryAdapter`, `AppRoleRepositoryAdapter`, migración `V7__add_memberships.sql` (tablas `app_role`, `membership`, `membership_role`).
-- **`keygo-api`**: `TenantMembershipController` (3 endpoints: POST/GET/DELETE memberships), `TenantAppRoleController` (2 endpoints: POST/GET roles), DTOs (`CreateMembershipRequest`, `CreateAppRoleRequest`, `MembershipData`, `AppRoleData`), 6 nuevos `ResponseCode`, 3 handlers en `GlobalExceptionHandler`.
-- **`keygo-run`**: 4 nuevos `@Bean` en `ApplicationConfig`.
-- **Tests**: ~45 tests unitarios nuevos distribuidos en domain (18), app (8), api (6), supabase (5). Total proyecto: 210+ tests.
-- **Postman**: carpeta `📋 Memberships` y `👥 Roles` con 5 requests (crear, listar, revocar memberships; crear, listar roles).
-- **ROADMAP.md**: F-009 completada, Fase 4 marcada como completada en el plan, Sprint 2 cerrado.
-- **Lección aprendida**: En controllers REST con DTOs, verificar siempre que el import de `BaseResponse` sea del subpaquete `.response` (`io.cmartinezs.keygo.api.shared.response.BaseResponse`), no directamente de `shared`.
+> El historial detallado se encuentra en el sub-documento **[`AGENTS.registro.md`](AGENTS.registro.md)**.
+>
+> Agregar aquí una entrada resumen y en el sub-documento el detalle completo cada vez que cambie
+> la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 
-### [2026-03-22] Fase 6 — Firma de tokens y metadata OIDC completada
+### Entradas recientes (resumen)
 
-Se implementó la firma JWT real con RS256 y los endpoints OIDC discovery + JWKS en los cinco módulos activos:
+| Fecha | Cambio |
+|---|---|
+| 2026-03-22 | Re-auditoría de inconsistencias — corrección de tablas en singular via V10 |
+| 2026-03-22 | Refactorización de docs AI en sub-documentos temáticos |
+| 2026-03-22 | Sincronización de documentos de datos con migraciones V1–V9 |
+| 2026-03-22 | Fase 6 — Firma de tokens (RS256) + JWKS + OIDC Discovery completados |
+| 2026-03-22 | Fase 5 — Flujo OAuth2 Authorization Code + PKCE completado |
+| 2026-03-21 | Fase 4 — Memberships y roles por app completados |
+| 2026-03-21 | Fase 3 — User identity per tenant completado |
+| 2026-03-21 | Fase 2 — Client app model completado |
+| 2026-03-21 | Fase 1 — Multitenancy completado |
+| 2026-03-21 | Fase 0 — Hardening estructural + CI + Enforcer completados |
 
-- **`keygo-domain`**: entidades de dominio puras `SigningKey`, `SigningKeyId` (record), `SigningKeyStatus` (ACTIVE/RETIRED/REVOKED), `SigningKeyAlgorithm` (RS256/RS384/RS512); excepción `NoActiveSigningKeyException`. Sin Spring ni JPA.
-- **`keygo-app`**: puertos `SigningKeyRepositoryPort`, `TokenSignerPort`, `TokenClaimsFactoryPort`, `JwksBuilderPort`; caso de uso `IssueTokensUseCase` (access_token + id_token RS256), `GetJwksUseCase`, `GetOidcConfigurationUseCase`. Resultado `IssueTokensResult` con todos los campos RFC 6749 + OIDC. `ExchangeAuthorizationCodeResult` ampliado con `userId`, `clientId`, `scope`.
-- **`keygo-infra`**: `RsaJwtTokenSigner` (Nimbus JOSE+JWT via `spring-security-oauth2-jose`), `StandardTokenClaimsFactory` (at_hash OIDC §3.3.2.11), `JwkSetBuilder` implementa `JwksBuilderPort`.
-- **`keygo-supabase`**: `SigningKeyEntity` (JPA), `SigningKeyJpaRepository` (Spring Data), `SigningKeyPersistenceMapper`, `SigningKeyRepositoryAdapter` (@Repository), migración `V9__add_signing_keys.sql`.
-- **`keygo-api`**: `JwksController` (`GET /.well-known/jwks.json` — JSON nativo), `OidcMetadataController` (`GET /.well-known/openid-configuration` — JSON nativo), `AuthorizationController` actualizado para emitir JWTs reales en `/oauth2/token`, `TokenData` ampliado con `access_token`, `id_token`, `token_type`, `expires_in`, `scope`. 3 nuevos `ResponseCode`. Handler de `NoActiveSigningKeyException` (503).
-- **`keygo-run`**: `SigningKeyBootstrapService` (auto-genera par RSA 2048 al arrancar si no hay clave ACTIVE, solo con perfil `supabase`), 6 nuevos `@Bean` en `ApplicationConfig`. `application.yml` con `keygo.info.issuer-base-url` y `keygo.bootstrap.well-known-path-prefix`. `KeyGoBootstrapProperties` + `BootstrapAdminKeyFilter` actualizados para que `/.well-known` sea público.
-- **Tests**: ~29 tests unitarios nuevos (domain: 8, app: 6, infra: 4, supabase: 4). **Total proyecto: 299 tests** (todos pasan).
-- **Postman**: carpeta `🔑 OIDC & JWKS` con 2 requests (OIDC config, JWKS); request Token actualizado con validaciones de JWT y `token_type`. **25 requests totales** en 7 carpetas.
-- **Lección aprendida**: Spring Boot 4.x no gestiona `com.nimbusds:nimbus-jose-jwt` como dependencia directa gestionada en su BOM; usar `spring-security-oauth2-jose` que lo incluye transitivamente.
-
-### [2026-03-22] Fase 5 — Núcleo OAuth2/OIDC: authorization flow completada
-Se generó **bajo orden explícita del usuario** el documento `docs/keygo-server/AUTH_FLOW.md`:
-
-- **`AUTH_FLOW.md`** (~350 líneas): guía completa del flujo OAuth 2.0 Authorization Code + PKCE desde la perspectiva del cliente (SPA/Mobile). Incluye:
-  - Diagrama de prerrequisitos del sistema (Mermaid graph)
-  - Diagrama de secuencia completo con actor Usuario, WebApp y KeyGo Server (Mermaid sequenceDiagram)
-  - Algoritmo PKCE paso a paso con código JavaScript (navegador) y Swift (iOS)
-  - HTTP request/response real para cada uno de los 3 endpoints
-  - Flowcharts de validación internos por cada paso (Mermaid flowchart)
-  - Tabla de errores con excepción, HTTP status y ResponseCode
-  - Timeline de evolución Fase 5 → Fase 6 (Mermaid timeline)
-  - Guía de implementación en TypeScript (SPA React) y Kotlin (Android/OkHttp)
-  - Checklist de seguridad (PKCE, state, cookies, HTTPS)
-- **`docs/keygo-server/README.md`** (actualizado): nueva sección "🔐 Seguridad y autenticación" con enlace al documento; nueva entrada de navegación "Cómo implementar el login en mi app".
-
-**Documentación generada bajo orden explícita:** SÍ.
-
-### [2026-03-22] Documentación de modelo de datos — 3 nuevos documentos + índice centralizado
-Se generaron **bajo orden explícita del usuario** tres documentos de referencia técnica para el diccionario y modelo de datos:
-
-- **`DATA_MODEL.md`** (1000 líneas): Diccionario completo (12 tablas), diagrama E/R Mermaid, jerarquía de cascade, 8 guías SQL de referencia, tabla de enumeraciones (ENUM), tabla de constraints únicos (PK, UK), índices recomendados con SQL
-- **`ENTITY_RELATIONSHIPS.md`** (700 líneas): 5 contextos de negocio (class diagrams), OAuth2 Authorization Code Flow + PKCE (sequence diagram), Refresh Token flow, Token Revocation, ciclo de vida de Membership (state machine), asignación de roles, matriz de decisión de acceso (flowchart), capas lógicas de validación (graph), índices con SQL
-- **`DATA_DICTIONARY.md`** (400 líneas): Índice centralizado, mapa de acceso por rol (Dev, Arquitecto, QA), vista de diagramas a nivel de detalle (30k-10k-3k pies), 3 ejemplos de uso reales, convenciones de nomenclatura, checklist de validación, referencias cruzadas con AGENTS.md/ARCHITECTURE.md
-- **`README.md`** (actualizado): Índice de todos los documentos técnicos de `docs/keygo-server/`, tabla de referencias cruzadas, preguntas frecuentes, sugerencias de lectura por rol
-
-**Diagramas:** 100% Mermaid (E/R, class, sequence, state, flowchart, graph). Todos natively soportados en GitHub, GitLab, Notion y editores comunes.
-
-**Patrón de referencias cruzadas:** cada documento remite a AGENTS.md (quick-start), ARCHITECTURE.md (diseño), `docs/arch/keygo_server_domain_model.md` (bounded contexts) y `postman/KeyGo-Server.postman_collection.json` (ejemplos HTTP).
-
-**Documentación generada bajo orden explícita:** SÍ. Estos 3 documentos + README son parte del ciclo de trabajo del agente (como `AI_CONTEXT.md`, `AGENTS.md` mismo) porque responden a la necesidad de base de conocimiento compartida, no documentación de producto.
-
-### [2026-03-22] Sincronización de documentos de datos con migraciones reales V1–V9
-Se actualizaron los tres documentos de referencia de datos para sincronizarlos con el schema real de las migraciones Flyway:
-- **`DATA_MODEL.md`** — corregidos nombres de columnas reales (`uri` no `redirect_uri`, `name` no `display_name`, `hashed_secret` no `client_secret`, `type` no `client_type`, `requested_scopes` no `scope_set`, `private_material` no `private_material_ref`); tabla `membership` es **singular**; `membership_role` tiene PK compuesta `(membership_id, role_id)` sin `id`; `app_role` sin `tenant_id` ni `status`; `authorization_codes.status` en **lowercase**; agregadas secciones de tablas legado (V1/V3) y tablas planificadas (V10+).
-- **`ENTITY_RELATIONSHIPS.md`** — corregidos class diagrams (campos reales), state machine de membership (PENDING no INVITED, sin REVOKED), tabla de transiciones, diagrama de asignación de roles (`role_id` no `app_role_id`), índices SQL sincronizados con los aplicados en V4–V9, diagrama de secuencia actualizado (status lowercase, firma JWT real en Paso 3).
-- **`DATA_DICTIONARY.md`** — referencias a `memberships` corregidas a `membership` (singular), checklist ampliado con regla de actualizar docs al crear nuevas tablas, sección "Siguientes pasos" actualizada (Fases 5 y 6 completadas, Fase 7 planificada).
-- **`AUTH_FLOW.md`** — estado actualizado a "Fases 5 y 6 implementadas ✅"; respuesta del Paso 3 muestra JWT real (`access_token` + `id_token` + `token_type` + `expires_in` + `scope`); flowcharts usan status lowercase; tabla comparativa y timeline actualizadas; código TypeScript actualiza para manejar tokens reales.
-- **Regla nueva agregada** en todos los archivos de instrucciones AI: al crear una migración Flyway, actualizar obligatoriamente `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` y `DATA_DICTIONARY.md` antes de cerrar la tarea.
-Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de calidad):
-- **CI Pipeline**: creado `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package` en push/PR a `main`/`develop`. Sube artefactos de surefire si el build falla.
-- **Maven Enforcer Plugin**: configurado en el `pom.xml` raíz, fase `validate`. Verifica Java 21+, Maven 3.9+, encoding UTF-8 y sin dependencias duplicadas.
-- **Convención de estilo documentada**: `docs/keygo-server/CODE_STYLE.md` formaliza indentación 2 espacios, nombres de clases por tipo arquitectónico, orden de imports y reglas de tests. Lint automático (T-023) pendiente de ROADMAP.
-- **ROADMAP.md**: T-006 movida a historial de completadas, T-023 agregada a corto plazo, estado del producto actualizado a "Fase 0 ✅ completa".
-- **Plan de implementación**: `docs/arch/keygo_server_implementation_plan.md` actualizado con detalle de todos los sub-puntos completados de la Fase 0.
-
-
+Ver historial completo en [`AGENTS.registro.md`](AGENTS.registro.md).

@@ -1,59 +1,64 @@
 # AI Context — KeyGo Server
 
 > Este archivo existe para que **Copilot/Claude/agentes** entiendan rápido el repo sin leer todo el código.
+>
+> 📖 **Sub-documentos de este archivo:**
+> - [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) — Lecciones aprendidas y buenas prácticas
+> - [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) — Propuestas de mejoras futuras
+> - [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) — Inconsistencias detectadas (centralizador)
+
+---
 
 ## TL;DR
 
-- Proyecto: Java 21 + Spring Boot (monorepo Maven multi-módulo).
+- Proyecto: Java 21 + Spring Boot 4.x (monorepo Maven multi-módulo).
 - Módulo ejecutable: `keygo-run`.
 - API REST: `keygo-api`.
 - Lógica de negocio: `keygo-app` (usecases) + `keygo-domain`.
-- Persistencia (en progreso): `keygo-supabase` (Spring Data JPA + Flyway + PostgreSQL).
+- Persistencia: `keygo-supabase` (Spring Data JPA + Flyway + PostgreSQL, perfil `supabase`).
 - Arquitectura: Hexagonal / Ports & Adapters.
+
+---
 
 ## Comandos esenciales
 
 ```bash
-# Build completo
-./mvnw clean package
-
-# Tests
-./mvnw test
-
-# Correr app (Maven)
-./mvnw spring-boot:run -pl keygo-run
-
-# Correr jar
-java -jar keygo-run/target/keygo-run-1.0-SNAPSHOT.jar
+./mvnw clean package                   # Build completo
+./mvnw test                            # Tests (sin cobertura)
+./mvnw verify                          # Tests + JaCoCo coverage check
+./mvnw spring-boot:run -pl keygo-run   # Correr app localmente
+./mvnw -pl keygo-api test              # Tests de un módulo específico
 ```
+
+---
 
 ## URLs base (local)
 
-> El servicio usa `context-path=/keygo-server` por defecto.
+> El servicio usa `context-path=/keygo-server`. Todos los endpoints lo incluyen.
 
-- Base: `http://localhost:8080/keygo-server`
-- Service info: `GET /keygo-server/api/v1/service/info`
-- Response codes: `GET /keygo-server/api/v1/response-codes`
-- Health: `GET /keygo-server/actuator/health`
-- **Swagger UI:** `GET /keygo-server/swagger-ui/index.html` (público)
-- **OpenAPI spec:** `GET /keygo-server/v3/api-docs` (público)
+| URL | Descripción |
+|---|---|
+| `http://localhost:8080/keygo-server/api/v1/service/info` | Info del servicio |
+| `http://localhost:8080/keygo-server/actuator/health` | Health check |
+| `http://localhost:8080/keygo-server/swagger-ui/index.html` | Swagger UI (público) |
+| `http://localhost:8080/keygo-server/v3/api-docs` | OpenAPI spec (público) |
+
+Ver lista completa de endpoints en [`AGENTS.md`](AGENTS.md) § "context-path is always active".
+
+---
 
 ## DB local (perfil supabase)
 
 ```bash
-# Levantar PostgreSQL 15 + PgAdmin
-cd keygo-supabase
-./scripts/dev-start.sh
-```
+cd keygo-supabase && ./scripts/dev-start.sh   # Levanta PostgreSQL 15 + PgAdmin
 
-Variables de entorno mínimas:
-
-```bash
 export SPRING_PROFILES_ACTIVE="supabase,local"
 export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
 export SUPABASE_USER="postgres"
 export SUPABASE_PASSWORD="postgres"
 ```
+
+---
 
 ## Variables de entorno relevantes
 
@@ -66,423 +71,136 @@ export SUPABASE_PASSWORD="postgres"
 | `SUPABASE_USER` | Usuario de DB | — |
 | `SUPABASE_PASSWORD` | Contraseña de DB | — |
 
+---
+
 ## Convenciones del proyecto
 
 ### Regla de dependencias (hexagonal)
 
 ```
-keygo-domain   → sin dependencias internas ni Spring  [🚧 vacío actualmente]
+keygo-domain   → sin dependencias internas ni Spring
 keygo-app      → depende de domain; define puertos (interfaces)
-keygo-infra    → implementa puertos; depende de app   [🚧 vacío actualmente]
+keygo-infra    → implementa puertos; depende de app
 keygo-api      → llama usecases; devuelve BaseResponse<T>
-keygo-supabase → JPA/Flyway; implementaciones de repos Supabase; depende de infra
+keygo-supabase → JPA/Flyway; implementaciones de repos; depende de infra
 keygo-run      → cablea todo; tiene application.yml y main
-keygo-common   → utilidades compartidas               [🚧 vacío actualmente]
+keygo-common   → utilidades compartidas  [🚧 stub vacío]
 ```
-
-> Los módulos `keygo-domain`, `keygo-infra` y `keygo-common` son **stubs vacíos** que reservan
-> la estructura hexagonal. Al implementar nueva funcionalidad, respetar dónde debe ir cada pieza.
 
 ### Respuestas API
 
-- **Siempre** usar `BaseResponse<T>` como envelope de respuesta.
-- Usar `ResponseCode` para códigos de negocio (no mezclar con HTTP status).
+- **Siempre** usar `BaseResponse<T>` como envelope (excepción: endpoints OIDC/JWKS — JSON nativo RFC 7517).
+- Usar `ResponseCode` para códigos de negocio (enum en `keygo-api`).
 - Endpoints versionados bajo `/api/v1/...`.
 
-### Configuración
+### Jackson 3 (Spring Boot 4.x) — namespace cambiado
 
-- `application.yml` en `keygo-run` usa filtering con `@project.*@` (Maven).
-- `context-path` = `/${keygo.info.name}` → típicamente `/keygo-server`.
-- Configuración de Supabase en `keygo-supabase/src/main/resources/application-supabase.yml`.
-
-## Seguridad — puntos importantes
-
-- `KEYGO_ADMIN_KEY` default `changeMe` **no es válido en producción**.
-- `BootstrapAdminKeyFilter` pretende proteger `/api/**` con header `X-KEYGO-ADMIN`.
-- **Bug conocido:** el filtro usa `request.getRequestURI()` (incluye el context-path `/keygo-server/`) pero los prefijos configurados son `/api/`, `/actuator/`, `/service/info` (sin el prefijo). Con `context-path` activo **ningún path coincide** → el filtro no aplica y todas las rutas son efectivamente públicas.
-  - Fix correcto: usar `request.getServletPath()` en lugar de `getRequestURI()`.
-- Actuator expuesto completo en config actual (`include: "*"`) — **restringir en prod**.
-
-## Prompts sugeridos para Copilot/Claude
-
-### Agregar endpoint REST (hexagonal)
-
-> Agrega un endpoint `GET /api/v1/<recurso>/...` en `keygo-api` que devuelva `BaseResponse<T>`.
-> Crea el usecase en `keygo-app` y define un puerto OUT si hace falta.
-> Mantén `keygo-domain` libre de Spring.
-> Incluye tests unitarios (JUnit 5 + Mockito/AssertJ).
-> El base path real incluye `/keygo-server` por `context-path`.
-
-### Agregar entidad JPA + repo en keygo-supabase
-
-> Crea una entidad JPA en `keygo-supabase` (UUID como PK, timestamps).
-> Agrega repository interface Spring Data con métodos mínimos.
-> Si requiere migración, propone estrategia Flyway (sin hardcodear credenciales).
-
-### Endurecer configuración para producción
-
-> Propón cambios de configuración por perfiles para limitar Actuator en prod y endurecer seguridad.
-> No cambies código directamente; entrega un plan y diffs sugeridos.
-
-## "System message" sugerida para agentes externos
-
-```
-Eres un agente de ingeniería trabajando en un monorepo Maven multi-módulo (Java 21, Spring Boot).
-Debes seguir arquitectura hexagonal (domain/app/infra/api/run).
-Devuelve cambios mínimos y consistentes.
-No introduzcas secretos en el código ni en los commits.
-Siempre incluye pasos de verificación (build/tests).
-Documenta endpoints considerando que el context-path es /keygo-server.
+```java
+// ✅ Correcto (Jackson 3)
+import tools.jackson.databind.json.JsonMapper;
+// ❌ Incorrecto (Jackson 2 — no compila)
+import com.fasterxml.jackson.databind.ObjectMapper;
+// ✅ Anotaciones siguen igual
+import com.fasterxml.jackson.annotation.JsonInclude;
 ```
 
-## Comportamiento esperado del agente
+---
 
-> Estas reglas aplican a cualquier agente (Copilot, Claude, etc.) que opere en este repositorio.
+## Seguridad
 
-### Flujo obligatorio: Planificar → Implementar
+- `KEYGO_ADMIN_KEY` default `changeMe` — **no válido en producción**.
+- `BootstrapAdminKeyFilter` protege `/api/**` con header `X-KEYGO-ADMIN`.
+- Usa `request.getServletPath()` (no `getRequestURI()`) para comparar prefijos. Ver lección [Bug T-001](AI_CONTEXT.lecciones.md#2026-03-21-bug-t-001--bootstrapadminkeyfilter-getrequesturi-vs-getservletpath-con-context-path).
+- Actuator expuesto completo — **restringir en prod**.
 
-1. **Leer** los documentos de referencia obligatorios antes de cualquier acción:
-   - `AI_CONTEXT.md` (este archivo)
-   - `ARCHITECTURE.md`
-   - `AGENTS.md`
-   - `CLAUDE.md`
-   - `.github/copilot-instructions.md`
-   - `ROADMAP.md` — para entender qué está planificado y evitar duplicar trabajo
-   - Documentos específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
-2. **Presentar un plan explícito** (módulos, archivos, flujo, tests) antes de escribir código.
-3. **Implementar** solo después de tener el plan.
+---
+
+## Comportamiento obligatorio del agente
+
+### Flujo: Planificar → Implementar
+
+1. **Leer** antes de cualquier acción:
+   - Este archivo (`AI_CONTEXT.md`) + sub-documentos
+   - [`ARCHITECTURE.md`](ARCHITECTURE.md) — decisiones de diseño
+   - [`AGENTS.md`](AGENTS.md) — quick-start, módulos, patrones
+   - [`CLAUDE.md`](CLAUDE.md) / [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
+   - [`ROADMAP.md`](ROADMAP.md) — propuestas activas y completadas
+   - [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) — inconsistencias conocidas
+   - Docs del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
+2. **Presentar plan explícito** (módulos, archivos, flujo, tests) antes de escribir código.
+3. **Implementar** solo después de tener el plan aprobado.
 
 ### Documentación: solo bajo orden explícita
 
-- En un mismo contexto de chat, **NO** generar ni actualizar archivos `.md` de forma automática.
-- Solo crear/actualizar documentación cuando el usuario lo ordene de forma explícita.
-- Toda documentación debe colocarse en **la ruta que le corresponde** (`docs/<módulo>/`, raíz, etc.).
+- En un mismo contexto de chat, **NO** generar ni actualizar archivos `.md` automáticamente.
+- Excepción: documentos de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`, `INCONSISTENCIAS.md`).
 
-#### Diagramas en documentación
+#### Diagramas: orden de preferencia
 
-Cuando sea necesario incluir un diagrama, usar el siguiente orden de preferencia:
-
-| Prioridad | Herramienta | Cuándo usarla |
+| Prioridad | Herramienta | Cuándo |
 |---|---|---|
-| 1 | **Mermaid** | Primera opción siempre — soportado nativamente en GitHub, GitLab, Notion y la mayoría de editores Markdown |
-| 2 | **PlantUML** | Si el tipo de diagrama no es expresable con Mermaid (p. ej. diagramas de componentes complejos, C4, timing) |
-| 3 | **ASCII art** | Último recurso — solo si ni Mermaid ni PlantUML son viables en el contexto |
+| 1 | **Mermaid** | Siempre — soportado en GitHub, GitLab, Notion |
+| 2 | **PlantUML** | Si el tipo no es expresable en Mermaid |
+| 3 | **ASCII art** | Último recurso |
 
-### Aprendizaje continuo y retroalimentación obligatoria
+### Retroalimentación obligatoria al concluir tarea
 
-Al concluir **cualquier tarea** (feature, corrección, refactor, configuración, etc.), el agente **debe** evaluar si ocurrió alguno de los eventos listados a continuación y, si es así, actualizar el documento correspondiente **antes de cerrar la tarea**:
+Al terminar **cualquier tarea**, evaluar los eventos de la siguiente tabla y actualizar los docs correspondientes **antes de cerrar**:
 
- Evento  Documento a actualizar  Sección destino 
----------
- Error de compilación encontrado y resuelto  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
- Test fallido detectado y corregido  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
- Comportamiento inesperado descubierto (bug, quirk del framework)  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
- Mejor forma de implementar un patrón ya existente  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
- Cambio de versión de dependencia o tecnología relevante  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
- Nueva convención establecida o patrón acordado  `AI_CONTEXT.md`  `## Lecciones aprendidas` 
- Propuesta recurrente o de alto valor para el proyecto  `AI_CONTEXT.md` + `ROADMAP.md`  `## Propuestas de mejoras futuras` + tabla técnica o funcional correspondiente 
- Propuesta técnica concreta generada al concluir tarea  `ROADMAP.md`  Tabla **Propuestas técnicas** (horizonte correspondiente) 
- Propuesta funcional nueva o aclaración de épica existente  `ROADMAP.md`  Tabla **Propuestas funcionales** 
-| Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
-| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
-| Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_DICTIONARY.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
+| Evento | Documento | Sección |
+|---|---|---|
+| Error de compilación / test fallido / bug resuelto | [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) | Agregar entrada |
+| Mejor patrón o convención nueva | [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) | Agregar entrada |
+| Inconsistencia detectada entre docs y código/DB | [`INCONSISTENCIAS.<cat>.md`](INCONSISTENCIAS.md) | Agregar entrada + registrar en `INCONSISTENCIAS.md` |
+| Propuesta técnica o funcional nueva | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Agregar con ID T-NNN o F-NNN |
+| Propuesta completada | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Marcar ✅ + mover a historial |
+| Cambio en módulos, rutas o patrones quick-start | [`AGENTS.md`](AGENTS.md) + [`AGENTS.registro.md`](AGENTS.registro.md) | Actualizar sección + entrada registro |
+| Nuevo endpoint REST | `postman/KeyGo-Server.postman_collection.json` | Agregar request con `pm.test()` |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/keygo-server/DATA_MODEL.md` | Diccionario de nuevas tablas |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/keygo-server/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/keygo-server/DATA_DICTIONARY.md` | Sección "Próximas migraciones" |
 
-> ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita", ya que los documentos
-> de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente,
-> no documentación de producto.
+> ⚠️ Esta retroalimentación **no está sujeta** a la regla "solo bajo orden explícita".
 
-**Formato obligatorio para entradas en `## Lecciones aprendidas`:**
-
+**Formato de entrada en lecciones:**
 ```markdown
-### [YYYY-MM-DD] Título descriptivo de la lección
-**Contexto:** Breve descripción de la tarea o escenario que generó el aprendizaje.
-**Problema:** Qué falló, qué comportamiento inesperado se detectó o qué patrón mejoró.
-**Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
-**Archivos clave:** (opcional) Rutas relevantes para contextualizar la solución.
+### [YYYY-MM-DD] Título descriptivo
+**Contexto:** Tarea que generó el aprendizaje.
+**Problema:** Qué falló o qué mejoró.
+**Solución / Buena práctica:** Cómo se resolvió.
+**Archivos clave:** (opcional)
 ```
 
 ### Git — prohibición de ejecución directa
 
-- El agente **nunca debe ejecutar comandos `git`** directamente (commit, push, merge, rebase, etc.).
-- Si el flujo requiere operaciones git, listar los comandos sugeridos para ejecución manual por el usuario.
+- **Nunca** ejecutar comandos `git` directamente (commit, push, merge, rebase…).
+- Listar los comandos sugeridos para ejecución manual.
 
-### Propuesta de mejoras futuras
+### Propuestas de mejoras futuras
 
-Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc.), el agente **debe** incluir propuestas en tres horizontes:
+Al concluir, incluir propuestas en tres horizontes:
 
-| Horizonte | Criterio orientativo | Ejemplos |
+| Horizonte | Criterio | Registrar en |
 |---|---|---|
-| **Corto plazo** | Relacionado directamente con lo recién implementado; bajo esfuerzo | Validaciones, tests adicionales, TODOs |
-| **Mediano plazo** | Evoluciones naturales de la funcionalidad; esfuerzo moderado | Endpoints relacionados, caché, paginación |
-| **Largo plazo** | Capacidades estratégicas; alto esfuerzo o dependencias externas | OAuth2, multi-tenancy, observabilidad avanzada |
+| **Corto plazo** | Relacionado con lo recién implementado; bajo esfuerzo | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) |
+| **Mediano plazo** | Evoluciones naturales; esfuerzo moderado | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) |
+| **Largo plazo** | Capacidades estratégicas; alto esfuerzo | [`ROADMAP.md`](ROADMAP.md) |
 
-- Las propuestas deben ser **concretas y accionables**.
-- Si son recurrentes o relevantes para el proyecto, registrarlas en `## Propuestas de mejoras futuras` (sección de este archivo).
+---
 
-## Lecciones aprendidas
+## Referencias rápidas
 
-> Sección de aprendizaje continuo. Registrar aquí cualquier falla, corrección, buena práctica nueva
-> o actualización de tecnología detectada durante las tareas del agente.
+| Necesito... | Ir a... |
+|---|---|
+| Lecciones aprendidas / no repetir errores | [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) |
+| Propuestas activas y su estado | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) |
+| Inconsistencias conocidas | [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) |
+| Quick-start: módulos, comandos, endpoints | [`AGENTS.md`](AGENTS.md) |
+| Historial de cambios al quick-start | [`AGENTS.registro.md`](AGENTS.registro.md) |
+| Roadmap completo con IDs T-NNN / F-NNN | [`ROADMAP.md`](ROADMAP.md) |
+| Modelo de datos / diccionario DB | `docs/keygo-server/DATA_MODEL.md` |
+| Flujo OAuth2 / autenticación | `docs/keygo-server/AUTH_FLOW.md` |
 
-<!-- Ejemplo de entrada:
-### [YYYY-MM-DD] Título de la lección
-**Contexto:** Breve descripción de la tarea que generó el aprendizaje.
-**Problema:** Qué falló o qué se detectó.
-**Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
--->
+---
 
-### [2026-03-22] Documentación de datos desincronizada con migraciones Flyway reales
-**Contexto:** Actualización explícita solicitada por el usuario de los documentos `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md` y `AUTH_FLOW.md`. Se leyeron las migraciones SQL reales (V1–V9) y se compararon con el contenido de los documentos existentes.
-**Problema:** Múltiples discrepancias críticas entre la documentación y el schema real de DB:
-- Tabla `membership` es singular en DB, documentada como `memberships` (plural).
-- `membership_role` tiene PK compuesta `(membership_id, role_id)` sin columna `id` — documentado incorrectamente con `id` UUID y FK `app_role_id` en vez de `role_id`.
-- `app_role` no tiene columnas `tenant_id` ni `status` — ambas documentadas como existentes.
-- `authorization_codes.status` usa **minúsculas** (`pending`, `used`, `expired`, `revoked`) — documentado en UPPERCASE (`ACTIVE`, `CONSUMED`, `EXPIRED`, `REVOKED`).
-- Campo `requested_scopes` documentado como `scope_set`; `private_material TEXT` documentado como `private_material_ref VARCHAR(500)`.
-- `client_apps`: columna `name` documentada como `display_name`, `hashed_secret` como `client_secret`, `type` como `client_type`.
-- `client_redirect_uris`: columna `uri` documentada como `redirect_uri`.
-- `tenant_users`: tiene `first_name` + `last_name` separados, documentado como `display_name`.
-- `tenants`: tiene `owner_email` no documentado; status `PENDING` documentado como `ARCHIVED`.
-- Tablas legado (V1/V3: `users`, `roles`, `sessions`, `oauth_providers`, etc.) no documentadas.
-- Tablas `refresh_tokens` y `sessions` (nuevo estilo) documentadas como implementadas, pero son **planificadas** (sin migración aún).
-- `AUTH_FLOW.md` describía Fase 5 como actual cuando Fase 6 (JWT RS256, JWKS, OIDC) ya estaba implementada.
-**Solución / Buena práctica:** Al generar documentación de datos, **siempre leer las migraciones SQL reales** antes de escribir el diccionario. No asumir columnas ni tipos — verificar cada campo en `V{n}__*.sql`. Establecer como **regla obligatoria del agente**: al crear cualquier migración Flyway nueva, actualizar `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` y `DATA_DICTIONARY.md` antes de cerrar la tarea. Esta regla se agregó a los cuatro archivos de instrucciones de AI (`AI_CONTEXT.md`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
-**Archivos clave:** `docs/keygo-server/DATA_MODEL.md`, `docs/keygo-server/ENTITY_RELATIONSHIPS.md`, `docs/keygo-server/DATA_DICTIONARY.md`, `docs/keygo-server/AUTH_FLOW.md`, `keygo-supabase/src/main/resources/db/migration/V1–V9`
-
-### [2026-03-22] Value objects: acceso a `.value()` diferente según record vs clase regular
-**Contexto:** Fase 5 — Implementación de modelos de dominio para OAuth2 (AuthorizationCode, CodeChallenge, ScopeSet). Se descubrió inconsistencia en cómo acceder al atributo del value object en records.
-**Problema:** En el codebase existen dos patrones de value objects: (1) **Records** (p. ej. `ClientId`, `TenantId`, `UserId`, `PasswordHash`, `AuthorizationCodeId`) donde el parámetro del constructor se expone como **método público** (p. ej. `.value()`, `.id()` según el nombre del campo). (2) **Clases regulares** (no existen en el proyecto actualmente, pero como referencia teórica).
-
-Los records exponen automáticamente cada parámetro como método público, por lo que:
-- `record AuthorizationCodeId(UUID id)` → acceso `.id()` (no `.id` ni `.getValue()`)
-- `record ClientId(String value)` → acceso `.value()`
-- `record UserId(UUID value)` → acceso `.value()`
-
-**Solución / Buena práctica:** **Todos los value objects del proyecto son ya records.** El acceso a los datos es mediante el método que coincide con el nombre del parámetro constructor. Esto es automático en Java records y evita errores. Aplicar hoy: si en el futuro se crea otro value object, usar record + nombrar el parámetro de forma clara (`id`, `value`, `email`, etc.) que reflejarquée es el field.
-
-**Referencia correcta de acceso en el proyecto:**
-- `AuthorizationCodeId.id()` (no `.getValue()`)
-- `ClientId.value()`
-- `TenantId.value()`
-- `UserId.value()`
-- `PasswordHash.value()`
-
-**Archivos clave:** `keygo-domain/.../model/*Id.java`, `AuthorizationCodeId.java`
-
-### [2026-03-21] SpringDoc 3.0.1 con Spring Boot 4.x — integración y anotaciones de seguridad
-**Contexto:** Integración de Swagger / OpenAPI al proyecto usando `springdoc-openapi-starter-webmvc-ui`.
-**Problema:** Dos puntos críticos encontrados: (1) `@SecurityRequirementsOptional` **no existe** en `swagger-annotations-jakarta` — el compilador falla con "cannot find symbol". (2) La versión correcta para Spring Boot 4.x es **SpringDoc 3.x** (`springdoc-openapi-starter-webmvc-ui:3.0.1`); SpringDoc 2.x usa Spring Boot 3.x parent y puede no ser compatible con Spring 7/Jackson 3.
-**Solución / Buena práctica:**
-- Usar `springdoc-openapi-starter-webmvc-ui:3.0.1` (parent `spring-boot-starter-parent:4.0.1` confirmado en el POM).
-- Para marcar endpoints como **públicos** (sin autenticación en la UI): **no** usar ninguna anotación de seguridad en esos controllers/métodos. Si hay un `SecurityRequirement` global en `OpenAPI`, quitarlo y poner `@SecurityRequirement(name="...")` solo en los controllers que realmente lo necesitan.
-- La anotación correcta para controladores protegidos es `@SecurityRequirement(name = "AdminKeyAuth")` a nivel de clase o método.
-- La anotación `@SecurityRequirements({})` con array vacío también funciona para sobrescribir el global en un endpoint específico, pero es más limpio no tener global.
-- Agregar los prefijos `/swagger-ui` y `/v3/api-docs` en `KeyGoBootstrapProperties` + `BootstrapAdminKeyFilter.isPublicPath()` para preparar el futuro fix del bug T-001.
-**Archivos clave:** `keygo-run/config/OpenApiConfig.java`, `keygo-api/pom.xml`, `pom.xml` (raíz — propiedad `springdoc.version`), `BootstrapAdminKeyFilter.java`, `KeyGoBootstrapProperties.java`, `application.yml`
-
-### [2026-03-22] Nimbus JOSE+JWT en Spring Boot 4 — dependencia transitiva vía spring-security-oauth2-jose
-**Contexto:** Fase 6 — implementación de firma JWT con RSA en `keygo-infra`.
-**Problema:** Al agregar `com.nimbusds:nimbus-jose-jwt` directamente en `keygo-infra/pom.xml` sin versión, Maven falla con `'dependencies.dependency.version' for com.nimbusds:nimbus-jose-jwt:jar is missing`. Spring Boot 4.x gestiona Nimbus **transitivamente** a través de `spring-security-oauth2-jose`, pero no lo expone como dependencia directa gestionada en su BOM.
-**Solución / Buena práctica:** Usar `org.springframework.security:spring-security-oauth2-jose` (sin versión — gestionado por Spring Boot BOM) como dependencia en `keygo-infra`. Nimbus JOSE+JWT llega como dependencia transitiva. Esto garantiza compatibilidad con la versión de Spring Security activa en el proyecto.
-**Archivos clave:** `keygo-infra/pom.xml`
-
-### [2026-03-22] Endpoints OIDC/JWKS deben retornar JSON nativo, no BaseResponse
-**Contexto:** Fase 6 — implementación de `JwksController` y `OidcMetadataController`.
-**Problema:** Las librerías OAuth2 de terceros (ej. Spring Security Resource Server, Keycloak adapters, Auth0 SDK) consumen los endpoints `.well-known/openid-configuration` y `.well-known/jwks.json` directamente y esperan el formato estándar RFC 7517 / OIDC Discovery 1.0 — sin envelope `BaseResponse`.
-**Solución / Buena práctica:** Los controllers OIDC/JWKS retornan `ResponseEntity<Map<String, Object>>` directamente (JSON nativo). El resto de endpoints siguen usando `BaseResponse<T>`. Los paths `/.well-known` se configuran como públicos en `BootstrapAdminKeyFilter` vía `keygo.bootstrap.well-known-path-prefix`.
-**Archivos clave:** `keygo-api/.../JwksController.java`, `keygo-api/.../OidcMetadataController.java`, `BootstrapAdminKeyFilter.java`, `KeyGoBootstrapProperties.java`, `application.yml`
-
-### [2026-03-22] JwksBuilderPort — arquitectura hexagonal para Nimbus fuera de keygo-api
-**Contexto:** Fase 6 — diseño inicial colocaba `JwkSetBuilder` (Nimbus) directamente en `keygo-api`, pero `keygo-api` no tiene ni debe tener `keygo-infra` como dependencia.
-**Problema:** Importar `JwkSetBuilder` de `keygo-infra` desde `keygo-api` viola la arquitectura hexagonal — el controller no debe conocer la implementación concreta.
-**Solución / Buena práctica:** Definir `JwksBuilderPort` en `keygo-app` (interface). `GetJwksUseCase` retorna `Map<String, Object>` usando el puerto. `JwkSetBuilder` en `keygo-infra` implementa el puerto. El controller solo llama al use case. El wiring se hace en `ApplicationConfig` en `keygo-run`.
-**Archivos clave:** `keygo-app/.../JwksBuilderPort.java`, `keygo-infra/.../JwkSetBuilder.java`, `keygo-app/.../GetJwksUseCase.java`
-
-### [2026-03-21] Configuración de JaCoCo en monorepo Maven multi-módulo con Spring Boot 4**Contexto:** Implementación de la propuesta T-016 — configurar JaCoCo para cobertura de tests con umbral mínimo y reporte consolidado.
-**Problema:** Tres puntos de atención en monorepos multi-módulo con JaCoCo: (1) los módulos sin código (`keygo-infra`, `keygo-common`) fallan silenciosamente el check si no se excluyen; (2) `keygo-bom` (empaquetado `pom`) también ejecuta JaCoCo aunque no tenga código — JaCoCo lo maneja con "Skipping due to missing execution data file", sin bloquear el build; (3) el goal `report-aggregate` requiere que el módulo ejecutor tenga como dependencias (directas o transitivas) todos los módulos que se quieren reportar — `keygo-run` es el candidato natural porque ya depende de todos.
-**Solución / Buena práctica:**
-- Configurar `prepare-agent` + `report` + `check` en `pluginManagement` del POM raíz y referenciarlos en `<build><plugins>` para que hereden todos los módulos.
-- Marcar módulos stub vacíos con `<jacoco.skip>true</jacoco.skip>` en sus `<properties>` para desactivar el agente, reporte y check.
-- Agregar el goal `report-aggregate` **solo** en `keygo-run` (módulo que depende de todos los demás), en una ejecución separada con su propio `id`.
-- Usar `<jacoco.minimum.coverage>` como propiedad parametrizable para poder sobrescribir en CI (`-Djacoco.minimum.coverage=0`) sin cambiar el POM.
-- En CI (`ci.yml`): cambiar `./mvnw test` → `./mvnw verify` para que las fases `jacoco-report` y `jacoco-check` se ejecuten. El step de `package` puede seguir usando `-DskipTests`.
-- Versión recomendada: `0.8.12` (última estable con soporte pleno de Java 21 bytecode).
-**Archivos clave:** `pom.xml` (raíz), `keygo-run/pom.xml`, `keygo-infra/pom.xml`, `keygo-common/pom.xml`, `.github/workflows/ci.yml`
-
-### [2026-03-21] Convenciones de coding Java adoptadas para el codebase
-**Contexto:** Revisión y corrección masiva de estilo de código en todos los módulos activos.
-**Problema:** Se detectaron cuatro patrones de código que generan alertas de IDE (IntelliJ) y/o problemas de performance: (1) líneas en blanco dentro de bloques JavaDoc; (2) comentarios `/** */` en atributos/campos en lugar de `/* */`; (3) entidades JPA con `@Data` de Lombok (genera `equals`/`hashCode`/`toString` sobre todas las claves incluyendo colecciones lazy); (4) literales de string duplicados en tests de la misma clase; (5) `@Override toString()` sin `@NotNull` en IntelliJ (warning de nullability).
-**Solución / Buena práctica:**
-- **JavaDoc sin líneas en blanco:** usar `<p>` para separar párrafos dentro de la descripción; eliminar la línea en blanco antes de tags (`@param`, `@return`, `@throws`, `@author`).
-- **Comentarios en campos:** usar `/* */` (comentario simple multilinea), **no** `/** */`. Aplica a: campos de clase, componentes de records, constantes de enums, campos de `@ConfigurationProperties`.
-- **Entidades JPA:** reemplazar `@Data` por `@Getter @Setter`. Mantener `@Builder @NoArgsConstructor @AllArgsConstructor` por separado. Esto evita `equals`/`hashCode`/`toString` sobre colecciones lazy que pueden causar `LazyInitializationException` y degradación de performance.
-- **Literales duplicados en tests:** extraer a constantes `private static final` en la clase de test.
-- **`toString()` override:** anotar con `@SuppressWarnings("NullableProblems")` para suprimir el warning de IntelliJ sin agregar dependencias externas.
-- **Lombok en domain:** agregar Lombok como dependencia `provided` a `keygo-domain` y usar `@Builder` en el constructor privado de la clase (en vez de builder manual) + `@Getter` a nivel de clase.
-**Archivos clave:** `keygo-domain/pom.xml`, `Tenant.java`, `TenantId.java`, `TenantSlug.java`, `TenantStatus.java`, `TenantEntity.java`, `UserEntity.java`, `RoleEntity.java`, `PermissionEntity.java`, `CreateTenantUseCaseTest.java`, `TenantTest.java`
-
-### [2026-03-21] jakarta.validation-api no es transitivo en keygo-api
-**Contexto:** Implementación de la Fase 1 (multitenancy) — creación de `CreateTenantRequest` record con anotaciones `@NotBlank`, `@Size`, `@Email`, `@Pattern`, y uso de `@Valid` en el controller.
-**Problema:** El build falló con "package jakarta.validation.constraints does not exist" porque `keygo-api` solo tiene `spring-boot-starter-web` y `spring-boot-starter-actuator`, ninguno de los cuales expone `jakarta.validation-api` como dependencia transitiva directa en Spring Boot 4.
-**Solución / Buena práctica:** Agregar `jakarta.validation-api` explícitamente en `keygo-api/pom.xml` (sin scope especial). Esto da acceso a las anotaciones de constraints sin activar el motor de validación; el motor (Hibernate Validator) ya está activo en `keygo-run` mediante `spring-boot-starter-validation`. Este patrón aplica a cualquier módulo que declare DTOs con anotaciones de validación: la API de anotaciones y el runtime del motor pueden estar en módulos distintos.
-**Archivos clave:** `keygo-api/pom.xml`, `keygo-api/tenant/request/CreateTenantRequest.java`
-
-### [2026-03-17] Retroalimentación obligatoria de documentos AI tras cada tarea
-**Contexto:** Revisión y consolidación de los documentos de guía para agentes (`AI_CONTEXT.md`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
-**Problema:** Los documentos de referencia para agentes no incluían `AGENTS.md` en la lista de lectura obligatoria. Tampoco había instrucciones explícitas sobre cuándo y cómo actualizar estos mismos documentos al finalizar una tarea (retroalimentación).
-**Solución / Buena práctica:** Se agregó `AGENTS.md` como documento obligatorio en los cuatro archivos de guía. Se estableció que los documentos AI (`AI_CONTEXT.md`, `AGENTS.md`) son "base de conocimiento del agente" y **deben** actualizarse al concluir cualquier tarea donde ocurra: error resuelto, mejor patrón encontrado, cambio tecnológico, nueva convención o propuesta relevante. Esta regla es **independiente** de la regla "documentación solo bajo orden explícita" (que aplica únicamente a docs de producto: README, ARCHITECTURE, docs/).
-**Archivos clave:** `AI_CONTEXT.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`
-
-### [2026-03-17] Reorganización de paquetes internos por feature en monorepo multi-módulo
-**Contexto:** Reorganización completa de los paquetes internos de `keygo-api`, `keygo-app`, `keygo-run` y `keygo-supabase` de organización técnica genérica (constant, helper, dto, controller, exception, entity, repository) a organización por feature (shared, platform, error, user, membership).
-**Problema:** Al ejecutar `./mvnw -pl keygo-run test` después de actualizar solo keygo-api y keygo-app, Maven usaba los JARs viejos del repositorio local, causando errores de compilación ("cannot find symbol", "package does not exist"). El orden correcto es: primero `install` los módulos dependidos, luego `test` el módulo consumidor.
-**Solución / Buena práctica:** Cuando se reorganizan paquetes en módulos de los que dependen otros, ejecutar `./mvnw -pl <modulos-actualizados> install -DskipTests` antes de compilar/probar los módulos que los consumen. Solo el build completo (`./mvnw clean package`) garantiza el orden correcto de forma automática.
-**Archivos clave:** `keygo-app/platform/port`, `keygo-app/platform/usecase`, `keygo-api/shared`, `keygo-api/platform`, `keygo-api/error`, `keygo-supabase/user`, `keygo-supabase/membership`, `keygo-supabase/config/SupabaseJpaConfig.java`
-
-### [2026-03-17] SupabaseJpaConfig requiere basePackages ampliado al reorganizar entidades por feature
-**Contexto:** Reorganización de entidades JPA y repositories de paquetes planos (`supabase.entity`, `supabase.repository`) a sub-paquetes por feature (`supabase.user.entity`, `supabase.membership.entity`, etc.).
-**Problema:** Las anotaciones `@EntityScan(basePackages = "io.cmartinezs.keygo.supabase.entity")` y `@EnableJpaRepositories(basePackages = "io.cmartinezs.keygo.supabase.repository")` apuntan a rutas exactas que ya no existen tras el refactor, causando que Spring no encuentre entidades ni repositorios al arrancar con perfil `supabase`.
-**Solución / Buena práctica:** Usar el paquete raíz del módulo como basePackage: `"io.cmartinezs.keygo.supabase"`. Spring Data escaneará recursivamente todos los sub-paquetes, independientemente de cuántos features se agreguen en el futuro. Este cambio es obligatorio y debe hacerse en el mismo commit que la reorganización de paquetes.
-**Archivos clave:** `keygo-supabase/src/main/java/io/cmartinezs/keygo/supabase/config/SupabaseJpaConfig.java`
-
-### [2026-03-21] Fase 0 cerrada: qué faltaba vs. qué se asumía como completo
-**Contexto:** Verificación del estado real de la Fase 0 del plan de implementación (`docs/arch/keygo_server_implementation_plan.md`). El documento `AGENTS.md` la marcaba como `✅ Done` tras la reorganización de paquetes (2026-03-17), pero el punto 0.4 (base de calidad) no estaba completo.
-**Problema:** La reorganización de paquetes (0.2) se completó y se marcó la fase como hecha, pero faltaban: (a) pipeline CI — no había ningún archivo en `.github/workflows/`; (b) enforcement automático de format/lint; (c) las convenciones de código no estaban documentadas formalmente.
-**Solución / Buena práctica:** Al marcar una fase como completa, verificar **cada sub-punto** de la lista, no solo el trabajo más visible. Para el CI: crear `.github/workflows/ci.yml`. Para calidad de código: usar Maven Enforcer Plugin (fácil de pasar) para reglas de proyecto, y documentar el estilo en `docs/keygo-server/CODE_STYLE.md`. El Checkstyle/Spotless se deja como T-023 en el ROADMAP para no bloquear el cierre de la fase. Esta separación —"convención documentada" vs. "enforcement automático"— es pragmática y accionable.
-**Archivos clave:** `.github/workflows/ci.yml`, `pom.xml` (raíz — Maven Enforcer Plugin), `docs/keygo-server/CODE_STYLE.md`, `ROADMAP.md` (T-023, T-006 completada)
-
-### [2026-03-17] Script de verificación de actividad del agente AI (extendido a AGENTS.md)
-**Contexto:** Creación y extensión de `scripts/check-ai-docs.sh` para verificar actividad reciente en los documentos de base de conocimiento AI.
-**Problema:** Inicialmente el script solo verificaba `AI_CONTEXT.md → ## Lecciones aprendidas`. `AGENTS.md` podía quedar desactualizado sin detectarse. Además, la lógica de escaneo estaba duplicada para cada archivo.
-**Solución / Buena práctica:** Se refactorizó con una función reutilizable `check_section(FILE, SECTION_LABEL)` que usa arrays globales `_check_found` y `_check_recent` para evitar namerefs (requieren bash 4.3+). Una función `report_result(FILE, LABEL, SECTION)` orquesta la llamada y el reporte por documento. Se añadió `## Registro de cambios` a `AGENTS.md` como sección objetivo. El exit code final es el peor de los dos documentos (`worst = max(exit_ai, exit_agents)`). Los bloques `<!-- -->` se ignoran para evitar falsos positivos con templates de ejemplo. Compatible con GNU date (Linux) y BSD date (macOS).
-**Archivos clave:** `scripts/check-ai-docs.sh`, `AI_CONTEXT.md`, `AGENTS.md`
-
-### [2026-03-21] Generación de colecciones Postman para pruebas funcionales manuales
-**Contexto:** El proyecto no contaba con ninguna colección Postman ni entorno importable, dificultando las pruebas manuales de los endpoints existentes.
-**Problema:** Sin colecciones estándar, cada prueba manual requería configurar headers, URLs y bodies manualmente en Postman, con riesgo de error y sin scripts de validación automática de respuestas.
-**Solución / Buena práctica:** Crear archivos bajo `postman/` siguiendo el schema Postman Collection v2.1.0. Puntos clave: (1) autenticación `apikey` a nivel de colección con `X-KEYGO-ADMIN` → heredada automáticamente por todos los requests protegidos; (2) pre-request script global que compone `{{fullBaseUrl}}` desde variables de entorno; (3) pre-request en `POST Create Tenant` que genera slug único con timestamp para evitar conflictos entre ejecuciones; (4) script post-request guarda `tenantSlug` en el entorno para reutilizarlo en requests subsiguientes; (5) los endpoints públicos (Service Info, Actuator) overridean auth a `noauth`. Incluir siempre respuestas de ejemplo en cada request facilita la comprensión sin ejecutar.
-**Archivos clave:** `postman/KeyGo-Server.postman_collection.json`, `postman/KeyGo-Server-Local.postman_environment.json`
-
-### [2026-03-21] Fase 2 — ClientApp: import faltante de enum en use case
-**Contexto:** Implementación de la Fase 2 (modelo de aplicaciones cliente) — creación de `CreateClientAppUseCase` que referencia `ClientType.CONFIDENTIAL`.
-**Problema:** El compilador reportó "package ClientType does not exist" porque `ClientType` no estaba importado explícitamente, aunque otros tipos del mismo paquete (`ClientApp`, `ClientAppId`, etc.) sí lo estaban. Ocurre cuando se agrega un tipo de dominio en un if-check dentro del mismo método sin recordar el import.
-**Solución / Buena práctica:** Al agregar comparaciones de enum (`ClientType.CONFIDENTIAL.equals(...)`) en un use case, siempre verificar que el enum esté en la lista de imports. El compilador de javac no infiere imports implícitos. La detección fue rápida al ejecutar `./mvnw test --also-make -pl keygo-app` en lugar del build completo.
-**Archivos clave:** `keygo-app/.../clientapp/usecase/CreateClientAppUseCase.java`
-
-### [2026-03-21] Fase 2 — Patrón de orphanRemoval en colecciones JPA de entidades hijo
-**Contexto:** Diseño de `ClientAppEntity` con colecciones `@OneToMany(cascade=ALL, orphanRemoval=true)` para `ClientRedirectUriEntity`, `ClientAllowedGrantEntity`, `ClientAllowedScopeEntity`.
-**Problema:** Si al actualizar la entidad padre se reasigna directamente la referencia de la lista (`entity.setRedirectUris(newList)`), `orphanRemoval` no elimina los hijos anteriores porque Hibernate pierde el tracking de la colección original. Esto genera registros huérfanos en DB.
-**Solución / Buena práctica:** Para que `orphanRemoval` funcione correctamente al actualizar colecciones: usar `entity.getRedirectUris().clear()` seguido de `entity.getRedirectUris().addAll(nuevaLista)`. Nunca reasignar la referencia de la colección. Este patrón está implementado en `ClientAppPersistenceMapper.toEntity()`. Aplicar también en futuros adapters con relaciones `@OneToMany` + `orphanRemoval`.
-**Archivos clave:** `keygo-supabase/.../clientapp/mapper/ClientAppPersistenceMapper.java`, `keygo-supabase/.../clientapp/entity/ClientAppEntity.java`
-
-### [2026-03-21] Guía de pruebas Postman para perfil Testing — convención de documentación
-**Contexto:** Creación del documento `docs/keygo-server/TESTING_GUIDE.md` dirigido a un perfil de QA/Testing que usa Postman o herramienta compatible para probar los endpoints REST de KeyGo Server.
-**Problema:** Sin un documento de referencia, el perfil de Testing debía inferir el orden de ejecución, las dependencias entre endpoints y las configuraciones necesarias leyendo el código o la colección Postman directamente — con alto riesgo de errores (ej: listar antes de crear, usar un tenant suspendido para crear apps).
-**Solución / Buena práctica:** Documentar tres dimensiones: (1) **configuración** — qué datos necesita con/sin acceso al código (variables de entorno, URL, admin key); (2) **dependencias** — qué recursos deben existir antes de ejecutar cada endpoint; (3) **orden recomendado** — fases de ejecución de menor a mayor dependencia (Smoke → Plataforma → Tenants → Client Apps → Errores). Incluir diagrama Mermaid de dependencias entre endpoints y tabla de solución de problemas frecuentes.
-**Archivos clave:** `docs/keygo-server/TESTING_GUIDE.md`, `postman/KeyGo-Server.postman_collection.json`, `postman/KeyGo-Server-Local.postman_environment.json`
-
-### [2026-03-21] Generación automática de slug a partir del nombre del tenant
-**Contexto:** El campo `slug` del tenant era requerido en el request body (`CreateTenantRequest`). Se migró a generación automática en el servidor a partir del campo `name`.
-**Problema:** Exponer el slug como campo editable en el API obliga al cliente a construir slugs válidos, introduciendo validaciones redundantes en la capa de presentación y riesgo de slugs inconsistentes con el nombre real del tenant.
-**Solución / Buena práctica:** Centralizar la generación de slug en el dominio: (1) crear `SlugUtils.toSlug(String)` en `keygo-domain/shared/util/` (Java puro, sin Spring); (2) agregar factory `TenantSlug.fromName(String name)` que delega en `SlugUtils` y luego valida el resultado con el compact constructor del record; (3) quitar `slug` de `CreateTenantCommand` y `CreateTenantRequest`; (4) `CreateTenantUseCase.execute()` llama `TenantSlug.fromName(command.name())`. Para evitar colisiones en Postman, el pre-request script ahora agrega un timestamp al nombre en lugar de al slug.
-**Archivos clave:** `keygo-domain/.../shared/util/SlugUtils.java`, `keygo-domain/.../tenant/model/TenantSlug.java`, `keygo-app/.../tenant/command/CreateTenantCommand.java`, `keygo-app/.../tenant/usecase/CreateTenantUseCase.java`, `keygo-api/.../tenant/request/CreateTenantRequest.java`
-
-### [2026-03-21] Bug T-001 — BootstrapAdminKeyFilter: getRequestURI() vs. getServletPath() con context-path
-**Contexto:** Corrección del bug conocido en `BootstrapAdminKeyFilter` donde el filtro de seguridad nunca bloqueaba las rutas de API, dejando todos los endpoints públicos aunque `keygo.bootstrap.enabled=true`.
-**Problema:** El filtro usaba `request.getRequestURI()` para comparar con los prefijos configurados en `application.yml` (`/api/`, `/actuator/`, etc.). Sin embargo, con `server.servlet.context-path=/keygo-server` activo, `getRequestURI()` retorna `/keygo-server/api/v1/...` (incluye el context-path), mientras que los prefijos configurados no lo incluyen. Por tanto, `requestPath.startsWith("/api/")` nunca era `true` y el filtro pasaba todas las rutas a `filterChain.doFilter()` sin autenticar.
-**Solución / Buena práctica:** Usar `request.getServletPath()` en lugar de `request.getRequestURI()`. `getServletPath()` retorna la ruta relativa al context-path (ej: `/api/v1/tenants`), que sí coincide con los prefijos de `application.yml`. La misma corrección aplica en `validateAdminKey()` para el log de advertencia. En tests: usar `request.setServletPath()` (no `setRequestURI()`) para que el mock refleje el mismo comportamiento. Se añadieron dos tests de regresión con `setContextPath("/keygo-server")` + `setRequestURI(...)` + `setServletPath(...)` para documentar el escenario exacto del bug.
-**Archivos clave:** `keygo-run/src/main/java/.../filter/BootstrapAdminKeyFilter.java`, `keygo-run/src/test/java/.../filter/BootstrapAdminKeyFilterTest.java`
-
-### [2026-03-21] Fase 2 — TenantEntity como referencia no-managed en ClientAppRepositoryAdapter
-**Contexto:** Al guardar un `ClientApp`, el adapter necesita asociar el `TenantEntity` correcto en la FK `tenant_id` de `ClientAppEntity` sin cargar el tenant desde la DB.
-**Problema:** JPA requiere una referencia a una entidad para la asociación `@ManyToOne`. No es posible pasar un UUID directamente como FK en la entidad. Pero cargar el `TenantEntity` completo solo para asociarlo sería ineficiente.
-**Solución / Buena práctica:** Crear una instancia de `TenantEntity` con solo el `id` seteado (`new TenantEntity(); tenantRef.setId(id)`) y asignarla a `entity.setTenant(tenantRef)`. JPA/Hibernate trata esto como una referencia a un proxy de la entidad existente, resolviendo la FK sin hacer una query adicional. Este patrón es seguro cuando la FK ya existe en DB. Alternativa más idiomática en JPA: usar `entityManager.getReference(TenantEntity.class, id)`.
-**Archivos clave:** `keygo-supabase/.../clientapp/adapter/ClientAppRepositoryAdapter.java`
-
-### [2026-03-21] Fase 3 — Mockito UnnecessaryStubbing con tryFindByEmail que captura IAE
-**Contexto:** Implementación de `ValidateUserCredentialsUseCase` que acepta email o username como credencial, con fallback automático.
-**Problema:** En los tests de `ValidateUserCredentialsUseCase`, stubear `findByTenantIdAndEmail` para una credencial de tipo username ("johndoe") genera `UnnecessaryStubbing` porque `tryFindByEmail()` nunca llama al mock — en cambio, captura la `IllegalArgumentException` lanzada por `EmailAddress.of("johndoe")` (formato inválido) y retorna `Optional.empty()` sin invocar el repositorio.
-**Solución / Buena práctica:** Al testear el camino de username: NO stubear `findByTenantIdAndEmail` (el mock no se invoca). Al testear "user not found": usar un email real como credencial (`"nobody@acme.com"`) para que el mock de email SÍ se invoque, en lugar de una string que falle la validación de formato. Regla general: en lógica try-catch que retorna `Optional.empty()` sin llamar al colaborador, el mock de ese colaborador no debe configurarse en el test.
-**Archivos clave:** `keygo-app/.../user/usecase/ValidateUserCredentialsUseCase.java`, `keygo-app/.../user/usecase/UpdateResetValidateUseCaseTest.java`
-
-### [2026-03-21] Fase 3 — PasswordHash.toString() nunca expone el hash (seguridad)
-**Contexto:** El value object `PasswordHash` wrappea el hash BCrypt del usuario.
-**Problema:** Si `toString()` retorna el valor del hash, cualquier log que incluya el objeto `User` o `PasswordHash` expondría credenciales en los logs del sistema — vector de fuga de información sensible.
-**Solución / Buena práctica:** `PasswordHash.toString()` siempre retorna `"PasswordHash[REDACTED]"` — nunca el valor real. El acceso real al hash se hace explícitamente con `.value()` solo en los lugares donde es necesario (mapper, port de verificación). Agregar test que valide que `toString()` no contiene el hash real.
-**Archivos clave:** `keygo-domain/.../user/model/PasswordHash.java`
-
-### [2026-03-21] Fase 4 — Import correcto de BaseResponse en controllers REST
-**Contexto:** Implementación de `TenantMembershipController` y `TenantAppRoleController` en `keygo-api/membership/controller/`.
-**Problema:** Los controllers compilaban con error "cannot find symbol: class BaseResponse" porque se intentó importar directamente de `io.cmartinezs.keygo.api.shared.BaseResponse`, pero `BaseResponse` está en el subpaquete `.response`: `io.cmartinezs.keygo.api.shared.response.BaseResponse`.
-**Solución / Buena práctica:**
-- **Importar siempre** `BaseResponse` del subpaquete correcto: `io.cmartinezs.keygo.api.shared.response.BaseResponse`.
-- La jerarquía es: `shared/` (package-level utilities) → `shared/response/` (response DTOs, envelopes, helpers).
-- Este patrón es consistente con todos los controllers existentes en `keygo-api`.
-- Los IDEs pueden auto-completar incorrectamente; verificar manualmente en el import statement.
-**Archivos clave:** `keygo-api/shared/response/BaseResponse.java`, `keygo-api/membership/controller/TenantMembershipController.java`, `keygo-api/membership/controller/TenantAppRoleController.java`
-
-### [2026-03-22] Documentación de modelo de datos y diccionario — estructura, flujos y relaciones
-**Contexto:** Generación de documentación completa para el modelo de datos (diccionario + E/R) bajo orden explícita del usuario. El proyecto alcanzó Fase 4 con 10 entidades JPA, 5+ tablas de relación y múltiples flujos de negocio complejos (OAuth2, memberships, roles).
-**Problema:** Sin documentación centralizada del modelo, nuevos desarrolladores necesitaban navegar por: (1) migraciones Flyway diseminadas (`V1.sql` a `V7.sql`), (2) entidades JPA distribuidas por feature, (3) múltiples archivos de dominio (`keygo_server_domain_model.md`, `keygo_server_architecture.md`), (4) diagramas no representativos del estado actual. No había referencia unificada para constrains, enumeraciones, índices o guías SQL de consulta rápida.
-**Solución / Buena práctica:**
-- **Crear 3 documentos complementarios en `docs/keygo-server/`:**
-  1. **`DATA_MODEL.md`** (800 líneas) — diccionario completo (12 tablas), diagrama E/R Mermaid, cascade rules, 8 guías SQL, enumeraciones, constraints únicos, índices.
-  2. **`ENTITY_RELATIONSHIPS.md`** (600 líneas) — 5 contextos de negocio (class diagrams Mermaid), OAuth2 Authorization Code flow (sequence), Refresh Token flow, token revocation, ciclo de vida de memberships (state machine), asignación de roles, matriz de decisión de acceso (flowchart), capas lógicas de validación (graph).
-  3. **`DATA_DICTIONARY.md`** (300 líneas) — índice centralizado, mapa de acceso por rol (Dev, Arquitecto, QA), vista de diagramas a nivel de detalle (30k-10k-3k pies), 3 ejemplos de uso reales, convenciones de nomenclatura, checklist de validación.
-- **Actualizar `docs/keygo-server/README.md`** — crear índice de todos los documentos técnicos con tabla de referencias cruzadas, sugerencias de lectura por rol y preguntas frecuentes.
-- **Diagramas Mermaid como primera opción:** E/R, contextos (class diagrams), flujos (sequence, state machines, flowcharts), cascades (graph). Todos natively soportados en GitHub y editores comunes.
-- **Patrón de referencia cruzada:** cada documento se cruza con AGENTS.md, ARCHITECTURE.md, domain_model.md de `docs/arch/` y con la colección Postman.
-- **Documentación generada solo bajo orden explícita del usuario → SÍ cumplido**, pero estos 3 documentos son parte del ciclo de trabajo del agente (como `AI_CONTEXT.md`, `AGENTS.md`) porque responden a la necesidad de base de conocimiento compartida, no documentación de producto.
-**Archivos clave:** `docs/keygo-server/DATA_MODEL.md`, `docs/keygo-server/ENTITY_RELATIONSHIPS.md`, `docs/keygo-server/DATA_DICTIONARY.md`, `docs/keygo-server/README.md`
-
-
-## Propuestas de mejoras futuras
-
-> El acumulador principal de propuestas es **[`ROADMAP.md`](ROADMAP.md)** en la raíz del repositorio.
-> Esta sección resume las más relevantes con referencia al ID en ROADMAP.md.
-> Al registrar aquí una propuesta, agregarla también en la tabla correspondiente de ROADMAP.md.
-
-### Corto plazo
-
-- ~~**T-001** — Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`): todas las rutas son actualmente públicas.~~ ✅ **Completada 2026-03-21**
-- **T-002** — Agregar mapper en `keygo-api/platform/` para descargar al controller del mapeo `ServiceInfoProvider → ServiceInfoData`. Ver `ROADMAP.md T-002`.
-- **T-023** — Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless). Convención ya documentada en `docs/keygo-server/CODE_STYLE.md`. Ver `ROADMAP.md T-023`.
-- **T-024** — Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como alternativa al header `X-Tenant-Slug`, necesaria para los endpoints OAuth2 de la Fase 5. Ver `ROADMAP.md T-024`.
-- **T-026** — Mantener colecciones Postman actualizadas al agregar cada nuevo endpoint; crear environment `KeyGo-Server-Docker`. Ver `ROADMAP.md T-026`.
-- **T-027** — Agregar endpoints `PUT /tenants/{slug}/users/{userId}/suspend` y `PUT /tenants/{slug}/users/{userId}/activate` (gestión de estado de usuario). Ver `ROADMAP.md T-027`.
-- **T-028** — Agregar tests de integración con Testcontainers para `UserRepositoryAdapter` (crear, buscar por email/username, listar por tenant). Ver `ROADMAP.md T-028`.
-
-### Mediano plazo
-
-- **T-009** — Poblar `keygo-domain` con las primeras entidades de dominio puras: `Tenant`, `User`, `ClientApp`, `Membership`. Ver `ROADMAP.md T-009`. (**Tenant, User y ClientApp ya implementados**).
-- **T-010** — Poblar `keygo-infra` con puertos de infraestructura transversal: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`. Ver `ROADMAP.md T-010`. (`PasswordHasherPort` ya implementado en Fase 3).
-- **T-013** — Implementar tests de integración con Testcontainers para `keygo-supabase`. Ver `ROADMAP.md T-013`.
-- **T-025** — Agregar tests de integración con Testcontainers para el flujo completo de Tenant. Ver `ROADMAP.md T-025`.
-
-### Largo plazo
-
-- **T-017** — Renombrar `keygo-supabase` → `keygo-adapter-persistence-postgres` para neutralizar acoplamiento al proveedor. Ver `ROADMAP.md T-017`.
-- **T-020** — Observabilidad avanzada con OpenTelemetry + Prometheus + Grafana. Ver `ROADMAP.md T-020`.
-- **F-010 a F-016** — Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE. Ver `ROADMAP.md` Fase 1.
-
-### [2026-03-22] OAuth2 Authorization Code: pasar estado entre GET /authorize y POST /login vía HTTP Session
-**Contexto:** Fase 5 — Flujo OAuth2 Authorization Code + PKCE. Se corrigió el endpoint `/account/login` para generar el authorization code correctamente.
-
-**Problema:** Inicialmente, el endpoint `/account/login` solo autentica el usuario y retorna un mensaje vacío. La variable `user` no se usaba. En un flujo OAuth2 estándar (industria), se necesita **preservar el estado de la solicitud de autorización** entre dos requests HTTP: (1) GET `/authorize` → valida cliente, scopes, redirect URI (sin login). (2) POST `/account/login` → autentica usuario usando credenciales y **genera el authorization code** con los datos capturados en paso 1.
-
-**Solución / Buena práctica:**
-1. **GET `/authorize`** valida la solicitud y **guarda en sesión HTTP** (`HttpSession.setAttribute("authorizationState", state)`) un objeto `AuthorizationSessionState` con: tenantSlug, clientId, redirectUri, scope, codeChallenge, codeChallengeMethod.
-2. **POST `/account/login`** (misma sesión HTTP, preservada por cookies): (a) recupera `authSessionState` de sesión, (b) autentica usuario, (c) **emite `IssueAuthorizationCodeUseCase`** pasando los datos de sesión + userId autenticado, (d) retorna en response el **authorization code temporal** + redirect URI.
-3. El cliente recibe el código y puede intercambiarlo en **POST `/oauth2/token`** por tokens (Fase 6).
-
-Cambios realizados:
-- Nueva clase `AuthorizationSessionState` (record serializable) en `keygo-api/auth/session/`.
-- `GET /authorize`: guarda estado en sesión.
-- `POST /account/login`: recupera estado, emite código, retorna `LoginData` con campos `code` + `redirectUri`.
-- `LoginData`: actualizado de record de un parámetro a tres (message, code, redirectUri).
-- Postman collection: requests de authorize y login mejorados con query params y pm.test() validations.
-
-**Archivos clave:** `AuthorizationController.java`, `AuthorizationSessionState.java`, `LoginData.java`, `postman/KeyGo-Server.postman_collection.json`.
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent

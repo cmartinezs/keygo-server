@@ -144,7 +144,7 @@
 
 ---
 
-### Tabla: `app_role` — V7
+### Tabla: `app_roles` — V7 (renombrada en V10)
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
@@ -168,9 +168,7 @@
 
 ---
 
-### Tabla: `membership` — V7
-
-> ⚠️ **Nombre en singular** (`membership`, no `memberships`). La tabla NO tiene columna `tenant_id`.
+### Tabla: `memberships` — V7 (renombrada en V10)
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
@@ -195,7 +193,7 @@
 
 ---
 
-### Tabla: `membership_role` — V7
+### Tabla: `membership_roles` — V7 (renombrada en V10)
 
 > ⚠️ **PK compuesta** `(membership_id, role_id)` — NO hay columna `id` independiente. La columna FK al rol es `role_id` (no `app_role_id`).
 
@@ -207,8 +205,8 @@
 
 **Constraints:**
 - PK compuesta: `(membership_id, role_id)`
-- FK: `membership_id` → `membership(id)` ON DELETE CASCADE
-- FK: `role_id` → `app_role(id)` ON DELETE CASCADE
+- FK: `membership_id` → `memberships(id)` ON DELETE CASCADE
+- FK: `role_id` → `app_roles(id)` ON DELETE CASCADE
 
 **Reglas de negocio:**
 - Una membership puede tener múltiples roles dentro de la misma app.
@@ -318,7 +316,7 @@
 - Al rotar: token anterior → `USED`, nuevo vinculado via `rotated_from`.
 - Token revocado no puede renovarse.
 
-**Próxima migración:** `V10__add_refresh_tokens.sql`
+**Próxima migración:** `V11__add_refresh_tokens.sql`
 
 ### Tabla: `tenant_sessions` — Planificada (Fase 8+)
 
@@ -351,15 +349,15 @@ erDiagram
     CLIENT_APPS ||--o{ CLIENT_REDIRECT_URIS : "registers (client_app_id)"
     CLIENT_APPS ||--o{ CLIENT_ALLOWED_GRANTS : "permits (client_app_id)"
     CLIENT_APPS ||--o{ CLIENT_ALLOWED_SCOPES : "permits (client_app_id)"
-    CLIENT_APPS ||--o{ APP_ROLE : "defines (client_app_id)"
-    CLIENT_APPS ||--o{ MEMBERSHIP : "accessed-by (client_app_id)"
+    CLIENT_APPS ||--o{ APP_ROLES : "defines (client_app_id)"
+    CLIENT_APPS ||--o{ MEMBERSHIPS : "accessed-by (client_app_id)"
     CLIENT_APPS ||--o{ AUTHORIZATION_CODES : "requests (client_app_id)"
 
-    TENANT_USERS ||--o{ MEMBERSHIP : "has (user_id)"
+    TENANT_USERS ||--o{ MEMBERSHIPS : "has (user_id)"
     TENANT_USERS ||--o{ AUTHORIZATION_CODES : "authenticates (user_id)"
 
-    MEMBERSHIP ||--o{ MEMBERSHIP_ROLE : "assigned (membership_id)"
-    APP_ROLE ||--o{ MEMBERSHIP_ROLE : "grants (role_id)"
+    MEMBERSHIPS ||--o{ MEMBERSHIP_ROLES : "assigned (membership_id)"
+    APP_ROLES ||--o{ MEMBERSHIP_ROLES : "grants (role_id)"
 
     TENANTS {
         UUID id PK
@@ -416,7 +414,7 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
-    APP_ROLE {
+    APP_ROLES {
         UUID id PK
         UUID client_app_id FK
         VARCHAR code
@@ -426,7 +424,7 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
-    MEMBERSHIP {
+    MEMBERSHIPS {
         UUID id PK
         UUID user_id FK
         UUID client_app_id FK
@@ -435,7 +433,7 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
-    MEMBERSHIP_ROLE {
+    MEMBERSHIP_ROLES {
         UUID membership_id PK_FK
         UUID role_id PK_FK
         TIMESTAMPTZ assigned_at
@@ -485,14 +483,14 @@ graph TD
     B -->|ON DELETE CASCADE| F["↩️ CLIENT_REDIRECT_URIS"]
     B -->|ON DELETE CASCADE| G["✅ CLIENT_ALLOWED_GRANTS"]
     B -->|ON DELETE CASCADE| H["📋 CLIENT_ALLOWED_SCOPES"]
-    B -->|ON DELETE CASCADE| E["🎭 APP_ROLE"]
-    B -->|ON DELETE CASCADE| D["📊 MEMBERSHIP"]
+    B -->|ON DELETE CASCADE| E["🎭 APP_ROLES"]
+    B -->|ON DELETE CASCADE| D["📊 MEMBERSHIPS"]
     B -->|ON DELETE CASCADE| K
 
     C -->|ON DELETE CASCADE| D
     C -->|ON DELETE CASCADE| K
 
-    D -->|ON DELETE CASCADE| J["🔗 MEMBERSHIP_ROLE"]
+    D -->|ON DELETE CASCADE| J["🔗 MEMBERSHIP_ROLES"]
     E -->|ON DELETE CASCADE| J
 ```
 
@@ -526,7 +524,7 @@ WHERE tu.tenant_id = :tenantId
 ### 3. Verificar si un usuario tiene membership activa en una app
 
 ```sql
-SELECT COUNT(1) FROM membership m
+SELECT COUNT(1) FROM memberships m
 WHERE m.user_id = :userId
   AND m.client_app_id = :clientAppId
   AND m.status = 'ACTIVE';
@@ -537,9 +535,9 @@ WHERE m.user_id = :userId
 
 ```sql
 SELECT ar.code, ar.display_name
-FROM app_role ar
-JOIN membership_role mr ON mr.role_id = ar.id
-JOIN membership m ON m.id = mr.membership_id
+FROM app_roles ar
+JOIN membership_roles mr ON mr.role_id = ar.id
+JOIN memberships m ON m.id = mr.membership_id
 WHERE m.user_id = :userId
   AND ar.client_app_id = :clientAppId
   AND m.status = 'ACTIVE';
@@ -592,7 +590,7 @@ WHERE id = :id;
 | `client_apps` | `type` | `PUBLIC`, `CONFIDENTIAL` | UPPERCASE |
 | `client_apps` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
 | `tenant_users` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
-| `membership` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
+| `memberships` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
 | `authorization_codes` | `status` | `pending`, `used`, `expired`, `revoked` | **lowercase** |
 | `authorization_codes` | `code_challenge_method` | `plain`, `S256` | mixto |
 | `signing_keys` | `status` | `ACTIVE`, `RETIRED`, `REVOKED` | UPPERCASE |
@@ -611,9 +609,9 @@ WHERE id = :id;
 | `client_redirect_uris` | — | Sin constraint; múltiples URIs por app |
 | `tenant_users` | `UNIQUE(tenant_id, email)` | Email único por tenant |
 | `tenant_users` | `UNIQUE(tenant_id, username)` | Username único por tenant |
-| `membership` | `UNIQUE(user_id, client_app_id)` | No hay memberships duplicadas |
-| `app_role` | `UNIQUE(client_app_id, code)` | Código de rol único por app |
-| `membership_role` | PK `(membership_id, role_id)` | PK compuesta; sin columna `id` propia |
+| `memberships` | `UNIQUE(user_id, client_app_id)` | No hay memberships duplicadas |
+| `app_roles` | `UNIQUE(client_app_id, code)` | Código de rol único por app |
+| `membership_roles` | PK `(membership_id, role_id)` | PK compuesta; sin columna `id` propia |
 | `authorization_codes` | `UNIQUE(code)` | Authorization code único globalmente |
 | `signing_keys` | `UNIQUE(kid)` | Key ID único globalmente |
 
@@ -623,11 +621,12 @@ WHERE id = :id;
 
 | Migración | Descripción | Estado |
 |---|---|---|
-| `V10__add_refresh_tokens.sql` | Tabla `refresh_tokens` para Fase 7 (refresh token flow) | ⏳ Planificada |
-| `V11__add_tenant_sessions.sql` | Tabla `tenant_sessions` multi-tenancy para Fase 8 | ⏳ Planificada |
+| `V10__rename_membership_tables_to_plural.sql` | Renombrar `app_role`, `membership`, `membership_role` → `app_roles`, `memberships`, `membership_roles` | ✅ Aplicada (2026-03-22) |
+| `V11__add_refresh_tokens.sql` | Tabla `refresh_tokens` para Fase 7 (refresh token flow) | ⏳ Planificada |
+| `V12__add_tenant_sessions.sql` | Tabla `tenant_sessions` multi-tenancy para Fase 8 | ⏳ Planificada |
 
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V10`.
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V11`.
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V9
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V10
