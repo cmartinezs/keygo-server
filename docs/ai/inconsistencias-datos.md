@@ -1,13 +1,13 @@
 # INCONSISTENCIAS — Datos / Data Model
 
-> Sub-documento de [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md).
+> Sub-documento de [`inconsistencias.md`](inconsistencias.md).
 >
 > Registra **inconsistencias encontradas entre la documentación del modelo de datos y el schema
 > real de la base de datos** (migraciones Flyway). Cada entrada incluye lo que estaba documentado,
 > lo que es real y cómo se corrigió.
 >
 > Fecha de detección: **2026-03-22** | Revisión: migraciones V1–V9 vs documentos `DATA_MODEL.md`,
-> `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `AUTH_FLOW.md`  
+> `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `AUTH_FLOW.md`
 > Segunda revisión: **2026-03-22** | Re-auditoría de inconsistencias "resueltas" — corrección de tablas en singular via `V10__rename_membership_tables_to_plural.sql`
 
 ---
@@ -33,8 +33,8 @@ Todas las inconsistencias han sido corregidas:
 | Status values de `membership` | `ACTIVE, INVITED, SUSPENDED, REVOKED` | `ACTIVE, SUSPENDED, PENDING` | ⚠️ Se mantiene implementación — más consistente con el resto del sistema |
 | Constraint UNIQUE en `membership` | `(tenant_id, user_id, client_app_id)` | `(user_id, client_app_id)` | ⚠️ Se mantiene implementación — correcta sin `tenant_id` |
 
-**Impacto original:** Inconsistencia de nomenclatura; violaba la convención PostgreSQL de tablas en plural.  
-**Corrección:** `V10__rename_membership_tables_to_plural.sql` renombra las 3 tablas + sus índices y constraints. Entidades JPA (`AppRoleEntity`, `MembershipEntity`) actualizadas. `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` actualizados.  
+**Impacto original:** Inconsistencia de nomenclatura; violaba la convención PostgreSQL de tablas en plural.
+**Corrección:** `V10__rename_membership_tables_to_plural.sql` renombra las 3 tablas + sus índices y constraints. Entidades JPA (`AppRoleEntity`, `MembershipEntity`) actualizadas. `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` actualizados.
 **Criterio de decisión:** La documentación manda en nombres de tablas (convención plural estándar). La implementación era correcta en los demás aspectos (columnas, constraints, status values).
 
 ---
@@ -47,7 +47,7 @@ Todas las inconsistencias han sido corregidas:
 | FK al rol | `app_role_id` | `role_id` |
 | FK a membership | `membership_id` → `memberships(id)` | Correcto tras renombrar en V10 |
 
-**Impacto:** JPA entity con mapeo incorrecto; queries con `app_role_id` fallarían en runtime.  
+**Impacto:** JPA entity con mapeo incorrecto; queries con `app_role_id` fallarían en runtime.
 **Corrección:** `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`. PK compuesta mantenida (correcta para join tables). FK renombrada automáticamente al renombrar tablas en V10.
 
 ---
@@ -61,7 +61,7 @@ Todas las inconsistencias han sido corregidas:
 | Columna `name` | Presente | Columna es `display_name` (nullable) | ✅ `display_name` es más descriptivo; implementación correcta |
 | Code constraint | No documentado | `code ~ '^[a-z][a-z0-9_-]*$'` | ✅ Correcto; docs actualizados |
 
-**Impacto:** Código que filtre por `app_role.status` o use `app_role.name` fallaría.  
+**Impacto:** Código que filtre por `app_role.status` o use `app_role.name` fallaría.
 **Corrección:** `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`. Tabla renombrada a `app_roles` via V10.
 
 ---
@@ -79,7 +79,7 @@ Todas las inconsistencias han sido corregidas:
 | Columna `used_at` | No documentada | Presente — `TIMESTAMPTZ` nullable |
 | Columna `code_challenge` | Nullable (SÍ) | `NOT NULL` |
 
-**Impacto crítico:** Status en minúsculas es una diferencia que afecta a comparaciones Java/SQL.  
+**Impacto crítico:** Status en minúsculas es una diferencia que afecta a comparaciones Java/SQL.
 **Corrección:** `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `AUTH_FLOW.md`.
 
 ---
@@ -91,7 +91,7 @@ Todas las inconsistencias han sido corregidas:
 | Clave privada | `private_material_ref VARCHAR(500)` | `private_material TEXT` (nullable) |
 | Columna `created_at` | No documentada | Presente — `TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP` |
 
-**Nota:** La documentación decía que la clave privada era solo una "referencia" a KMS. En la implementación real, el PEM completo se almacena en DB (cifrado en reposo recomendado para producción).  
+**Nota:** La documentación decía que la clave privada era solo una "referencia" a KMS. En la implementación real, el PEM completo se almacena en DB (cifrado en reposo recomendado para producción).
 **Corrección:** `DATA_MODEL.md`.
 
 ---
@@ -195,8 +195,8 @@ La documentación se generó **en paralelo a la implementación**, sin releer la
 
 ## Criterio de corrección (re-auditoría 2026-03-22)
 
-> **La documentación manda** para convenciones de nomenclatura (singular vs plural).  
-> **La implementación manda** cuando la razón técnica es clara (normalización, columnas redundantes, estándares RFC).  
+> **La documentación manda** para convenciones de nomenclatura (singular vs plural).
+> **La implementación manda** cuando la razón técnica es clara (normalización, columnas redundantes, estándares RFC).
 > Cuando ambos tienen razón parcial → se aplica el criterio de menor impacto y mayor consistencia con el sistema.
 
 ## Regla preventiva establecida

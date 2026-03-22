@@ -2,10 +2,10 @@
 
 > Quick-start guide for AI coding agents. Full context in `AI_CONTEXT.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `ROADMAP.md`.
 >
-> 📖 **Sub-documentos de este archivo:**
-> - [`AGENTS.registro.md`](AGENTS.registro.md) — Historial de cambios al quick-start
-> - [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) — Inconsistencias detectadas
-> - [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) — Lecciones aprendidas
+> 📖 **Sub-documentos de este archivo (detalle en `docs/ai/`):**
+> - [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) — Historial de cambios al quick-start
+> - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) — Inconsistencias detectadas
+> - [`docs/ai/lecciones.md`](docs/ai/lecciones.md) — Lecciones aprendidas
 
 ## Module map & dependency rules
 
@@ -280,27 +280,16 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 ## Registro de cambios
 
-> Historial de actualizaciones del quick-start. El agente debe agregar una entrada aquí cada vez
-> que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
-> Formato: `### [YYYY-MM-DD] Descripción del cambio`
-
-### [2026-03-22] Fase 5 — Núcleo OAuth2/OIDC: authorization flow completada
-Se implementó el flujo OAuth 2.0 Authorization Code + PKCE en los cinco módulos activos:
-- **`keygo-domain`**: entidades de dominio puras `AuthorizationCode`, `AuthorizationCodeId`, `AuthorizationCodeStatus` (enum), `CodeChallenge`, `ScopeSet`; excepciones `InvalidAuthorizationCodeException`, `AuthorizationCodeExpiredException`, `InvalidPkceVerificationException`, `ScopeNotGrantedException`. Sin Spring ni JPA.
-- **`keygo-app`**: puertos `AuthorizationCodeRepositoryPort`, `ClockPort`; 4 comandos (`InitiateAuthorizationCommand`, `AuthenticateUserCommand`, `IssueAuthorizationCodeCommand`, `ExchangeAuthorizationCodeCommand`); 3 results (`AuthorizationInitiatedResult`, `AuthorizationCodeIssuedResult`, `ExchangeAuthorizationCodeResult`); 4 casos de uso (`InitiateAuthorizationUseCase`, `AuthenticateUserForAuthorizationUseCase`, `IssueAuthorizationCodeUseCase`, `ExchangeAuthorizationCodeUseCase`).
-- **`keygo-infra`**: `PkceVerifier` (validación S256 y plain PKCE).
-- **`keygo-supabase`**: `AuthorizationCodeEntity` (JPA), `AuthorizationCodeJpaRepository` (Spring Data), `AuthorizationCodePersistenceMapper`, `AuthorizationCodeRepositoryAdapter`, migración `V8__add_oauth_authorization_codes.sql` (tabla `authorization_codes` con índices).
-## Registro de cambios
-
-> El historial detallado se encuentra en el sub-documento **[`AGENTS.registro.md`](AGENTS.registro.md)**.
+> El historial detallado se encuentra en **[`docs/ai/agents-registro.md`](docs/ai/agents-registro.md)**.
 >
-> Agregar aquí una entrada resumen y en el sub-documento el detalle completo cada vez que cambie
-> la estructura de módulos, comandos, patrones o URLs de referencia rápida.
+> Agregar ahí una entrada completa cada vez que cambie la estructura de módulos, comandos, patrones
+> o URLs de referencia rápida. No requiere orden explícita del usuario.
 
 ### Entradas recientes (resumen)
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-22 | Reorganización de documentos AI a `docs/ai/` |
 | 2026-03-22 | Re-auditoría de inconsistencias — corrección de tablas en singular via V10 |
 | 2026-03-22 | Refactorización de docs AI en sub-documentos temáticos |
 | 2026-03-22 | Sincronización de documentos de datos con migraciones V1–V9 |
@@ -312,4 +301,5 @@ Se implementó el flujo OAuth 2.0 Authorization Code + PKCE en los cinco módulo
 | 2026-03-21 | Fase 1 — Multitenancy completado |
 | 2026-03-21 | Fase 0 — Hardening estructural + CI + Enforcer completados |
 
-Ver historial completo en [`AGENTS.registro.md`](AGENTS.registro.md).
+Ver historial completo en [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md).
+

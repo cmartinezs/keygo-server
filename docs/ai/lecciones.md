@@ -1,6 +1,6 @@
 # AI Context — Lecciones Aprendidas
 
-> Sub-documento de [`AI_CONTEXT.md`](AI_CONTEXT.md).
+> Sub-documento de [`AI_CONTEXT.md`](../../AI_CONTEXT.md).
 >
 > Registra **errores encontrados, buenas prácticas descubiertas y convenciones adoptadas** durante
 > el trabajo del agente en el repositorio. Consultar antes de implementar para no repetir errores pasados.
@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-22 | [Reorganización de docs AI a docs/ai/](#2026-03-22-reorganización-de-documentos-ai-a-docsai) | Proceso / Documentación |
 | 2026-03-22 | [Conversión de diagramas ASCII a Mermaid — criterio de selección](#2026-03-22-conversión-de-diagramas-ascii-a-mermaid--criterio-de-selección) | Documentación / Diagramas |
 | 2026-03-22 | [Corrección de inconsistencias: docs vs DB — criterio de decisión](#2026-03-22-corrección-de-inconsistencias-docs-vs-db--criterio-de-decisión) | Convenciones / DB |
 | 2026-03-22 | [Docs de datos desincronizados con migraciones Flyway](#2026-03-22-documentación-de-datos-desincronizada-con-migraciones-flyway-reales) | Documentación |
@@ -57,10 +58,18 @@
 
 ## Lecciones
 
+### [2026-03-22] Reorganización de documentos AI a docs/ai/
+**Contexto:** Limpieza de la raíz del repositorio — los sub-documentos AI estaban directamente en la raíz, mezclados con documentos de producto.
+**Problema:** Los archivos `AI_CONTEXT.lecciones.md`, `AI_CONTEXT.propuestas.md`, `AGENTS.registro.md`, `INCONSISTENCIAS.md` e `INCONSISTENCIAS.datos.md` en la raíz dificultaban la navegación. La raíz debería tener solo la info general y los enlaces al detalle.
+**Solución / Buena práctica:** Crear `docs/ai/` como categoría específica para documentación de agentes. Los documentos raíz AI (`AI_CONTEXT.md`, `AGENTS.md`) son resúmenes con info general y enlaces a `docs/ai/`. Los sub-documentos detallados viven en `docs/ai/`. El script `check-ai-docs.sh` actualizado apunta a los nuevos paths. Las tablas de referencia en `CLAUDE.md` y `.github/copilot-instructions.md` también actualizadas.
+**Archivos clave:** `docs/ai/`, `AI_CONTEXT.md`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `scripts/check-ai-docs.sh`
+
+---
+
 ### [2026-03-22] Corrección de inconsistencias docs vs DB — criterio de decisión
-**Contexto:** Re-auditoría de las 12 inconsistencias detectadas en `INCONSISTENCIAS.datos.md` y marcadas como "resueltas". El usuario solicitó revisar si las correcciones fueron suficientes o si la DB debía ajustarse también.
+**Contexto:** Re-auditoría de las 12 inconsistencias detectadas en `inconsistencias-datos.md` y marcadas como "resueltas". El usuario solicitó revisar si las correcciones fueron suficientes o si la DB debía ajustarse también.
 **Problema:** La corrección anterior actualizó los documentos para reflejar lo que había en la DB (tablas en singular: `app_role`, `membership`, `membership_role`). Pero la convención estándar PostgreSQL exige nombres en plural, y la documentación original sí los tenía en plural. Al corregir solo los docs, se perpetuó una inconsistencia real en el schema.
-**Solución / Buena práctica:**  
+**Solución / Buena práctica:**
 Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 1. **La documentación manda en convenciones de nomenclatura** (singular/plural, casing, patrones de nombres). Si la doc dice plural, la DB debe ser plural → crear migración.
 2. **La implementación manda cuando hay razón técnica clara** (normalización, columnas redundantes, estándares RFC, seguridad). Si la implementación omitió `tenant_id` en `membership` porque sería redundante, es la implementación la correcta.
@@ -68,15 +77,15 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 4. **Corregir la documentación** para reflejar el criterio aplicado (no simplemente para aceptar la implementación si esta está mal).
 5. **Nunca marcar como "corregido" una inconsistencia donde solo se ajustó la documentación para aceptar algo que viola convenciones**. Agregar una nota de "pendiente de migración" en ese caso.
 
-**Archivos clave:** `INCONSISTENCIAS.datos.md`, `V10__rename_membership_tables_to_plural.sql`, `AppRoleEntity.java`, `MembershipEntity.java`
+**Archivos clave:** `docs/ai/inconsistencias-datos.md`, `V10__rename_membership_tables_to_plural.sql`, `AppRoleEntity.java`, `MembershipEntity.java`
 
 ---
 
 ### [2026-03-22] Documentación de datos desincronizada con migraciones Flyway reales
 **Contexto:** Actualización explícita de `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md` y `AUTH_FLOW.md`. Se leyeron las migraciones SQL reales (V1–V9) y se compararon con los documentos existentes.
-**Problema:** Múltiples discrepancias críticas. Ver detalle completo en [`INCONSISTENCIAS.datos.md`](INCONSISTENCIAS.datos.md).
+**Problema:** Múltiples discrepancias críticas. Ver detalle completo en [`inconsistencias-datos.md`](inconsistencias-datos.md).
 **Solución / Buena práctica:** Al generar documentación de datos, **siempre leer las migraciones SQL reales** antes de escribir el diccionario. No asumir columnas ni tipos — verificar cada campo en `V{n}__*.sql`. **Regla obligatoria:** al crear cualquier migración Flyway nueva, actualizar `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` y `DATA_DICTIONARY.md` antes de cerrar la tarea.
-**Archivos clave:** `docs/keygo-server/DATA_MODEL.md`, `INCONSISTENCIAS.datos.md`, `keygo-supabase/src/main/resources/db/migration/V1–V9`
+**Archivos clave:** `docs/data/DATA_MODEL.md`, `docs/ai/inconsistencias-datos.md`, `keygo-supabase/src/main/resources/db/migration/V1–V9`
 
 ---
 
@@ -174,7 +183,7 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 **Contexto:** Verificación del estado real de Fase 0 del plan de implementación.
 **Problema:** La reorganización de paquetes (0.2) se marcó como Fase 0 completa, pero faltaban: (a) pipeline CI; (b) enforcement lint; (c) convenciones de código documentadas.
 **Solución / Buena práctica:** Al marcar una fase como completa, verificar **cada sub-punto** de la lista. No marcar ✅ solo por el trabajo más visible.
-**Archivos clave:** `.github/workflows/ci.yml`, `pom.xml` (Maven Enforcer), `docs/keygo-server/CODE_STYLE.md`
+**Archivos clave:** `.github/workflows/ci.yml`, `pom.xml` (Maven Enforcer), `docs/development/CODE_STYLE.md`
 
 ---
 
@@ -229,7 +238,7 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 ### [2026-03-17] Script de verificación de actividad del agente AI (extendido a AGENTS.md)
 **Contexto:** Extensión de `scripts/check-ai-docs.sh`.
 **Problema:** Solo verificaba `AI_CONTEXT.md`. `AGENTS.md` podía quedar desactualizado sin detectarse.
-**Solución / Buena práctica:** Función reutilizable `check_section(FILE, SECTION_LABEL)` con arrays globales. Compatibilidad GNU/BSD date. Exit code = peor de los dos docs.
+**Solución / Buena práctica:** Función reutilizable `check_section(FILE, SECTION_LABEL)` con arrays globales. Compatibilidad GNU/BSD date. Exit code = peor de los dos docs. Tras reorganización a `docs/ai/`, el script verifica `docs/ai/lecciones.md` y `docs/ai/agents-registro.md`.
 **Archivos clave:** `scripts/check-ai-docs.sh`
 
 ---
@@ -285,12 +294,8 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 ### [2026-03-22] Documentación de modelo de datos y diccionario — estructura, flujos y relaciones
 **Contexto:** Generación de documentación completa del modelo de datos bajo orden explícita.
 **Problema:** Sin doc centralizada, los devs debían navegar migraciones Flyway + entidades JPA + archivos de dominio por separado.
-**Solución / Buena práctica:** Crear 3 documentos complementarios en `docs/keygo-server/`: `DATA_MODEL.md` (diccionario), `ENTITY_RELATIONSHIPS.md` (flujos), `DATA_DICTIONARY.md` (índice). Usar Mermaid para todos los diagramas. Referencias cruzadas entre los 3.
-**Archivos clave:** `docs/keygo-server/DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`
-
----
-
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent
+**Solución / Buena práctica:** Crear 3 documentos complementarios en `docs/data/`: `DATA_MODEL.md` (diccionario), `ENTITY_RELATIONSHIPS.md` (flujos), `MIGRATIONS.md` (índice). Usar Mermaid para todos los diagramas. Referencias cruzadas entre los 3.
+**Archivos clave:** `docs/data/DATA_MODEL.md`, `docs/data/ENTITY_RELATIONSHIPS.md`, `docs/data/MIGRATIONS.md`
 
 ---
 
@@ -303,10 +308,10 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 - **No convertir** árboles de directorios (`├──`, `└──`): Mermaid no tiene tipo nativo de árbol de directorios y la versión `flowchart TD` es más verbosa y menos legible.
 - Al convertir, actualizar el estado de los módulos en el diagrama para reflejar el estado actual del proyecto (no copiar datos desactualizados del ASCII).
 **Archivos clave:**
-- `docs/keygo-server/ARCHITECTURE.md` (3 diagramas: módulos, flujo request, regla de dependencia)
-- `docs/keygo-api/SERVICE_INFO_ENDPOINT.md` (1 diagrama: capas hexagonales con subgraphs)
-- `docs/keygo-run/BOOTSTRAP_SECURITY_FILTER.md` (2 diagramas: flowchart de autenticación + classDiagram de excepciones)
+- `docs/design/ARCHITECTURE.md` (3 diagramas: módulos, flujo request, regla de dependencia)
+- `docs/api/BOOTSTRAP_FILTER.md` (2 diagramas: flowchart de autenticación + classDiagram de excepciones)
 
 ---
 
 **Última actualización:** 2026-03-22 | **Responsable:** AI Agent
+

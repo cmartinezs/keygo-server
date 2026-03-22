@@ -2,10 +2,10 @@
 
 > Este archivo existe para que **Copilot/Claude/agentes** entiendan rápido el repo sin leer todo el código.
 >
-> 📖 **Sub-documentos de este archivo:**
-> - [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) — Lecciones aprendidas y buenas prácticas
-> - [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) — Propuestas de mejoras futuras
-> - [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) — Inconsistencias detectadas (centralizador)
+> 📖 **Sub-documentos de este archivo (detalle en `docs/ai/`):**
+> - [`docs/ai/lecciones.md`](docs/ai/lecciones.md) — Lecciones aprendidas y buenas prácticas
+> - [`docs/ai/propuestas.md`](docs/ai/propuestas.md) — Propuestas de mejoras futuras
+> - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) — Inconsistencias detectadas (centralizador)
 
 ---
 
@@ -120,12 +120,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 ### Flujo: Planificar → Implementar
 
 1. **Leer** antes de cualquier acción:
-   - Este archivo (`AI_CONTEXT.md`) + sub-documentos
+   - Este archivo (`AI_CONTEXT.md`) + sub-documentos en [`docs/ai/`](docs/ai/)
    - [`ARCHITECTURE.md`](ARCHITECTURE.md) — decisiones de diseño
    - [`AGENTS.md`](AGENTS.md) — quick-start, módulos, patrones
    - [`CLAUDE.md`](CLAUDE.md) / [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
    - [`ROADMAP.md`](ROADMAP.md) — propuestas activas y completadas
-   - [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) — inconsistencias conocidas
+   - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) — inconsistencias conocidas
    - Docs del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
 2. **Presentar plan explícito** (módulos, archivos, flujo, tests) antes de escribir código.
 3. **Implementar** solo después de tener el plan aprobado.
@@ -133,7 +133,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 ### Documentación: solo bajo orden explícita
 
 - En un mismo contexto de chat, **NO** generar ni actualizar archivos `.md` automáticamente.
-- Excepción: documentos de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`, `INCONSISTENCIAS.md`).
+- Excepción: documentos de base de conocimiento AI en `docs/ai/` (`lecciones.md`, `propuestas.md`, `agents-registro.md`, `inconsistencias.md`) y `AGENTS.md`.
 
 #### Diagramas: orden de preferencia
 
@@ -149,16 +149,16 @@ Al terminar **cualquier tarea**, evaluar los eventos de la siguiente tabla y act
 
 | Evento | Documento | Sección |
 |---|---|---|
-| Error de compilación / test fallido / bug resuelto | [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) | Agregar entrada |
-| Mejor patrón o convención nueva | [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) | Agregar entrada |
-| Inconsistencia detectada entre docs y código/DB | [`INCONSISTENCIAS.<cat>.md`](INCONSISTENCIAS.md) | Agregar entrada + registrar en `INCONSISTENCIAS.md` |
-| Propuesta técnica o funcional nueva | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Agregar con ID T-NNN o F-NNN |
-| Propuesta completada | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Marcar ✅ + mover a historial |
-| Cambio en módulos, rutas o patrones quick-start | [`AGENTS.md`](AGENTS.md) + [`AGENTS.registro.md`](AGENTS.registro.md) | Actualizar sección + entrada registro |
+| Error de compilación / test fallido / bug resuelto | [`docs/ai/lecciones.md`](docs/ai/lecciones.md) | Agregar entrada |
+| Mejor patrón o convención nueva | [`docs/ai/lecciones.md`](docs/ai/lecciones.md) | Agregar entrada |
+| Inconsistencia detectada entre docs y código/DB | [`docs/ai/inconsistencias-<cat>.md`](docs/ai/inconsistencias.md) | Agregar entrada + registrar en `docs/ai/inconsistencias.md` |
+| Propuesta técnica o funcional nueva | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Agregar con ID T-NNN o F-NNN |
+| Propuesta completada | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Marcar ✅ + mover a historial |
+| Cambio en módulos, rutas o patrones quick-start | [`AGENTS.md`](AGENTS.md) + [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) | Actualizar sección + entrada registro |
 | Nuevo endpoint REST | `postman/KeyGo-Server.postman_collection.json` | Agregar request con `pm.test()` |
-| Nueva migración Flyway (`V{n}__*.sql`) | `docs/keygo-server/DATA_MODEL.md` | Diccionario de nuevas tablas |
-| Nueva migración Flyway (`V{n}__*.sql`) | `docs/keygo-server/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
-| Nueva migración Flyway (`V{n}__*.sql`) | `docs/keygo-server/DATA_DICTIONARY.md` | Sección "Próximas migraciones" |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Diccionario de nuevas tablas |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Sección "Próximas migraciones" |
 
 > ⚠️ Esta retroalimentación **no está sujeta** a la regla "solo bajo orden explícita".
 
@@ -192,14 +192,14 @@ Al concluir, incluir propuestas en tres horizontes:
 
 | Necesito... | Ir a... |
 |---|---|
-| Lecciones aprendidas / no repetir errores | [`AI_CONTEXT.lecciones.md`](AI_CONTEXT.lecciones.md) |
-| Propuestas activas y su estado | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) |
-| Inconsistencias conocidas | [`INCONSISTENCIAS.md`](INCONSISTENCIAS.md) |
+| Lecciones aprendidas / no repetir errores | [`docs/ai/lecciones.md`](docs/ai/lecciones.md) |
+| Propuestas activas y su estado | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) |
+| Inconsistencias conocidas | [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) |
 | Quick-start: módulos, comandos, endpoints | [`AGENTS.md`](AGENTS.md) |
-| Historial de cambios al quick-start | [`AGENTS.registro.md`](AGENTS.registro.md) |
+| Historial de cambios al quick-start | [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) |
 | Roadmap completo con IDs T-NNN / F-NNN | [`ROADMAP.md`](ROADMAP.md) |
-| Modelo de datos / diccionario DB | `docs/keygo-server/DATA_MODEL.md` |
-| Flujo OAuth2 / autenticación | `docs/keygo-server/AUTH_FLOW.md` |
+| Modelo de datos / diccionario DB | `docs/data/DATA_MODEL.md` |
+| Flujo OAuth2 / autenticación | `docs/api/AUTH_FLOW.md` |
 
 ---
 

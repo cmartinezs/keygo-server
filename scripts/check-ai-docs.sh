@@ -5,8 +5,8 @@
 # Verifica que los documentos de base de conocimiento AI
 # tengan entradas recientes dentro de los últimos DAYS_THRESHOLD días:
 #
-#   • AI_CONTEXT.md  → sección "## Lecciones aprendidas"
-#   • AGENTS.md      → sección "## Registro de cambios"
+#   • docs/ai/lecciones.md   → sección "## Lecciones"
+#   • docs/ai/agents-registro.md → sección "## Registro de cambios"
 #
 # Códigos de salida:
 #   0 → Todos los documentos tienen actividad reciente (OK)
@@ -37,8 +37,8 @@ NC='\033[0m'
 # ----------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-AI_CONTEXT="$REPO_ROOT/AI_CONTEXT.md"
-AGENTS_MD="$REPO_ROOT/AGENTS.md"
+AI_LECCIONES="$REPO_ROOT/docs/ai/lecciones.md"
+AGENTS_REGISTRO="$REPO_ROOT/docs/ai/agents-registro.md"
 DAYS_THRESHOLD=30
 QUIET=false
 
@@ -201,7 +201,7 @@ print_header
 
 # Verificar existencia de archivos requeridos
 missing=false
-for f in "$AI_CONTEXT" "$AGENTS_MD"; do
+for f in "$AI_LECCIONES" "$AGENTS_REGISTRO"; do
   if [[ ! -f "$f" ]]; then
     log "${RED}✗ No se encontró: ${CYAN}$f${NC}"
     missing=true
@@ -225,18 +225,18 @@ log "─────────────────────────
 # ----------------------------------------------------------
 # Verificar cada documento
 # ----------------------------------------------------------
-exit_ai=0
-exit_agents=0
+exit_lecciones=0
+exit_registro=0
 
-report_result "$AI_CONTEXT" "①" "Lecciones aprendidas" || exit_ai=$?
-report_result "$AGENTS_MD"  "②" "Registro de cambios"  || exit_agents=$?
+report_result "$AI_LECCIONES"    "①" "Lecciones" || exit_lecciones=$?
+report_result "$AGENTS_REGISTRO" "②" "Registro de cambios"  || exit_registro=$?
 
 # ----------------------------------------------------------
 # Resumen final
 # ----------------------------------------------------------
 log "──────────────────────────────────────────────"
 
-worst=$(( exit_ai > exit_agents ? exit_ai : exit_agents ))
+worst=$(( exit_lecciones > exit_registro ? exit_lecciones : exit_registro ))
 
 case $worst in
   0)
@@ -246,8 +246,8 @@ case $worst in
   1)
     log "${RED}${BOLD}✗  ALERTA — Sin actividad reciente (últimos ${DAYS_THRESHOLD} días).${NC}"
     log "   Actualiza los documentos marcados con ${RED}✗${NC} al concluir cada tarea relevante:"
-    log "     • ${CYAN}AI_CONTEXT.md${NC}  → sección ${CYAN}## Lecciones aprendidas${NC}"
-    log "     • ${CYAN}AGENTS.md${NC}      → sección ${CYAN}## Registro de cambios${NC}"
+    log "     • ${CYAN}docs/ai/lecciones.md${NC}      → sección ${CYAN}## Lecciones${NC}"
+    log "     • ${CYAN}docs/ai/agents-registro.md${NC} → sección ${CYAN}## Registro de cambios${NC}"
     ;;
   2)
     log "${YELLOW}${BOLD}⚠  SIN ACTIVIDAD — Algún documento no tiene entradas registradas.${NC}"

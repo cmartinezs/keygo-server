@@ -38,6 +38,7 @@
 | T-027 | Agregar endpoint `POST /api/v1/tenants/{slug}/oauth2/token` con grant type `refresh_token` — Fase 7 del plan de implementación | `keygo-api`, `keygo-app`, `keygo-supabase` | El flujo Authorization Code emite tokens pero no tiene mecanismo de renovación |
 | T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) — eliminar `private_material` de la DB en producción | `keygo-infra`, `keygo-supabase` | La clave privada en DB es práctica aceptable solo en dev/staging; producción requiere HSM o KMS |
 | T-029 | Agregar columna `status VARCHAR(20)` a la tabla `app_roles` con valores `ACTIVE\|DISABLED` y migración `V11__add_app_role_status.sql`; actualizar `AppRoleEntity` y use cases para filtrar roles deshabilitados | `keygo-supabase`, `keygo-app`, `keygo-api` | La documentación original preveía este campo; permite deshabilitar un rol sin eliminarlo, útil para gestión de permisos granular en apps |
+| T-030 | Agregar verificación de referencias Markdown rotas tras la reorganización de `docs/ai/` — script o step en CI que detecte links rotos en los docs de la carpeta `docs/ai/` y en los archivos raíz que apuntan a ella | `docs/ai/`, CI | La reorganización eliminó 5 archivos de la raíz; links rotos a rutas antiguas no se detectarían sin un check explícito |
 
 ---
 
@@ -55,6 +56,7 @@
 | T-013 | Implementar tests de integración con Testcontainers PostgreSQL para `keygo-supabase` | `keygo-supabase` | Actualmente sólo hay tests unitarios — la persistencia no se valida con DB real |
 | T-014 | Configurar perfiles de entorno separados: `dev`, `test`, `prod`; centralizar configuraciones sensibles en `keygo-run` | `keygo-run` | Actualmente sólo `supabase` y `local`; sin separación clara de entornos |
 | T-015 | Agregar comprobación de dependencias con `OWASP Dependency-Check` o similar en el pipeline CI | CI | Detectar CVEs en dependencias antes de merge |
+| T-031 | Automatizar verificación de links Markdown rotos en CI usando `markdown-link-check` o `lychee`; configurar como step en `.github/workflows/ci.yml` que falle si hay referencias a archivos que ya no existen | CI / `docs/` | Complemento de T-030 — aplica a todo el repositorio, no solo a `docs/ai/`; previene regresiones de documentación en cualquier PR |
 
 ---
 
@@ -70,6 +72,7 @@
 | T-020 | Implementar observabilidad avanzada: tracing distribuido con OpenTelemetry, métricas en Prometheus, dashboards en Grafana | Infra | Necesario para operación en producción real del SaaS |
 | T-021 | Diseñar estrategia de multi-region / alta disponibilidad para el servicio de autenticación | Infra | Crítico para SLAs de producción en IAM |
 | T-022 | Implementar caching distribuido (Redis) para tokens, JWKS y sesiones activas | `keygo-infra` | Reducir latencia y carga a DB en validación de tokens |
+| T-032 | Evaluar generador de site estático (MkDocs con Material theme / Docusaurus) para consolidar `docs/` + archivos raíz en un portal navegable unificado con búsqueda full-text y versionado | `docs/` | El repositorio ya tiene ~30 archivos Markdown en múltiples carpetas; un site estático facilita onboarding y búsqueda entre categorías |
 
 ---
 

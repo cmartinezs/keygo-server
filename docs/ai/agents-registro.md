@@ -1,6 +1,6 @@
 # AGENTS — Registro de Cambios
 
-> Sub-documento de [`AGENTS.md`](AGENTS.md).
+> Sub-documento de [`AGENTS.md`](../../AGENTS.md).
 >
 > Historial cronológico de actualizaciones al quick-start: módulos, comandos, patrones y URLs.
 > Cada entrada corresponde a un cambio que afecta la estructura del repo, los patrones de implementación
@@ -20,9 +20,35 @@
 
 ---
 
+## Registro de cambios
+
+### [2026-03-22] Reorganización de documentos AI a docs/ai/
+
+Se movieron los sub-documentos de contexto AI desde la raíz a `docs/ai/` para mantener la raíz limpia.
+
+**Archivos movidos:**
+- `AI_CONTEXT.lecciones.md` → `docs/ai/lecciones.md`
+- `AI_CONTEXT.propuestas.md` → `docs/ai/propuestas.md`
+- `INCONSISTENCIAS.md` → `docs/ai/inconsistencias.md`
+- `INCONSISTENCIAS.datos.md` → `docs/ai/inconsistencias-datos.md`
+- `AGENTS.registro.md` → `docs/ai/agents-registro.md`
+
+**Archivos raíz actualizados** (ahora contienen info general + enlaces a `docs/ai/`):
+- `AI_CONTEXT.md` — links actualizados a `docs/ai/`
+- `AGENTS.md` — links actualizados a `docs/ai/`
+- `CLAUDE.md` — tabla de referencias actualizada
+- `.github/copilot-instructions.md` — tabla de referencias actualizada
+
+**Otros cambios:**
+- `docs/README.md` — nueva categoría `🤖 ai/` agregada
+- `scripts/check-ai-docs.sh` — apunta a `docs/ai/lecciones.md` y `docs/ai/agents-registro.md`
+- `docs/ai/README.md` — nuevo índice de la categoría AI
+
+---
+
 ### [2026-03-22] Re-auditoría de inconsistencias — corrección de tablas en singular via migración V10
 
-Re-revisión de las 12 inconsistencias marcadas como "resueltas" en `INCONSISTENCIAS.datos.md`. Criterio aplicado: **la documentación manda** para convenciones de nomenclatura; la implementación manda cuando hay razón técnica clara.
+Re-revisión de las 12 inconsistencias marcadas como "resueltas" en `docs/ai/inconsistencias-datos.md`. Criterio aplicado: **la documentación manda** para convenciones de nomenclatura; la implementación manda cuando hay razón técnica clara.
 
 **Hallazgo:** Las tablas `app_role`, `membership`, `membership_role` (V7) estaban en singular, violando la convención PostgreSQL de nombres en plural. La corrección anterior solo actualizó los docs para aceptar el singular; ahora se corrige la DB.
 
@@ -33,11 +59,10 @@ Re-revisión de las 12 inconsistencias marcadas como "resueltas" en `INCONSISTEN
   - `ALTER TABLE membership_role RENAME TO membership_roles` + PK, FKs e índices renombrados
 - **`AppRoleEntity.java`**: `@Table(name = "app_roles")` + nombres de índices/constraints actualizados
 - **`MembershipEntity.java`**: `@Table(name = "memberships")` + `@JoinTable(name = "membership_roles")` + nombres actualizados
-- **`DATA_MODEL.md`**: encabezados, diagrama Mermaid ER, grafo de cascade, queries de ejemplo, tabla de enumeraciones, tabla de constraints únicos, tabla de próximas migraciones (V10 aplicada, próxima V11) → sincronizado V1–V10
-- **`ENTITY_RELATIONSHIPS.md`**: notas de contexto 3, diagrama de roles, state machine → sincronizado V1–V10
-- **`DATA_DICTIONARY.md`**: caso de uso, convenciones de nomenclatura (se eliminó la excepción de singular), Siguientes pasos → sincronizado V1–V10
-- **`INCONSISTENCIAS.datos.md`**: inconsistencias #1, #2, #3 actualizadas con criterio de decisión; criterio de corrección documentado
-- **`AGENTS.md`**: tabla de entidades JPA (`app_roles`, `memberships`, `membership_roles`) y lista de migraciones aplicadas
+- **`DATA_MODEL.md`**: sincronizado V1–V10
+- **`ENTITY_RELATIONSHIPS.md`**: sincronizado V1–V10
+- **`DATA_DICTIONARY.md`**: sincronizado V1–V10
+- **`docs/ai/inconsistencias-datos.md`**: inconsistencias #1, #2, #3 actualizadas con criterio de decisión
 
 **Tablas que NO se corrigieron en DB** (la implementación es correcta):
 - `membership` sin `tenant_id` (redundante por normalización)
@@ -52,14 +77,14 @@ Se actualizaron los tres documentos de referencia de datos para sincronizarlos c
 - **`ENTITY_RELATIONSHIPS.md`** — class diagrams corregidos, state machine de membership con `PENDING` (no `INVITED`), sin estado `REVOKED`, `role_id` (no `app_role_id`), índices SQL sincronizados con V4–V9.
 - **`DATA_DICTIONARY.md`** — `membership` singular, excepciones de convención de status, checklist ampliado, Fases 5/6 completadas.
 - **`AUTH_FLOW.md`** — estado "Fases 5 y 6 implementadas ✅"; respuesta Paso 3 con JWT real; status lowercase en diagramas; Fase 7 planificada.
-- **Regla nueva:** al crear una migración Flyway, actualizar los 3 docs de datos antes de cerrar la tarea (agregada en `AI_CONTEXT.md`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
-- **Sub-documentos creados:** `AI_CONTEXT.lecciones.md`, `AI_CONTEXT.propuestas.md`, `AGENTS.registro.md`, `INCONSISTENCIAS.md`, `INCONSISTENCIAS.datos.md`.
+- **Regla nueva:** al crear una migración Flyway, actualizar los 3 docs de datos antes de cerrar la tarea.
+- **Sub-documentos creados:** `docs/ai/lecciones.md`, `docs/ai/propuestas.md`, `docs/ai/agents-registro.md`, `docs/ai/inconsistencias.md`, `docs/ai/inconsistencias-datos.md`.
 
 ### [2026-03-22] Refactorización de documentos AI en sub-documentos temáticos
 Se dividieron los documentos AI principales que estaban creciendo demasiado:
-- `AI_CONTEXT.md` → conserva núcleo de referencia rápida; extrae lecciones a `AI_CONTEXT.lecciones.md` y propuestas a `AI_CONTEXT.propuestas.md`.
-- `AGENTS.md` → conserva quick-start; extrae registro de cambios a `AGENTS.registro.md`.
-- Nuevo proceso de inconsistencias: `INCONSISTENCIAS.md` (centralizador) + `INCONSISTENCIAS.datos.md` (primera instancia documentada).
+- `AI_CONTEXT.md` → conserva núcleo de referencia rápida; extrae lecciones a `docs/ai/lecciones.md` y propuestas a `docs/ai/propuestas.md`.
+- `AGENTS.md` → conserva quick-start; extrae registro de cambios a `docs/ai/agents-registro.md`.
+- Nuevo proceso de inconsistencias: `docs/ai/inconsistencias.md` (centralizador) + `docs/ai/inconsistencias-datos.md` (primera instancia documentada).
 
 ### [2026-03-22] Fase 6 — Firma de tokens y metadata OIDC completada
 - **`keygo-domain`**: `SigningKey`, `SigningKeyId` (record), `SigningKeyStatus`, `SigningKeyAlgorithm`; excepción `NoActiveSigningKeyException`.
@@ -84,10 +109,10 @@ Se dividieron los documentos AI principales que estaban creciendo demasiado:
 - ResponseCode: 4 nuevos (`AUTHORIZATION_INITIATED`, `AUTHORIZATION_CODE_ISSUED`, `AUTHORIZATION_CODE_EXCHANGED`, `LOGIN_SUCCESSFUL`).
 
 ### [2026-03-22] Documentación AUTH_FLOW.md generada bajo orden explícita
-Documento `docs/keygo-server/AUTH_FLOW.md` (~350 líneas): guía completa OAuth 2.0 Authorization Code + PKCE desde perspectiva del cliente. Incluye diagramas Mermaid (prereqs, secuencia, flowcharts de validación por paso).
+Documento `docs/api/AUTH_FLOW.md` (~350 líneas): guía completa OAuth 2.0 Authorization Code + PKCE desde perspectiva del cliente. Incluye diagramas Mermaid (prereqs, secuencia, flowcharts de validación por paso).
 
 ### [2026-03-22] Documentación de modelo de datos — 3 nuevos documentos + índice
-Bajo orden explícita: `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `README.md` (actualizado). 100% Mermaid.
+Bajo orden explícita: `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `MIGRATIONS.md` en `docs/data/`. 100% Mermaid.
 
 ### [2026-03-21] Fase 4 — Memberships y roles por app completada
 - **`keygo-domain`**: `Membership`, `AppRole`, `MembershipRole`, `RoleCode`; excepciones de membership.
@@ -124,7 +149,7 @@ Bajo orden explícita: `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTION
 ### [2026-03-21] Fase 0 — Hardening estructural completado
 - CI Pipeline: `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package`.
 - Maven Enforcer Plugin: Java 21+, Maven 3.9+, UTF-8, sin dependencias duplicadas.
-- Convenciones documentadas: `docs/keygo-server/CODE_STYLE.md`.
+- Convenciones documentadas: `docs/development/CODE_STYLE.md`.
 - Reorganización de paquetes por feature en todos los módulos activos.
 - Bug T-001 corregido: `BootstrapAdminKeyFilter` usa `getServletPath()`.
 - SpringDoc 3.0.1 integrado, Swagger UI en `/keygo-server/swagger-ui/index.html`.

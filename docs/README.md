@@ -1,6 +1,6 @@
 # Documentación — KeyGo Server
 
-> **Última actualización:** 2026-03-22 — Reestructuración completa: 7 carpetas legacy → 5 categorías temáticas.
+> **Última actualización:** 2026-03-22 — Reestructuración completa: 7 carpetas legacy → 5 categorías temáticas + categoría `ai/` para base de conocimiento del agente.
 
 ---
 
@@ -8,13 +8,30 @@
 
 ```
 docs/
-├── design/          Arquitectura, modelo de dominio, diseño de API y backlog
-├── api/             Guías de uso de la API REST: auth, bootstrap, OpenAPI, códigos de respuesta
-├── data/            Modelo de datos, relaciones entre entidades y migraciones Flyway
-├── development/     Herramientas de desarrollo: IntelliJ, entornos, tests, estilo de código
-├── operations/      Despliegue, Docker, firma de tokens y JWKS
-└── research/        Investigaciones y reportes técnicos de referencia
+├── ai/          Base de conocimiento para agentes AI (lecciones, propuestas, inconsistencias, registro)
+├── design/      Arquitectura, modelo de dominio, diseño de API y backlog
+├── api/         Guías de uso de la API REST: auth, bootstrap, OpenAPI, códigos de respuesta
+├── data/        Modelo de datos, relaciones entre entidades y migraciones Flyway
+├── development/ Herramientas de desarrollo: IntelliJ, entornos, tests, estilo de código
+├── operations/  Despliegue, Docker, firma de tokens y JWKS
+└── research/    Investigaciones y reportes técnicos de referencia
 ```
+
+---
+
+## 🤖 ai/ — Base de conocimiento AI
+
+> Documentación mantenida por el agente de forma continua. No requiere orden explícita del usuario.
+
+| Documento | Descripción | Audiencia |
+|---|---|---|
+| [lecciones.md](ai/lecciones.md) | Errores resueltos, buenas prácticas y convenciones adoptadas durante el trabajo del agente | AI Agents |
+| [propuestas.md](ai/propuestas.md) | Propuestas técnicas (T-NNN) y funcionales (F-NNN) — resumen de estado rápido | AI Agents |
+| [inconsistencias.md](ai/inconsistencias.md) | Centralizador de inconsistencias detectadas entre docs y código/DB | AI Agents |
+| [inconsistencias-datos.md](ai/inconsistencias-datos.md) | Detalle de inconsistencias en el modelo de datos / schema DB | AI Agents, DBA |
+| [agents-registro.md](ai/agents-registro.md) | Historial detallado de cambios en módulos, comandos, patrones y URLs del quick-start | AI Agents |
+
+> Ver también `AI_CONTEXT.md` y `AGENTS.md` en la raíz del repo para los resúmenes de referencia rápida con enlaces a esta carpeta.
 
 ---
 
@@ -94,4 +111,5 @@ docs/
 
 ### Soy un agente AI
 - Ver [`AGENTS.md`](../AGENTS.md) — quick-start con módulos, patrones y flujos
-- Ver [`AI_CONTEXT.md`](../AI_CONTEXT.md) — estado del proyecto, convenciones, lecciones
+- Ver [`AI_CONTEXT.md`](../AI_CONTEXT.md) — estado del proyecto, convenciones
+- Ver [`docs/ai/`](ai/) — lecciones, propuestas, inconsistencias y registro de cambios

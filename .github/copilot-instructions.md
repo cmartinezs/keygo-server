@@ -52,12 +52,12 @@ Antes de cualquier acción, el agente debe consultar:
 | Documento | Ruta | Para qué sirve |
 |---|---|---|
 | Contexto general AI | `AI_CONTEXT.md` | Estado del proyecto, bugs conocidos, convenciones |
-| Lecciones aprendidas | `AI_CONTEXT.lecciones.md` | Errores resueltos y buenas prácticas — **leer para no repetir errores** |
-| Propuestas de mejoras | `AI_CONTEXT.propuestas.md` | Estado de propuestas T-NNN/F-NNN activas y completadas |
-| Inconsistencias conocidas | `INCONSISTENCIAS.md` | Centralizador de inconsistencias detectadas |
+| Lecciones aprendidas | `docs/ai/lecciones.md` | Errores resueltos y buenas prácticas — **leer para no repetir errores** |
+| Propuestas de mejoras | `docs/ai/propuestas.md` | Estado de propuestas T-NNN/F-NNN activas y completadas |
+| Inconsistencias conocidas | `docs/ai/inconsistencias.md` | Centralizador de inconsistencias detectadas |
 | Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño y estructura de módulos |
 | Guía de agentes | `AGENTS.md` | Quick-start: módulos, comandos, patrones y flujos concretos |
-| Historial de cambios | `AGENTS.registro.md` | Registro detallado de cambios al quick-start |
+| Historial de cambios | `docs/ai/agents-registro.md` | Registro detallado de cambios al quick-start |
 | Reglas de agentes | `CLAUDE.md` | Reglas de oro y flujo de trabajo |
 | Instrucciones Copilot | `.github/copilot-instructions.md` | Este mismo archivo |
 | Roadmap de mejoras | `ROADMAP.md` | Propuestas técnicas (T-NNN) y funcionales (F-NNN) activas y completadas |
@@ -70,22 +70,22 @@ Al concluir **cualquier tarea** (feature, corrección, refactor, configuración,
 
 | Evento | Documento a actualizar | Sección destino |
 |---|---|---|
-| Error de compilación encontrado y resuelto | `AI_CONTEXT.lecciones.md` | `## Lecciones` |
-| Test fallido detectado y corregido | `AI_CONTEXT.lecciones.md` | `## Lecciones` |
-| Comportamiento inesperado descubierto (bug, quirk del framework) | `AI_CONTEXT.lecciones.md` | `## Lecciones` |
-| Mejor forma de implementar un patrón ya existente | `AI_CONTEXT.lecciones.md` | `## Lecciones` |
-| Cambio de versión de dependencia o tecnología relevante | `AI_CONTEXT.lecciones.md` | `## Lecciones` |
-| Nueva convención establecida o patrón acordado | `AI_CONTEXT.lecciones.md` | `## Lecciones` |
-| Inconsistencia detectada entre docs y código/DB | `INCONSISTENCIAS.<cat>.md` + `INCONSISTENCIAS.md` | Agregar detalle + actualizar índice |
-| Propuesta recurrente o de alto valor para el proyecto | `AI_CONTEXT.propuestas.md` + `ROADMAP.md` | `## Propuestas de mejoras futuras` + tabla técnica o funcional |
+| Error de compilación encontrado y resuelto | `docs/ai/lecciones.md` | `## Lecciones` |
+| Test fallido detectado y corregido | `docs/ai/lecciones.md` | `## Lecciones` |
+| Comportamiento inesperado descubierto (bug, quirk del framework) | `docs/ai/lecciones.md` | `## Lecciones` |
+| Mejor forma de implementar un patrón ya existente | `docs/ai/lecciones.md` | `## Lecciones` |
+| Cambio de versión de dependencia o tecnología relevante | `docs/ai/lecciones.md` | `## Lecciones` |
+| Nueva convención establecida o patrón acordado | `docs/ai/lecciones.md` | `## Lecciones` |
+| Inconsistencia detectada entre docs y código/DB | `docs/ai/inconsistencias-<cat>.md` + `docs/ai/inconsistencias.md` | Agregar detalle + actualizar índice |
+| Propuesta recurrente o de alto valor para el proyecto | `docs/ai/propuestas.md` + `ROADMAP.md` | `## Propuestas de mejoras futuras` + tabla técnica o funcional |
 | Propuesta técnica concreta generada al concluir tarea | `ROADMAP.md` | Tabla **Propuestas técnicas** (horizonte correspondiente) con ID `T-NNN` |
 | Propuesta funcional nueva o aclaración de épica | `ROADMAP.md` | Tabla **Propuestas funcionales** con ID `F-NNN` |
-| Propuesta completada / implementada | `AI_CONTEXT.propuestas.md` + `ROADMAP.md` | Marcar ✅ + tabla **Historial de propuestas completadas** |
-| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` + `AGENTS.registro.md` | Sección correspondiente + entrada en registro |
+| Propuesta completada / implementada | `docs/ai/propuestas.md` + `ROADMAP.md` | Marcar ✅ + tabla **Historial de propuestas completadas** |
+| Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` + `docs/ai/agents-registro.md` | Sección correspondiente + entrada en registro |
 | Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_DICTIONARY.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla del punto 2 (solo bajo orden explícita), ya que
 > los documentos de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de
@@ -151,7 +151,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
   - Tests unitarios (JUnit 5 + AssertJ + Mockito).
   - Comandos de verificación (`./mvnw test`, `./mvnw clean package`).
 - **No** actualizar documentación de forma automática; esperar orden explícita del usuario.
-- Si falla un intento de implementación, registrar el aprendizaje en `AI_CONTEXT.md` (sección `## Lecciones aprendidas`) antes de continuar.
+- Si falla un intento de implementación, registrar el aprendizaje en `docs/ai/lecciones.md` (sección `## Lecciones`) antes de continuar.
 
 ## Comandos de referencia
 

@@ -22,7 +22,7 @@ Una inconsistencia es cualquier diferencia detectada entre:
 
 ```mermaid
 flowchart LR
-    A["🔍 Detección\n(revisión, auditoría,\nerror en runtime)"] --> B["📝 Documentar\nen INCONSISTENCIAS.<cat>.md"]
+    A["🔍 Detección\n(revisión, auditoría,\nerror en runtime)"] --> B["📝 Documentar\nen inconsistencias-&lt;cat&gt;.md"]
     B --> C["🔗 Registrar aquí\nen tabla de estado"]
     C --> D{¿Corregida?}
     D -->|SÍ| E["✅ Marcar como corregida\n+ fecha"]
@@ -36,7 +36,7 @@ flowchart LR
 
 | Documento | Categoría | Inconsistencias | Estado |
 |---|---|---|---|
-| [`INCONSISTENCIAS.datos.md`](INCONSISTENCIAS.datos.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
+| [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
 
 ---
 
@@ -54,7 +54,7 @@ flowchart LR
 1. **Al encontrar una inconsistencia durante cualquier tarea** → documentarla en el sub-documento
    correspondiente a su categoría y registrar en la tabla de estado de este archivo.
 
-2. **Nombrar sub-documentos** como `INCONSISTENCIAS.<categoria>.md` donde `<categoria>` refleja el área:
+2. **Nombrar sub-documentos** como `inconsistencias-<categoria>.md` donde `<categoria>` refleja el área:
    - `datos` — modelo de datos, schema DB, migraciones Flyway
    - `api` — contratos REST, DTOs, endpoints documentados vs. implementados
    - `tests` — tests que no reflejan el comportamiento real
@@ -65,7 +65,7 @@ flowchart LR
    resolverse antes de cerrar la tarea que las detectó.
 
 4. **Inconsistencias no críticas** (documentación, naming) pueden quedar pendientes y
-   priorizarse en `ROADMAP.md` si el esfuerzo de corrección es alto.
+   priorizarse en [`ROADMAP.md`](../../ROADMAP.md) si el esfuerzo de corrección es alto.
 
 ---
 
