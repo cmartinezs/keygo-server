@@ -351,6 +351,13 @@ orden de ejecución en 5 fases (Smoke → Plataforma → Tenants → Client Apps
 referencia rápida de los 14 endpoints, descripción de variables de entorno automáticas y
 guía de solución de problemas frecuentes.
 
+### [2026-03-21] Slug de tenant generado automáticamente desde el nombre
+El campo `slug` dejó de ser un campo del request body de `POST /api/v1/tenants`.
+Ahora se genera en el servidor a partir del `name` usando `SlugUtils.toSlug()` (nuevo util en `keygo-domain/shared/util/`).
+`TenantSlug.fromName(String name)` es el punto de entrada desde el dominio.
+`CreateTenantRequest` y `CreateTenantCommand` ya solo contienen `name` + `ownerEmail`.
+Postman: pre-request script actualizado (ya no inyecta `slug` en el body; agrega timestamp al `name`).
+
 ### [2026-03-21] Bug T-001 corregido — BootstrapAdminKeyFilter usa getServletPath()
 El filtro `BootstrapAdminKeyFilter` fue corregido: `request.getRequestURI()` → `request.getServletPath()`.
 Con `context-path=/keygo-server`, `getRequestURI()` retornaba `/keygo-server/api/...` que nunca coincidía

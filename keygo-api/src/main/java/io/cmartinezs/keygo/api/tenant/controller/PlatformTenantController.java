@@ -58,8 +58,8 @@ public class PlatformTenantController {
   @PostMapping
   @Operation(
       summary = "Create a new tenant",
-      description = "Creates a new tenant with the given name, slug, and owner email. "
-                    + "The slug must be unique and lowercase alphanumeric with optional hyphens.")
+      description = "Creates a new tenant with the given name and owner email. "
+                    + "A URL-friendly slug is automatically generated from the name.")
   @ApiResponse(responseCode = "201", description = "Tenant created successfully",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "400", description = "Invalid request body",
@@ -70,7 +70,7 @@ public class PlatformTenantController {
       @Valid @RequestBody CreateTenantRequest request) {
 
     Tenant tenant = createTenantUseCase.execute(
-        new CreateTenantCommand(request.name(), request.slug(), request.ownerEmail()));
+        new CreateTenantCommand(request.name(), request.ownerEmail()));
 
     BaseResponse<TenantData> response = BaseResponse.<TenantData>builder()
         .data(toData(tenant))

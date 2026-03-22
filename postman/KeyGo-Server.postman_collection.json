@@ -335,7 +335,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"slug\": \"acme-corp\",\n  \"ownerEmail\": \"{{tenantOwnerEmail}}\"\n}",
+              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"ownerEmail\": \"{{tenantOwnerEmail}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -347,7 +347,7 @@
               "host": ["{{fullBaseUrl}}"],
               "path": ["api", "v1", "tenants"]
             },
-            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n- `slug`: requerido, 3-100 chars, solo minúsculas y guiones (regex: `^[a-z0-9][a-z0-9\\-]*[a-z0-9]$`).\n- `ownerEmail`: requerido, formato email válido.\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
+            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n- `ownerEmail`: requerido, formato email válido.\n\nEl `slug` se genera automáticamente en el servidor a partir del `name` (minúsculas, guiones, sin caracteres especiales).\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
           },
           "event": [
             {
@@ -355,15 +355,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// Generar un slug único con timestamp para evitar duplicados entre ejecuciones",
+                  "// El slug ya no se envía en el body — el servidor lo genera automáticamente a partir del name.",
+                  "// Se agrega un timestamp al tenantName para evitar colisiones de slug en ejecuciones repetidas.",
                   "const ts = Date.now();",
-                  "const slug = `acme-corp-${ts}`;",
-                  "pm.collectionVariables.set('_dynamicSlug', slug);",
-                  "",
-                  "// Actualizar el body dinámicamente",
-                  "const body = JSON.parse(pm.request.body.raw);",
-                  "body.slug = slug;",
-                  "pm.request.body.raw = JSON.stringify(body, null, 2);"
+                  "const baseName = pm.environment.get('tenantName') || 'Acme Corp';",
+                  "pm.collectionVariables.set('_dynamicTenantName', `${baseName} ${ts}`);"
                 ]
               }
             },
@@ -720,8 +716,8 @@
           ]
         },
         {
-          "name": "POST Create Tenant — Slug inválido (400)",
-          "id": "req-create-tenant-invalid-slug",
+          "name": "POST Create Tenant — Nombre duplicado (400)",
+          "id": "req-create-tenant-duplicate-name",
           "request": {
             "method": "POST",
             "header": [
@@ -732,7 +728,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Tenant\",\n  \"slug\": \"-slug-invalido-\",\n  \"ownerEmail\": \"test@example.com\"\n}",
+              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"ownerEmail\": \"test@example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -744,7 +740,7 @@
               "host": ["{{fullBaseUrl}}"],
               "path": ["api", "v1", "tenants"]
             },
-            "description": "Intenta crear un tenant con un slug que viola el patrón `^[a-z0-9][a-z0-9\\-]*[a-z0-9]$` (empieza y termina con guión).\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+            "description": "Intenta crear un tenant cuyo nombre genera un slug ya existente.\nEjecutar después de 'POST Create Tenant' exitoso para reproducir el conflicto.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
           "event": [
             {
@@ -752,7 +748,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400 Bad Request por slug inválido', function () {",
+                  "pm.test('Status 400 Bad Request por slug duplicado', function () {",
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
@@ -780,7 +776,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Tenant\",\n  \"slug\": \"test-tenant-ok\",\n  \"ownerEmail\": \"no-es-un-email\"\n}",
+              "raw": "{\n  \"name\": \"Test Tenant\",\n  \"ownerEmail\": \"no-es-un-email\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

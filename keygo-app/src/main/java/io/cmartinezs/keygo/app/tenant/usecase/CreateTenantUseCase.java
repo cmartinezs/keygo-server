@@ -27,13 +27,13 @@ public class CreateTenantUseCase {
    * Execute the use case.
    * @param command the creation command
    * @return the created and persisted Tenant
-   * @throws IllegalArgumentException if the slug is already in use
+   * @throws IllegalArgumentException if the slug derived from the name is already in use
    */
   public Tenant execute(CreateTenantCommand command) {
-    TenantSlug slug = TenantSlug.of(command.slug());
+    TenantSlug slug = TenantSlug.fromName(command.name());
 
     if (tenantRepositoryPort.existsBySlug(slug)) {
-      throw new IllegalArgumentException("A tenant with slug '" + command.slug() + "' already exists");
+      throw new IllegalArgumentException("A tenant with slug '" + slug.value() + "' already exists");
     }
 
     Tenant tenant = Tenant.builder()

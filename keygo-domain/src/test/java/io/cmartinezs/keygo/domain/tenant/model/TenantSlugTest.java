@@ -57,5 +57,35 @@ class TenantSlugTest {
   void shouldReturnValueOnToString() {
     assertThat(TenantSlug.of("my-tenant")).hasToString("my-tenant");
   }
+
+  // ── fromName factory ──────────────────────────────────────────────────────
+
+  @ParameterizedTest(name = "''{0}'' → ''{1}''")
+  @org.junit.jupiter.params.provider.CsvSource({
+      "My Tenant,    my-tenant",
+      "Acme Corp!,   acme-corp",
+      "Hello World,  hello-world",
+      "café,         cafe",
+  })
+  @DisplayName("fromName should generate a valid slug from a name")
+  void fromNameShouldGenerateValidSlug(String name, String expectedSlug) {
+    TenantSlug slug = TenantSlug.fromName(name.trim());
+    assertThat(slug.value()).isEqualTo(expectedSlug.trim());
+  }
+
+  @Test
+  @DisplayName("fromName should throw when name is null")
+  void fromNameShouldThrowOnNull() {
+    assertThatThrownBy(() -> TenantSlug.fromName(null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("fromName should throw when name produces an invalid slug (too short)")
+  void fromNameShouldThrowWhenSlugTooShort() {
+    // Single char name → slug "a" which is 1 char, below the 3-char minimum
+    assertThatThrownBy(() -> TenantSlug.fromName("a"))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 }
 

@@ -48,8 +48,7 @@ class PlatformTenantControllerTest {
   void shouldCreateTenantAndReturn201() {
     // Given
     CreateTenantRequest request =
-        new CreateTenantRequest(
-            "Test Tenant", "test-tenant", "owner@test.com");
+        new CreateTenantRequest("Test Tenant", "owner@test.com");
     Tenant created = buildTenant("test-tenant", TenantStatus.ACTIVE);
     when(createTenantUseCase.execute(any(CreateTenantCommand.class))).thenReturn(created);
 

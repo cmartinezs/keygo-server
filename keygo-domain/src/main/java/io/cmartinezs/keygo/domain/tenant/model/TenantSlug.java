@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.tenant.model;
 
+import io.cmartinezs.keygo.domain.shared.util.SlugUtils;
 import java.util.regex.Pattern;
 
 /**
@@ -46,6 +47,19 @@ public record TenantSlug(String value) {
    */
   public static TenantSlug of(String value) {
     return new TenantSlug(value);
+  }
+
+  /**
+   * Generate a TenantSlug from a human-readable name.
+   * Uses {@link SlugUtils#toSlug(String)} to produce a URL-friendly value, then validates it.
+   * <p>Genera un TenantSlug a partir de un nombre legible por humanos.
+   * Usa {@link SlugUtils#toSlug(String)} para producir un valor amigable para URLs y lo valida.
+   * @param name the tenant name (e.g. "My Organization")
+   * @return a validated TenantSlug derived from the name
+   * @throws IllegalArgumentException if the name is null, blank, or produces an invalid slug
+   */
+  public static TenantSlug fromName(String name) {
+    return new TenantSlug(SlugUtils.toSlug(name));
   }
 
   @Override
