@@ -5,9 +5,9 @@
 ## Module map & dependency rules
 
 ```
-keygo-domain   ← pure Java, NO Spring, NO internal deps  [Tenant ✅, ClientApp ✅]
+keygo-domain   ← pure Java, NO Spring, NO internal deps  [Tenant ✅, ClientApp ✅, Auth ✅, SigningKey ✅]
 keygo-app      ← usecases + port interfaces (OUT); depends on domain
-keygo-infra    ← generic port impls; depends on app         [🚧 stub]
+keygo-infra    ← JWT signer (RSA/Nimbus), JWKS builder; depends on app  [✅ Activo]
 keygo-api      ← REST controllers + DTOs; depends on app
 keygo-supabase ← JPA/Flyway/PostgreSQL; depends on infra
 keygo-run      ← main class + Spring wiring (@Bean factories) + application.yml
@@ -103,6 +103,11 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 6. **Postman** — add or update the request in `postman/KeyGo-Server.postman_collection.json` **before closing the task**.  
    Include: HTTP method, URL with env variables (`{{fullBaseUrl}}/api/v1/...`), required headers, example body (if applicable), and `pm.test()` scripts validating status code, `BaseResponse` structure and business fields.  
    This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
+7. **Data docs (if Flyway migration added)** — when a new `V{n}__*.sql` migration is created, update **all three** data documents **before closing the task**:
+   - `docs/keygo-server/DATA_MODEL.md` — add table dictionary (fields, types, constraints, business rules)
+   - `docs/keygo-server/ENTITY_RELATIONSHIPS.md` — update affected context diagrams and relationships
+   - `docs/keygo-server/DATA_DICTIONARY.md` — update "Próximas migraciones" section and cross-references
+   This update **does not require explicit user instruction** — it is mandatory whenever a new migration is added.
 
 ## context-path is always active
 
@@ -123,6 +128,11 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}` (PUT — update user)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}/reset-password` (POST — reset password)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/validate-credentials` (POST — validate credentials)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/authorize` (GET — initiate auth)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/.well-known/openid-configuration` (GET — OIDC discovery, **público**)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/.well-known/jwks.json` (GET — JWK Set, **público**)
 - `http://localhost:8080/keygo-server/actuator/health`
 - **`http://localhost:8080/keygo-server/swagger-ui/index.html`** — Swagger UI interactiva (público)
 - **`http://localhost:8080/keygo-server/v3/api-docs`** — OpenAPI JSON spec (público)
@@ -138,6 +148,7 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.service-info-path-prefix` | `/service/info` | Public |
 | `keygo.bootstrap.swagger-ui-path-prefix` | `/swagger-ui` | Public |
 | `keygo.bootstrap.api-docs-path-prefix` | `/v3/api-docs` | Public |
+| `keygo.bootstrap.well-known-path-prefix` | `/.well-known` | Public — OIDC discovery + JWKS |
 
 ## Security header
 
@@ -164,6 +175,8 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `ClientAllowedGrantEntity` | `clientapp.entity` | `client_allowed_grants` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`; `grantType` mapped as `AllowedGrant` enum |
 | `ClientAllowedScopeEntity` | `clientapp.entity` | `client_allowed_scopes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
 | `TenantUserEntity` | `user.entity` | `tenant_users` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`; `UNIQUE(tenant_id, email)`, `UNIQUE(tenant_id, username)` |
+| `AuthorizationCodeEntity` | `auth.entity` | `authorization_codes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`, `TenantEntity`, `TenantUserEntity` |
+| `SigningKeyEntity` | `auth.entity` | `signing_keys` | `kid` unique; `status` check `ACTIVE\|RETIRED\|REVOKED`; `algorithm` (RS256/RS384/RS512); `public_material` + `private_material` PEM |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -174,6 +187,8 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `TenantJpaRepository` | `tenant.repository` |
 | `ClientAppJpaRepository` | `clientapp.repository` |
 | `TenantUserJpaRepository` | `user.repository` |
+| `AuthorizationCodeJpaRepository` | `auth.repository` |
+| `SigningKeyJpaRepository` | `auth.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
@@ -182,8 +197,11 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V4__add_tenants.sql` — tenants table (slug unique, status check constraint)
 - `V5__add_client_apps.sql` — client_apps, client_redirect_uris, client_allowed_grants, client_allowed_scopes tables
 - `V6__add_tenant_users.sql` — tenant_users table (unique per tenant: email, username; FK → tenants ON DELETE CASCADE)
+- `V7__add_memberships.sql` — app_role, membership, membership_role tables
+- `V8__add_oauth_authorization_codes.sql` — authorization_codes table
+- `V9__add_signing_keys.sql` — signing_keys table (kid unique, status check, algorithm, public/private PEM)
 
-Next migration must be `V7__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V10__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -284,7 +302,21 @@ Se implementó el núcleo de memberships (acceso del usuario a una app) y roles 
 - **ROADMAP.md**: F-009 completada, Fase 4 marcada como completada en el plan, Sprint 2 cerrado.
 - **Lección aprendida**: En controllers REST con DTOs, verificar siempre que el import de `BaseResponse` sea del subpaquete `.response` (`io.cmartinezs.keygo.api.shared.response.BaseResponse`), no directamente de `shared`.
 
-### [2026-03-22] Documentación de flujo de autenticación del cliente — AUTH_FLOW.md
+### [2026-03-22] Fase 6 — Firma de tokens y metadata OIDC completada
+
+Se implementó la firma JWT real con RS256 y los endpoints OIDC discovery + JWKS en los cinco módulos activos:
+
+- **`keygo-domain`**: entidades de dominio puras `SigningKey`, `SigningKeyId` (record), `SigningKeyStatus` (ACTIVE/RETIRED/REVOKED), `SigningKeyAlgorithm` (RS256/RS384/RS512); excepción `NoActiveSigningKeyException`. Sin Spring ni JPA.
+- **`keygo-app`**: puertos `SigningKeyRepositoryPort`, `TokenSignerPort`, `TokenClaimsFactoryPort`, `JwksBuilderPort`; caso de uso `IssueTokensUseCase` (access_token + id_token RS256), `GetJwksUseCase`, `GetOidcConfigurationUseCase`. Resultado `IssueTokensResult` con todos los campos RFC 6749 + OIDC. `ExchangeAuthorizationCodeResult` ampliado con `userId`, `clientId`, `scope`.
+- **`keygo-infra`**: `RsaJwtTokenSigner` (Nimbus JOSE+JWT via `spring-security-oauth2-jose`), `StandardTokenClaimsFactory` (at_hash OIDC §3.3.2.11), `JwkSetBuilder` implementa `JwksBuilderPort`.
+- **`keygo-supabase`**: `SigningKeyEntity` (JPA), `SigningKeyJpaRepository` (Spring Data), `SigningKeyPersistenceMapper`, `SigningKeyRepositoryAdapter` (@Repository), migración `V9__add_signing_keys.sql`.
+- **`keygo-api`**: `JwksController` (`GET /.well-known/jwks.json` — JSON nativo), `OidcMetadataController` (`GET /.well-known/openid-configuration` — JSON nativo), `AuthorizationController` actualizado para emitir JWTs reales en `/oauth2/token`, `TokenData` ampliado con `access_token`, `id_token`, `token_type`, `expires_in`, `scope`. 3 nuevos `ResponseCode`. Handler de `NoActiveSigningKeyException` (503).
+- **`keygo-run`**: `SigningKeyBootstrapService` (auto-genera par RSA 2048 al arrancar si no hay clave ACTIVE, solo con perfil `supabase`), 6 nuevos `@Bean` en `ApplicationConfig`. `application.yml` con `keygo.info.issuer-base-url` y `keygo.bootstrap.well-known-path-prefix`. `KeyGoBootstrapProperties` + `BootstrapAdminKeyFilter` actualizados para que `/.well-known` sea público.
+- **Tests**: ~29 tests unitarios nuevos (domain: 8, app: 6, infra: 4, supabase: 4). **Total proyecto: 299 tests** (todos pasan).
+- **Postman**: carpeta `🔑 OIDC & JWKS` con 2 requests (OIDC config, JWKS); request Token actualizado con validaciones de JWT y `token_type`. **25 requests totales** en 7 carpetas.
+- **Lección aprendida**: Spring Boot 4.x no gestiona `com.nimbusds:nimbus-jose-jwt` como dependencia directa gestionada en su BOM; usar `spring-security-oauth2-jose` que lo incluye transitivamente.
+
+### [2026-03-22] Fase 5 — Núcleo OAuth2/OIDC: authorization flow completada
 Se generó **bajo orden explícita del usuario** el documento `docs/keygo-server/AUTH_FLOW.md`:
 
 - **`AUTH_FLOW.md`** (~350 líneas): guía completa del flujo OAuth 2.0 Authorization Code + PKCE desde la perspectiva del cliente (SPA/Mobile). Incluye:
@@ -315,7 +347,13 @@ Se generaron **bajo orden explícita del usuario** tres documentos de referencia
 
 **Documentación generada bajo orden explícita:** SÍ. Estos 3 documentos + README son parte del ciclo de trabajo del agente (como `AI_CONTEXT.md`, `AGENTS.md` mismo) porque responden a la necesidad de base de conocimiento compartida, no documentación de producto.
 
-### [2026-03-21] Cierre de Fase 0 — base de calidad completada
+### [2026-03-22] Sincronización de documentos de datos con migraciones reales V1–V9
+Se actualizaron los tres documentos de referencia de datos para sincronizarlos con el schema real de las migraciones Flyway:
+- **`DATA_MODEL.md`** — corregidos nombres de columnas reales (`uri` no `redirect_uri`, `name` no `display_name`, `hashed_secret` no `client_secret`, `type` no `client_type`, `requested_scopes` no `scope_set`, `private_material` no `private_material_ref`); tabla `membership` es **singular**; `membership_role` tiene PK compuesta `(membership_id, role_id)` sin `id`; `app_role` sin `tenant_id` ni `status`; `authorization_codes.status` en **lowercase**; agregadas secciones de tablas legado (V1/V3) y tablas planificadas (V10+).
+- **`ENTITY_RELATIONSHIPS.md`** — corregidos class diagrams (campos reales), state machine de membership (PENDING no INVITED, sin REVOKED), tabla de transiciones, diagrama de asignación de roles (`role_id` no `app_role_id`), índices SQL sincronizados con los aplicados en V4–V9, diagrama de secuencia actualizado (status lowercase, firma JWT real en Paso 3).
+- **`DATA_DICTIONARY.md`** — referencias a `memberships` corregidas a `membership` (singular), checklist ampliado con regla de actualizar docs al crear nuevas tablas, sección "Siguientes pasos" actualizada (Fases 5 y 6 completadas, Fase 7 planificada).
+- **`AUTH_FLOW.md`** — estado actualizado a "Fases 5 y 6 implementadas ✅"; respuesta del Paso 3 muestra JWT real (`access_token` + `id_token` + `token_type` + `expires_in` + `scope`); flowcharts usan status lowercase; tabla comparativa y timeline actualizadas; código TypeScript actualiza para manejar tokens reales.
+- **Regla nueva agregada** en todos los archivos de instrucciones AI: al crear una migración Flyway, actualizar obligatoriamente `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` y `DATA_DICTIONARY.md` antes de cerrar la tarea.
 Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de calidad):
 - **CI Pipeline**: creado `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package` en push/PR a `main`/`develop`. Sube artefactos de surefire si el build falla.
 - **Maven Enforcer Plugin**: configurado en el `pom.xml` raíz, fase `validate`. Verifica Java 21+, Maven 3.9+, encoding UTF-8 y sin dependencias duplicadas.

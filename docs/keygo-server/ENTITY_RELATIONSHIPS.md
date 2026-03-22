@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-22**
+> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V9
 
 ---
 
@@ -26,6 +26,7 @@ classDiagram
         UUID id
         String slug*
         String name
+        String ownerEmail
         Status status
         Timestamp createdAt
         Timestamp updatedAt
@@ -35,23 +36,29 @@ classDiagram
         UUID id
         UUID tenantId*
         String clientId*
-        ClientType type
-        String displayName
+        String type
+        String name
+        String hashedSecret
         Status status
     }
 
     class TenantUser {
         UUID id
         UUID tenantId*
-        String email*
         String username*
-        String displayName
+        String email*
+        String passwordHash
+        String firstName
+        String lastName
         Status status
     }
 
     Tenant "1" --> "0..∞" ClientApp : owns
     Tenant "1" --> "0..∞" TenantUser : contains
 ```
+
+> Status válidos: `ACTIVE`, `SUSPENDED`, `PENDING` (todas las entidades de este contexto).  
+> `ClientApp.type`: `PUBLIC` o `CONFIDENTIAL`.
 
 **Invariante:** Todo usuario y app dentro de un tenant debe tener `tenant_id` consistente.
 
@@ -64,19 +71,19 @@ classDiagram
     class ClientApp {
         UUID id
         String clientId*
-        ClientType type
-        String clientSecret
+        String type
+        String hashedSecret
         Status status
     }
 
     class ClientRedirectUri {
         UUID id
-        String redirectUri
+        String uri
     }
 
     class ClientAllowedGrant {
         UUID id
-        GrantType grantType
+        String grantType
     }
 
     class ClientAllowedScope {
@@ -90,9 +97,9 @@ classDiagram
 ```
 
 **Reglas:**
-- Redirect URIs validación exacta (sin wildcards).
-- Client solo puede usar grants/scopes registrados aquí.
-- Secret solo para tipo `CONFIDENTIAL`.
+- Redirect URIs: validación exacta contra campo `uri` (sin wildcards).
+- Client solo puede usar grants/scopes registrados en sus tablas.
+- `hashedSecret` solo para tipo `CONFIDENTIAL`.
 
 ---
 
@@ -102,9 +109,12 @@ classDiagram
 classDiagram
     class TenantUser {
         UUID id
-        String email*
+        UUID tenantId*
         String username*
+        String email*
         String passwordHash
+        String firstName
+        String lastName
         Status status
     }
 
@@ -119,20 +129,25 @@ classDiagram
         UUID id
         UUID clientAppId*
         String code*
-        String name
-        Status status
+        String displayName
+        String description
     }
 
     class MembershipRole {
-        UUID id
-        UUID membershipId*
-        UUID appRoleId*
+        UUID membershipId PK
+        UUID roleId PK
+        Timestamp assignedAt
     }
 
     TenantUser "1" --> "0..*" Membership : has
     Membership "1" --> "0..*" MembershipRole : assigned
     AppRole "1" --> "0..*" MembershipRole : grants
 ```
+
+> ⚠️ Tabla en DB: `membership` (singular). **Sin columna `tenant_id`**.  
+> ⚠️ `membership_role` tiene **PK compuesta** `(membership_id, role_id)` — sin columna `id`.  
+> ⚠️ `app_role` no tiene columna `status` en la DB actual. El campo FK al rol es `role_id`.  
+> Status de `Membership`: `ACTIVE`, `SUSPENDED`, `PENDING`.
 
 **Invariantes:**
 - Un usuario puede tener 0 o más memberships.
@@ -148,41 +163,55 @@ classDiagram
 classDiagram
     class AuthorizationCode {
         UUID id
-        UUID userId*
+        UUID tenantId*
         UUID clientAppId*
+        UUID userId*
         String code
         String redirectUri
         String codeChallenge
-        Status status
+        String codeChallengeMethod
+        String requestedScopes
+        String status
         Timestamp expiresAt
+        Timestamp createdAt
+        Timestamp usedAt
+    }
+
+    class SigningKey {
+        UUID id
+        String kid*
+        String algorithm
+        String status
+        Text publicMaterial
+        Text privateMaterial
+        Timestamp activatedAt
+        Timestamp retiredAt
     }
 
     class RefreshToken {
         UUID id
-        UUID userId*
+        UUID tenantId*
         UUID clientAppId*
+        UUID userId
         String tokenHash
-        Status status
+        String status
         UUID rotatedFrom
-    }
-
-    class Session {
-        UUID id
-        UUID userId*
-        UUID clientAppId*
-        String ipAddress
-        Status status
+        Timestamp expiresAt
     }
 
     AuthorizationCode "1" --> "0..1" RefreshToken : exchanges-to
     RefreshToken "1" --> "0..1" RefreshToken : rotates-to
-    Session "1" --|> "0..1" AuthorizationCode : initiated-by
 ```
 
+> ⚠️ `authorization_codes.status` usa valores en **minúsculas**: `pending`, `used`, `expired`, `revoked`.  
+> ⚠️ El campo es `requested_scopes` (no `scope_set`).  
+> ⚠️ `RefreshToken` y `Session` son tablas **planificadas** (Fase 7+) — no existen aún en la DB.  
+> `SigningKey.status`: `ACTIVE`, `RETIRED`, `REVOKED` (UPPERCASE).
+
 **Flujos:**
-1. Authorization Code → canjeable una sola vez → RefreshToken + AccessToken.
-2. RefreshToken → renovable múltiples veces → nuevo AccessToken.
-3. Session → trazabilidad de login exitoso.
+1. Authorization Code (`pending`) → validado + PKCE → marcado `used` → emite JWT (access_token + id_token).
+2. RefreshToken (Fase 7) → renovable múltiples veces → nuevo AccessToken.
+3. SigningKey (`ACTIVE`) → firma RS256 → expuesta en JWKS (`/.well-known/jwks.json`).
 
 ---
 
@@ -229,22 +258,23 @@ sequenceDiagram
     end
 
     App->>KeyGo: POST /token (code=ABC, code_verifier=XYZ, client_id)
-    KeyGo->>DB: Find AuthorizationCode where code=ABC
-    alt Code valid, not expired, status=ACTIVE?
-        KeyGo->>KeyGo: Validate code_verifier vs code_challenge (PKCE)
+    KeyGo->>DB: Find AuthorizationCode where code=ABC AND status='pending'
+    alt Code found & not expired?
+        KeyGo->>KeyGo: Validate code_verifier vs code_challenge (PKCE S256)
         alt PKCE valid?
-            KeyGo->>DB: Update AuthorizationCode status=CONSUMED
-            KeyGo->>DB: Create RefreshToken + emit AccessToken (JWT)
-            KeyGo->>KeyGo: Sign JWT with private key (RS256)
-            KeyGo->>App: Return {access_token, refresh_token, expires_in}
+            KeyGo->>DB: Update AuthorizationCode status='used', used_at=NOW()
+            KeyGo->>DB: Load SigningKey where status=ACTIVE
+            KeyGo->>KeyGo: Sign access_token + id_token with RS256 (kid header)
+            KeyGo->>App: Return {access_token, id_token, token_type, expires_in, scope}
         else
-            KeyGo->>App: Error: Invalid code_verifier
+            KeyGo->>App: Error: Invalid code_verifier (PKCE failed)
         end
     else
-        KeyGo->>App: Error: Code expired/consumed/invalid
+        KeyGo->>App: Error: Code expired/used/revoked/invalid
     end
 
-    App->>KeyGo: Use access_token in Authorization header
+    App->>App: Store access_token in memory (NOT localStorage)
+    App->>KeyGo: GET /resource with Authorization: Bearer {access_token}
 ```
 
 ---
@@ -307,18 +337,18 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    A["User logs out"] -->|revoke refresh_token| B["Mark RefreshToken status=REVOKED"]
+    A["User logs out"] -->|revoke refresh_token| B["Mark RefreshToken status=REVOKED<br/>(Fase 7+)"]
     B --> C["All future token refreshes fail"]
 
-    D["Admin revokes membership"] -->|revoke ACTIVE| E["Membership status=REVOKED"]
+    D["Admin removes membership"] -->|DELETE row| E["Membership eliminada (CASCADE)"]
     E --> F["User cannot log in to app"]
-    F --> G["Existing tokens still valid until expiry*"]
+    F --> G["Existing JWT still valid until expiry*"]
 
-    H["Session.terminate()"] -->|update status| I["Session status=TERMINATED"]
-    I --> J["Logout everywhere: revoke all refresh_tokens of user"]
+    H["Admin suspends membership"] -->|update status| I["Membership status=SUSPENDED"]
+    I --> J["Login blocked; token refresh blocked"]
 ```
 
-**Nota:** Los access tokens (JWT firmados) no se revocan en DB; solo se revisan en el siguiente refresh. Para revocación inmediata, usar `Session` + lista negra opcional.
+**Nota:** Los access tokens (JWT firmados) no se revocan en DB; son válidos hasta su `exp`. Para revocación inmediata en Fase 7+, se implementará lista negra de `jti` o verificación de `tenant_sessions`.
 
 ---
 
@@ -328,18 +358,17 @@ graph LR
 
 ```mermaid
 stateDiagram-v2
-    [*] --> INVITED: CreateMembership
-    INVITED --> ACTIVE: User accepts / Admin confirms
+    [*] --> PENDING: CreateMembership
+    PENDING --> ACTIVE: Admin confirms / User accepts
     ACTIVE --> SUSPENDED: Admin suspends
     SUSPENDED --> ACTIVE: Admin reactivates
-    SUSPENDED --> REVOKED: Admin revokes (irreversible)
-    ACTIVE --> REVOKED: Admin revokes
-    REVOKED --> [*]
-    INVITED --> REVOKED: Invitation expires / Admin revokes
+    SUSPENDED --> [*]: Admin deletes
+    ACTIVE --> [*]: Admin deletes
+    PENDING --> [*]: Invitation expires / Admin deletes
 
-    note right of INVITED
-        Usuario invitado a la app;
-        no puede loguear aún
+    note right of PENDING
+        Invitación enviada;
+        usuario no puede loguear aún
     end note
 
     note right of ACTIVE
@@ -349,14 +378,13 @@ stateDiagram-v2
 
     note right of SUSPENDED
         Acceso temporalmente
-        bloqueado
-    end note
-
-    note right of REVOKED
-        Acceso permanentemente
-        revocado; no reverso
+        bloqueado; reversible
     end note
 ```
+
+> ⚠️ Los estados válidos en DB son `ACTIVE`, `SUSPENDED`, `PENDING` (CHECK constraint en V7).  
+> La eliminación física de la fila equivale a revocar el acceso permanentemente (CASCADE).  
+> No existe estado `REVOKED` ni `INVITED` en la tabla `membership` actual.
 
 ---
 
@@ -364,23 +392,25 @@ stateDiagram-v2
 
 ```mermaid
 graph TD
-    A["User tiene membership ACTIVE en app X"] -->|tiene roles| B["AppRole:ADMIN"]
-    A -->|tiene roles| C["AppRole:USER"]
-    A -->|tiene roles| D["AppRole:VIEWER"]
+    A["User tiene membership ACTIVE en app X"] -->|tiene roles| B["AppRole: code=admin"]
+    A -->|tiene roles| C["AppRole: code=user"]
+    A -->|tiene roles| D["AppRole: code=viewer"]
 
-    E["MembershipRole: membership_id=123, app_role_id=101"]
-    F["MembershipRole: membership_id=123, app_role_id=102"]
-    G["MembershipRole: membership_id=123, app_role_id=103"]
+    E["membership_role: membership_id=123, role_id=101"]
+    F["membership_role: membership_id=123, role_id=102"]
+    G["membership_role: membership_id=123, role_id=103"]
 
-    B -.->|via MembershipRole| E
-    C -.->|via MembershipRole| F
-    D -.->|via MembershipRole| G
+    B -.->|via membership_role| E
+    C -.->|via membership_role| F
+    D -.->|via membership_role| G
 
-    H["AccessToken JWT claims: roles = [ADMIN, USER, VIEWER]"]
+    H["AccessToken JWT claims: roles = [admin, user, viewer]"]
     E -.->|included in| H
     F -.->|included in| H
     G -.->|included in| H
 ```
+
+> ⚠️ `membership_role` usa columna `role_id` (FK → `app_role.id`), **no** `app_role_id`.
 
 ---
 
@@ -453,15 +483,18 @@ sequenceDiagram
 
 ### Tabla de decisión: Transiciones permitidas de Membership Status
 
+> Estados válidos en DB (V7 CHECK constraint): `ACTIVE`, `SUSPENDED`, `PENDING`.
+
 | Estado actual | Acción admin | Nuevo estado | Reversible? |
 |---|---|---|---|
-| `INVITED` | Confirmar | `ACTIVE` | Sí (volver a INVITED o REVOKED) |
-| `INVITED` | Revocar | `REVOKED` | ❌ No |
-| `ACTIVE` | Suspender | `SUSPENDED` | Sí (reactivar a ACTIVE) |
-| `ACTIVE` | Revocar | `REVOKED` | ❌ No |
-| `SUSPENDED` | Reactivar | `ACTIVE` | Sí (volver a SUSPENDED o REVOKED) |
-| `SUSPENDED` | Revocar | `REVOKED` | ❌ No |
-| `REVOKED` | *Ninguna* | `REVOKED` | ❌ No (permanente) |
+| `PENDING` | Confirmar acceso | `ACTIVE` | Sí (puede regresar a `SUSPENDED`) |
+| `PENDING` | Eliminar | *(borrado)* | ❌ No |
+| `ACTIVE` | Suspender | `SUSPENDED` | Sí (reactivar a `ACTIVE`) |
+| `ACTIVE` | Eliminar | *(borrado)* | ❌ No |
+| `SUSPENDED` | Reactivar | `ACTIVE` | Sí |
+| `SUSPENDED` | Eliminar | *(borrado)* | ❌ No |
+
+> La "revocación permanente" se implementa eliminando la fila; la cascade en DB limpia `membership_role`.
 
 ---
 
@@ -509,30 +542,38 @@ graph TB
 
 ## Índices recomendados (por rendimiento)
 
+> Los índices marcados con ✅ ya existen en las migraciones Flyway. Los marcados con 💡 son sugeridos adicionales.
+
 ```sql
--- Búsqueda rápida por tenant + recurso
-CREATE INDEX idx_client_apps_tenant_id ON client_apps(tenant_id, status);
-CREATE INDEX idx_tenant_users_tenant_id ON tenant_users(tenant_id, status);
-CREATE INDEX idx_memberships_tenant_user_app ON memberships(tenant_id, user_id, client_app_id);
-CREATE INDEX idx_memberships_app_status ON memberships(client_app_id, status);
-CREATE INDEX idx_app_role_client_app_id ON app_role(client_app_id, status);
+-- ✅ Ya aplicados por migraciones (V4-V9)
+CREATE INDEX idx_tenants_slug ON tenants(slug);                         -- V4
+CREATE INDEX idx_tenants_status ON tenants(status);                     -- V4
+CREATE INDEX idx_client_apps_tenant_id ON client_apps(tenant_id);       -- V5
+CREATE INDEX idx_client_apps_client_id ON client_apps(client_id);       -- V5
+CREATE INDEX idx_client_apps_status ON client_apps(status);             -- V5
+CREATE INDEX idx_tenant_users_tenant_id ON tenant_users(tenant_id);     -- V6
+CREATE INDEX idx_tenant_users_email ON tenant_users(email);             -- V6
+CREATE INDEX idx_tenant_users_username ON tenant_users(username);       -- V6
+CREATE INDEX idx_tenant_users_status ON tenant_users(status);           -- V6
+CREATE INDEX idx_app_role_client_app_id ON app_role(client_app_id);     -- V7
+CREATE INDEX idx_app_role_code ON app_role(code);                       -- V7
+CREATE INDEX idx_membership_user_id ON membership(user_id);             -- V7
+CREATE INDEX idx_membership_client_app_id ON membership(client_app_id); -- V7
+CREATE INDEX idx_membership_status ON membership(status);               -- V7
+CREATE INDEX idx_authorization_codes_code ON authorization_codes(code);                   -- V8
+CREATE INDEX idx_authorization_codes_tenant_id ON authorization_codes(tenant_id);         -- V8
+CREATE INDEX idx_authorization_codes_client_app_id ON authorization_codes(client_app_id); -- V8
+CREATE INDEX idx_authorization_codes_user_id ON authorization_codes(user_id);             -- V8
+CREATE INDEX idx_authorization_codes_status ON authorization_codes(status);               -- V8
+CREATE INDEX idx_authorization_codes_expires_at ON authorization_codes(expires_at);       -- V8
+CREATE INDEX idx_signing_keys_status ON signing_keys(status);           -- V9
 
--- Búsqueda rápida de tokens
-CREATE INDEX idx_authorization_codes_code ON authorization_codes(code);
-CREATE INDEX idx_authorization_codes_expires ON authorization_codes(expires_at, status);
-CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);
-CREATE INDEX idx_refresh_tokens_user_app ON refresh_tokens(user_id, client_app_id, status);
-
--- Búsqueda rápida de sesiones
-CREATE INDEX idx_sessions_user_status ON sessions(user_id, status);
-CREATE INDEX idx_sessions_tenant_user ON sessions(tenant_id, user_id);
-
--- Email/username lookup
-CREATE INDEX idx_tenant_users_email ON tenant_users(tenant_id, email);
-CREATE INDEX idx_tenant_users_username ON tenant_users(tenant_id, username);
-
--- JWKS lookup
-CREATE INDEX idx_signing_keys_status ON signing_keys(status);
+-- 💡 Índices adicionales sugeridos para optimización
+CREATE INDEX idx_client_apps_tenant_status ON client_apps(tenant_id, status);
+CREATE INDEX idx_tenant_users_tenant_email ON tenant_users(tenant_id, email);
+CREATE INDEX idx_tenant_users_tenant_username ON tenant_users(tenant_id, username);
+CREATE INDEX idx_membership_user_app ON membership(user_id, client_app_id, status);
+CREATE INDEX idx_authorization_codes_expires_status ON authorization_codes(expires_at, status);
 ```
 
 ---

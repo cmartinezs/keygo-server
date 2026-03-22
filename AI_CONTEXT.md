@@ -186,6 +186,9 @@ Al concluir **cualquier tarea** (feature, corrección, refactor, configuración,
 | Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` | Sección correspondiente |
 | Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_DICTIONARY.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita", ya que los documentos
 > de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente,
@@ -231,6 +234,24 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
 
+### [2026-03-22] Documentación de datos desincronizada con migraciones Flyway reales
+**Contexto:** Actualización explícita solicitada por el usuario de los documentos `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md` y `AUTH_FLOW.md`. Se leyeron las migraciones SQL reales (V1–V9) y se compararon con el contenido de los documentos existentes.
+**Problema:** Múltiples discrepancias críticas entre la documentación y el schema real de DB:
+- Tabla `membership` es singular en DB, documentada como `memberships` (plural).
+- `membership_role` tiene PK compuesta `(membership_id, role_id)` sin columna `id` — documentado incorrectamente con `id` UUID y FK `app_role_id` en vez de `role_id`.
+- `app_role` no tiene columnas `tenant_id` ni `status` — ambas documentadas como existentes.
+- `authorization_codes.status` usa **minúsculas** (`pending`, `used`, `expired`, `revoked`) — documentado en UPPERCASE (`ACTIVE`, `CONSUMED`, `EXPIRED`, `REVOKED`).
+- Campo `requested_scopes` documentado como `scope_set`; `private_material TEXT` documentado como `private_material_ref VARCHAR(500)`.
+- `client_apps`: columna `name` documentada como `display_name`, `hashed_secret` como `client_secret`, `type` como `client_type`.
+- `client_redirect_uris`: columna `uri` documentada como `redirect_uri`.
+- `tenant_users`: tiene `first_name` + `last_name` separados, documentado como `display_name`.
+- `tenants`: tiene `owner_email` no documentado; status `PENDING` documentado como `ARCHIVED`.
+- Tablas legado (V1/V3: `users`, `roles`, `sessions`, `oauth_providers`, etc.) no documentadas.
+- Tablas `refresh_tokens` y `sessions` (nuevo estilo) documentadas como implementadas, pero son **planificadas** (sin migración aún).
+- `AUTH_FLOW.md` describía Fase 5 como actual cuando Fase 6 (JWT RS256, JWKS, OIDC) ya estaba implementada.
+**Solución / Buena práctica:** Al generar documentación de datos, **siempre leer las migraciones SQL reales** antes de escribir el diccionario. No asumir columnas ni tipos — verificar cada campo en `V{n}__*.sql`. Establecer como **regla obligatoria del agente**: al crear cualquier migración Flyway nueva, actualizar `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` y `DATA_DICTIONARY.md` antes de cerrar la tarea. Esta regla se agregó a los cuatro archivos de instrucciones de AI (`AI_CONTEXT.md`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`).
+**Archivos clave:** `docs/keygo-server/DATA_MODEL.md`, `docs/keygo-server/ENTITY_RELATIONSHIPS.md`, `docs/keygo-server/DATA_DICTIONARY.md`, `docs/keygo-server/AUTH_FLOW.md`, `keygo-supabase/src/main/resources/db/migration/V1–V9`
+
 ### [2026-03-22] Value objects: acceso a `.value()` diferente según record vs clase regular
 **Contexto:** Fase 5 — Implementación de modelos de dominio para OAuth2 (AuthorizationCode, CodeChallenge, ScopeSet). Se descubrió inconsistencia en cómo acceder al atributo del value object en records.
 **Problema:** En el codebase existen dos patrones de value objects: (1) **Records** (p. ej. `ClientId`, `TenantId`, `UserId`, `PasswordHash`, `AuthorizationCodeId`) donde el parámetro del constructor se expone como **método público** (p. ej. `.value()`, `.id()` según el nombre del campo). (2) **Clases regulares** (no existen en el proyecto actualmente, pero como referencia teórica).
@@ -261,6 +282,24 @@ Los records exponen automáticamente cada parámetro como método público, por 
 - La anotación `@SecurityRequirements({})` con array vacío también funciona para sobrescribir el global en un endpoint específico, pero es más limpio no tener global.
 - Agregar los prefijos `/swagger-ui` y `/v3/api-docs` en `KeyGoBootstrapProperties` + `BootstrapAdminKeyFilter.isPublicPath()` para preparar el futuro fix del bug T-001.
 **Archivos clave:** `keygo-run/config/OpenApiConfig.java`, `keygo-api/pom.xml`, `pom.xml` (raíz — propiedad `springdoc.version`), `BootstrapAdminKeyFilter.java`, `KeyGoBootstrapProperties.java`, `application.yml`
+
+### [2026-03-22] Nimbus JOSE+JWT en Spring Boot 4 — dependencia transitiva vía spring-security-oauth2-jose
+**Contexto:** Fase 6 — implementación de firma JWT con RSA en `keygo-infra`.
+**Problema:** Al agregar `com.nimbusds:nimbus-jose-jwt` directamente en `keygo-infra/pom.xml` sin versión, Maven falla con `'dependencies.dependency.version' for com.nimbusds:nimbus-jose-jwt:jar is missing`. Spring Boot 4.x gestiona Nimbus **transitivamente** a través de `spring-security-oauth2-jose`, pero no lo expone como dependencia directa gestionada en su BOM.
+**Solución / Buena práctica:** Usar `org.springframework.security:spring-security-oauth2-jose` (sin versión — gestionado por Spring Boot BOM) como dependencia en `keygo-infra`. Nimbus JOSE+JWT llega como dependencia transitiva. Esto garantiza compatibilidad con la versión de Spring Security activa en el proyecto.
+**Archivos clave:** `keygo-infra/pom.xml`
+
+### [2026-03-22] Endpoints OIDC/JWKS deben retornar JSON nativo, no BaseResponse
+**Contexto:** Fase 6 — implementación de `JwksController` y `OidcMetadataController`.
+**Problema:** Las librerías OAuth2 de terceros (ej. Spring Security Resource Server, Keycloak adapters, Auth0 SDK) consumen los endpoints `.well-known/openid-configuration` y `.well-known/jwks.json` directamente y esperan el formato estándar RFC 7517 / OIDC Discovery 1.0 — sin envelope `BaseResponse`.
+**Solución / Buena práctica:** Los controllers OIDC/JWKS retornan `ResponseEntity<Map<String, Object>>` directamente (JSON nativo). El resto de endpoints siguen usando `BaseResponse<T>`. Los paths `/.well-known` se configuran como públicos en `BootstrapAdminKeyFilter` vía `keygo.bootstrap.well-known-path-prefix`.
+**Archivos clave:** `keygo-api/.../JwksController.java`, `keygo-api/.../OidcMetadataController.java`, `BootstrapAdminKeyFilter.java`, `KeyGoBootstrapProperties.java`, `application.yml`
+
+### [2026-03-22] JwksBuilderPort — arquitectura hexagonal para Nimbus fuera de keygo-api
+**Contexto:** Fase 6 — diseño inicial colocaba `JwkSetBuilder` (Nimbus) directamente en `keygo-api`, pero `keygo-api` no tiene ni debe tener `keygo-infra` como dependencia.
+**Problema:** Importar `JwkSetBuilder` de `keygo-infra` desde `keygo-api` viola la arquitectura hexagonal — el controller no debe conocer la implementación concreta.
+**Solución / Buena práctica:** Definir `JwksBuilderPort` en `keygo-app` (interface). `GetJwksUseCase` retorna `Map<String, Object>` usando el puerto. `JwkSetBuilder` en `keygo-infra` implementa el puerto. El controller solo llama al use case. El wiring se hace en `ApplicationConfig` en `keygo-run`.
+**Archivos clave:** `keygo-app/.../JwksBuilderPort.java`, `keygo-infra/.../JwkSetBuilder.java`, `keygo-app/.../GetJwksUseCase.java`
 
 ### [2026-03-21] Configuración de JaCoCo en monorepo Maven multi-módulo con Spring Boot 4**Contexto:** Implementación de la propuesta T-016 — configurar JaCoCo para cobertura de tests con umbral mínimo y reporte consolidado.
 **Problema:** Tres puntos de atención en monorepos multi-módulo con JaCoCo: (1) los módulos sin código (`keygo-infra`, `keygo-common`) fallan silenciosamente el check si no se excluyen; (2) `keygo-bom` (empaquetado `pom`) también ejecuta JaCoCo aunque no tenga código — JaCoCo lo maneja con "Skipping due to missing execution data file", sin bloquear el build; (3) el goal `report-aggregate` requiere que el módulo ejecutor tenga como dependencias (directas o transitivas) todos los módulos que se quieren reportar — `keygo-run` es el candidato natural porque ya depende de todos.

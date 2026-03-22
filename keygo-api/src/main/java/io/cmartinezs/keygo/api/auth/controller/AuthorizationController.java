@@ -18,8 +18,10 @@ import io.cmartinezs.keygo.app.auth.usecase.AuthenticateUserForAuthorizationUseC
 import io.cmartinezs.keygo.app.auth.usecase.ExchangeAuthorizationCodeUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.InitiateAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,16 +44,22 @@ public class AuthorizationController {
   private final AuthenticateUserForAuthorizationUseCase authenticateUserForAuthorizationUseCase;
   private final IssueAuthorizationCodeUseCase issueAuthorizationCodeUseCase;
   private final ExchangeAuthorizationCodeUseCase exchangeAuthorizationCodeUseCase;
+  private final IssueTokensUseCase issueTokensUseCase;
+  private final String issuerBaseUrl;
 
   public AuthorizationController(
       InitiateAuthorizationUseCase initiateAuthorizationUseCase,
       AuthenticateUserForAuthorizationUseCase authenticateUserForAuthorizationUseCase,
       IssueAuthorizationCodeUseCase issueAuthorizationCodeUseCase,
-      ExchangeAuthorizationCodeUseCase exchangeAuthorizationCodeUseCase) {
+      ExchangeAuthorizationCodeUseCase exchangeAuthorizationCodeUseCase,
+      IssueTokensUseCase issueTokensUseCase,
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
     this.initiateAuthorizationUseCase = initiateAuthorizationUseCase;
     this.authenticateUserForAuthorizationUseCase = authenticateUserForAuthorizationUseCase;
     this.issueAuthorizationCodeUseCase = issueAuthorizationCodeUseCase;
     this.exchangeAuthorizationCodeUseCase = exchangeAuthorizationCodeUseCase;
+    this.issueTokensUseCase = issueTokensUseCase;
+    this.issuerBaseUrl = issuerBaseUrl;
   }
 
   /**
@@ -187,24 +195,37 @@ public class AuthorizationController {
   public ResponseEntity<BaseResponse<TokenData>> exchangeAuthorizationCode(
       @PathVariable String tenantSlug, @Valid @RequestBody TokenRequest request) {
 
-    var command =
+    // 1. Canjear el código — valida PKCE, tenant, client, redirect URI
+    var exchangeResult = exchangeAuthorizationCodeUseCase.execute(
         new ExchangeAuthorizationCodeCommand(
-            tenantSlug, request.clientId(), request.code(), request.redirectUri(), request.codeVerifier());
+            tenantSlug, request.clientId(), request.code(),
+            request.redirectUri(), request.codeVerifier()));
 
-    var result = exchangeAuthorizationCodeUseCase.execute(command);
+    // 2. Emitir access_token + id_token firmados con RS256
+    String issuer = issuerBaseUrl + "/api/v1/tenants/" + tenantSlug;
+    var tokenResult = issueTokensUseCase.execute(
+        issuer,
+        exchangeResult.userId(),
+        exchangeResult.clientId(),
+        exchangeResult.scope(),
+        null,   // nonce: no disponible en este flujo sin session; extensible en Fase 7
+        null,   // email: extender cuando se agregue GetUserUseCase aquí
+        null,
+        exchangeResult.authorizationCodeId());
 
-    var responseData = new TokenData(result.authorizationCodeId());
+    var responseData = new TokenData(
+        tokenResult.accessToken(),
+        tokenResult.idToken(),
+        tokenResult.tokenType(),
+        tokenResult.expiresIn(),
+        tokenResult.scope(),
+        tokenResult.authorizationCodeId());
 
     BaseResponse<TokenData> response =
         BaseResponse.<TokenData>builder()
             .data(responseData)
-            .success(ResponseHelper.message(ResponseCode.AUTHORIZATION_CODE_EXCHANGED))
+            .success(ResponseHelper.message(ResponseCode.TOKEN_ISSUED))
             .build();
-
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
-
-
-
-

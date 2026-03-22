@@ -3,19 +3,18 @@
 > **Documento vivo.** Los agentes AI deben actualizar este archivo cuando generen nuevas propuestas
 > concretas al concluir tareas. Ver instrucciones de mantenimiento al final.
 
-## Estado actual del producto (2026-03-21)
+## Estado actual del producto (2026-03-22)
 
  Dimensión  Estado 
 ------
- Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-run`, `keygo-supabase` 
- Autenticación  **Fase 5 completada**: Authorization Code + PKCE, endpoints OAuth2 públicos 
- Persistencia  Entidades y repositorios JPA base (User, Role, Permission, Tenant, ClientApp, Membership & AppRole, **AuthorizationCode**), todos conectados a puertos de negocio 
- API pública  **15 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), **OAuth2 Authorization (3)** 
+ Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` 
+ Autenticación  **Fase 6 completada**: JWT RS256 firmados, JWKS endpoint, OIDC discovery 
+ Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, **SigningKey** 
+ API pública  **17 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), OAuth2 (3), **OIDC (2)** 
  CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
- Stubs vacos  `keygo-infra`, `keygo-common` 
- Tests  **270+ tests unitarios** — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — **23 requests en 6 carpetas** con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 5 ✅ Completada** — próxima: Fase 6 (Token Signing & JWKS) 
+ Tests  **299 tests unitarios** — sin integración ni e2e 
+ Postman  ✅ Colecciones en `postman/` — **25 requests en 7 carpetas** con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 6 ✅ Completada** — próxima: Fase 7 (Refresh Token) |
 
 ---
 
@@ -36,6 +35,8 @@
 | T-024 | Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como complemento al header `X-Tenant-Slug` del `TenantResolutionFilter` actual | `keygo-run` / `keygo-api` | La Fase 5 requiere endpoints `/{tenantSlug}/oauth2/authorize`; el filtro actual solo resuelve por header |
 | T-025 | Agregar tests de integración con Testcontainers para el flujo completo de Tenant: crear → consultar → suspender vía `TenantRepositoryAdapter` | `keygo-supabase` | El adaptador solo tiene tests unitarios con Mockito; la persistencia real no se valida aún |
 | T-026 | Mantener colecciones Postman actualizadas: agregar nuevas requests al crear endpoints; crear un environment adicional `KeyGo-Server-Docker` para pruebas contra imagen Docker | `postman/` | Las colecciones actuales cubren los 7 endpoints existentes; cada nueva feature debe extenderlas |
+| T-027 | Agregar endpoint `POST /api/v1/tenants/{slug}/oauth2/token` con grant type `refresh_token` — Fase 7 del plan de implementación | `keygo-api`, `keygo-app`, `keygo-supabase` | El flujo Authorization Code emite tokens pero no tiene mecanismo de renovación |
+| T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) — eliminar `private_material` de la DB en producción | `keygo-infra`, `keygo-supabase` | La clave privada en DB es práctica aceptable solo en dev/staging; producción requiere HSM o KMS |
 
 ---
 

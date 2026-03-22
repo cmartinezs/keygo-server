@@ -54,6 +54,10 @@ public class KeyGoBootstrapProperties {
    * Prefijo de ruta de API docs que es público. */
   private String apiDocsPathPrefix;
 
+  /* Well-known path prefix that is public (OIDC discovery, JWKS).
+   * Prefijo de ruta .well-known que es público (discovery OIDC, JWKS). */
+  private String wellKnownPathPrefix;
+
   /**
    * Validates that adminKey is not blank when enabled is true.
    * <p>Valida que adminKey no esté vacía cuando enabled es true.

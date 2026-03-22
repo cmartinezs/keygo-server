@@ -126,7 +126,11 @@ public class ExchangeAuthorizationCodeUseCase {
     authorizationCode.markAsUsed(clock.now());
     authorizationCodeRepository.update(authorizationCode);
 
-    return new ExchangeAuthorizationCodeResult(authorizationCode.getId().id().toString());
+    return new ExchangeAuthorizationCodeResult(
+        authorizationCode.getId().id().toString(),
+        authorizationCode.getUserId().value().toString(),
+        clientApp.getClientId().value(),
+        authorizationCode.getScopes().asString());
   }
 
   /** Valida el verifier PKCE contra el challenge. */

@@ -59,6 +59,9 @@ public enum ResponseCode {
   AUTHORIZATION_CODE_ISSUED("AUTHORIZATION_CODE_ISSUED", "Authorization code issued successfully"),
   AUTHORIZATION_CODE_EXCHANGED("AUTHORIZATION_CODE_EXCHANGED", "Authorization code exchanged successfully"),
   LOGIN_SUCCESSFUL("LOGIN_SUCCESSFUL", "Login successful"),
+  TOKEN_ISSUED("TOKEN_ISSUED", "Tokens issued successfully"),
+  JWKS_RETRIEVED("JWKS_RETRIEVED", "JWK Set retrieved successfully"),
+  OIDC_CONFIGURATION_RETRIEVED("OIDC_CONFIGURATION_RETRIEVED", "OpenID Configuration retrieved successfully"),
 
   // Generic Operations (use when no specific code applies)
   OPERATION_COMPLETED("OPERATION_COMPLETED", "Operation completed successfully"),

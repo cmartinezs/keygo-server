@@ -3,7 +3,7 @@
 > Guía de referencia para implementar el flujo OAuth 2.0 Authorization Code + PKCE
 > en una **aplicación cliente** (SPA, Mobile o Web tradicional) que usa **KeyGo Server** como proveedor de identidad.
 >
-> Fecha de actualización: **2026-03-22** | Estado: **Fase 5 implementada** (Fase 6 — JWT real pendiente)
+> Fecha de actualización: **2026-03-22** | Estado: **Fases 5 y 6 implementadas** ✅ (JWT RS256 + JWKS + OIDC Discovery)
 
 ---
 
@@ -17,7 +17,7 @@
 6. [Paso 2 — Enviar credenciales (Login)](#paso-2--enviar-credenciales-login)
 7. [Paso 3 — Canjear el código por token](#paso-3--canjear-el-código-por-token)
 8. [Manejo de errores](#manejo-de-errores)
-9. [Estado actual vs. Fase 6](#estado-actual-vs-fase-6)
+9. [Estado actual vs. Fases futuras](#estado-actual-vs-fases-futuras)
 10. [Guía de implementación para el cliente](#guía-de-implementación-para-el-cliente)
 11. [Checklist de seguridad](#checklist-de-seguridad)
 
@@ -35,10 +35,13 @@ mediante el par `code_verifier` / `code_challenge`.
 | Grant type | `authorization_code` |
 | PKCE soportado | ✅ S256 y plain |
 | Duración del authorization code | **10 minutos** (no renovable) |
-| Uso del authorization code | **Una sola vez** (se marca CONSUMED tras el canje) |
+| Uso del authorization code | **Una sola vez** (`pending` → `used` tras el canje) |
 | Sesión HTTP entre pasos 1 y 2 | Cookie de sesión (JSESSIONID) |
-| Access token (JWT) | ⚠️ Pendiente Fase 6 |
-| Refresh token | ⚠️ Pendiente Fase 6 |
+| Access token (JWT RS256) | ✅ Implementado (Fase 6) |
+| ID token (OIDC) | ✅ Implementado (Fase 6) |
+| JWKS endpoint | ✅ Implementado — `GET /.well-known/jwks.json` |
+| OIDC Discovery | ✅ Implementado — `GET /.well-known/openid-configuration` |
+| Refresh token | ⏳ Planificado (Fase 7) |
 
 ---
 
@@ -108,7 +111,7 @@ sequenceDiagram
     KeyGo->>KeyGo: Validar password_hash (BCrypt)
     KeyGo->>DB: Verificar Membership activa (user ↔ app)
     DB-->>KeyGo: ✅ Membership status=ACTIVE encontrada
-    KeyGo->>DB: Crear AuthorizationCode (status=PENDING, TTL=10min)
+    KeyGo->>DB: Crear AuthorizationCode (status='pending', TTL=10min)
     DB-->>KeyGo: ✅ AuthorizationCode guardado
     KeyGo-->>WebApp: 200 OK — BaseResponse<LoginData><br/>(contiene code + redirect_uri)
 
@@ -116,15 +119,18 @@ sequenceDiagram
     WebApp->>WebApp: Leer code_verifier desde sessionStorage
     WebApp->>KeyGo: POST /api/v1/tenants/acme-corp/oauth2/token<br/>Body: {"client_id":"webapp-001","code":"ABC123...","code_verifier":"dBjftJeZ4CVP...","redirect_uri":"http://localhost:3000/callback"}
 
-    KeyGo->>DB: Buscar AuthorizationCode donde code='ABC123...'
-    DB-->>KeyGo: ✅ AuthorizationCode encontrado (status=PENDING)
-    KeyGo->>KeyGo: Verificar código no expirado
+    KeyGo->>DB: Buscar AuthorizationCode donde code='ABC123...' AND status='pending'
+    DB-->>KeyGo: ✅ AuthorizationCode encontrado y no expirado
+    KeyGo->>KeyGo: Verificar código no expirado (expires_at > NOW())
     KeyGo->>KeyGo: Validar PKCE: SHA256(code_verifier) == code_challenge
-    KeyGo->>DB: Marcar AuthorizationCode status=CONSUMED
-    KeyGo-->>WebApp: 200 OK — BaseResponse<TokenData><br/>(Fase 5: authorization_code_id)<br/>(Fase 6: access_token + refresh_token)
+    KeyGo->>DB: Marcar AuthorizationCode status='used', used_at=NOW()
+    KeyGo->>DB: Cargar SigningKey donde status='ACTIVE'
+    DB-->>KeyGo: ✅ RSA-2048 signing key (kid=keygo-01)
+    KeyGo->>KeyGo: Firmar access_token + id_token con RS256
+    KeyGo-->>WebApp: 200 OK — BaseResponse<TokenData><br/>(access_token + id_token + token_type + expires_in + scope)
 
     Note over WebApp: Flujo completado ✅
-    WebApp->>WebApp: (Fase 6) Guardar access_token en memoria<br/>(NO en localStorage)
+    WebApp->>WebApp: Guardar access_token en memoria (NO en localStorage)
 ```
 
 ---
@@ -341,7 +347,7 @@ flowchart TD
     D -->|NO| E2["❌ 401 — UnauthorizedException<br/>ResponseCode: AUTHENTICATION_REQUIRED"]
     D -->|SÍ| E{"¿Membership ACTIVE<br/>para esta app?"}
     E -->|NO| E3["❌ 403 — MembershipInactiveException<br/>ResponseCode: OPERATION_FAILED"]
-    E -->|SÍ| F["✅ Crear AuthorizationCode<br/>(TTL: 10 min, status: PENDING)<br/>Retornar LOGIN_SUCCESSFUL"]
+    E -->|SÍ| F["✅ Crear AuthorizationCode<br/>(TTL: 10 min, status: 'pending')<br/>Retornar LOGIN_SUCCESSFUL"]
 ```
 
 ---
@@ -374,7 +380,7 @@ Content-Type: application/json
 | `code_verifier` | Si se usó PKCE | El verifier original que generó el `code_challenge` |
 | `redirect_uri` | ✅ | Debe coincidir **exactamente** con la del Paso 1 |
 
-### Response exitosa — `200 OK` (Fase 5 actual)
+### Response exitosa — `200 OK`
 
 ```json
 {
@@ -384,42 +390,39 @@ Content-Type: application/json
     "message": "Authorization code exchanged"
   },
   "data": {
-    "authorization_code_id": "550e8400-e29b-41d4-a716-446655440000"
+    "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtleWdvLTAxIn0.eyJzdWIiOiJ1c2VyLXV1aWQiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAva2V5Z28tc2VydmVyIiwiYXVkIjoid2ViYXBwLTAwMSIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUiLCJleHAiOjE3NDI2NTcwMDgsImlhdCI6MTc0MjY1MzQwOH0.signature",
+    "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtleWdvLTAxIn0.eyJzdWIiOiJ1c2VyLXV1aWQiLCJlbWFpbCI6ImFuYUBhY21lLmNvbSIsIm5hbWUiOiJBbmEgR2FyY8OtYSIsImlhdCI6MTc0MjY1MzQwOCwiZXhwIjoxNzQyNjU3MDA4fQ.signature",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "scope": "openid profile"
   }
 }
 ```
 
-> ⚠️ **Fase 5 — Respuesta incompleta:** En la fase actual, la respuesta solo contiene el `authorization_code_id`
-> como confirmación de auditoría. En **Fase 6** (Token Signing), la respuesta incluirá:
->
-> ```json
-> {
->   "data": {
->     "access_token": "eyJhbGciOiJSUzI1NiJ9...",
->     "token_type": "Bearer",
->     "expires_in": 3600,
->     "refresh_token": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...",
->     "scope": "openid profile",
->     "id_token": "eyJhbGciOiJSUzI1NiJ9..."
->   }
-> }
-> ```
+| Campo | Descripción |
+|---|---|
+| `data.access_token` | JWT firmado con RS256. Incluir como `Authorization: Bearer <token>` en APIs protegidas |
+| `data.id_token` | JWT con claims de identidad del usuario (OIDC) |
+| `data.token_type` | Siempre `Bearer` |
+| `data.expires_in` | Segundos de validez del access token (3600 = 1 hora) |
+| `data.scope` | Scopes autorizados efectivamente concedidos |
+
+> **Verificar el JWT:** la clave pública para verificar la firma está en `GET /keygo-server/api/v1/tenants/{slug}/.well-known/jwks.json`.  
+> El campo `kid` del header del JWT identifica qué clave usar del JWKS.
 
 ### Qué valida KeyGo en este paso
 
 ```mermaid
 flowchart TD
-    A[POST /oauth2/token] --> B{"¿AuthorizationCode<br/>existe?"}
+    A[POST /oauth2/token] --> B{"¿AuthorizationCode<br/>existe con status='pending'?"}
     B -->|NO| E1["❌ 400 — InvalidAuthorizationCodeException<br/>ResponseCode: INVALID_INPUT"]
-    B -->|SÍ| C{"¿Código expirado?"}
+    B -->|SÍ| C{"¿Código expirado?<br/>(expires_at ≤ NOW())"}
     C -->|SÍ| E2["❌ 400 — AuthorizationCodeExpiredException<br/>ResponseCode: INVALID_INPUT"]
-    C -->|NO| D{"¿Estado PENDING?"}
-    D -->|NO| E3["❌ 400 — IllegalStateException<br/>Código ya usado o revocado"]
-    D -->|SÍ| E{"¿PKCE válido?<br/>SHA256(verifier)==challenge"}
-    E -->|NO| E4["❌ 400 — InvalidPkceVerificationException<br/>ResponseCode: INVALID_INPUT"]
-    E -->|SÍ| F{"¿client_id y<br/>redirect_uri coinciden?"}
+    C -->|NO| D{"¿PKCE válido?<br/>SHA256(verifier)==challenge"}
+    D -->|NO| E4["❌ 400 — InvalidPkceVerificationException<br/>ResponseCode: INVALID_INPUT"]
+    D -->|SÍ| F{"¿client_id y<br/>redirect_uri coinciden?"}
     F -->|NO| E5["❌ 400 — InvalidAuthorizationCodeException"]
-    F -->|SÍ| G["✅ Marcar código CONSUMED<br/>Retornar AUTHORIZATION_CODE_EXCHANGED"]
+    F -->|SÍ| G["✅ Marcar código status='used', used_at=NOW()<br/>Cargar SigningKey ACTIVE<br/>Firmar JWT RS256 (access_token + id_token)<br/>Retornar AUTHORIZATION_CODE_EXCHANGED"]
 ```
 
 ---
@@ -447,52 +450,55 @@ Todos los errores siguen el envelope `BaseResponse<Void>`:
 | 1 | `ClientAppNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | App no existe en el tenant |
 | 1 | `InvalidRedirectUriException` | `400` | `INVALID_INPUT` | redirect_uri no registrada |
 | 1 | `IllegalArgumentException` | `400` | `INVALID_INPUT` | response_type != "code" |
-| 2 | `IllegalArgumentException` | `400` | `INVALID_INPUT` | Sesión no tiene estado de autorización (no se llamó al Paso 1) |
+| 2 | `IllegalArgumentException` | `400` | `INVALID_INPUT` | Sesión sin estado de autorización (Paso 1 no ejecutado) |
 | 2 | `UserNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | Usuario no existe en el tenant |
 | 2 | `UnauthorizedException` | `401` | `AUTHENTICATION_REQUIRED` | Password incorrecto |
-| 2 | `MembershipInactiveException` | `500` | `OPERATION_FAILED` | Usuario no tiene membership activa en la app |
-| 3 | `InvalidAuthorizationCodeException` | `400` | `INVALID_INPUT` | Código no encontrado o inválido |
+| 2 | `MembershipInactiveException` | `500` | `OPERATION_FAILED` | Usuario sin membership activa en la app |
+| 3 | `InvalidAuthorizationCodeException` | `400` | `INVALID_INPUT` | Código no encontrado, ya usado o inválido |
 | 3 | `AuthorizationCodeExpiredException` | `400` | `INVALID_INPUT` | Código expirado (> 10 min) |
 | 3 | `InvalidPkceVerificationException` | `400` | `INVALID_INPUT` | PKCE verification falló |
-| 3 | `IllegalStateException` | `500` | `OPERATION_FAILED` | Código ya fue usado o revocado |
+| 3 | `NoActiveSigningKeyException` | `503` | `OPERATION_FAILED` | No hay clave de firma activa en DB |
 
 ---
 
-## Estado actual vs. Fase 6
+## Estado actual vs. Fases futuras
 
 ```mermaid
 timeline
     title Evolución del flujo de autenticación
-    section Fase 5 (actual)
+    section Fase 5 ✅ (completada)
         GET /authorize : Valida tenant + app + redirect URI
                        : Guarda estado en sesión HTTP
         POST /account/login : Autentica usuario
-                            : Verifica membership
-                            : Emite authorization code (10 min)
+                            : Verifica membership ACTIVE
+                            : Emite authorization code (10 min, status=pending)
         POST /oauth2/token : Valida código + PKCE
-                           : Marca código CONSUMED
-                           : Retorna authorization_code_id (audit)
-    section Fase 6 (próxima)
-        POST /oauth2/token : Firma JWT con clave RS256 (signing_keys)
-                           : Emite access_token + refresh_token + id_token
-                           : Retorna token_type, expires_in
-        GET /.well-known/jwks.json : Publica claves públicas para verificación
-        POST /oauth2/token (refresh) : Rota refresh_token
-                                    : Emite nuevo access_token
+                           : Marca código status=used
+    section Fase 6 ✅ (completada)
+        POST /oauth2/token : Firma JWT RS256 con signing_key ACTIVE
+                           : Emite access_token + id_token
+                           : Retorna token_type Bearer, expires_in, scope
+        GET /.well-known/jwks.json : Publica claves públicas RSA para verificación
+        GET /.well-known/openid-configuration : OIDC Discovery endpoint
+    section Fase 7 ⏳ (planificada)
+        POST /oauth2/token (refresh) : Acepta grant_type=refresh_token
+                                     : Rota refresh_token (tabla V10)
+                                     : Emite nuevo access_token
 ```
 
-| Característica | Fase 5 (actual) | Fase 6 (próxima) |
-|---|---|---|
-| Validación de tenant/app | ✅ | ✅ |
-| Autenticación de usuario | ✅ | ✅ |
-| Verificación de membership | ✅ | ✅ |
-| Authorization code (10 min) | ✅ | ✅ |
-| Validación PKCE (S256/plain) | ✅ | ✅ |
-| Access token JWT (RS256) | ❌ | ✅ |
-| Refresh token | ❌ | ✅ |
-| JWKS endpoint | ❌ | ✅ |
-| ID token (OIDC) | ❌ | ✅ |
-| Redirect HTTP 302 real | ❌ | ✅ |
+| Característica | Fase 5 ✅ | Fase 6 ✅ | Fase 7 ⏳ |
+|---|---|---|---|
+| Validación de tenant/app | ✅ | ✅ | ✅ |
+| Autenticación de usuario | ✅ | ✅ | ✅ |
+| Verificación de membership | ✅ | ✅ | ✅ |
+| Authorization code (10 min) | ✅ | ✅ | ✅ |
+| Validación PKCE (S256/plain) | ✅ | ✅ | ✅ |
+| Access token JWT (RS256) | ❌ | ✅ | ✅ |
+| ID token (OIDC) | ❌ | ✅ | ✅ |
+| JWKS endpoint | ❌ | ✅ | ✅ |
+| OIDC Discovery | ❌ | ✅ | ✅ |
+| Refresh token | ❌ | ❌ | ✅ |
+| Redirect HTTP 302 real | ❌ | ❌ | ✅ |
 
 ---
 
@@ -591,12 +597,16 @@ async function exchangeCode(code: string): Promise<void> {
 
   if (!res.ok) throw new Error(body.failure?.message ?? 'Error al canjear código');
 
-  // Fase 5: solo confirma el ID del código consumido
-  console.log('Código canjeado:', body.data.authorization_code_id);
+  // Fase 6: access_token + id_token reales (JWT RS256)
+  const { access_token, id_token, token_type, expires_in, scope } = body.data;
 
-  // Fase 6: guardar tokens en memoria (NO en localStorage)
-  // this.accessToken  = body.data.access_token;
-  // this.refreshToken = body.data.refresh_token;  // en cookie httpOnly
+  // Guardar en memoria (NO en localStorage — riesgo XSS)
+  this.accessToken = access_token;
+  this.idToken     = id_token;
+  this.tokenExpiry = Date.now() + expires_in * 1000;
+
+  console.log('Token scope:', scope);
+  console.log('Token type:', token_type);   // siempre "Bearer"
 
   sessionStorage.removeItem('pkce_code_verifier');
   sessionStorage.removeItem('oauth_state');
@@ -704,5 +714,5 @@ Antes de pasar a producción, verificar que la aplicación cliente cumple con:
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Alcance:** Fase 5 implementada
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Alcance:** Fases 5 y 6 implementadas ✅
 

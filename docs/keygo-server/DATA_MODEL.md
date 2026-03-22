@@ -2,421 +2,472 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-03-22**
+> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V9
 
 ---
 
 ## Tabla de contenidos
 
-1. [Diccionario de datos](#diccionario-de-datos)
-2. [Modelo E/R (Diagrama Mermaid)](#modelo-er-diagrama-mermaid)
-3. [Relaciones de dependencia](#relaciones-de-dependencia)
-4. [Guías de consulta común](#guías-de-consulta-común)
+1. [Tablas activas (multi-tenancy)](#tablas-activas-multi-tenancy)
+2. [Tablas legado (V1/V3)](#tablas-legado-v1v3)
+3. [Tablas planificadas (fases futuras)](#tablas-planificadas-fases-futuras)
+4. [Modelo E/R (Diagrama Mermaid)](#modelo-er-diagrama-mermaid)
+5. [Relaciones de dependencia](#relaciones-de-dependencia)
+6. [Guías de consulta común](#guías-de-consulta-común)
+7. [Notas sobre enumeraciones](#notas-sobre-enumeraciones)
+8. [Referencia rápida de constraints únicos](#referencia-rápida-de-constraints-únicos)
 
 ---
 
-## Diccionario de datos
+## Tablas activas (multi-tenancy)
 
-### Tabla: `tenants`
+> Estas tablas forman el núcleo del sistema. Todas implementadas en migraciones V4–V9.
+
+### Tabla: `tenants` — V4
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único del tenant |
-| `slug` | VARCHAR(100) | UNIQUE | NO | Identificador URL amigable; único globalmente. Se usa en rutas como `/tenants/{slug}` |
+| `id` | UUID | PK | NO | Identificador único del tenant (`uuid_generate_v4()`) |
+| `slug` | VARCHAR(100) | UNIQUE | NO | Identificador URL-friendly (solo minúsculas, números y guiones). Mín. 3 chars. |
 | `name` | VARCHAR(255) | | NO | Nombre legal/comercial del tenant |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `SUSPENDED`, `ARCHIVED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de creación (UTC) |
-| `updated_at` | TIMESTAMP | | NO | Marca de tiempo de última actualización (UTC) |
+| `owner_email` | VARCHAR(255) | | NO | Email del propietario/administrador del tenant |
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `SUSPENDED`, `PENDING` |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación (UTC) |
+| `updated_at` | TIMESTAMPTZ | | NO | Marca de tiempo de última actualización (UTC — auto-actualizado por trigger) |
+
+**Constraints:**
+- `UNIQUE(slug)`, `slug ~ '^[a-z0-9][a-z0-9\-]*[a-z0-9]$'`, `char_length(slug) >= 3`
+- `status IN ('ACTIVE', 'SUSPENDED', 'PENDING')`
 
 **Reglas de negocio:**
 - El `slug` es único globalmente; no puede repetirse entre tenants.
-- Un tenant suspendido (`SUSPENDED`) no debe permitir operaciones normales (login, token issuance).
-- Toda entidad que tenga `tenant_id` pertenece lógicamente a este tenant.
+- Un tenant `SUSPENDED` no debe permitir operaciones normales (login, emisión de tokens).
+- Toda entidad con `tenant_id` pertenece lógicamente a este tenant.
 
 ---
 
-### Tabla: `client_apps`
+### Tabla: `client_apps` — V5
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único de la aplicación cliente |
 | `tenant_id` | UUID | FK | NO | Referencia al tenant propietario |
-| `client_id` | VARCHAR(100) | UNIQUE+INDEX | NO | ID OAuth2/OIDC único dentro del tenant; usado en requests de autorización |
-| `client_type` | ENUM | | NO | Tipo de cliente: `PUBLIC` (SPA, mobile) o `CONFIDENTIAL` (servidor backend) |
-| `display_name` | VARCHAR(255) | | NO | Nombre legible de la aplicación |
-| `client_secret` | VARCHAR(500) | | SÍ | Hash seguro del secret (si es CONFIDENTIAL); nunca se expone, solo se valida |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `DISABLED`, `ROTATION_REQUIRED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de creación |
-| `updated_at` | TIMESTAMP | | NO | Marca de tiempo de última actualización |
+| `client_id` | VARCHAR(255) | UNIQUE | NO | ID OAuth2/OIDC único globalmente; usado en requests de autorización |
+| `name` | VARCHAR(255) | | NO | Nombre legible de la aplicación |
+| `description` | TEXT | | SÍ | Descripción opcional de la app |
+| `type` | VARCHAR(20) | | NO | Tipo de cliente: `PUBLIC` (SPA, mobile) o `CONFIDENTIAL` (servidor backend) |
+| `hashed_secret` | VARCHAR(255) | | SÍ | Hash del secret (solo si `CONFIDENTIAL`); nunca se expone en claro |
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `SUSPENDED`, `PENDING` |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación |
+| `updated_at` | TIMESTAMPTZ | | NO | Marca de tiempo de última actualización |
+
+**Constraints:**
+- `type IN ('PUBLIC', 'CONFIDENTIAL')`
+- `status IN ('ACTIVE', 'SUSPENDED', 'PENDING')`
 
 **Reglas de negocio:**
-- El `client_id` es único dentro del tenant.
-- `client_type = PUBLIC` no debe tener `client_secret` (o no validarlo).
-- `client_type = CONFIDENTIAL` debe validar `client_secret` en algunos flows.
-- Un cliente solo puede usar grants (`ALLOWED_GRANT`) y scopes (`ALLOWED_SCOPE`) explícitamente registrados.
+- `type = PUBLIC` no debe tener `hashed_secret` (o ignorarlo en validación).
+- `type = CONFIDENTIAL` requiere validar `hashed_secret` en algunos flows.
+- Un cliente solo puede usar grants (`client_allowed_grants`) y scopes (`client_allowed_scopes`) registrados.
 
 ---
 
-### Tabla: `client_redirect_uris`
-
-| Campo | Tipo | Clave | Nulable | Descripción |
-|---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único de la redirect URI |
-| `client_app_id` | UUID | FK | NO | Referencia al cliente propietario |
-| `redirect_uri` | VARCHAR(2000) | | NO | URI exacta permitida (sin wildcards) |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de creación |
-
-**Reglas de negocio:**
-- La redirect URI en un `authorize` request debe coincidir exactamente con una entrada aquí.
-- No se permiten wildcards; la validación es literal.
-- Un cliente puede tener múltiples redirect URIs (p. ej. desarrollo, staging, producción).
-
----
-
-### Tabla: `client_allowed_grants`
+### Tabla: `client_redirect_uris` — V5
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único |
 | `client_app_id` | UUID | FK | NO | Referencia al cliente propietario |
-| `grant_type` | ENUM | | NO | Tipo de grant permitido: `AUTHORIZATION_CODE`, `CLIENT_CREDENTIALS`, `REFRESH_TOKEN`, etc. |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de registro |
+| `uri` | VARCHAR(2048) | | NO | URI exacta permitida (sin wildcards) |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación |
 
 **Reglas de negocio:**
-- Un cliente solo puede usar grants que estén registrados aquí.
-- El servidor debe validar contra esta tabla antes de emitir un token via ese flujo.
+- La redirect URI en un `authorize` request debe coincidir exactamente con una entrada aquí.
+- No se permiten wildcards; la validación es literal.
+- Un cliente puede tener múltiples redirect URIs (dev, staging, producción).
 
 ---
 
-### Tabla: `client_allowed_scopes`
+### Tabla: `client_allowed_grants` — V5
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `client_app_id` | UUID | FK | NO | Referencia al cliente propietario |
+| `grant_type` | VARCHAR(50) | | NO | Tipo de grant permitido (p. ej. `authorization_code`, `client_credentials`, `refresh_token`) |
+
+**Reglas de negocio:**
+- Un cliente solo puede usar grants registrados aquí.
+- El servidor debe validar contra esta tabla antes de emitir un token por ese flujo.
+
+---
+
+### Tabla: `client_allowed_scopes` — V5
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único |
 | `client_app_id` | UUID | FK | NO | Referencia al cliente propietario |
 | `scope` | VARCHAR(100) | | NO | Scope permitido (p. ej. `openid`, `profile`, `email`, `custom:admin`) |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de registro |
 
 **Reglas de negocio:**
-- Un cliente solo puede solicitar scopes que estén aquí.
-- El servidor filtra `authorized_scopes` contra esta lista en base a consentimiento del usuario.
+- Un cliente solo puede solicitar scopes registrados aquí.
+- El servidor filtra los scopes autorizados contra esta lista.
 
 ---
 
-### Tabla: `tenant_users`
+### Tabla: `tenant_users` — V6
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del usuario |
 | `tenant_id` | UUID | FK | NO | Referencia al tenant propietario |
-| `email` | VARCHAR(255) | UNIQUE (tenant_id, email) | NO | Email único dentro del tenant |
-| `username` | VARCHAR(100) | UNIQUE (tenant_id, username) | SÍ | Username opcional; único dentro del tenant si se usa |
-| `display_name` | VARCHAR(255) | | SÍ | Nombre completo legible |
-| `password_hash` | VARCHAR(500) | | NO | Hash seguro de contraseña (Bcrypt, Argon2, etc.) |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `INVITED`, `LOCKED`, `SUSPENDED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de creación |
-| `updated_at` | TIMESTAMP | | NO | Marca de tiempo de última actualización |
+| `username` | VARCHAR(100) | UNIQUE (tenant) | NO | Username único dentro del tenant |
+| `email` | VARCHAR(255) | UNIQUE (tenant) | NO | Email único dentro del tenant |
+| `password_hash` | VARCHAR(255) | | NO | Hash seguro de contraseña (BCrypt) |
+| `first_name` | VARCHAR(100) | | SÍ | Nombre de pila |
+| `last_name` | VARCHAR(100) | | SÍ | Apellido |
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `SUSPENDED`, `PENDING` |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación |
+| `updated_at` | TIMESTAMPTZ | | NO | Marca de tiempo de última actualización |
+
+**Constraints:**
+- `UNIQUE(tenant_id, email)` — email único por tenant
+- `UNIQUE(tenant_id, username)` — username único por tenant
+- `status IN ('ACTIVE', 'SUSPENDED', 'PENDING')`
+- FK: `tenant_id` → `tenants(id)` ON DELETE CASCADE
 
 **Reglas de negocio:**
 - Email y username son únicos por tenant, no globalmente.
-- Un usuario existe una sola vez por tenant (no hay duplicados).
-- Un usuario con status `SUSPENDED` no puede autenticarse.
-- La contraseña nunca se almacena en claro; siempre como hash.
+- La contraseña nunca se almacena en claro; siempre como hash BCrypt.
+- Un usuario `SUSPENDED` no puede autenticarse.
 
 ---
 
-### Tabla: `memberships`
-
-| Campo | Tipo | Clave | Nulable | Descripción |
-|---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único de la membership |
-| `tenant_id` | UUID | FK | NO | Referencia al tenant (desnormalizado para consultas rápidas) |
-| `user_id` | UUID | FK | NO | Referencia al usuario |
-| `client_app_id` | UUID | FK | NO | Referencia a la aplicación cliente |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `INVITED`, `SUSPENDED`, `REVOKED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de creación |
-| `updated_at` | TIMESTAMP | | NO | Marca de tiempo de última actualización |
-
-**Constraints:**
-- UNIQUE (`tenant_id`, `user_id`, `client_app_id`) — no hay memberships duplicadas
-- FK: `user_id` → `tenant_users(id)` ON DELETE CASCADE
-- FK: `client_app_id` → `client_apps(id)` ON DELETE CASCADE
-
-**Reglas de negocio:**
-- Una membership define si el usuario puede acceder a esa app.
-- Un usuario **debe** tener membership activa en una app para poder autenticarse en ella.
-- Estado `REVOKED` o `SUSPENDED` deniega login en esa app.
-- Múltiples memberships del mismo usuario en diferentes apps son normales.
-
----
-
-### Tabla: `app_role`
+### Tabla: `app_role` — V7
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del rol |
-| `tenant_id` | UUID | FK | NO | Referencia al tenant (desnormalizado) |
 | `client_app_id` | UUID | FK | NO | Referencia a la aplicación propietaria del rol |
-| `code` | VARCHAR(100) | UNIQUE (client_app_id, code) | NO | Código del rol (p. ej. `ADMIN`, `USER`, `VIEWER`) |
-| `name` | VARCHAR(255) | | NO | Nombre legible del rol |
+| `code` | VARCHAR(50) | UNIQUE (app) | NO | Código del rol en minúsculas (p. ej. `admin`, `user`, `viewer`). Patrón: `^[a-z][a-z0-9_-]*$` |
+| `display_name` | VARCHAR(255) | | SÍ | Nombre legible del rol |
 | `description` | TEXT | | SÍ | Descripción de responsabilidades/permisos |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `DISABLED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de creación |
-| `updated_at` | TIMESTAMP | | NO | Marca de tiempo de última actualización |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación |
+| `updated_at` | TIMESTAMPTZ | | NO | Marca de tiempo de última actualización |
 
 **Constraints:**
-- UNIQUE (`client_app_id`, `code`) — el código del rol es único dentro de la app
+- `UNIQUE(client_app_id, code)` — código único dentro de la app
+- `code ~ '^[a-z][a-z0-9_-]*$'` — solo minúsculas, números, guiones y underscores
+- FK: `client_app_id` → `client_apps(id)` ON DELETE CASCADE
 
 **Reglas de negocio:**
-- Un rol siempre pertenece a una app específica; roles no son globales.
+- Un rol siempre pertenece a una app específica; los roles no son globales.
 - El `code` es el identificador funcional dentro de la app (p. ej. en JWT claims).
 - Diferentes apps pueden tener roles con el mismo código, pero son entidades distintas.
 
 ---
 
-### Tabla: `membership_role`
+### Tabla: `membership` — V7
+
+> ⚠️ **Nombre en singular** (`membership`, no `memberships`). La tabla NO tiene columna `tenant_id`.
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único |
-| `membership_id` | UUID | FK | NO | Referencia a la membership |
-| `app_role_id` | UUID | FK | NO | Referencia al rol |
-| `assigned_at` | TIMESTAMP | | NO | Marca de tiempo de asignación |
+| `id` | UUID | PK | NO | Identificador único de la membership |
+| `user_id` | UUID | FK | NO | Referencia al usuario (`tenant_users`) |
+| `client_app_id` | UUID | FK | NO | Referencia a la aplicación cliente |
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `SUSPENDED`, `PENDING` |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación |
+| `updated_at` | TIMESTAMPTZ | | NO | Marca de tiempo de última actualización |
 
 **Constraints:**
-- UNIQUE (`membership_id`, `app_role_id`) — no hay asignaciones duplicadas
-- FK: `membership_id` → `memberships(id)` ON DELETE CASCADE
-- FK: `app_role_id` → `app_role(id)` ON DELETE CASCADE
+- `UNIQUE(user_id, client_app_id)` — no hay memberships duplicadas
+- `status IN ('ACTIVE', 'SUSPENDED', 'PENDING')`
+- FK: `user_id` → `tenant_users(id)` ON DELETE CASCADE
+- FK: `client_app_id` → `client_apps(id)` ON DELETE CASCADE
 
 **Reglas de negocio:**
-- Una membership puede tener múltiples roles dentro de la misma app.
-- El rol de una membership debe pertenecer a la misma app.
-- Al revocar una membership, se revoca implícitamente todos sus roles.
+- Una membership define si el usuario puede acceder a esa app.
+- Un usuario **debe** tener membership `ACTIVE` en una app para autenticarse en ella.
+- Estado `SUSPENDED` deniega temporalmente el login.
+- `PENDING` = invitación pendiente de aceptación.
 
 ---
 
-### Tabla: `authorization_codes`
+### Tabla: `membership_role` — V7
+
+> ⚠️ **PK compuesta** `(membership_id, role_id)` — NO hay columna `id` independiente. La columna FK al rol es `role_id` (no `app_role_id`).
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `membership_id` | UUID | PK (parte) + FK | NO | Referencia a la membership |
+| `role_id` | UUID | PK (parte) + FK | NO | Referencia al rol (`app_role`) |
+| `assigned_at` | TIMESTAMPTZ | | NO | Marca de tiempo de asignación |
+
+**Constraints:**
+- PK compuesta: `(membership_id, role_id)`
+- FK: `membership_id` → `membership(id)` ON DELETE CASCADE
+- FK: `role_id` → `app_role(id)` ON DELETE CASCADE
+
+**Reglas de negocio:**
+- Una membership puede tener múltiples roles dentro de la misma app.
+- El rol de una membership debe pertenecer a la misma app que la membership.
+- Al revocar/eliminar una membership, se eliminan implícitamente todos sus roles (CASCADE).
+
+---
+
+### Tabla: `authorization_codes` — V8
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del código |
-| `tenant_id` | UUID | FK | NO | Referencia al tenant |
+| `code` | VARCHAR(256) | UNIQUE | NO | Valor opaco del código de autorización |
 | `client_app_id` | UUID | FK | NO | Referencia al cliente que lo solicitó |
+| `tenant_id` | UUID | FK | NO | Referencia al tenant |
 | `user_id` | UUID | FK | NO | Referencia al usuario autenticado |
-| `code` | VARCHAR(500) | UNIQUE | NO | Valor opaco del código (alfanumérico) |
-| `redirect_uri` | VARCHAR(2000) | | NO | URI de redirección autorizada |
-| `scope_set` | TEXT | | NO | Scopes autorizados (serializado, p. ej. JSON) |
-| `code_challenge` | VARCHAR(500) | | SÍ | Challenge PKCE (S256 hash) |
-| `code_challenge_method` | ENUM | | SÍ | Método PKCE: `S256`, `PLAIN` |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `CONSUMED`, `EXPIRED`, `REVOKED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de emisión |
-| `expires_at` | TIMESTAMP | | NO | Marca de tiempo de expiración (típicamente 10 min) |
+| `code_challenge` | VARCHAR(256) | | NO | Challenge PKCE (valor hash SHA-256 o plain) |
+| `code_challenge_method` | VARCHAR(10) | | NO | Método PKCE: `plain` o `S256` |
+| `requested_scopes` | TEXT | | NO | Scopes solicitados (serializado) |
+| `redirect_uri` | VARCHAR(2048) | | NO | URI de redirección autorizada |
+| `status` | VARCHAR(20) | | NO | Estado: `pending`, `used`, `expired`, `revoked` |
+| `expires_at` | TIMESTAMPTZ | | NO | Marca de tiempo de expiración (~10 min tras creación) |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de emisión |
+| `used_at` | TIMESTAMPTZ | | SÍ | Marca de tiempo de canje (se llena al marcar `used`) |
+
+**Constraints:**
+- `UNIQUE(code)`
+- `code_challenge_method IN ('plain', 'S256')`
+- `status IN ('pending', 'used', 'expired', 'revoked')`
+- FK: `client_app_id` → `client_apps(id)` ON DELETE CASCADE
+- FK: `tenant_id` → `tenants(id)` ON DELETE CASCADE
+- FK: `user_id` → `tenant_users(id)` ON DELETE CASCADE
 
 **Reglas de negocio:**
-- Solo se puede canjear una vez (status → `CONSUMED`).
-- Debe expirar rápidamente (~10 minutos).
+- Solo se puede canjear una vez: `pending` → `used` (inmutable después).
+- Debe expirar rápidamente (~10 min). `expires_at > NOW()` se valida al canjear.
 - El `client_app_id` que canjea debe ser el mismo que lo solicitó.
-- Si PKCE fue usado en `authorize`, debe validarse el `code_verifier` contra `code_challenge`.
+- Si PKCE fue usado en `/authorize`, se debe validar `code_verifier` contra `code_challenge`.
 
 ---
 
-### Tabla: `refresh_tokens`
+### Tabla: `signing_keys` — V9
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `kid` | VARCHAR(100) | UNIQUE | NO | Key ID usado en el header `kid` del JWT |
+| `algorithm` | VARCHAR(20) | | NO | Algoritmo de firma: `RS256`, `RS384`, `RS512` |
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `RETIRED`, `REVOKED` |
+| `public_material` | TEXT | | NO | Clave pública en formato PEM |
+| `private_material` | TEXT | | SÍ | Clave privada en formato PEM (cifrada en reposo recomendada) |
+| `activated_at` | TIMESTAMPTZ | | NO | Marca de tiempo de activación |
+| `retired_at` | TIMESTAMPTZ | | SÍ | Marca de tiempo de retiro (`null` si sigue activa) |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de creación |
+
+**Constraints:**
+- `UNIQUE(kid)`
+- `status IN ('ACTIVE', 'RETIRED', 'REVOKED')`
+
+**Reglas de negocio:**
+- Debe existir al menos una clave `ACTIVE` para emitir tokens.
+- Las claves `RETIRED` se mantienen para validación de tokens ya emitidos.
+- La clave privada se almacena en DB en PEM cifrado — en producción debe migrar a KMS/bóveda.
+- Solo una clave `ACTIVE` a la vez; al rotar, la anterior pasa a `RETIRED`.
+
+---
+
+## Tablas legado (V1/V3)
+
+> Estas tablas existen en la DB por las migraciones iniciales pero **no se usan** en el sistema multi-tenancy actual. Se conservan por compatibilidad; no crear nuevos endpoints sobre ellas.
+
+| Tabla | Migración | Descripción | Estado |
+|---|---|---|---|
+| `users` | V1 | Usuarios globales (sin tenant). Estructura diferente a `tenant_users`. | 🚧 Legado |
+| `roles` | V1 | Roles globales del sistema. Sin relación con `app_role`. | 🚧 Legado |
+| `user_roles` | V1 | Join table `users ↔ roles`. PK compuesta `(user_id, role_id)`. | 🚧 Legado |
+| `permissions` | V1 | Permisos globales con acciones: `CREATE`, `READ`, `UPDATE`, `DELETE`, `EXECUTE`. | 🚧 Legado |
+| `role_permissions` | V1 | Join table `roles ↔ permissions`. PK compuesta. | 🚧 Legado |
+| `sessions` | V1 | Sesiones de usuario global (token JWT crudo, no multi-tenant). | 🚧 Legado |
+| `audit_logs` | V1 | Log de auditoría global por acción + recurso + `user_id`. | 🚧 Legado |
+| `oauth_providers` | V3 | Configuración de proveedores OAuth externos (Google, GitHub, etc.). | 🚧 Legado |
+| `oauth_tokens` | V3 | Tokens de acceso de proveedores externos por usuario global. | 🚧 Legado |
+
+---
+
+## Tablas planificadas (fases futuras)
+
+> Estas tablas están **documentadas en el diseño** pero aún **no tienen migración implementada**. Se incluyen aquí para referencia de diseño.
+
+### Tabla: `refresh_tokens` — Planificada (Fase 7+)
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único |
 | `tenant_id` | UUID | FK | NO | Referencia al tenant |
 | `client_app_id` | UUID | FK | NO | Referencia al cliente propietario |
-| `user_id` | UUID | FK | SÍ | Referencia al usuario (nullable para M2M flows en futuro) |
-| `token_hash` | VARCHAR(500) | UNIQUE | NO | Hash del token (nunca se almacena en claro) |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `USED`, `REVOKED`, `EXPIRED` |
-| `rotated_from` | UUID | FK | SÍ | Referencia a token anterior si fue rotado |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de emisión |
-| `expires_at` | TIMESTAMP | | NO | Marca de tiempo de expiración |
+| `user_id` | UUID | FK | SÍ | Referencia al usuario (nullable para M2M flows futuros) |
+| `token_hash` | VARCHAR(500) | UNIQUE | NO | Hash del token (nunca en claro) |
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `USED`, `REVOKED`, `EXPIRED` |
+| `rotated_from` | UUID | FK | SÍ | Referencia al token anterior si fue rotado |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de emisión |
+| `expires_at` | TIMESTAMPTZ | | NO | Marca de tiempo de expiración |
 
-**Reglas de negocio:**
-- El token nunca se almacena en claro, solo su hash.
-- Al rotar, el token anterior se marca `USED` y el nuevo se vincula via `rotated_from`.
-- Un token revocado no puede renovarse.
-- El contexto (tenant, client, user) debe ser consistente en cada renovación.
+**Reglas de negocio (diseño):**
+- Token nunca en claro, solo hash.
+- Al rotar: token anterior → `USED`, nuevo vinculado via `rotated_from`.
+- Token revocado no puede renovarse.
 
----
+**Próxima migración:** `V10__add_refresh_tokens.sql`
 
-### Tabla: `sessions`
+### Tabla: `tenant_sessions` — Planificada (Fase 8+)
+
+> Diferente a la tabla `sessions` de V1 (que es legado global). Esta nueva tabla sería multi-tenant.
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único de sesión |
 | `tenant_id` | UUID | FK | NO | Referencia al tenant |
-| `user_id` | UUID | FK | NO | Referencia al usuario dueño |
+| `user_id` | UUID | FK | NO | Referencia al usuario (`tenant_users`) |
 | `client_app_id` | UUID | FK | NO | Referencia a la app donde se autenticó |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `TERMINATED`, `EXPIRED` |
-| `created_at` | TIMESTAMP | | NO | Marca de tiempo de inicio |
-| `last_seen_at` | TIMESTAMP | | NO | Última actividad (para cálculo de expiración) |
-| `device_info` | JSON | | SÍ | Información del dispositivo (User-Agent, etc.) |
-| `ip_address` | VARCHAR(45) | | SÍ | Dirección IP de origen (IPv4 o IPv6) |
-
-**Reglas de negocio:**
-- Una sesión terminada no puede emitir nuevos tokens.
-- Se usa para auditoría y para soporte a "logout everywhere".
-
----
-
-### Tabla: `signing_keys`
-
-| Campo | Tipo | Clave | Nulable | Descripción |
-|---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único |
-| `kid` | VARCHAR(100) | UNIQUE | NO | Key ID usado en el header `kid` del JWT |
-| `algorithm` | VARCHAR(50) | | NO | Algoritmo de firma (p. ej. `RS256`, `ES256`) |
-| `status` | ENUM | | NO | Estado: `ACTIVE`, `RETIRED`, `REVOKED` |
-| `public_material` | TEXT | | NO | PEM codificado de la clave pública |
-| `private_material_ref` | VARCHAR(500) | | SÍ | Referencia a almacenamiento seguro (bóveda, KMS) |
-| `activated_at` | TIMESTAMP | | NO | Marca de tiempo de activación |
-| `retired_at` | TIMESTAMP | | SÍ | Marca de tiempo de retiro (si aplica) |
-
-**Reglas de negocio:**
-- Debe existir al menos una clave `ACTIVE` para emitir tokens.
-- Las claves retiradas se mantienen para validación de tokens antiguos.
-- La clave privada nunca debe almacenarse en la DB; usar KMS o bóveda segura.
+| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `TERMINATED`, `EXPIRED` |
+| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de inicio |
+| `last_seen_at` | TIMESTAMPTZ | | NO | Última actividad |
+| `device_info` | JSON | | SÍ | Información del dispositivo |
+| `ip_address` | VARCHAR(45) | | SÍ | IP de origen (IPv4 o IPv6) |
 
 ---
 
 ## Modelo E/R (Diagrama Mermaid)
 
+> Solo tablas activas (V4–V9). Las tablas de legado se omiten para claridad.
+
 ```mermaid
 erDiagram
-    TENANTS ||--o{ CLIENT_APPS : owns
-    TENANTS ||--o{ TENANT_USERS : "contains"
-    TENANTS ||--o{ MEMBERSHIPS : "context"
-    TENANTS ||--o{ APP_ROLE : "defines"
-    TENANTS ||--o{ AUTHORIZATION_CODES : "issues"
-    TENANTS ||--o{ REFRESH_TOKENS : "maintains"
-    TENANTS ||--o{ SESSIONS : "tracks"
+    TENANTS ||--o{ CLIENT_APPS : "owns (tenant_id)"
+    TENANTS ||--o{ TENANT_USERS : "contains (tenant_id)"
+    TENANTS ||--o{ AUTHORIZATION_CODES : "issues (tenant_id)"
 
-    CLIENT_APPS ||--o{ CLIENT_REDIRECT_URIS : "registers"
-    CLIENT_APPS ||--o{ CLIENT_ALLOWED_GRANTS : "permits"
-    CLIENT_APPS ||--o{ CLIENT_ALLOWED_SCOPES : "permits"
-    CLIENT_APPS ||--o{ MEMBERSHIPS : "accessed-by"
-    CLIENT_APPS ||--o{ APP_ROLE : "defines"
-    CLIENT_APPS ||--o{ AUTHORIZATION_CODES : "requests"
-    CLIENT_APPS ||--o{ REFRESH_TOKENS : "issues"
-    CLIENT_APPS ||--o{ SESSIONS : "hosts"
+    CLIENT_APPS ||--o{ CLIENT_REDIRECT_URIS : "registers (client_app_id)"
+    CLIENT_APPS ||--o{ CLIENT_ALLOWED_GRANTS : "permits (client_app_id)"
+    CLIENT_APPS ||--o{ CLIENT_ALLOWED_SCOPES : "permits (client_app_id)"
+    CLIENT_APPS ||--o{ APP_ROLE : "defines (client_app_id)"
+    CLIENT_APPS ||--o{ MEMBERSHIP : "accessed-by (client_app_id)"
+    CLIENT_APPS ||--o{ AUTHORIZATION_CODES : "requests (client_app_id)"
 
-    TENANT_USERS ||--o{ MEMBERSHIPS : "has"
-    TENANT_USERS ||--o{ AUTHORIZATION_CODES : "authenticates"
-    TENANT_USERS ||--o{ REFRESH_TOKENS : "owns"
-    TENANT_USERS ||--o{ SESSIONS : "participates"
+    TENANT_USERS ||--o{ MEMBERSHIP : "has (user_id)"
+    TENANT_USERS ||--o{ AUTHORIZATION_CODES : "authenticates (user_id)"
 
-    MEMBERSHIPS ||--o{ MEMBERSHIP_ROLE : "assigned"
-    APP_ROLE ||--o{ MEMBERSHIP_ROLE : "grants"
+    MEMBERSHIP ||--o{ MEMBERSHIP_ROLE : "assigned (membership_id)"
+    APP_ROLE ||--o{ MEMBERSHIP_ROLE : "grants (role_id)"
 
-    TENANTS : UUID id PK
-    TENANTS : VARCHAR slug UK
-    TENANTS : VARCHAR name
-    TENANTS : ENUM status
-    TENANTS : TIMESTAMP created_at
-    TENANTS : TIMESTAMP updated_at
+    TENANTS {
+        UUID id PK
+        VARCHAR slug UK
+        VARCHAR name
+        VARCHAR owner_email
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-    CLIENT_APPS : UUID id PK
-    CLIENT_APPS : UUID tenant_id FK
-    CLIENT_APPS : VARCHAR client_id
-    CLIENT_APPS : ENUM client_type
-    CLIENT_APPS : VARCHAR display_name
-    CLIENT_APPS : VARCHAR client_secret
-    CLIENT_APPS : ENUM status
-    CLIENT_APPS : TIMESTAMP created_at
-    CLIENT_APPS : TIMESTAMP updated_at
+    CLIENT_APPS {
+        UUID id PK
+        UUID tenant_id FK
+        VARCHAR client_id UK
+        VARCHAR name
+        TEXT description
+        VARCHAR type
+        VARCHAR hashed_secret
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-    CLIENT_REDIRECT_URIS : UUID id PK
-    CLIENT_REDIRECT_URIS : UUID client_app_id FK
-    CLIENT_REDIRECT_URIS : VARCHAR redirect_uri
-    CLIENT_REDIRECT_URIS : TIMESTAMP created_at
+    CLIENT_REDIRECT_URIS {
+        UUID id PK
+        UUID client_app_id FK
+        VARCHAR uri
+        TIMESTAMPTZ created_at
+    }
 
-    CLIENT_ALLOWED_GRANTS : UUID id PK
-    CLIENT_ALLOWED_GRANTS : UUID client_app_id FK
-    CLIENT_ALLOWED_GRANTS : ENUM grant_type
-    CLIENT_ALLOWED_GRANTS : TIMESTAMP created_at
+    CLIENT_ALLOWED_GRANTS {
+        UUID id PK
+        UUID client_app_id FK
+        VARCHAR grant_type
+    }
 
-    CLIENT_ALLOWED_SCOPES : UUID id PK
-    CLIENT_ALLOWED_SCOPES : UUID client_app_id FK
-    CLIENT_ALLOWED_SCOPES : VARCHAR scope
-    CLIENT_ALLOWED_SCOPES : TIMESTAMP created_at
+    CLIENT_ALLOWED_SCOPES {
+        UUID id PK
+        UUID client_app_id FK
+        VARCHAR scope
+    }
 
-    TENANT_USERS : UUID id PK
-    TENANT_USERS : UUID tenant_id FK
-    TENANT_USERS : VARCHAR email
-    TENANT_USERS : VARCHAR username
-    TENANT_USERS : VARCHAR display_name
-    TENANT_USERS : VARCHAR password_hash
-    TENANT_USERS : ENUM status
-    TENANT_USERS : TIMESTAMP created_at
-    TENANT_USERS : TIMESTAMP updated_at
+    TENANT_USERS {
+        UUID id PK
+        UUID tenant_id FK
+        VARCHAR username
+        VARCHAR email
+        VARCHAR password_hash
+        VARCHAR first_name
+        VARCHAR last_name
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-    MEMBERSHIPS : UUID id PK
-    MEMBERSHIPS : UUID tenant_id FK
-    MEMBERSHIPS : UUID user_id FK
-    MEMBERSHIPS : UUID client_app_id FK
-    MEMBERSHIPS : ENUM status
-    MEMBERSHIPS : TIMESTAMP created_at
-    MEMBERSHIPS : TIMESTAMP updated_at
+    APP_ROLE {
+        UUID id PK
+        UUID client_app_id FK
+        VARCHAR code
+        VARCHAR display_name
+        TEXT description
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-    APP_ROLE : UUID id PK
-    APP_ROLE : UUID tenant_id FK
-    APP_ROLE : UUID client_app_id FK
-    APP_ROLE : VARCHAR code
-    APP_ROLE : VARCHAR name
-    APP_ROLE : TEXT description
-    APP_ROLE : ENUM status
-    APP_ROLE : TIMESTAMP created_at
-    APP_ROLE : TIMESTAMP updated_at
+    MEMBERSHIP {
+        UUID id PK
+        UUID user_id FK
+        UUID client_app_id FK
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-    MEMBERSHIP_ROLE : UUID id PK
-    MEMBERSHIP_ROLE : UUID membership_id FK
-    MEMBERSHIP_ROLE : UUID app_role_id FK
-    MEMBERSHIP_ROLE : TIMESTAMP assigned_at
+    MEMBERSHIP_ROLE {
+        UUID membership_id PK_FK
+        UUID role_id PK_FK
+        TIMESTAMPTZ assigned_at
+    }
 
-    AUTHORIZATION_CODES : UUID id PK
-    AUTHORIZATION_CODES : UUID tenant_id FK
-    AUTHORIZATION_CODES : UUID client_app_id FK
-    AUTHORIZATION_CODES : UUID user_id FK
-    AUTHORIZATION_CODES : VARCHAR code
-    AUTHORIZATION_CODES : VARCHAR redirect_uri
-    AUTHORIZATION_CODES : TEXT scope_set
-    AUTHORIZATION_CODES : VARCHAR code_challenge
-    AUTHORIZATION_CODES : ENUM code_challenge_method
-    AUTHORIZATION_CODES : ENUM status
-    AUTHORIZATION_CODES : TIMESTAMP created_at
-    AUTHORIZATION_CODES : TIMESTAMP expires_at
+    AUTHORIZATION_CODES {
+        UUID id PK
+        VARCHAR code UK
+        UUID client_app_id FK
+        UUID tenant_id FK
+        UUID user_id FK
+        VARCHAR code_challenge
+        VARCHAR code_challenge_method
+        TEXT requested_scopes
+        VARCHAR redirect_uri
+        VARCHAR status
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ used_at
+    }
 
-    REFRESH_TOKENS : UUID id PK
-    REFRESH_TOKENS : UUID tenant_id FK
-    REFRESH_TOKENS : UUID client_app_id FK
-    REFRESH_TOKENS : UUID user_id FK
-    REFRESH_TOKENS : VARCHAR token_hash
-    REFRESH_TOKENS : ENUM status
-    REFRESH_TOKENS : UUID rotated_from FK
-    REFRESH_TOKENS : TIMESTAMP created_at
-    REFRESH_TOKENS : TIMESTAMP expires_at
-
-    SESSIONS : UUID id PK
-    SESSIONS : UUID tenant_id FK
-    SESSIONS : UUID user_id FK
-    SESSIONS : UUID client_app_id FK
-    SESSIONS : ENUM status
-    SESSIONS : TIMESTAMP created_at
-    SESSIONS : TIMESTAMP last_seen_at
-    SESSIONS : JSON device_info
-    SESSIONS : VARCHAR ip_address
-
-    SIGNING_KEYS : UUID id PK
-    SIGNING_KEYS : VARCHAR kid UK
-    SIGNING_KEYS : VARCHAR algorithm
-    SIGNING_KEYS : ENUM status
-    SIGNING_KEYS : TEXT public_material
-    SIGNING_KEYS : VARCHAR private_material_ref
-    SIGNING_KEYS : TIMESTAMP activated_at
-    SIGNING_KEYS : TIMESTAMP retired_at
+    SIGNING_KEYS {
+        UUID id PK
+        VARCHAR kid UK
+        VARCHAR algorithm
+        VARCHAR status
+        TEXT public_material
+        TEXT private_material
+        TIMESTAMPTZ activated_at
+        TIMESTAMPTZ retired_at
+        TIMESTAMPTZ created_at
+    }
 ```
 
 ---
@@ -429,38 +480,33 @@ erDiagram
 graph TD
     A["🏢 TENANTS"] -->|ON DELETE CASCADE| B["🔐 CLIENT_APPS"]
     A -->|ON DELETE CASCADE| C["👤 TENANT_USERS"]
-    A -->|ON DELETE CASCADE| D["📊 MEMBERSHIPS"]
-    A -->|ON DELETE CASCADE| E["🎭 APP_ROLE"]
+    A -->|ON DELETE CASCADE| K["🎫 AUTHORIZATION_CODES"]
 
     B -->|ON DELETE CASCADE| F["↩️ CLIENT_REDIRECT_URIS"]
     B -->|ON DELETE CASCADE| G["✅ CLIENT_ALLOWED_GRANTS"]
     B -->|ON DELETE CASCADE| H["📋 CLIENT_ALLOWED_SCOPES"]
+    B -->|ON DELETE CASCADE| E["🎭 APP_ROLE"]
+    B -->|ON DELETE CASCADE| D["📊 MEMBERSHIP"]
+    B -->|ON DELETE CASCADE| K
 
     C -->|ON DELETE CASCADE| D
-    C -->|ON DELETE CASCADE| I["🎫 SESSIONS"]
+    C -->|ON DELETE CASCADE| K
 
     D -->|ON DELETE CASCADE| J["🔗 MEMBERSHIP_ROLE"]
-
     E -->|ON DELETE CASCADE| J
-
-    B -->|ON DELETE CASCADE| K["🔑 AUTHORIZATION_CODES"]
-    B -->|ON DELETE CASCADE| L["🔄 REFRESH_TOKENS"]
-
-    K -->|ON DELETE CASCADE| D
-    L -->|ON DELETE CASCADE| D
-    I -->|ON DELETE CASCADE| D
 ```
 
 **Implicaciones:**
-- Si se elimina un tenant: se eliminan en cascada todas sus apps, usuarios, memberships, roles, autorización codes y sesiones.
-- Si se elimina una app: se eliminan sus redirect URIs, grants, scopes, memberships y sus authorization codes asociados.
-- Si se elimina un usuario: se eliminan sus memberships y sesiones.
+- Si se elimina un **tenant**: se eliminan en cascada todas sus apps, usuarios y authorization codes.
+- Si se elimina una **app**: se eliminan redirect URIs, grants, scopes, roles, memberships y codes asociados.
+- Si se elimina un **usuario**: se eliminan sus memberships y authorization codes.
+- `SIGNING_KEYS` no tiene FK hacia tenants — son claves globales del servidor.
 
 ---
 
 ## Guías de consulta común
 
-### 1. Obtener todas las apps de un tenant
+### 1. Obtener todas las apps activas de un tenant
 
 ```sql
 SELECT ca.* FROM client_apps ca
@@ -468,21 +514,20 @@ WHERE ca.tenant_id = :tenantId
   AND ca.status = 'ACTIVE';
 ```
 
-### 2. Obtener memberships activas de un usuario en un tenant
+### 2. Buscar usuario por email en un tenant
 
 ```sql
-SELECT m.* FROM memberships m
-WHERE m.tenant_id = :tenantId
-  AND m.user_id = :userId
-  AND m.status = 'ACTIVE';
+SELECT tu.* FROM tenant_users tu
+WHERE tu.tenant_id = :tenantId
+  AND tu.email = :email
+  AND tu.status = 'ACTIVE';
 ```
 
-### 3. Verificar si un usuario puede acceder a una app
+### 3. Verificar si un usuario tiene membership activa en una app
 
 ```sql
-SELECT COUNT(1) FROM memberships m
-WHERE m.tenant_id = :tenantId
-  AND m.user_id = :userId
+SELECT COUNT(1) FROM membership m
+WHERE m.user_id = :userId
   AND m.client_app_id = :clientAppId
   AND m.status = 'ACTIVE';
 -- Si count = 1, el usuario tiene acceso
@@ -491,13 +536,12 @@ WHERE m.tenant_id = :tenantId
 ### 4. Obtener roles asignados a un usuario en una app
 
 ```sql
-SELECT ar.* FROM app_role ar
-JOIN membership_role mr ON mr.app_role_id = ar.id
-JOIN memberships m ON m.id = mr.membership_id
-WHERE m.tenant_id = :tenantId
-  AND m.user_id = :userId
+SELECT ar.code, ar.display_name
+FROM app_role ar
+JOIN membership_role mr ON mr.role_id = ar.id
+JOIN membership m ON m.id = mr.membership_id
+WHERE m.user_id = :userId
   AND ar.client_app_id = :clientAppId
-  AND ar.status = 'ACTIVE'
   AND m.status = 'ACTIVE';
 ```
 
@@ -506,55 +550,55 @@ WHERE m.tenant_id = :tenantId
 ```sql
 SELECT tu.* FROM tenant_users tu
 WHERE tu.tenant_id = :tenantId
-  AND tu.status != 'DELETED'
 ORDER BY tu.created_at DESC;
 ```
 
-### 6. Contar sesiones activas de un usuario
-
-```sql
-SELECT COUNT(1) FROM sessions s
-WHERE s.user_id = :userId
-  AND s.status = 'ACTIVE';
-```
-
-### 7. Encontrar authorization codes no consumidos y válidos
+### 6. Canjear authorization code (búsqueda + validación)
 
 ```sql
 SELECT ac.* FROM authorization_codes ac
-WHERE ac.tenant_id = :tenantId
+WHERE ac.code = :code
   AND ac.client_app_id = :clientAppId
-  AND ac.code = :authCode
-  AND ac.status = 'ACTIVE'
+  AND ac.status = 'pending'
   AND ac.expires_at > NOW();
 ```
 
-### 8. Obtener JWKS (public keys activas)
+### 7. Obtener claves de firma activas (JWKS)
 
 ```sql
-SELECT id, kid, algorithm, public_material FROM signing_keys
+SELECT id, kid, algorithm, public_material
+FROM signing_keys
 WHERE status = 'ACTIVE'
 ORDER BY activated_at DESC;
 ```
 
+### 8. Marcar authorization code como usado
+
+```sql
+UPDATE authorization_codes
+SET status = 'used', used_at = NOW()
+WHERE id = :id;
+```
+
 ---
 
-## Notas sobre enumeraciones (ENUM)
+## Notas sobre enumeraciones
 
-| Enumeración | Valores | Descripción |
-|---|---|---|
-| `tenant_status` | `ACTIVE`, `SUSPENDED`, `ARCHIVED` | Estado operativo del tenant |
-| `client_type` | `PUBLIC`, `CONFIDENTIAL` | Tipo de aplicación cliente |
-| `client_app_status` | `ACTIVE`, `DISABLED`, `ROTATION_REQUIRED` | Estado de la aplicación cliente |
-| `grant_type` | `AUTHORIZATION_CODE`, `CLIENT_CREDENTIALS`, `REFRESH_TOKEN`, `PASSWORD`, `IMPLICIT` | Tipos de grant OAuth2 permitidos |
-| `user_status` | `ACTIVE`, `INVITED`, `LOCKED`, `SUSPENDED` | Estado del usuario |
-| `membership_status` | `ACTIVE`, `INVITED`, `SUSPENDED`, `REVOKED` | Estado de acceso a la app |
-| `role_status` | `ACTIVE`, `DISABLED` | Estado del rol |
-| `auth_code_status` | `ACTIVE`, `CONSUMED`, `EXPIRED`, `REVOKED` | Estado del código de autorización |
-| `refresh_token_status` | `ACTIVE`, `USED`, `REVOKED`, `EXPIRED` | Estado del token de refresco |
-| `session_status` | `ACTIVE`, `TERMINATED`, `EXPIRED` | Estado de la sesión |
-| `signing_key_status` | `ACTIVE`, `RETIRED`, `REVOKED` | Estado de la clave de firma |
-| `pkce_method` | `S256`, `PLAIN` | Método de PKCE (SHA256 o Plain Text) |
+> Los valores de `status` en las tablas multi-tenancy siguen la convención que define cada CHECK constraint en la migración SQL correspondiente.
+
+| Tabla | Campo | Valores permitidos | Convención |
+|---|---|---|---|
+| `tenants` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
+| `client_apps` | `type` | `PUBLIC`, `CONFIDENTIAL` | UPPERCASE |
+| `client_apps` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
+| `tenant_users` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
+| `membership` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
+| `authorization_codes` | `status` | `pending`, `used`, `expired`, `revoked` | **lowercase** |
+| `authorization_codes` | `code_challenge_method` | `plain`, `S256` | mixto |
+| `signing_keys` | `status` | `ACTIVE`, `RETIRED`, `REVOKED` | UPPERCASE |
+| `app_role` | `code` | regex `^[a-z][a-z0-9_-]*$` | solo minúsculas |
+
+> ⚠️ Los valores de `authorization_codes.status` son **minúsculas** (distinto al resto). Tener en cuenta en comparaciones de código Java.
 
 ---
 
@@ -563,18 +607,27 @@ ORDER BY activated_at DESC;
 | Tabla | Constraint | Descripción |
 |---|---|---|
 | `tenants` | `UNIQUE(slug)` | Slug global único |
-| `client_apps` | `UNIQUE(tenant_id, client_id)` | Client ID único por tenant |
-| `client_redirect_uris` | — | Sin constraint de unicidad; múltiples URIs por app |
+| `client_apps` | `UNIQUE(client_id)` | Client ID único globalmente |
+| `client_redirect_uris` | — | Sin constraint; múltiples URIs por app |
 | `tenant_users` | `UNIQUE(tenant_id, email)` | Email único por tenant |
-| `tenant_users` | `UNIQUE(tenant_id, username)` | Username único por tenant (si se usa) |
-| `memberships` | `UNIQUE(tenant_id, user_id, client_app_id)` | No hay memberships duplicadas |
+| `tenant_users` | `UNIQUE(tenant_id, username)` | Username único por tenant |
+| `membership` | `UNIQUE(user_id, client_app_id)` | No hay memberships duplicadas |
 | `app_role` | `UNIQUE(client_app_id, code)` | Código de rol único por app |
-| `membership_role` | `UNIQUE(membership_id, app_role_id)` | No hay asignaciones duplicadas |
+| `membership_role` | PK `(membership_id, role_id)` | PK compuesta; sin columna `id` propia |
 | `authorization_codes` | `UNIQUE(code)` | Authorization code único globalmente |
-| `refresh_tokens` | `UNIQUE(token_hash)` | Token hash único |
 | `signing_keys` | `UNIQUE(kid)` | Key ID único globalmente |
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Estado:** ✅ Completo
+## Próximas migraciones
 
+| Migración | Descripción | Estado |
+|---|---|---|
+| `V10__add_refresh_tokens.sql` | Tabla `refresh_tokens` para Fase 7 (refresh token flow) | ⏳ Planificada |
+| `V11__add_tenant_sessions.sql` | Tabla `tenant_sessions` multi-tenancy para Fase 8 | ⏳ Planificada |
+
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V10`.
+
+---
+
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V9

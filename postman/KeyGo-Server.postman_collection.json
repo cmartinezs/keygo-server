@@ -1885,8 +1885,130 @@
                   "  pm.expect(body.data.authorization_code_id).to.have.length.greaterThan(0);",
                   "});",
                   "",
-                  "pm.test('ResponseCode es AUTHORIZATION_CODE_EXCHANGED', function() {",
-                  "  pm.expect(body.success.code).to.equal('AUTHORIZATION_CODE_EXCHANGED');",
+                  "pm.test('ResponseCode es TOKEN_ISSUED', function() {",
+                  "  pm.expect(body.success.code).to.equal('TOKEN_ISSUED');",
+                  "});",
+                  "",
+                  "pm.test('Tiene access_token JWT', function() {",
+                  "  pm.expect(body.data).to.have.property('access_token');",
+                  "  const parts = body.data.access_token.split('.');",
+                  "  pm.expect(parts).to.have.lengthOf(3);",
+                  "});",
+                  "",
+                  "pm.test('Tiene id_token JWT', function() {",
+                  "  pm.expect(body.data).to.have.property('id_token');",
+                  "  const parts = body.data.id_token.split('.');",
+                  "  pm.expect(parts).to.have.lengthOf(3);",
+                  "});",
+                  "",
+                  "pm.test('token_type es Bearer', function() {",
+                  "  pm.expect(body.data.token_type).to.equal('Bearer');",
+                  "});",
+                  "",
+                  "pm.test('expires_in es 3600', function() {",
+                  "  pm.expect(body.data.expires_in).to.equal(3600);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔑 OIDC & JWKS",
+      "item": [
+        {
+          "name": "GET OIDC Configuration",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/.well-known/openid-configuration",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", ".well-known", "openid-configuration"]
+            },
+            "description": "Obtiene el OIDC Discovery Document para el tenant.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Tiene campo issuer', function() {",
+                  "  pm.expect(body).to.have.property('issuer');",
+                  "  pm.expect(body.issuer).to.include(pm.environment.get('tenantSlug'));",
+                  "});",
+                  "",
+                  "pm.test('Tiene jwks_uri', function() {",
+                  "  pm.expect(body).to.have.property('jwks_uri');",
+                  "  pm.expect(body.jwks_uri).to.include('.well-known/jwks.json');",
+                  "});",
+                  "",
+                  "pm.test('Tiene token_endpoint', function() {",
+                  "  pm.expect(body).to.have.property('token_endpoint');",
+                  "  pm.expect(body.token_endpoint).to.include('/oauth2/token');",
+                  "});",
+                  "",
+                  "pm.test('response_types_supported contiene code', function() {",
+                  "  pm.expect(body.response_types_supported).to.include('code');",
+                  "});",
+                  "",
+                  "pm.test('id_token_signing_alg_values_supported contiene RS256', function() {",
+                  "  pm.expect(body.id_token_signing_alg_values_supported).to.include('RS256');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET JWKS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/.well-known/jwks.json",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", ".well-known", "jwks.json"]
+            },
+            "description": "Obtiene el JWK Set con las claves públicas RSA para verificar tokens JWT.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Tiene campo keys', function() {",
+                  "  pm.expect(body).to.have.property('keys');",
+                  "  pm.expect(body.keys).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Primera clave tiene kty RSA', function() {",
+                  "  if (body.keys.length > 0) {",
+                  "    pm.expect(body.keys[0].kty).to.equal('RSA');",
+                  "    pm.expect(body.keys[0].kid).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.keys[0].use).to.equal('sig');",
+                  "    pm.expect(body.keys[0].alg).to.equal('RS256');",
+                  "    pm.expect(body.keys[0].n).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.keys[0].e).to.be.a('string').and.not.empty;",
+                  "  }",
                   "});"
                 ]
               }

@@ -66,7 +66,7 @@ Contiene:
 
 ├─ Gestión de memberships/roles
 │  ├─ Leer: ENTITY_RELATIONSHIPS.md § "Ciclo de vida de memberships"
-│  ├─ Leer: DATA_MODEL.md → tablas memberships, app_role, membership_role
+│  ├─ Leer: DATA_MODEL.md → tablas membership, app_role, membership_role
 │  └─ Referenciar: AGENTS.md § "Fase 4 completada"
 
 └─ Una query SQL o índice
@@ -181,13 +181,14 @@ Audiencia: Developers, QA
 Plan:
 1. Verificar tabla app_role → DATA_MODEL.md § "Tabla: app_role"
 2. Verificar relación membership_role → DATA_MODEL.md § "Tabla: membership_role"
+   ⚠️ PK compuesta (membership_id, role_id) — sin columna id propia; FK al rol es role_id
 3. Verificar query SQL → DATA_MODEL.md § "Guía 4: Obtener roles asignados"
 4. Entender validaciones → ENTITY_RELATIONSHIPS.md § "Matriz de decisión"
 5. Escribir código + tests
 
 Ficheros a consultar:
-├─ DATA_MODEL.md (SQL reference)
-├─ ENTITY_RELATIONSHIPS.md (access matrix)
+├─ DATA_MODEL.md (SQL reference — tabla membership es singular)
+├─ ENTITY_RELATIONSHIPS.md (access matrix, state machine membership)
 ├─ AGENTS.md (repositories: AppRoleJpaRepository, MembershipJpaRepository)
 └─ keygo-api § TenantAppRoleController.java (ejemplo de controller)
 ```
@@ -236,11 +237,15 @@ Ficheros a consultar:
 | Columna | `snake_case` | `client_id`, `created_at` |
 | PK | `id` (UUID) | `id` |
 | FK | `{entity}_id` | `tenant_id`, `user_id` |
-| Índice | `idx_{table}_{columns}` | `idx_memberships_tenant_user_app` |
+| Índice | `idx_{table}_{columns}` | `idx_membership_user_app` |
 | ENUM Java | `PascalCase` | `ClientType`, `MembershipStatus` |
-| ENUM SQL | `UPPERCASE` | `ACTIVE`, `SUSPENDED` |
+| ENUM SQL | Mayúsculas (mayoría) / minúsculas (`authorization_codes.status`) | `ACTIVE` / `pending` |
 | Entidad JPA | `PascalCase + Entity` | `TenantEntity`, `ClientAppEntity` |
 | DTO | `PascalCase + Data/Request/Response` | `TenantData`, `CreateMembershipRequest` |
+
+> ⚠️ **Excepción importante:** `authorization_codes.status` usa valores en **minúsculas** (`pending`, `used`, `expired`, `revoked`), a diferencia del resto de tablas que usan UPPERCASE. Tener en cuenta en comparaciones Java y SQL.
+
+> ⚠️ **Nombre singular:** La tabla `membership` es singular (no `memberships`). Su PK de relación `membership_role` usa PK compuesta `(membership_id, role_id)` — **sin** columna `id` propia.
 
 ---
 
@@ -252,27 +257,33 @@ Ficheros a consultar:
 - [ ] He consultado las "Guías de consulta" relevantes en `DATA_MODEL.md`
 - [ ] He validado constraints únicos contra lo que dice `DATA_MODEL.md`
 - [ ] He considerado cascade rules si toco FKs
-- [ ] He verificado enumeraciones en `DATA_MODEL.md` si uso ENUMs
-- [ ] He revisado migraciones Flyway existentes en `keygo-supabase/db/migration/`
+- [ ] He verificado enumeraciones en `DATA_MODEL.md` si uso ENUMs (¡atención a los lowercase de `authorization_codes.status`!)
+- [ ] He revisado migraciones Flyway existentes en `keygo-supabase/src/main/resources/db/migration/`
 - [ ] Mi cambio está alineado con el bounded context correspondiente en `ENTITY_RELATIONSHIPS.md`
+- [ ] **Si agrego una nueva tabla Flyway**: he actualizado `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md` y `DATA_DICTIONARY.md`
 
 ---
 
 ## 🚀 Siguientes pasos
 
-**Fase 5 (próxima) — OAuth2/OIDC Authorization Flow:**
-- Implementar `AuthorizationCode` lifecycle
-- Implementar `RefreshToken` rotation
-- Implementar `Session` tracking
-- Implementar JWKS endpoint
+**Fases 5 y 6 ✅ — OAuth2/OIDC Authorization Flow completadas:**
+- ✅ `AuthorizationCode` lifecycle (V8)
+- ✅ `SigningKey` + JWT RS256 firma (V9)
+- ✅ JWKS endpoint (`/.well-known/jwks.json`)
+- ✅ OIDC Discovery (`/.well-known/openid-configuration`)
+
+**Fase 7 ⏳ (planificada) — Refresh Token Flow:**
+- Implementar `refresh_tokens` tabla (V10 siguiente migración)
+- Implementar `POST /oauth2/token` con `grant_type=refresh_token`
+- Implementar rotación de tokens
 
 **Consulta:**
-- `ENTITY_RELATIONSHIPS.md` § "Flujo Authorization Code"
-- `DATA_MODEL.md` § Tablas: authorization_codes, refresh_tokens, sessions, signing_keys
-- `docs/arch/keygo_server_domain_model.md` § Bounded Context 5
+- `ENTITY_RELATIONSHIPS.md` § "Flujo de token (refresh, revoke)"
+- `DATA_MODEL.md` § "Tablas planificadas (fases futuras)"
+- `docs/arch/keygo_server_implementation_plan.md` § Fase 7
 
 ---
 
 **Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Estado:** ✅ Completo  
-**Documentación generada bajo orden explícita del usuario.**
+**Sincronizado con:** Migraciones V1–V9 | **Fases implementadas:** 0–6
 

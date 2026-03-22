@@ -69,6 +69,9 @@ Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de es
 | Propuesta completada / implementada | `ROADMAP.md` | Tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` | Sección correspondiente |
 | Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
+| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/keygo-server/DATA_DICTIONARY.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
 
 > ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita". Los documentos
 > de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente.

@@ -6,6 +6,7 @@ import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidPkceVerificationException;
+import io.cmartinezs.keygo.domain.auth.exception.NoActiveSigningKeyException;
 import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
@@ -348,6 +349,21 @@ public class GlobalExceptionHandler {
         .build();
 
     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+  }
+
+  /**
+   * Handles NoActiveSigningKeyException - returns 503 Service Unavailable.
+   * El servidor no puede emitir tokens porque no hay clave de firma activa.
+   */
+  @ExceptionHandler(NoActiveSigningKeyException.class)
+  public ResponseEntity<BaseResponse<Void>> handleNoActiveSigningKeyException(NoActiveSigningKeyException ex) {
+    log.error("No active signing key: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.OPERATION_FAILED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
   }
 
   /**

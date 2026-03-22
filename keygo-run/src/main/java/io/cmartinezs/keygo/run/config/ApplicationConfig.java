@@ -3,10 +3,17 @@ package io.cmartinezs.keygo.run.config;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
+import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
+import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
+import io.cmartinezs.keygo.app.auth.port.TokenClaimsFactoryPort;
+import io.cmartinezs.keygo.app.auth.port.TokenSignerPort;
 import io.cmartinezs.keygo.app.auth.usecase.AuthenticateUserForAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.ExchangeAuthorizationCodeUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.GetJwksUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.GetOidcConfigurationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.InitiateAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
@@ -40,7 +47,11 @@ import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
+import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
+import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
+import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import java.util.TimeZone;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -257,6 +268,45 @@ public class ApplicationConfig {
       ClockPort clockPort) {
     return new ExchangeAuthorizationCodeUseCase(
         authorizationCodeRepositoryPort, clientAppRepositoryPort, tenantRepositoryPort, clockPort);
+  }
+
+  // ─── Fase 6: Token signing & OIDC metadata ────────────────────────────────
+
+  @Bean
+  public TokenSignerPort tokenSignerPort() {
+    return new RsaJwtTokenSigner();
+  }
+
+  @Bean
+  public TokenClaimsFactoryPort tokenClaimsFactoryPort() {
+    return new StandardTokenClaimsFactory();
+  }
+
+  @Bean
+  public JwksBuilderPort jwksBuilderPort() {
+    return new JwkSetBuilder();
+  }
+
+  @Bean
+  public IssueTokensUseCase issueTokensUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      TokenSignerPort tokenSignerPort,
+      TokenClaimsFactoryPort tokenClaimsFactoryPort,
+      ClockPort clockPort) {
+    return new IssueTokensUseCase(signingKeyRepositoryPort, tokenSignerPort, tokenClaimsFactoryPort, clockPort);
+  }
+
+  @Bean
+  public GetJwksUseCase getJwksUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      JwksBuilderPort jwksBuilderPort) {
+    return new GetJwksUseCase(signingKeyRepositoryPort, jwksBuilderPort);
+  }
+
+  @Bean
+  public GetOidcConfigurationUseCase getOidcConfigurationUseCase(
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
+    return new GetOidcConfigurationUseCase(issuerBaseUrl);
   }
 
     @Bean

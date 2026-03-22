@@ -18,7 +18,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 /**
  * JPA entity for membership persistence (user access to app).
+ *
  * <p>Entidad JPA para persistencia de membresía (acceso de usuario a app).
+ *
  * @author cmartinezs
  * @version 1.0
  */
@@ -31,7 +33,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(
     name = "membership",
     uniqueConstraints = {
-      @UniqueConstraint(name = "uq_membership_user_app", columnNames = {"user_id", "client_app_id"})
+      @UniqueConstraint(
+          name = "uq_membership_user_app",
+          columnNames = {"user_id", "client_app_id"})
     },
     indexes = {
       @Index(name = "idx_membership_user_id", columnList = "user_id"),
@@ -57,6 +61,7 @@ public class MembershipEntity {
   @Builder.Default
   private MembershipStatus status = MembershipStatus.ACTIVE;
 
+  @Builder.Default
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "membership_role",
@@ -72,4 +77,3 @@ public class MembershipEntity {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 }
-
