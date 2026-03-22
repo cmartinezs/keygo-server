@@ -54,6 +54,12 @@ public enum ResponseCode {
   ROLE_DELETED("ROLE_DELETED", "Role deleted successfully"),
   ROLE_ASSIGNED("ROLE_ASSIGNED", "Role assigned successfully"),
 
+  // OAuth2 / Authorization Operations
+  AUTHORIZATION_INITIATED("AUTHORIZATION_INITIATED", "Authorization flow initiated successfully"),
+  AUTHORIZATION_CODE_ISSUED("AUTHORIZATION_CODE_ISSUED", "Authorization code issued successfully"),
+  AUTHORIZATION_CODE_EXCHANGED("AUTHORIZATION_CODE_EXCHANGED", "Authorization code exchanged successfully"),
+  LOGIN_SUCCESSFUL("LOGIN_SUCCESSFUL", "Login successful"),
+
   // Generic Operations (use when no specific code applies)
   OPERATION_COMPLETED("OPERATION_COMPLETED", "Operation completed successfully"),
   RESOURCE_CREATED("RESOURCE_CREATED", "Resource created successfully"),

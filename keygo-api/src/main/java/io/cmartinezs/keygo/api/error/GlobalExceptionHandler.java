@@ -3,6 +3,10 @@ package io.cmartinezs.keygo.api.error;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidPkceVerificationException;
+import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
@@ -284,6 +288,66 @@ public class GlobalExceptionHandler {
         .build();
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles InvalidAuthorizationCodeException - returns 400 Bad Request.
+   * Maneja InvalidAuthorizationCodeException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidAuthorizationCodeException.class)
+  public ResponseEntity<BaseResponse<Void>> handleInvalidAuthorizationCodeException(InvalidAuthorizationCodeException ex) {
+    log.error("Invalid authorization code: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles AuthorizationCodeExpiredException - returns 400 Bad Request.
+   * Maneja AuthorizationCodeExpiredException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(AuthorizationCodeExpiredException.class)
+  public ResponseEntity<BaseResponse<Void>> handleAuthorizationCodeExpiredException(AuthorizationCodeExpiredException ex) {
+    log.error("Authorization code expired: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles InvalidPkceVerificationException - returns 400 Bad Request.
+   * Maneja InvalidPkceVerificationException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidPkceVerificationException.class)
+  public ResponseEntity<BaseResponse<Void>> handleInvalidPkceVerificationException(InvalidPkceVerificationException ex) {
+    log.error("PKCE verification failed: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles ScopeNotGrantedException - returns 403 Forbidden.
+   * Maneja ScopeNotGrantedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(ScopeNotGrantedException.class)
+  public ResponseEntity<BaseResponse<Void>> handleScopeNotGrantedException(ScopeNotGrantedException ex) {
+    log.error("Scope not granted: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INSUFFICIENT_PERMISSIONS))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
   }
 
   /**

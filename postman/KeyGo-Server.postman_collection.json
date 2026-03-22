@@ -85,8 +85,15 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/service/info",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "service", "info"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "service",
+                "info"
+              ]
             },
             "description": "Retorna información pública del servicio (nombre, versión, título).\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**ResponseCode esperado:** `SERVICE_INFO_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
@@ -147,8 +154,14 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/response-codes",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "response-codes"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "response-codes"
+              ]
             },
             "description": "Retorna el catálogo completo de códigos de respuesta del sistema, dividido en `successCodes` y `failureCodes`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN` (heredado de la colección).\n\n**ResponseCode esperado:** `RESPONSE_CODES_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
@@ -235,8 +248,13 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/actuator/health",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["actuator", "health"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
             },
             "description": "Endpoint de salud de Spring Boot Actuator.\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**HTTP Status:** `200 OK`"
           },
@@ -286,8 +304,12 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/actuator",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["actuator"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "actuator"
+              ]
             },
             "description": "Lista todos los endpoints de Actuator disponibles.\n\n**Ruta pública**.\n**HTTP Status:** `200 OK`"
           },
@@ -344,8 +366,14 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants"
+              ]
             },
             "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n- `ownerEmail`: requerido, formato email válido.\n\nEl `slug` se genera automáticamente en el servidor a partir del `name` (minúsculas, guiones, sin caracteres especiales).\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
           },
@@ -445,8 +473,15 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}"
+              ]
             },
             "description": "Obtiene un tenant por su slug.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno (se setea automáticamente al crear un tenant).\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`"
           },
@@ -527,8 +562,16 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/suspend",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "suspend"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "suspend"
+              ]
             },
             "description": "Suspende un tenant existente. El tenant pasa de estado `ACTIVE` a `SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno.\n\n**ResponseCode esperado:** `TENANT_SUSPENDED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`\n**Si ya está suspendido:** `403 Forbidden` con code `BUSINESS_RULE_VIOLATION`"
           },
@@ -609,8 +652,15 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}"
+              ]
             },
             "description": "Verifica el estado del tenant después de suspenderlo. Debe retornar `status: SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nEjecutar después de **PUT Suspend Tenant** para confirmar el cambio de estado.\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
@@ -667,8 +717,14 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants"
+              ]
             },
             "description": "Intenta crear un tenant con body vacío. Debe retornar 400 por validación de campos requeridos.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
@@ -737,8 +793,14 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants"
+              ]
             },
             "description": "Intenta crear un tenant cuyo nombre genera un slug ya existente.\nEjecutar después de 'POST Create Tenant' exitoso para reproducir el conflicto.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
@@ -785,8 +847,14 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants"
+              ]
             },
             "description": "Intenta crear un tenant con un email mal formado. Debe fallar la validación de `@Email`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
@@ -819,8 +887,15 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/no-existe-este-tenant",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "no-existe-este-tenant"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "no-existe-este-tenant"
+              ]
             },
             "description": "Intenta obtener un tenant con un slug que no existe en el sistema.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
           },
@@ -871,8 +946,16 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/no-existe-este-tenant/suspend",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "no-existe-este-tenant", "suspend"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "no-existe-este-tenant",
+                "suspend"
+              ]
             },
             "description": "Intenta suspender un tenant que no existe.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
           },
@@ -905,8 +988,16 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/suspend",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "suspend"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "suspend"
+              ]
             },
             "description": "Intenta suspender un tenant que ya fue suspendido previamente. Debe lanzar `TenantSuspendedException`.\n\n**Prerequisito:** Ejecutar primero **PUT Suspend Tenant** (carpeta Tenants).\n\n**HTTP Status esperado:** `403 Forbidden`\n**ResponseCode esperado:** `BUSINESS_RULE_VIOLATION`"
           },
@@ -968,8 +1059,14 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/ruta-que-no-existe",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "ruta-que-no-existe"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ruta-que-no-existe"
+              ]
             },
             "description": "Accede a una ruta que no existe para verificar que el `GlobalExceptionHandler` devuelve `404` con `RESOURCE_NOT_FOUND`.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
           },
@@ -1037,8 +1134,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Slug",
+                "value": "{{tenantSlug}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1046,8 +1149,16 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps"
+              ]
             },
             "description": "Crea una nueva aplicación cliente OAuth2 bajo el tenant especificado. Devuelve el clientId y el clientSecret en texto plano (solo disponible en este momento)."
           },
@@ -1081,12 +1192,23 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+              {
+                "key": "X-Tenant-Slug",
+                "value": "{{tenantSlug}}"
+              }
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps"
+              ]
             },
             "description": "Lista todas las aplicaciones cliente registradas bajo el tenant."
           },
@@ -1120,12 +1242,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+              {
+                "key": "X-Tenant-Slug",
+                "value": "{{tenantSlug}}"
+              }
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps", "{{clientId}}"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}"
+              ]
             },
             "description": "Obtiene los datos de una aplicación cliente específica."
           },
@@ -1159,8 +1293,14 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Slug",
+                "value": "{{tenantSlug}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1168,8 +1308,17 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps", "{{clientId}}"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}"
+              ]
             },
             "description": "Actualiza los datos de una aplicación cliente existente (nombre, descripción, redirect URIs, grants, scopes)."
           },
@@ -1204,12 +1353,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Tenant-Slug", "value": "{{tenantSlug}}" }
+              {
+                "key": "X-Tenant-Slug",
+                "value": "{{tenantSlug}}"
+              }
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/rotate-secret",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "apps", "{{clientId}}", "rotate-secret"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "rotate-secret"
+              ]
             },
             "description": "Rota el client secret de una aplicación confidencial. El nuevo secret solo está disponible en esta respuesta."
           },
@@ -1257,15 +1419,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "users"
+              ]
             },
             "description": "Crea un nuevo usuario dentro del tenant. Username y email deben ser únicos en el tenant."
           },
@@ -1293,8 +1468,16 @@
             "method": "GET",
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "users"
+              ]
             },
             "description": "Lista todos los usuarios del tenant."
           },
@@ -1323,8 +1506,17 @@
             "method": "GET",
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/{{userId}}",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "{{userId}}"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "users",
+                "{{userId}}"
+              ]
             },
             "description": "Obtiene los detalles de un usuario específico por su UUID."
           },
@@ -1350,15 +1542,29 @@
           ],
           "request": {
             "method": "PUT",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\"\n}"
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/{{userId}}",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "{{userId}}"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "users",
+                "{{userId}}"
+              ]
             },
             "description": "Actualiza el firstName y lastName de un usuario existente."
           },
@@ -1383,15 +1589,30 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"newPassword\": \"NewSecurePass456!\"\n}"
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/{{userId}}/reset-password",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "{{userId}}", "reset-password"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "users",
+                "{{userId}}",
+                "reset-password"
+              ]
             },
             "description": "Resetea administrativamente la contraseña de un usuario."
           },
@@ -1420,22 +1641,260 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"credential\": \"{{userEmail}}\",\n  \"password\": \"SecurePass123!\"\n}"
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/validate-credentials",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "validate-credentials"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "users",
+                "validate-credentials"
+              ]
             },
             "description": "Valida las credenciales de un usuario (email o username + contraseña). Retorna los datos del usuario en caso de éxito."
           },
           "response": []
         }
       ]
+    },
+    {
+      "name": "🔐 OAuth2 Authorization",
+      "description": "Endpoints del flujo OAuth 2.0 Authorization Code + PKCE",
+      "item": [
+        {
+          "name": "1. GET Authorize",
+          "id": "req-oauth2-authorize",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/authorize?client_id={{clientId}}&redirect_uri=http://localhost:3000/callback&scope=openid profile&code_challenge={{codeChallenge}}&code_challenge_method=S256&state={{state}}",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "oauth2",
+                "authorize"
+              ],
+              "query": [
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "http://localhost:3000/callback"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile"
+                },
+                {
+                  "key": "code_challenge",
+                  "value": "{{codeChallenge}}"
+                },
+                {
+                  "key": "code_challenge_method",
+                  "value": "S256"
+                },
+                {
+                  "key": "state",
+                  "value": "{{state}}"
+                }
+              ]
+            },
+            "description": "Inicia el flujo OAuth2 Authorization Code + PKCE.\n\nValida:\n- El tenant existe y está activo\n- La aplicación cliente existe y pertenece al tenant\n- La redirect_uri está registrada en la app\n- El grant type (authorization_code) es válido\n\n**Guarda el estado en sesión HTTP** para que POST /account/login pueda recuperarlo.\n\n**ResponseCode esperado:** `AUTHORIZATION_INITIATED`\n**HTTP Status:** `200 OK`\n\n**Query Parameters:**\n- `client_id`: ID de la aplicación cliente\n- `redirect_uri`: URI donde se redirigirá con el código\n- `scope`: Permisos solicitados (espacio-separados)\n- `code_challenge`: PKCE challenge (S256 = SHA256(code_verifier))\n- `code_challenge_method`: \"S256\" o \"plain\"\n- `state`: Token aleatorio para protección CSRF (opcional pero recomendado)\n\n**Respuesta:**\n```json\n{\n  \"data\": {\n    \"client_id\": \"...\",\n    \"client_name\": \"My App\",\n    \"redirect_uri\": \"http://localhost:3000/callback\"\n  },\n  \"success\": { \"code\": \"AUTHORIZATION_INITIATED\", ... },\n  \"date\": \"...\"\n}\n```"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status code es 200', function() {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.client_id', function() {",
+                  "  pm.expect(body.data).to.have.property('client_id');",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.client_name', function() {",
+                  "  pm.expect(body.data).to.have.property('client_name');",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.redirect_uri', function() {",
+                  "  pm.expect(body.data).to.have.property('redirect_uri');",
+                  "});",
+                  "",
+                  "pm.test('ResponseCode es AUTHORIZATION_INITIATED', function() {",
+                  "  pm.expect(body.success.code).to.equal('AUTHORIZATION_INITIATED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "2. POST Account Login",
+          "id": "req-oauth2-login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"emailOrUsername\": \"test@example.com\", \"password\": \"pass\"}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/login",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "login"
+              ]
+            },
+            "description": "Autentica usuario y emite authorization code.\n\nRequisitos:\n- Debe ejecutarse DESPUÉS de GET Authorize (que guarda estado en sesión).\n- Usa la misma sesión HTTP (cookies).\n\n**ResponseCode esperado:** `LOGIN_SUCCESSFUL`\n**HTTP Status:** `200 OK`\n\n**Respuesta:**\n```json\n{\n  \"data\": {\n    \"message\": \"Login successful\",\n    \"code\": \"<authorization_code>\",\n    \"redirect_uri\": \"http://localhost:3000/callback\"\n  },\n  \"success\": { ... },\n  \"date\": \"...\"\n}\n```"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "// Validar estructura BaseResponse",
+                  "pm.test('Status code es 200', function() {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.code (authorization code)', function() {",
+                  "  pm.expect(body.data).to.have.property('code');",
+                  "  pm.expect(body.data.code).to.be.a('string');",
+                  "  pm.expect(body.data.code).to.have.length.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.redirect_uri', function() {",
+                  "  pm.expect(body.data).to.have.property('redirect_uri');",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.message', function() {",
+                  "  pm.expect(body.data).to.have.property('message');",
+                  "  pm.expect(body.data.message).to.equal('Login successful');",
+                  "});",
+                  "",
+                  "pm.test('ResponseCode es LOGIN_SUCCESSFUL', function() {",
+                  "  pm.expect(body.success.code).to.equal('LOGIN_SUCCESSFUL');",
+                  "});",
+                  "",
+                  "// Guardar el código para usarlo en POST Token Exchange",
+                  "pm.collectionVariables.set('authCode', body.data.code);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "3. POST Token Exchange",
+          "id": "req-oauth2-token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{clientId}}\",\n  \"code\": \"{{authCode}}\",\n  \"code_verifier\": \"{{codeVerifier}}\",\n  \"redirect_uri\": \"http://localhost:3000/callback\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/token",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "oauth2",
+                "token"
+              ]
+            },
+            "description": "Canjea el authorization code por token.\n\nRequisitos:\n- Debe ejecutarse DESPUÉS de POST Account Login (que guarda `authCode` en variables de colección).\n- `code_verifier` es el valor original que generó el `code_challenge` en GET /authorize.\n\n**ResponseCode esperado:** `AUTHORIZATION_CODE_EXCHANGED`\n**HTTP Status:** `200 OK`\n\n**Respuesta (Fase 5 — stub):**\n```json\n{\n  \"data\": {\n    \"authorization_code_id\": \"<UUID del código consumido>\"\n  },\n  \"success\": { \"code\": \"AUTHORIZATION_CODE_EXCHANGED\", ... },\n  \"date\": \"...\"\n}\n```\n\n> ⚠️ En Fase 6 se agregarán `access_token`, `token_type`, `expires_in` y `refresh_token`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status code es 200', function() {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Tiene field data.authorization_code_id', function() {",
+                  "  pm.expect(body.data).to.have.property('authorization_code_id');",
+                  "  pm.expect(body.data.authorization_code_id).to.be.a('string');",
+                  "  pm.expect(body.data.authorization_code_id).to.have.length.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('ResponseCode es AUTHORIZATION_CODE_EXCHANGED', function() {",
+                  "  pm.expect(body.success.code).to.equal('AUTHORIZATION_CODE_EXCHANGED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
     }
   ]
 }
-

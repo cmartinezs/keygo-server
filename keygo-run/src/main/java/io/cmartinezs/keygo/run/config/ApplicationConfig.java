@@ -1,6 +1,12 @@
 package io.cmartinezs.keygo.run.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
+import io.cmartinezs.keygo.app.auth.port.ClockPort;
+import io.cmartinezs.keygo.app.auth.usecase.AuthenticateUserForAuthorizationUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.ExchangeAuthorizationCodeUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.InitiateAuthorizationUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
@@ -32,6 +38,7 @@ import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
+import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
 import java.util.TimeZone;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
@@ -202,6 +209,54 @@ public class ApplicationConfig {
   @Bean
   public ListAppRolesUseCase listAppRolesUseCase(AppRoleRepositoryPort appRoleRepositoryPort) {
     return new ListAppRolesUseCase(appRoleRepositoryPort);
+  }
+
+  @Bean
+  public ClockPort clockPort() {
+    return new SystemClockProvider();
+  }
+
+  @Bean
+  public InitiateAuthorizationUseCase initiateAuthorizationUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort) {
+    return new InitiateAuthorizationUseCase(tenantRepositoryPort, clientAppRepositoryPort);
+  }
+
+  @Bean
+  public AuthenticateUserForAuthorizationUseCase authenticateUserForAuthorizationUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new AuthenticateUserForAuthorizationUseCase(
+        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public IssueAuthorizationCodeUseCase issueAuthorizationCodeUseCase(
+      AuthorizationCodeRepositoryPort authorizationCodeRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      MembershipRepositoryPort membershipRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      ClockPort clockPort) {
+    return new IssueAuthorizationCodeUseCase(
+        authorizationCodeRepositoryPort,
+        clientAppRepositoryPort,
+        userRepositoryPort,
+        membershipRepositoryPort,
+        tenantRepositoryPort,
+        clockPort);
+  }
+
+  @Bean
+  public ExchangeAuthorizationCodeUseCase exchangeAuthorizationCodeUseCase(
+      AuthorizationCodeRepositoryPort authorizationCodeRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      ClockPort clockPort) {
+    return new ExchangeAuthorizationCodeUseCase(
+        authorizationCodeRepositoryPort, clientAppRepositoryPort, tenantRepositoryPort, clockPort);
   }
 
     @Bean

@@ -14,6 +14,12 @@
 | **[CODE_STYLE.md](./CODE_STYLE.md)** | Convenciones de nombres, estilo de código, orden de imports | Todos |
 | **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** | Estrategia de tests, ejemplos JUnit 5, mocking, integration | QA, Devs |
 
+### 🔐 Seguridad y autenticación
+
+| Documento | Propósito | Audiencia |
+|---|---|---|
+| **[AUTH_FLOW.md](./AUTH_FLOW.md)** | 🆕 **Flujo de autenticación** — OAuth 2.0 Authorization Code + PKCE paso a paso, ejemplos HTTP, guía para SPA y Mobile | Devs Frontend/Mobile, Arquitectos |
+
 ### 📊 Modelo de datos
 
 | Documento | Propósito | Audiencia |
@@ -51,6 +57,11 @@
 1. Comienza en: **[DATA_DICTIONARY.md](./DATA_DICTIONARY.md)** (índice rápido)
 2. Profundiza en: **[DATA_MODEL.md](./DATA_MODEL.md)** (diccionario completo)
 3. Entiende flujos en: **[ENTITY_RELATIONSHIPS.md](./ENTITY_RELATIONSHIPS.md)** (relaciones y negocio)
+
+#### → Cómo implementar el login en mi app (SPA o Mobile)
+1. Empieza aquí: **[AUTH_FLOW.md](./AUTH_FLOW.md)** — guía paso a paso con ejemplos HTTP, JS y Kotlin
+2. Datos del flujo: **[ENTITY_RELATIONSHIPS.md](./ENTITY_RELATIONSHIPS.md)** § Flujo OAuth2 Authorization Code
+3. Colección Postman: `postman/KeyGo-Server.postman_collection.json` § Carpeta `🔐 OAuth2 Authorization`
 
 #### → Cómo fluyen los datos en autenticación
 1. Lee: **[ENTITY_RELATIONSHIPS.md](./ENTITY_RELATIONSHIPS.md)** § Flujo OAuth2 Authorization Code

@@ -258,6 +258,20 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
 
+### [2026-03-22] Fase 5 — Núcleo OAuth2/OIDC: authorization flow completada
+Se implementó el flujo OAuth 2.0 Authorization Code + PKCE en los cinco módulos activos:
+- **`keygo-domain`**: entidades de dominio puras `AuthorizationCode`, `AuthorizationCodeId`, `AuthorizationCodeStatus` (enum), `CodeChallenge`, `ScopeSet`; excepciones `InvalidAuthorizationCodeException`, `AuthorizationCodeExpiredException`, `InvalidPkceVerificationException`, `ScopeNotGrantedException`. Sin Spring ni JPA.
+- **`keygo-app`**: puertos `AuthorizationCodeRepositoryPort`, `ClockPort`; 4 comandos (`InitiateAuthorizationCommand`, `AuthenticateUserCommand`, `IssueAuthorizationCodeCommand`, `ExchangeAuthorizationCodeCommand`); 3 results (`AuthorizationInitiatedResult`, `AuthorizationCodeIssuedResult`, `ExchangeAuthorizationCodeResult`); 4 casos de uso (`InitiateAuthorizationUseCase`, `AuthenticateUserForAuthorizationUseCase`, `IssueAuthorizationCodeUseCase`, `ExchangeAuthorizationCodeUseCase`).
+- **`keygo-infra`**: `PkceVerifier` (validación S256 y plain PKCE).
+- **`keygo-supabase`**: `AuthorizationCodeEntity` (JPA), `AuthorizationCodeJpaRepository` (Spring Data), `AuthorizationCodePersistenceMapper`, `AuthorizationCodeRepositoryAdapter`, migración `V8__add_oauth_authorization_codes.sql` (tabla `authorization_codes` con índices).
+- **`keygo-api`**: `AuthorizationController` (3 endpoints: `GET /api/v1/tenants/{slug}/oauth2/authorize`, `POST /api/v1/tenants/{slug}/account/login`, `POST /api/v1/tenants/{slug}/oauth2/token`), 4 DTOs request (`AuthorizationRequest`, `LoginRequest`, `TokenRequest`) y 3 response (`AuthorizationInitiatedData`, `AuthorizationCodeData`, `LoginData`), 5 handlers en `GlobalExceptionHandler`.
+- **`keygo-run`**: `SystemClockProvider` (implementación de `ClockPort`), 6 `@Bean` nuevos en `ApplicationConfig` para inyección de dependencias.
+- **Tests**: ~60 tests unitarios nuevos. Total proyecto: **270+ tests** (todos pasan).
+- **Postman**: carpeta `🔐 OAuth2 Authorization` con 3 requests (authorize, login, token exchange). **23 requests totales** en 6 carpetas.
+- **ResponseCode**: 4 nuevos (`AUTHORIZATION_INITIATED`, `AUTHORIZATION_CODE_ISSUED`, `AUTHORIZATION_CODE_EXCHANGED`, `LOGIN_SUCCESSFUL`).
+- **Build**: `./mvnw clean package -DskipTests` — **SUCCESS** en todos los módulos.
+- **Lección aprendida**: Value objects — usar **records** exclusivamente para todos los value objects (exponen `.value()` como método público automáticamente), no clases con `.getValue()`. Aplicar hoy: reemplazar `AuthorizationCodeId` clase → record.
+
 ### [2026-03-21] Fase 4 — Memberships y roles por app completada
 Se implementó el núcleo de memberships (acceso del usuario a una app) y roles por app en los cinco módulos activos:
 - **`keygo-domain`**: entidades de dominio puras `Membership`, `MembershipId`, `MembershipStatus`, `AppRole`, `AppRoleId`, `RoleCode`, `MembershipRole`; excepciones `MembershipNotFoundException`, `MembershipInactiveException`, `InvalidRoleAssignmentException`. Sin Spring ni JPA.
@@ -269,6 +283,23 @@ Se implementó el núcleo de memberships (acceso del usuario a una app) y roles 
 - **Postman**: carpeta `📋 Memberships` y `👥 Roles` con 5 requests (crear, listar, revocar memberships; crear, listar roles).
 - **ROADMAP.md**: F-009 completada, Fase 4 marcada como completada en el plan, Sprint 2 cerrado.
 - **Lección aprendida**: En controllers REST con DTOs, verificar siempre que el import de `BaseResponse` sea del subpaquete `.response` (`io.cmartinezs.keygo.api.shared.response.BaseResponse`), no directamente de `shared`.
+
+### [2026-03-22] Documentación de flujo de autenticación del cliente — AUTH_FLOW.md
+Se generó **bajo orden explícita del usuario** el documento `docs/keygo-server/AUTH_FLOW.md`:
+
+- **`AUTH_FLOW.md`** (~350 líneas): guía completa del flujo OAuth 2.0 Authorization Code + PKCE desde la perspectiva del cliente (SPA/Mobile). Incluye:
+  - Diagrama de prerrequisitos del sistema (Mermaid graph)
+  - Diagrama de secuencia completo con actor Usuario, WebApp y KeyGo Server (Mermaid sequenceDiagram)
+  - Algoritmo PKCE paso a paso con código JavaScript (navegador) y Swift (iOS)
+  - HTTP request/response real para cada uno de los 3 endpoints
+  - Flowcharts de validación internos por cada paso (Mermaid flowchart)
+  - Tabla de errores con excepción, HTTP status y ResponseCode
+  - Timeline de evolución Fase 5 → Fase 6 (Mermaid timeline)
+  - Guía de implementación en TypeScript (SPA React) y Kotlin (Android/OkHttp)
+  - Checklist de seguridad (PKCE, state, cookies, HTTPS)
+- **`docs/keygo-server/README.md`** (actualizado): nueva sección "🔐 Seguridad y autenticación" con enlace al documento; nueva entrada de navegación "Cómo implementar el login en mi app".
+
+**Documentación generada bajo orden explícita:** SÍ.
 
 ### [2026-03-22] Documentación de modelo de datos — 3 nuevos documentos + índice centralizado
 Se generaron **bajo orden explícita del usuario** tres documentos de referencia técnica para el diccionario y modelo de datos:

@@ -8,14 +8,14 @@
  Dimensión  Estado 
 ------
  Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-run`, `keygo-supabase` 
- Autenticación  Sin implementar — sólo filtro Bootstrap de clave admin 
- Persistencia  Entidades y repositorios JPA base (User, Role, Permission, **Tenant**, **ClientApp**, **Membership & AppRole**), ambos conectados a puertos de negocio 
- API pública  12 endpoints: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), **Memberships & Roles (4)** 
+ Autenticación  **Fase 5 completada**: Authorization Code + PKCE, endpoints OAuth2 públicos 
+ Persistencia  Entidades y repositorios JPA base (User, Role, Permission, Tenant, ClientApp, Membership & AppRole, **AuthorizationCode**), todos conectados a puertos de negocio 
+ API pública  **15 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), **OAuth2 Authorization (3)** 
  CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
  Stubs vacos  `keygo-infra`, `keygo-common` 
- Tests  ~210+ tests unitarios — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — 20 requests en 5 carpetas con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 5 — siguiente** — OAuth2/OIDC: authorization flow 
+ Tests  **270+ tests unitarios** — sin integración ni e2e 
+ Postman  ✅ Colecciones en `postman/` — **23 requests en 6 carpetas** con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 5 ✅ Completada** — próxima: Fase 6 (Token Signing & JWKS) 
 
 ---
 
@@ -165,6 +165,7 @@
 | F-003 | E2-H1: Modelo `Tenant` — entidad de dominio, persistencia, unicidad por `slug` | 2026-03-21 | `keygo-domain/tenant/model/`, `keygo-supabase/tenant/`, migración `V4__add_tenants.sql`, puertos y use cases en `keygo-app/tenant/` |
 | F-004 | E2-H2: Resolución de tenant — propagar contexto de tenant a la request desde entrada HTTP | 2026-03-21 | `TenantContextHolder` (keygo-app), `TenantResolutionFilter` por header `X-Tenant-Slug` (keygo-run) |
 | F-009 | E5-H1: Modelo `Membership` — relación user ↔ app, unicidad, estado; `AppRole` — roles locales por app | 2026-03-21 | `keygo-domain/membership/model/` (Membership, AppRole, MembershipRole, MembershipStatus, etc.); `keygo-supabase/membership/` (entidades JPA, adapters); migración `V7__add_memberships.sql`; 3 use cases (CreateMembership, RevokeMembership, ListMemberships); 2 controllers con 5 endpoints; 210+ tests totales en proyecto |
+| — | **Fase 5: Núcleo OAuth2/OIDC — Authorization Code + PKCE** | 2026-03-22 | Dominio: `AuthorizationCode`, `AuthorizationCodeStatus`, `CodeChallenge`, `ScopeSet`, 4 excepciones; App: 4 puertos, 4 use cases, 4 comandos, 3 results; Supabase: `AuthorizationCodeEntity`, JPA repo, mapper, adapter, migración `V8__add_oauth_authorization_codes.sql`; API: `AuthorizationController` con 3 endpoints (authorize, login, token exchange), 4 DTOs request/response, 5 handlers en `GlobalExceptionHandler`; Infra: `PkceVerifier`; Run: `SystemClockProvider`, 6 `@Bean` nuevos; **270+ tests totales, build SUCCESS, Postman +3 requests en carpeta "🔐 OAuth2 Authorization"** |
 
 ---
 

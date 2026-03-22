@@ -231,6 +231,26 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Cómo se resolvió o qué debe hacerse en el futuro.
 -->
 
+### [2026-03-22] Value objects: acceso a `.value()` diferente según record vs clase regular
+**Contexto:** Fase 5 — Implementación de modelos de dominio para OAuth2 (AuthorizationCode, CodeChallenge, ScopeSet). Se descubrió inconsistencia en cómo acceder al atributo del value object en records.
+**Problema:** En el codebase existen dos patrones de value objects: (1) **Records** (p. ej. `ClientId`, `TenantId`, `UserId`, `PasswordHash`, `AuthorizationCodeId`) donde el parámetro del constructor se expone como **método público** (p. ej. `.value()`, `.id()` según el nombre del campo). (2) **Clases regulares** (no existen en el proyecto actualmente, pero como referencia teórica).
+
+Los records exponen automáticamente cada parámetro como método público, por lo que:
+- `record AuthorizationCodeId(UUID id)` → acceso `.id()` (no `.id` ni `.getValue()`)
+- `record ClientId(String value)` → acceso `.value()`
+- `record UserId(UUID value)` → acceso `.value()`
+
+**Solución / Buena práctica:** **Todos los value objects del proyecto son ya records.** El acceso a los datos es mediante el método que coincide con el nombre del parámetro constructor. Esto es automático en Java records y evita errores. Aplicar hoy: si en el futuro se crea otro value object, usar record + nombrar el parámetro de forma clara (`id`, `value`, `email`, etc.) que reflejarquée es el field.
+
+**Referencia correcta de acceso en el proyecto:**
+- `AuthorizationCodeId.id()` (no `.getValue()`)
+- `ClientId.value()`
+- `TenantId.value()`
+- `UserId.value()`
+- `PasswordHash.value()`
+
+**Archivos clave:** `keygo-domain/.../model/*Id.java`, `AuthorizationCodeId.java`
+
 ### [2026-03-21] SpringDoc 3.0.1 con Spring Boot 4.x — integración y anotaciones de seguridad
 **Contexto:** Integración de Swagger / OpenAPI al proyecto usando `springdoc-openapi-starter-webmvc-ui`.
 **Problema:** Dos puntos críticos encontrados: (1) `@SecurityRequirementsOptional` **no existe** en `swagger-annotations-jakarta` — el compilador falla con "cannot find symbol". (2) La versión correcta para Spring Boot 4.x es **SpringDoc 3.x** (`springdoc-openapi-starter-webmvc-ui:3.0.1`); SpringDoc 2.x usa Spring Boot 3.x parent y puede no ser compatible con Spring 7/Jackson 3.
@@ -358,7 +378,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 ### [2026-03-21] Fase 4 — Import correcto de BaseResponse en controllers REST
 **Contexto:** Implementación de `TenantMembershipController` y `TenantAppRoleController` en `keygo-api/membership/controller/`.
 **Problema:** Los controllers compilaban con error "cannot find symbol: class BaseResponse" porque se intentó importar directamente de `io.cmartinezs.keygo.api.shared.BaseResponse`, pero `BaseResponse` está en el subpaquete `.response`: `io.cmartinezs.keygo.api.shared.response.BaseResponse`.
-**Solución / Buena práctica:** 
+**Solución / Buena práctica:**
 - **Importar siempre** `BaseResponse` del subpaquete correcto: `io.cmartinezs.keygo.api.shared.response.BaseResponse`.
 - La jerarquía es: `shared/` (package-level utilities) → `shared/response/` (response DTOs, envelopes, helpers).
 - Este patrón es consistente con todos los controllers existentes en `keygo-api`.
@@ -409,3 +429,21 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - **T-020** — Observabilidad avanzada con OpenTelemetry + Prometheus + Grafana. Ver `ROADMAP.md T-020`.
 - **F-010 a F-016** — Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE. Ver `ROADMAP.md` Fase 1.
 
+### [2026-03-22] OAuth2 Authorization Code: pasar estado entre GET /authorize y POST /login vía HTTP Session
+**Contexto:** Fase 5 — Flujo OAuth2 Authorization Code + PKCE. Se corrigió el endpoint `/account/login` para generar el authorization code correctamente.
+
+**Problema:** Inicialmente, el endpoint `/account/login` solo autentica el usuario y retorna un mensaje vacío. La variable `user` no se usaba. En un flujo OAuth2 estándar (industria), se necesita **preservar el estado de la solicitud de autorización** entre dos requests HTTP: (1) GET `/authorize` → valida cliente, scopes, redirect URI (sin login). (2) POST `/account/login` → autentica usuario usando credenciales y **genera el authorization code** con los datos capturados en paso 1.
+
+**Solución / Buena práctica:**
+1. **GET `/authorize`** valida la solicitud y **guarda en sesión HTTP** (`HttpSession.setAttribute("authorizationState", state)`) un objeto `AuthorizationSessionState` con: tenantSlug, clientId, redirectUri, scope, codeChallenge, codeChallengeMethod.
+2. **POST `/account/login`** (misma sesión HTTP, preservada por cookies): (a) recupera `authSessionState` de sesión, (b) autentica usuario, (c) **emite `IssueAuthorizationCodeUseCase`** pasando los datos de sesión + userId autenticado, (d) retorna en response el **authorization code temporal** + redirect URI.
+3. El cliente recibe el código y puede intercambiarlo en **POST `/oauth2/token`** por tokens (Fase 6).
+
+Cambios realizados:
+- Nueva clase `AuthorizationSessionState` (record serializable) en `keygo-api/auth/session/`.
+- `GET /authorize`: guarda estado en sesión.
+- `POST /account/login`: recupera estado, emite código, retorna `LoginData` con campos `code` + `redirectUri`.
+- `LoginData`: actualizado de record de un parámetro a tres (message, code, redirectUri).
+- Postman collection: requests de authorize y login mejorados con query params y pm.test() validations.
+
+**Archivos clave:** `AuthorizationController.java`, `AuthorizationSessionState.java`, `LoginData.java`, `postman/KeyGo-Server.postman_collection.json`.
