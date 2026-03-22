@@ -88,14 +88,14 @@ Se dividieron los documentos AI principales que estaban creciendo demasiado:
 
 ### [2026-03-22] Fase 6 — Firma de tokens y metadata OIDC completada
 - **`keygo-domain`**: `SigningKey`, `SigningKeyId` (record), `SigningKeyStatus`, `SigningKeyAlgorithm`; excepción `NoActiveSigningKeyException`.
-- **`keygo-app`**: puertos `SigningKeyRepositoryPort`, `TokenSignerPort`, `TokenClaimsFactoryPort`, `JwksBuilderPort`; casos de uso `IssueTokensUseCase`, `GetJwksUseCase`, `GetOidcConfigurationUseCase`.
-- **`keygo-infra`**: `RsaJwtTokenSigner` (Nimbus via `spring-security-oauth2-jose`), `StandardTokenClaimsFactory`, `JwkSetBuilder`.
-- **`keygo-supabase`**: `SigningKeyEntity`, `SigningKeyJpaRepository`, mapper, adapter, migración `V9__add_signing_keys.sql`.
-- **`keygo-api`**: `JwksController` (`GET /.well-known/jwks.json`), `OidcMetadataController` (`GET /.well-known/openid-configuration`), `AuthorizationController` actualizado, `TokenData` ampliado.
-- **`keygo-run`**: `SigningKeyBootstrapService` (auto-genera par RSA 2048 al arrancar sin clave ACTIVE, solo perfil `supabase`), 6 nuevos `@Bean`.
-- Tests: ~29 nuevos. Total: **299 tests**.
-- Postman: carpeta `🔑 OIDC & JWKS` con 2 requests. **25 requests totales** en 7 carpetas.
-- `application.yml`: `keygo.info.issuer-base-url`, `keygo.bootstrap.well-known-path-prefix`.
+- **`keygo-app`**: puertos `SigningKeyRepositoryPort`, `TokenSignerPort`, `TokenClaimsFactoryPort`, `JwksBuilderPort`; casos de uso `IssueTokensUseCase`, `GetJwksUseCase`, `GetOidcConfigurationUseCase`; results `IssueTokensResult`, `OidcConfigurationResult`.
+- **`keygo-infra`** (módulo activado — ya no stub): `RsaJwtTokenSigner` (Nimbus via `spring-security-oauth2-jose` transitivo), `StandardTokenClaimsFactory` (at_hash SHA-256), `JwkSetBuilder` (RFC 7517); `PkceVerifier` (Fase 5). `jacoco.skip` eliminado.
+- **`keygo-supabase`**: `SigningKeyEntity`, `SigningKeyJpaRepository` (`findFirstByStatus`, `findByStatusIn`), `SigningKeyPersistenceMapper`, `SigningKeyRepositoryAdapter`; migración `V9__add_signing_keys.sql`.
+- **`keygo-api`**: `JwksController` (`GET /.well-known/jwks.json`, JSON nativo RFC 7517), `OidcMetadataController` (`GET /.well-known/openid-configuration`, JSON nativo OIDC Discovery 1.0), `AuthorizationController` actualizado para emitir tokens reales en `POST /oauth2/token`; `TokenData` con access_token + id_token + token_type + expires_in; `GlobalExceptionHandler` con handler `NoActiveSigningKeyException` → 503.
+- **`keygo-run`**: 3 nuevos `@Bean` en `ApplicationConfig` (`tokenSignerPort`, `tokenClaimsFactoryPort`, `jwksBuilderPort`, `issueTokensUseCase`, `getJwksUseCase`, `getOidcConfigurationUseCase`); property `keygo.info.issuer-base-url` usada en `GetOidcConfigurationUseCase` y `AuthorizationController`.
+- **Tests nuevos en esta sesión**: `JwkSetBuilderTest` (4), `JwksControllerTest` (2), `OidcMetadataControllerTest` (2) + tests pre-existentes completados (IssueTokensUseCaseTest, GetJwksUseCaseTest, GetOidcConfigurationUseCaseTest, RsaJwtTokenSignerTest, StandardTokenClaimsFactoryTest, SigningKeyRepositoryAdapterTest, SigningKeyPersistenceMapperTest). **Total proyecto: 307 tests, todos pasan** ✅
+- **Postman**: carpeta `🔑 OIDC & JWKS` con 2 requests (`GET OIDC Configuration`, `GET JWKS`) con scripts `pm.test()` completos.
+- **ResponseCode**: `TOKEN_ISSUED`, `JWKS_RETRIEVED`, `OIDC_CONFIGURATION_RETRIEVED`.
 
 ### [2026-03-22] Fase 5 — Núcleo OAuth2/OIDC: authorization flow completada
 - **`keygo-domain`**: `AuthorizationCode`, `AuthorizationCodeId`, `AuthorizationCodeStatus`, `CodeChallenge`, `ScopeSet`; excepciones `InvalidAuthorizationCodeException`, `AuthorizationCodeExpiredException`, `InvalidPkceVerificationException`, `ScopeNotGrantedException`.

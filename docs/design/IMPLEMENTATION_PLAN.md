@@ -644,7 +644,7 @@ Ya tienes el corazón de Key-go funcionando:
 
 ---
 
-## Fase 6. Firma de tokens y metadata OIDC
+## Fase 6. Firma de tokens y metadata OIDC ✅ COMPLETADA (2026-03-22)
 
 ### Objetivo
 Emitir tokens interoperables y validables externamente.
@@ -656,46 +656,97 @@ Emitir tokens interoperables y validables externamente.
 - `keygo-api`
 - `keygo-supabase`
 
-### Componentes a crear
+### Componentes implementados
 
-## 6.1. Dominio
-- `SigningKey`
-- `SigningKeyStatus`
+## 6.1. Dominio ✅
+- `SigningKey` ✅ — entidad con `publicMaterial`, `privateMaterial`, `kid`, `algorithm`, `status`
+- `SigningKeyId` ✅
+- `SigningKeyStatus` ✅ — `ACTIVE | RETIRED | REVOKED`
+- `SigningKeyAlgorithm` ✅ — `RS256 | RS384 | RS512`
+- `NoActiveSigningKeyException` ✅
 
-## 6.2. Aplicación
+## 6.2. Aplicación ✅
 ### Puertos
-- `SigningKeyRepositoryPort`
-- `TokenSignerPort`
-- `TokenClaimsFactoryPort`
+- `SigningKeyRepositoryPort` ✅ — `findActiveKey()`, `findPublishableKeys()`, `save()`
+- `TokenSignerPort` ✅ — `signJwt(claims, signingKey)`
+- `TokenClaimsFactoryPort` ✅ — `buildAccessTokenClaims(...)`, `buildIdTokenClaims(...)`
+- `JwksBuilderPort` ✅ — `buildJwkSet(List<SigningKey>)`
+- `ClockPort` ✅ — abstracción del reloj del sistema
+
+### Results
+- `IssueTokensResult` ✅
+- `JwksResult` ✅
+- `OidcConfigurationResult` ✅
 
 ### Casos de uso
-- `IssueAccessTokenUseCase`
-- `IssueIdTokenUseCase`
-- `GetJwksUseCase`
-- `GetOidcConfigurationUseCase`
+- `IssueTokensUseCase` ✅ — emite access_token + id_token firmados RS256 con TTL 1h
+- `GetJwksUseCase` ✅ — retorna JWK Set con claves ACTIVE y RETIRED
+- `GetOidcConfigurationUseCase` ✅ — genera OIDC Discovery Document por tenant
 
-## 6.3. Infraestructura
-- implementación JWT signer
-- construcción de claims
-- publicación de JWKS
+## 6.3. Infraestructura ✅ (`keygo-infra`)
+- `RsaJwtTokenSigner` ✅ — firma JWT con clave RSA privada (PKCS#8 PEM); soporta RS256/RS384/RS512; `kid` en header
+- `StandardTokenClaimsFactory` ✅ — RFC 9068 access_token + OIDC Core id_token con `at_hash` (SHA-256 left half base64url)
+- `JwkSetBuilder` ✅ — construye JWK Set RFC 7517 desde claves de dominio; omite claves con material inválido sin fallar
+- `PkceVerifier` ✅ — validación S256 y plain (Fase 5, reutilizado aquí)
 
-## 6.4. Persistencia
-- `SigningKeyJpaEntity`
-- `SigningKeyJpaRepository`
+## 6.4. Persistencia ✅
+### En `keygo-supabase`
+- `SigningKeyEntity` ✅ — tabla `signing_keys` (kid unique, status check, algorithm, public/private PEM)
+- `SigningKeyJpaRepository` ✅ — `findFirstByStatus`, `findByStatusIn`
+- `SigningKeyPersistenceMapper` ✅
+- `SigningKeyRepositoryAdapter` ✅
 
 ### Migración
-- tabla `signing_key`
+- `V9__add_signing_keys.sql` ✅ — tabla `signing_keys`
 
-## 6.5. API
-- `OidcMetadataController`
-- `JwksController`
+## 6.5. API ✅
+- `JwksController` ✅ — JSON nativo RFC 7517, ruta pública
+- `OidcMetadataController` ✅ — JSON nativo OIDC Discovery 1.0, ruta pública
+- Integración en `AuthorizationController` ✅ — `POST /oauth2/token` llama a `IssueTokensUseCase` y retorna `TokenData` con tokens reales
 
 ### Endpoints
-- `GET /{tenant}/.well-known/openid-configuration`
-- `GET /{tenant}/.well-known/jwks.json`
+- `GET /api/v1/tenants/{slug}/.well-known/openid-configuration` ✅ — público
+- `GET /api/v1/tenants/{slug}/.well-known/jwks.json` ✅ — público
 
-### Resultado esperado
-Los tokens emitidos por Key-go ya pueden ser validados por terceros mediante estándar OIDC/JWKS.
+### Response codes
+- `TOKEN_ISSUED` ✅
+- `JWKS_RETRIEVED` ✅
+- `OIDC_CONFIGURATION_RETRIEVED` ✅
+
+### Error handlers en `GlobalExceptionHandler`
+- `NoActiveSigningKeyException` → 503 Service Unavailable ✅
+
+## 6.6. Run ✅
+- `TokenSignerPort` → `RsaJwtTokenSigner` ✅
+- `TokenClaimsFactoryPort` → `StandardTokenClaimsFactory` ✅
+- `JwksBuilderPort` → `JwkSetBuilder` ✅
+- `IssueTokensUseCase`, `GetJwksUseCase`, `GetOidcConfigurationUseCase` — 3 `@Bean` en `ApplicationConfig` ✅
+- `keygo-infra` — `jacoco.skip` eliminado (módulo activo con código real) ✅
+
+### Tests
+- `IssueTokensUseCaseTest` ✅ — 2 tests (token emitido, no hay clave activa)
+- `GetJwksUseCaseTest` ✅ — 2 tests
+- `GetOidcConfigurationUseCaseTest` ✅ — 2 tests
+- `RsaJwtTokenSignerTest` ✅ — 2 tests (JWT 3 partes, kid en header)
+- `StandardTokenClaimsFactoryTest` ✅ — 4 tests (at_hash, nonce, claims requeridos)
+- `JwkSetBuilderTest` ✅ — 4 tests (clave válida, múltiples, vacío, clave inválida omitida)
+- `SigningKeyRepositoryAdapterTest` ✅ — 3 tests
+- `SigningKeyPersistenceMapperTest` ✅ — 2 tests
+- `JwksControllerTest` ✅ — 2 tests (MockMvc standalone)
+- `OidcMetadataControllerTest` ✅ — 2 tests (MockMvc standalone)
+- **~25 tests nuevos en Fase 6. Total proyecto: 307 tests, todos pasan** ✅
+
+### Postman
+- `GET OIDC Configuration` ✅ — con scripts `pm.test()` validando issuer, jwks_uri, response_types, RS256
+- `GET JWKS` ✅ — con scripts validando estructura RFC 7517 (kty, kid, n, e, use, alg)
+
+### Resultado alcanzado ✅
+Los tokens JWT emitidos por KeyGo:
+- son firmados con RSA (RS256) usando clave privada almacenada en DB,
+- incluyen `kid` en el header para mapear al JWK Set,
+- el JWK Set publicado en `/.well-known/jwks.json` permite validación por terceros,
+- el OIDC Discovery Document en `/.well-known/openid-configuration` permite auto-configuración de librerías OAuth2,
+- son verificables con cualquier librería JWT estándar (Auth0, Nimbus, etc.).
 
 ---
 

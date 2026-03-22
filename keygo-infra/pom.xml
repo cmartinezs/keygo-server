@@ -15,8 +15,7 @@
     <description>Infrastructure implementations (persistence, external APIs, etc.) / Implementaciones de infraestructura (persistencia, APIs externas, etc.)</description>
 
     <properties>
-        <!-- Módulo stub vacío: sin código propio que medir aún -->
-        <jacoco.skip>true</jacoco.skip>
+        <!-- JaCoCo activo: el módulo tiene implementaciones con cobertura propia -->
     </properties>
 
     <dependencies>

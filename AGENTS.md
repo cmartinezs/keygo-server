@@ -12,7 +12,7 @@
 ```
 keygo-domain   ← pure Java, NO Spring, NO internal deps  [Tenant ✅, ClientApp ✅, Auth ✅, SigningKey ✅]
 keygo-app      ← usecases + port interfaces (OUT); depends on domain
-keygo-infra    ← JWT signer (RSA/Nimbus), JWKS builder; depends on app  [✅ Activo]
+keygo-infra    ← JWT signer (RSA/Nimbus), JWKS builder, PKCE verifier; depends on app  [✅ Activo]
 keygo-api      ← REST controllers + DTOs; depends on app
 keygo-supabase ← JPA/Flyway/PostgreSQL; depends on infra
 keygo-run      ← main class + Spring wiring (@Bean factories) + application.yml
@@ -241,8 +241,9 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | 2 | Client app model (`ClientApp`, redirect URIs, grants, secret rotation) | ✅ Done (2026-03-21) |
 | 3 | User identity per tenant | ✅ Done (2026-03-21) |
 | 4 | Memberships & roles per app | ✅ Done (2026-03-21) |
-| 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | — |
-| 6–11 | Token signing, JWKS, refresh, self-service, hardening | — |
+| 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | ✅ Done (2026-03-22) |
+| 6 | Token signing RS256 + JWKS + OIDC Discovery | ✅ Done (2026-03-22) |
+| 7–11 | Refresh token, userinfo, client credentials, hardening | — |
 
 **Golden rule from the plan:** never implement `/oauth2/authorize` before tenant, client app, user, and membership are solid.
 

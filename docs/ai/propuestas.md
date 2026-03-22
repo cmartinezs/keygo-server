@@ -15,14 +15,14 @@
 
 | ID | Propuesta | Estado |
 |---|---|---|
-| ~~T-001~~ | ~~Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`)~~ | ✅ Completada 2026-03-21 |
 | T-002 | Agregar mapper en `keygo-api/platform/` para descargar mapeo `ServiceInfoProvider → ServiceInfoData` al controller | 🔲 Pendiente |
 | T-023 | Configurar lint/formato automático (Checkstyle / Spotless). Convención ya en `docs/development/CODE_STYLE.md` | 🔲 Pendiente |
-| T-024 | Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` | ✅ Completada (Fases 5/6) |
+| ~~T-024~~ | ~~Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/`~~ | ✅ Completada (Fases 5/6) |
+| ~~T-027~~ | ~~Integrar Swagger / OpenAPI con SpringDoc 3.0.1~~ | ✅ Completada 2026-03-21 |
 | T-026 | Mantener colecciones Postman actualizadas; crear environment `KeyGo-Server-Docker` | 🔲 Pendiente |
-| T-027 | Endpoints `PUT /tenants/{slug}/users/{userId}/suspend` y `/activate` | 🔲 Pendiente |
-| T-028 | Tests de integración con Testcontainers para `UserRepositoryAdapter` | 🔲 Pendiente |
+| T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) — eliminar `private_material` de la DB en producción | 🔲 Pendiente |
 | T-030 | Agregar verificación de referencias Markdown rotas post-reorganización `docs/ai/` — script o check de links en `docs/ai/README.md` | 🔲 Pendiente |
+| T-033 | Endpoints `PUT /api/v1/tenants/{slug}/users/{userId}/suspend` y `/activate` | 🔲 Pendiente |
 
 ---
 
@@ -56,5 +56,5 @@
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent
+**Última actualización:** 2026-03-22 (sincronización con ROADMAP.md) | **Responsable:** AI Agent
 

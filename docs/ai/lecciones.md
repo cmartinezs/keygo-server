@@ -26,6 +26,8 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-22 | [Fase 6: jacoco.skip en módulos que maduran de stub a activo](#2026-03-22-fase-6-eliminar-jacocoskip-cuando-un-módulo-stub-se-activa) | Maven / CI |
+| 2026-03-22 | [Fase 6: tests de controllers con MockMvc standalone sin Spring context](#2026-03-22-fase-6-tests-de-controllers-oidcjwks-con-mockmvc-standalone) | Testing |
 | 2026-03-22 | [Reorganización de docs AI a docs/ai/](#2026-03-22-reorganización-de-documentos-ai-a-docsai) | Proceso / Documentación |
 | 2026-03-22 | [Conversión de diagramas ASCII a Mermaid — criterio de selección](#2026-03-22-conversión-de-diagramas-ascii-a-mermaid--criterio-de-selección) | Documentación / Diagramas |
 | 2026-03-22 | [Corrección de inconsistencias: docs vs DB — criterio de decisión](#2026-03-22-corrección-de-inconsistencias-docs-vs-db--criterio-de-decisión) | Convenciones / DB |
@@ -57,6 +59,22 @@
 ---
 
 ## Lecciones
+
+### [2026-03-22] Fase 6: eliminar jacoco.skip cuando un módulo stub se activa
+**Contexto:** `keygo-infra` tenía `<jacoco.skip>true</jacoco.skip>` porque era un módulo "stub vacío". Al implementar la Fase 6 se llenó con código de producción (`RsaJwtTokenSigner`, `JwkSetBuilder`, `StandardTokenClaimsFactory`) y sus tests unitarios.
+**Problema:** Si `jacoco.skip=true` queda activo tras activar un módulo, la cobertura de ese código nunca se mide ni reporta, generando un punto ciego en el quality gate.
+**Solución / Buena práctica:** Al escribir el primer código productivo en un módulo anteriormente stub, remover `<jacoco.skip>true</jacoco.skip>` en el mismo commit. Un módulo con tests reales no debería tener skip de cobertura.
+**Archivos clave:** `keygo-infra/pom.xml`
+
+---
+
+### [2026-03-22] Fase 6: tests de controllers OIDC/JWKS con MockMvc standalone
+**Contexto:** `JwksController` y `OidcMetadataController` retornan `Map<String, Object>` (JSON nativo RFC 7517 / OIDC Discovery 1.0) en lugar del envelope `BaseResponse<T>`.
+**Problema:** Los controllers no podían testearse con el patrón habitual de `BaseResponse`. Además, `@WebMvcTest` cargaría el contexto Spring completo con beans que no están en `keygo-api`.
+**Solución / Buena práctica:** Usar `MockMvcBuilders.standaloneSetup(controller).build()` con `@ExtendWith(MockitoExtension.class)` (sin Spring). Verificar JSON nativo directamente con `jsonPath("$.keys")`, `jsonPath("$.issuer")`, etc. — no buscar envelope. El `setUp()` se llama al inicio de cada test en lugar de `@BeforeEach` para evitar posibles interferencias entre tests.
+**Archivos clave:** `keygo-api/src/test/java/.../auth/controller/JwksControllerTest.java`, `OidcMetadataControllerTest.java`
+
+---
 
 ### [2026-03-22] Reorganización de documentos AI a docs/ai/
 **Contexto:** Limpieza de la raíz del repositorio — los sub-documentos AI estaban directamente en la raíz, mezclados con documentos de producto.

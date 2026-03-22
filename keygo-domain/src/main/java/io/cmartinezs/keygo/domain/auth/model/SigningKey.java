@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.domain.auth.model;
 import java.time.Instant;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Entidad de dominio: clave de firma RSA para emisión de tokens JWT.
@@ -13,6 +14,7 @@ import lombok.Getter;
  */
 @Getter
 @Builder
+@RequiredArgsConstructor
 public class SigningKey {
 
   private final SigningKeyId id;
