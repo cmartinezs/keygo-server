@@ -270,6 +270,20 @@ Se implementó el núcleo de memberships (acceso del usuario a una app) y roles 
 - **ROADMAP.md**: F-009 completada, Fase 4 marcada como completada en el plan, Sprint 2 cerrado.
 - **Lección aprendida**: En controllers REST con DTOs, verificar siempre que el import de `BaseResponse` sea del subpaquete `.response` (`io.cmartinezs.keygo.api.shared.response.BaseResponse`), no directamente de `shared`.
 
+### [2026-03-22] Documentación de modelo de datos — 3 nuevos documentos + índice centralizado
+Se generaron **bajo orden explícita del usuario** tres documentos de referencia técnica para el diccionario y modelo de datos:
+
+- **`DATA_MODEL.md`** (1000 líneas): Diccionario completo (12 tablas), diagrama E/R Mermaid, jerarquía de cascade, 8 guías SQL de referencia, tabla de enumeraciones (ENUM), tabla de constraints únicos (PK, UK), índices recomendados con SQL
+- **`ENTITY_RELATIONSHIPS.md`** (700 líneas): 5 contextos de negocio (class diagrams), OAuth2 Authorization Code Flow + PKCE (sequence diagram), Refresh Token flow, Token Revocation, ciclo de vida de Membership (state machine), asignación de roles, matriz de decisión de acceso (flowchart), capas lógicas de validación (graph), índices con SQL
+- **`DATA_DICTIONARY.md`** (400 líneas): Índice centralizado, mapa de acceso por rol (Dev, Arquitecto, QA), vista de diagramas a nivel de detalle (30k-10k-3k pies), 3 ejemplos de uso reales, convenciones de nomenclatura, checklist de validación, referencias cruzadas con AGENTS.md/ARCHITECTURE.md
+- **`README.md`** (actualizado): Índice de todos los documentos técnicos de `docs/keygo-server/`, tabla de referencias cruzadas, preguntas frecuentes, sugerencias de lectura por rol
+
+**Diagramas:** 100% Mermaid (E/R, class, sequence, state, flowchart, graph). Todos natively soportados en GitHub, GitLab, Notion y editores comunes.
+
+**Patrón de referencias cruzadas:** cada documento remite a AGENTS.md (quick-start), ARCHITECTURE.md (diseño), `docs/arch/keygo_server_domain_model.md` (bounded contexts) y `postman/KeyGo-Server.postman_collection.json` (ejemplos HTTP).
+
+**Documentación generada bajo orden explícita:** SÍ. Estos 3 documentos + README son parte del ciclo de trabajo del agente (como `AI_CONTEXT.md`, `AGENTS.md` mismo) porque responden a la necesidad de base de conocimiento compartida, no documentación de producto.
+
 ### [2026-03-21] Cierre de Fase 0 — base de calidad completada
 Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de calidad):
 - **CI Pipeline**: creado `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package` en push/PR a `main`/`develop`. Sube artefactos de surefire si el build falla.

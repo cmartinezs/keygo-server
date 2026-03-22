@@ -365,6 +365,20 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - Los IDEs pueden auto-completar incorrectamente; verificar manualmente en el import statement.
 **Archivos clave:** `keygo-api/shared/response/BaseResponse.java`, `keygo-api/membership/controller/TenantMembershipController.java`, `keygo-api/membership/controller/TenantAppRoleController.java`
 
+### [2026-03-22] Documentación de modelo de datos y diccionario — estructura, flujos y relaciones
+**Contexto:** Generación de documentación completa para el modelo de datos (diccionario + E/R) bajo orden explícita del usuario. El proyecto alcanzó Fase 4 con 10 entidades JPA, 5+ tablas de relación y múltiples flujos de negocio complejos (OAuth2, memberships, roles).
+**Problema:** Sin documentación centralizada del modelo, nuevos desarrolladores necesitaban navegar por: (1) migraciones Flyway diseminadas (`V1.sql` a `V7.sql`), (2) entidades JPA distribuidas por feature, (3) múltiples archivos de dominio (`keygo_server_domain_model.md`, `keygo_server_architecture.md`), (4) diagramas no representativos del estado actual. No había referencia unificada para constrains, enumeraciones, índices o guías SQL de consulta rápida.
+**Solución / Buena práctica:**
+- **Crear 3 documentos complementarios en `docs/keygo-server/`:**
+  1. **`DATA_MODEL.md`** (800 líneas) — diccionario completo (12 tablas), diagrama E/R Mermaid, cascade rules, 8 guías SQL, enumeraciones, constraints únicos, índices.
+  2. **`ENTITY_RELATIONSHIPS.md`** (600 líneas) — 5 contextos de negocio (class diagrams Mermaid), OAuth2 Authorization Code flow (sequence), Refresh Token flow, token revocation, ciclo de vida de memberships (state machine), asignación de roles, matriz de decisión de acceso (flowchart), capas lógicas de validación (graph).
+  3. **`DATA_DICTIONARY.md`** (300 líneas) — índice centralizado, mapa de acceso por rol (Dev, Arquitecto, QA), vista de diagramas a nivel de detalle (30k-10k-3k pies), 3 ejemplos de uso reales, convenciones de nomenclatura, checklist de validación.
+- **Actualizar `docs/keygo-server/README.md`** — crear índice de todos los documentos técnicos con tabla de referencias cruzadas, sugerencias de lectura por rol y preguntas frecuentes.
+- **Diagramas Mermaid como primera opción:** E/R, contextos (class diagrams), flujos (sequence, state machines, flowcharts), cascades (graph). Todos natively soportados en GitHub y editores comunes.
+- **Patrón de referencia cruzada:** cada documento se cruza con AGENTS.md, ARCHITECTURE.md, domain_model.md de `docs/arch/` y con la colección Postman.
+- **Documentación generada solo bajo orden explícita del usuario → SÍ cumplido**, pero estos 3 documentos son parte del ciclo de trabajo del agente (como `AI_CONTEXT.md`, `AGENTS.md`) porque responden a la necesidad de base de conocimiento compartida, no documentación de producto.
+**Archivos clave:** `docs/keygo-server/DATA_MODEL.md`, `docs/keygo-server/ENTITY_RELATIONSHIPS.md`, `docs/keygo-server/DATA_DICTIONARY.md`, `docs/keygo-server/README.md`
+
 
 ## Propuestas de mejoras futuras
 
