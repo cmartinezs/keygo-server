@@ -343,6 +343,29 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Crear una instancia de `TenantEntity` con solo el `id` seteado (`new TenantEntity(); tenantRef.setId(id)`) y asignarla a `entity.setTenant(tenantRef)`. JPA/Hibernate trata esto como una referencia a un proxy de la entidad existente, resolviendo la FK sin hacer una query adicional. Este patrón es seguro cuando la FK ya existe en DB. Alternativa más idiomática en JPA: usar `entityManager.getReference(TenantEntity.class, id)`.
 **Archivos clave:** `keygo-supabase/.../clientapp/adapter/ClientAppRepositoryAdapter.java`
 
+### [2026-03-21] Fase 3 — Mockito UnnecessaryStubbing con tryFindByEmail que captura IAE
+**Contexto:** Implementación de `ValidateUserCredentialsUseCase` que acepta email o username como credencial, con fallback automático.
+**Problema:** En los tests de `ValidateUserCredentialsUseCase`, stubear `findByTenantIdAndEmail` para una credencial de tipo username ("johndoe") genera `UnnecessaryStubbing` porque `tryFindByEmail()` nunca llama al mock — en cambio, captura la `IllegalArgumentException` lanzada por `EmailAddress.of("johndoe")` (formato inválido) y retorna `Optional.empty()` sin invocar el repositorio.
+**Solución / Buena práctica:** Al testear el camino de username: NO stubear `findByTenantIdAndEmail` (el mock no se invoca). Al testear "user not found": usar un email real como credencial (`"nobody@acme.com"`) para que el mock de email SÍ se invoque, en lugar de una string que falle la validación de formato. Regla general: en lógica try-catch que retorna `Optional.empty()` sin llamar al colaborador, el mock de ese colaborador no debe configurarse en el test.
+**Archivos clave:** `keygo-app/.../user/usecase/ValidateUserCredentialsUseCase.java`, `keygo-app/.../user/usecase/UpdateResetValidateUseCaseTest.java`
+
+### [2026-03-21] Fase 3 — PasswordHash.toString() nunca expone el hash (seguridad)
+**Contexto:** El value object `PasswordHash` wrappea el hash BCrypt del usuario.
+**Problema:** Si `toString()` retorna el valor del hash, cualquier log que incluya el objeto `User` o `PasswordHash` expondría credenciales en los logs del sistema — vector de fuga de información sensible.
+**Solución / Buena práctica:** `PasswordHash.toString()` siempre retorna `"PasswordHash[REDACTED]"` — nunca el valor real. El acceso real al hash se hace explícitamente con `.value()` solo en los lugares donde es necesario (mapper, port de verificación). Agregar test que valide que `toString()` no contiene el hash real.
+**Archivos clave:** `keygo-domain/.../user/model/PasswordHash.java`
+
+### [2026-03-21] Fase 4 — Import correcto de BaseResponse en controllers REST
+**Contexto:** Implementación de `TenantMembershipController` y `TenantAppRoleController` en `keygo-api/membership/controller/`.
+**Problema:** Los controllers compilaban con error "cannot find symbol: class BaseResponse" porque se intentó importar directamente de `io.cmartinezs.keygo.api.shared.BaseResponse`, pero `BaseResponse` está en el subpaquete `.response`: `io.cmartinezs.keygo.api.shared.response.BaseResponse`.
+**Solución / Buena práctica:** 
+- **Importar siempre** `BaseResponse` del subpaquete correcto: `io.cmartinezs.keygo.api.shared.response.BaseResponse`.
+- La jerarquía es: `shared/` (package-level utilities) → `shared/response/` (response DTOs, envelopes, helpers).
+- Este patrón es consistente con todos los controllers existentes en `keygo-api`.
+- Los IDEs pueden auto-completar incorrectamente; verificar manualmente en el import statement.
+**Archivos clave:** `keygo-api/shared/response/BaseResponse.java`, `keygo-api/membership/controller/TenantMembershipController.java`, `keygo-api/membership/controller/TenantAppRoleController.java`
+
+
 ## Propuestas de mejoras futuras
 
 > El acumulador principal de propuestas es **[`ROADMAP.md`](ROADMAP.md)** en la raíz del repositorio.
@@ -356,18 +379,19 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - **T-023** — Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless). Convención ya documentada en `docs/keygo-server/CODE_STYLE.md`. Ver `ROADMAP.md T-023`.
 - **T-024** — Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como alternativa al header `X-Tenant-Slug`, necesaria para los endpoints OAuth2 de la Fase 5. Ver `ROADMAP.md T-024`.
 - **T-026** — Mantener colecciones Postman actualizadas al agregar cada nuevo endpoint; crear environment `KeyGo-Server-Docker`. Ver `ROADMAP.md T-026`.
+- **T-027** — Agregar endpoints `PUT /tenants/{slug}/users/{userId}/suspend` y `PUT /tenants/{slug}/users/{userId}/activate` (gestión de estado de usuario). Ver `ROADMAP.md T-027`.
+- **T-028** — Agregar tests de integración con Testcontainers para `UserRepositoryAdapter` (crear, buscar por email/username, listar por tenant). Ver `ROADMAP.md T-028`.
 
 ### Mediano plazo
 
-- **T-009** — Poblar `keygo-domain` con las primeras entidades de dominio puras: `Tenant`, `User`, `ClientApp`, `Membership`. Ver `ROADMAP.md T-009`. (**Tenant ya implementado en Fase 1**).
-- **T-010** — Poblar `keygo-infra` con puertos de infraestructura transversal: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`. Ver `ROADMAP.md T-010`.
-- **T-013** — Implementar tests de integración con Testcontainers para `keygo-supabase` (incluyendo `TenantRepositoryAdapter`). Ver `ROADMAP.md T-013`.
-- **T-025** — Agregar tests de integración con Testcontainers para el flujo completo de Tenant (crear → consultar → suspender). Ver `ROADMAP.md T-025`.
+- **T-009** — Poblar `keygo-domain` con las primeras entidades de dominio puras: `Tenant`, `User`, `ClientApp`, `Membership`. Ver `ROADMAP.md T-009`. (**Tenant, User y ClientApp ya implementados**).
+- **T-010** — Poblar `keygo-infra` con puertos de infraestructura transversal: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider`, `AuditPublisherPort`. Ver `ROADMAP.md T-010`. (`PasswordHasherPort` ya implementado en Fase 3).
+- **T-013** — Implementar tests de integración con Testcontainers para `keygo-supabase`. Ver `ROADMAP.md T-013`.
+- **T-025** — Agregar tests de integración con Testcontainers para el flujo completo de Tenant. Ver `ROADMAP.md T-025`.
 
 ### Largo plazo
 
 - **T-017** — Renombrar `keygo-supabase` → `keygo-adapter-persistence-postgres` para neutralizar acoplamiento al proveedor. Ver `ROADMAP.md T-017`.
 - **T-020** — Observabilidad avanzada con OpenTelemetry + Prometheus + Grafana. Ver `ROADMAP.md T-020`.
 - **F-010 a F-016** — Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE. Ver `ROADMAP.md` Fase 1.
-
 

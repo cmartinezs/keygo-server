@@ -5,17 +5,17 @@
 
 ## Estado actual del producto (2026-03-21)
 
-| Dimensión | Estado |
-|---|---|
-| Arquitectura | Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-run`, `keygo-supabase` |
-| Autenticación | Sin implementar — sólo filtro Bootstrap de clave admin |
-| Persistencia | Entidades y repositorios JPA base (User, Role, Permission, **Tenant**, **ClientApp** con redirect URIs, grants, scopes), ambos conectados a puertos de negocio |
-| API pública | 9 endpoints: `GET /service/info`, `GET /response-codes`, Tenants (3), **Client Apps (5: create, list, get, update, rotate-secret)** |
-| CI/CD | ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) |
-| Stubs vacíos | `keygo-infra`, `keygo-common` |
-| Tests | ~165+ tests unitarios — sin integración ni e2e |
-| Postman | ✅ Colecciones en `postman/` — 20 requests en 5 carpetas con scripts `pm.test()` y entorno local |
-| Fase actual | **Fase 3 — siguiente** — Identidad de usuario por tenant (`User`, `UserRepositoryPort`, credenciales) |
+ Dimensión  Estado 
+------
+ Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-run`, `keygo-supabase` 
+ Autenticación  Sin implementar — sólo filtro Bootstrap de clave admin 
+ Persistencia  Entidades y repositorios JPA base (User, Role, Permission, **Tenant**, **ClientApp**, **Membership & AppRole**), ambos conectados a puertos de negocio 
+ API pública  12 endpoints: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), **Memberships & Roles (4)** 
+ CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
+ Stubs vacos  `keygo-infra`, `keygo-common` 
+ Tests  ~210+ tests unitarios — sin integración ni e2e 
+ Postman  ✅ Colecciones en `postman/` — 20 requests en 5 carpetas con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 5 — siguiente** — OAuth2/OIDC: authorization flow 
 
 ---
 
@@ -164,6 +164,7 @@
 | — | Reorganizar paquetes internos por feature (keygo-api, keygo-app, keygo-run, keygo-supabase) | 2026-03-17 | Refactor de estructura interna |
 | F-003 | E2-H1: Modelo `Tenant` — entidad de dominio, persistencia, unicidad por `slug` | 2026-03-21 | `keygo-domain/tenant/model/`, `keygo-supabase/tenant/`, migración `V4__add_tenants.sql`, puertos y use cases en `keygo-app/tenant/` |
 | F-004 | E2-H2: Resolución de tenant — propagar contexto de tenant a la request desde entrada HTTP | 2026-03-21 | `TenantContextHolder` (keygo-app), `TenantResolutionFilter` por header `X-Tenant-Slug` (keygo-run) |
+| F-009 | E5-H1: Modelo `Membership` — relación user ↔ app, unicidad, estado; `AppRole` — roles locales por app | 2026-03-21 | `keygo-domain/membership/model/` (Membership, AppRole, MembershipRole, MembershipStatus, etc.); `keygo-supabase/membership/` (entidades JPA, adapters); migración `V7__add_memberships.sql`; 3 use cases (CreateMembership, RevokeMembership, ListMemberships); 2 controllers con 5 endpoints; 210+ tests totales en proyecto |
 
 ---
 

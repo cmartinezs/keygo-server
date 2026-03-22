@@ -10,14 +10,29 @@ import io.cmartinezs.keygo.app.clientapp.usecase.ListClientAppsUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.ResolveClientAppForAuthorizationUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.RotateClientSecretUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.UpdateClientAppUseCase;
+import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
 import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
 import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
+import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
+import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
 import java.util.TimeZone;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -116,6 +131,79 @@ public class ApplicationConfig {
     return new ResolveClientAppForAuthorizationUseCase(tenantRepositoryPort, clientAppRepositoryPort);
   }
 
+  @Bean
+  public PasswordHasherPort passwordHasherPort() {
+    return new BCryptPasswordHasher();
+  }
+
+  @Bean
+  public CreateUserUseCase createUserUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new CreateUserUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public GetUserUseCase getUserUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort) {
+    return new GetUserUseCase(tenantRepositoryPort, userRepositoryPort);
+  }
+
+  @Bean
+  public ListUsersUseCase listUsersUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort) {
+    return new ListUsersUseCase(tenantRepositoryPort, userRepositoryPort);
+  }
+
+  @Bean
+  public UpdateUserUseCase updateUserUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort) {
+    return new UpdateUserUseCase(tenantRepositoryPort, userRepositoryPort);
+  }
+
+  @Bean
+  public ResetUserPasswordUseCase resetUserPasswordUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new ResetUserPasswordUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public ValidateUserCredentialsUseCase validateUserCredentialsUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public CreateMembershipUseCase createMembershipUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      MembershipRepositoryPort membershipRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort) {
+    return new CreateMembershipUseCase(tenantRepositoryPort, membershipRepositoryPort, appRoleRepositoryPort);
+  }
+
+  @Bean
+  public ListMembershipsUseCase listMembershipsUseCase(MembershipRepositoryPort membershipRepositoryPort) {
+    return new ListMembershipsUseCase(membershipRepositoryPort);
+  }
+
+  @Bean
+  public RevokeMembershipUseCase revokeMembershipUseCase(MembershipRepositoryPort membershipRepositoryPort) {
+    return new RevokeMembershipUseCase(membershipRepositoryPort);
+  }
+
+  @Bean
+  public ListAppRolesUseCase listAppRolesUseCase(AppRoleRepositoryPort appRoleRepositoryPort) {
+    return new ListAppRolesUseCase(appRoleRepositoryPort);
+  }
+
     @Bean
     JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer() {
         return builder -> builder
@@ -133,4 +221,3 @@ public class ApplicationConfig {
             .defaultTimeZone(TimeZone.getTimeZone("UTC"));
     }
 }
-

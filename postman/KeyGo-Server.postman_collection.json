@@ -1216,6 +1216,225 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "👤 Users",
+      "description": "Gestión de identidades de usuario con alcance por tenant. Requiere X-KEYGO-ADMIN.",
+      "item": [
+        {
+          "name": "Crear usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('BaseResponse válido', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('success');",
+                  "  pm.expect(body).to.have.property('data');",
+                  "});",
+                  "pm.test('userId guardado en entorno', () => {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data).to.have.property('id');",
+                  "  pm.environment.set('userId', data.id);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ts = Date.now();",
+                  "pm.environment.set('userUsername', `user_${ts}`);",
+                  "pm.environment.set('userEmail', `user_${ts}@example.com`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users"]
+            },
+            "description": "Crea un nuevo usuario dentro del tenant. Username y email deben ser únicos en el tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('BaseResponse con lista', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('success');",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users"]
+            },
+            "description": "Lista todos los usuarios del tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener usuario por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Data contiene username y email', () => {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data).to.have.property('username');",
+                  "  pm.expect(data).to.have.property('email');",
+                  "  pm.expect(data).to.not.have.property('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/{{userId}}",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "{{userId}}"]
+            },
+            "description": "Obtiene los detalles de un usuario específico por su UUID."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('BaseResponse con data', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('success');",
+                  "  pm.expect(body).to.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/{{userId}}",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "{{userId}}"]
+            },
+            "description": "Actualiza el firstName y lastName de un usuario existente."
+          },
+          "response": []
+        },
+        {
+          "name": "Resetear contraseña",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta con code USER_PASSWORD_RESET', () => {",
+                  "  const success = pm.response.json().success;",
+                  "  pm.expect(success.code).to.equal('USER_PASSWORD_RESET');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"NewSecurePass456!\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/{{userId}}/reset-password",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "{{userId}}", "reset-password"]
+            },
+            "description": "Resetea administrativamente la contraseña de un usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "Validar credenciales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta con code CREDENTIALS_VALID', () => {",
+                  "  const success = pm.response.json().success;",
+                  "  pm.expect(success.code).to.equal('CREDENTIALS_VALID');",
+                  "});",
+                  "pm.test('Sin passwordHash en data', () => {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data).to.not.have.property('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credential\": \"{{userEmail}}\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users/validate-credentials",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "tenants", "{{tenantSlug}}", "users", "validate-credentials"]
+            },
+            "description": "Valida las credenciales de un usuario (email o username + contraseña). Retorna los datos del usuario en caso de éxito."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

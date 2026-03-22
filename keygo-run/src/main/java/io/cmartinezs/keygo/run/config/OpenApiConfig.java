@@ -93,7 +93,7 @@ public class OpenApiConfig {
         .group("2-tenants")
         .displayName("🏢 Tenants")
         .pathsToMatch("/api/v1/tenants/**")
-        .pathsToExclude("/api/v1/tenants/*/apps/**")
+        .pathsToExclude("/api/v1/tenants/*/apps/**", "/api/v1/tenants/*/users/**")
         .build();
   }
 
@@ -109,6 +109,21 @@ public class OpenApiConfig {
         .group("3-client-apps")
         .displayName("📦 Client Apps")
         .pathsToMatch("/api/v1/tenants/*/apps/**")
+        .build();
+  }
+
+  /**
+   * Grouped API for User management endpoints.
+   * <p>Grupo de API para endpoints de gestión de usuarios.
+   *
+   * @return {@link GroupedOpenApi} bean for users group
+   */
+  @Bean
+  public GroupedOpenApi usersGroup() {
+    return GroupedOpenApi.builder()
+        .group("4-users")
+        .displayName("👤 Users")
+        .pathsToMatch("/api/v1/tenants/*/users/**")
         .build();
   }
 }

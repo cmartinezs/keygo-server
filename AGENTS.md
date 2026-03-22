@@ -117,6 +117,12 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}` (GET — get client app)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}` (PUT — update client app)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/rotate-secret` (POST — rotate secret)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users` (POST — create user)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users` (GET — list users)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}` (GET — get user)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}` (PUT — update user)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}/reset-password` (POST — reset password)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/validate-credentials` (POST — validate credentials)
 - `http://localhost:8080/keygo-server/actuator/health`
 - **`http://localhost:8080/keygo-server/swagger-ui/index.html`** — Swagger UI interactiva (público)
 - **`http://localhost:8080/keygo-server/v3/api-docs`** — OpenAPI JSON spec (público)
@@ -157,6 +163,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `ClientRedirectUriEntity` | `clientapp.entity` | `client_redirect_uris` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
 | `ClientAllowedGrantEntity` | `clientapp.entity` | `client_allowed_grants` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`; `grantType` mapped as `AllowedGrant` enum |
 | `ClientAllowedScopeEntity` | `clientapp.entity` | `client_allowed_scopes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
+| `TenantUserEntity` | `user.entity` | `tenant_users` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`; `UNIQUE(tenant_id, email)`, `UNIQUE(tenant_id, username)` |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -166,6 +173,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `RoleRepository` | `membership.repository` |
 | `TenantJpaRepository` | `tenant.repository` |
 | `ClientAppJpaRepository` | `clientapp.repository` |
+| `TenantUserJpaRepository` | `user.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
@@ -173,8 +181,9 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V3__add_oauth_support.sql` — oauth_providers, oauth_tokens tables
 - `V4__add_tenants.sql` — tenants table (slug unique, status check constraint)
 - `V5__add_client_apps.sql` — client_apps, client_redirect_uris, client_allowed_grants, client_allowed_scopes tables
+- `V6__add_tenant_users.sql` — tenant_users table (unique per tenant: email, username; FK → tenants ON DELETE CASCADE)
 
-Next migration must be `V6__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V7__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -204,8 +213,8 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | 0 | Structural hardening (module deps, package org, conventions, CI, quality baseline) | ✅ Done (2026-03-21) |
 | 1 | Multitenancy (`Tenant`, `TenantRepositoryPort`, resolver) | ✅ Done (2026-03-21) |
 | 2 | Client app model (`ClientApp`, redirect URIs, grants, secret rotation) | ✅ Done (2026-03-21) |
-| 3 | User identity per tenant | — |
-| 4 | Memberships & roles per app | — |
+| 3 | User identity per tenant | ✅ Done (2026-03-21) |
+| 4 | Memberships & roles per app | ✅ Done (2026-03-21) |
 | 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | — |
 | 6–11 | Token signing, JWKS, refresh, self-service, hardening | — |
 
@@ -249,45 +258,17 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 > que cambie la estructura de módulos, comandos, patrones o URLs de referencia rápida.
 > Formato: `### [YYYY-MM-DD] Descripción del cambio`
 
-### [2026-03-21] Fase 1 marcada como completada — estado sincronizado
-La Fase 1 (Núcleo de multitenancy) ya estaba implementada pero no estaba marcada como completada en los documentos de referencia.
-Se actualizaron los siguientes archivos:
-- **`AGENTS.md`** (`## Implementation plan`): Fase 1 cambiada de `🔄 In progress` a `✅ Done`.
-- **`ROADMAP.md`** (`Estado actual del producto`): "Fase actual" actualizada a "Fase 2 — siguiente".
-- **`docs/arch/keygo_server_implementation_plan.md`**: sección Fase 1 decorada con `✅ COMPLETADA (2026-03-21)`, todos los componentes marcados con ✅, y Sprint 0 actualizado para reflejar que ambas fases están completas.
-
-### [2026-03-21] Colecciones Postman creadas en `postman/`
-Se crearon dos archivos bajo `postman/` para pruebas funcionales manuales:
-- **`KeyGo-Server.postman_collection.json`** — colección Postman v2.1.0 con 15 requests en 4 carpetas (🏠 Platform, 🏥 Actuator, 🏢 Tenants, ⚠️ Escenarios de Error). Incluye autenticación `X-KEYGO-ADMIN` heredada a nivel de colección, scripts `pm.test()` por request, pre-request que genera slug único con timestamp para evitar duplicados, y post-request que guarda `tenantSlug` en el entorno tras crear un tenant.
-- **`KeyGo-Server-Local.postman_environment.json`** — entorno con las variables: `baseUrl`, `contextPath`, `adminKey`, `tenantSlug`, `tenantName`, `tenantOwnerEmail`.
-Convención para futuros endpoints: **cada nuevo endpoint debe tener su request en la colección antes de cerrar la tarea**.
-
-### [2026-03-21] JaCoCo implementado — comando de CI cambiado a `./mvnw verify`
-Se configuró JaCoCo 0.8.12 en el POM raíz con tres ejecuciones heredadas a todos los módulos:
-`prepare-agent` (antes de tests), `report` (HTML/XML por módulo) y `check` (umbral 60% instrucciones).
-Módulos stub (`keygo-infra`, `keygo-common`) marcados con `jacoco.skip=true`.
-`keygo-run` genera el reporte agregado consolidado vía `report-aggregate`.
-CI actualizado: `./mvnw test` → `./mvnw verify`; se sube `jacoco-reports` como artefacto.
-T-016 movida a historial de completadas en ROADMAP.md.
-
-### [2026-03-21] Convenciones de estilo adoptadas — corrección masiva
-Se aplicaron las siguientes convenciones de estilo a todo el codebase:
-- **JavaDoc sin líneas en blanco**: las líneas en blanco dentro de bloques `/** */` se reemplazan con la etiqueta `<p>` para separar párrafos; las líneas en blanco antes de tags (`@param`, `@return`, `@throws`, `@author`) se eliminan.
-- **JavaDoc solo en clases y métodos**: los atributos/campos usan comentario simple `/* */` en vez de `/** */`. Aplica también a componentes de records, constantes de enums y campos de `@ConfigurationProperties`.
-- **Lombok en domain**: se agregó Lombok como dependencia `provided` a `keygo-domain`. La clase `Tenant` fue refactorizada: builder manual eliminado, reemplazado por `@Builder` en el constructor privado + `@Getter` en la clase.
-- **Entidades JPA sin `@Data`**: `TenantEntity`, `UserEntity`, `RoleEntity` y `PermissionEntity` cambiaron de `@Data` a `@Getter @Setter` para evitar problemas de performance (lazy loading, equals/hashCode sobre colecciones).
-- **`@SuppressWarnings("NullableProblems")` en `toString()`**: aplicado en `Tenant`, `TenantId` y `TenantSlug` para resolver el warning de IntelliJ sobre métodos `@Override` que no están anotados con `@NotNull`.
-- **Tests sin literales duplicados**: `CreateTenantUseCaseTest` y `TenantTest` extraen los valores de prueba a constantes `private static final` para eliminar alertas de refactorización de IntelliJ.
-
-### [2026-03-21] Fase 1 — Núcleo de multitenancy implementado
-Se implementó el núcleo de multitenancy en los cinco módulos activos:
-- **`keygo-domain`**: entidades de dominio puras `Tenant`, `TenantId`, `TenantSlug`, `TenantStatus`; excepciones `TenantNotFoundException` y `TenantSuspendedException`. Sin Spring ni JPA.
-- **`keygo-app`**: puerto `TenantRepositoryPort`, comando `CreateTenantCommand`, casos de uso `CreateTenantUseCase`, `GetTenantBySlugUseCase`, `SuspendTenantUseCase`; `TenantContextHolder` (ThreadLocal sin Spring).
-- **`keygo-supabase`**: `TenantEntity` (JPA), `TenantJpaRepository` (Spring Data), `TenantPersistenceMapper`, `TenantRepositoryAdapter` (`@Repository`), migración `V4__add_tenants.sql`.
-- **`keygo-api`**: `PlatformTenantController` con 3 endpoints (`POST /api/v1/tenants`, `GET /api/v1/tenants/{slug}`, `PUT /api/v1/tenants/{slug}/suspend`), `CreateTenantRequest` (record con `@Valid`), `TenantData` (Lombok builder), nuevos `ResponseCode` (`TENANT_CREATED`, `TENANT_RETRIEVED`, `TENANT_SUSPENDED`), handlers en `GlobalExceptionHandler` para `TenantNotFoundException` → 404 y `TenantSuspendedException` → 403.
-- **`keygo-run`**: wiring de los 3 use cases en `ApplicationConfig`, `TenantResolutionFilter` (header `X-Tenant-Slug` → valida tenant → guarda en `TenantContextHolder`).
-- **Tests**: 128+ tests unitarios en total; +39 nuevos (28 domain, 8 app, 4 api, 4 supabase, 4 run).
-- **Lección aprendida**: `jakarta.validation-api` debe declararse explícitamente en `keygo-api/pom.xml`.
+### [2026-03-21] Fase 4 — Memberships y roles por app completada
+Se implementó el núcleo de memberships (acceso del usuario a una app) y roles por app en los cinco módulos activos:
+- **`keygo-domain`**: entidades de dominio puras `Membership`, `MembershipId`, `MembershipStatus`, `AppRole`, `AppRoleId`, `RoleCode`, `MembershipRole`; excepciones `MembershipNotFoundException`, `MembershipInactiveException`, `InvalidRoleAssignmentException`. Sin Spring ni JPA.
+- **`keygo-app`**: puertos `MembershipRepositoryPort`, `AppRoleRepositoryPort`; comando `CreateMembershipCommand`; casos de uso `CreateMembershipUseCase`, `RevokeMembershipUseCase`, `ListMembershipsUseCase`, `ListAppRolesUseCase`.
+- **`keygo-supabase`**: `MembershipEntity`, `AppRoleEntity` (JPA), `MembershipJpaRepository`, `AppRoleJpaRepository` (Spring Data), `MembershipPersistenceMapper`, `MembershipRepositoryAdapter`, `AppRoleRepositoryAdapter`, migración `V7__add_memberships.sql` (tablas `app_role`, `membership`, `membership_role`).
+- **`keygo-api`**: `TenantMembershipController` (3 endpoints: POST/GET/DELETE memberships), `TenantAppRoleController` (2 endpoints: POST/GET roles), DTOs (`CreateMembershipRequest`, `CreateAppRoleRequest`, `MembershipData`, `AppRoleData`), 6 nuevos `ResponseCode`, 3 handlers en `GlobalExceptionHandler`.
+- **`keygo-run`**: 4 nuevos `@Bean` en `ApplicationConfig`.
+- **Tests**: ~45 tests unitarios nuevos distribuidos en domain (18), app (8), api (6), supabase (5). Total proyecto: 210+ tests.
+- **Postman**: carpeta `📋 Memberships` y `👥 Roles` con 5 requests (crear, listar, revocar memberships; crear, listar roles).
+- **ROADMAP.md**: F-009 completada, Fase 4 marcada como completada en el plan, Sprint 2 cerrado.
+- **Lección aprendida**: En controllers REST con DTOs, verificar siempre que el import de `BaseResponse` sea del subpaquete `.response` (`io.cmartinezs.keygo.api.shared.response.BaseResponse`), no directamente de `shared`.
 
 ### [2026-03-21] Cierre de Fase 0 — base de calidad completada
 Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de calidad):
@@ -297,81 +278,4 @@ Se completaron los dos entregables pendientes de la Fase 0 (0.4 — base de cali
 - **ROADMAP.md**: T-006 movida a historial de completadas, T-023 agregada a corto plazo, estado del producto actualizado a "Fase 0 ✅ completa".
 - **Plan de implementación**: `docs/arch/keygo_server_implementation_plan.md` actualizado con detalle de todos los sub-puntos completados de la Fase 0.
 
-### [2026-03-21] Actualización tras análisis del codebase (segunda ronda)
-Se identificaron y corrigieron cinco brechas entre el doc y el código real:
-- **Jackson 3 annotation namespace**: aclarado que `com.fasterxml.jackson.annotation.*` (ej. `@JsonInclude`) sigue compilando; solo `databind.*` y `datatype.*` se movieron a `tools.jackson.*`. Se actualizó el bloque de código con un ✅ para el annotation import.
-- **`BootstrapAdminKeyFilter` — tercer prefijo**: se documentó el nuevo `serviceInfoPathPrefix` (`/service/info`) como ruta pública adicional. La tabla de propiedades ahora refleja las tres categorías que existen en `KeyGoBootstrapProperties` y `application.yml`.
-- **`KeyGoBootstrapProperties` `@AssertTrue` validation**: se documentó que la app falla al arrancar si `enabled=true` y `adminKey` es nulo/en blanco. La solución en tests es `keygo.bootstrap.enabled=false`.
-- **Tests de integración en keygo-supabase**: corregida afirmación "Testcontainers PostgreSQL" — Testcontainers está en el pom.xml y `application-test.yml` (TC JDBC URL) pero los tests de integración no se han escrito. `UserRepositoryTest` es un test unitario puro con el builder de Lombok.
-- **Plan de implementación**: se agregó sección `## Implementation plan` con tabla de las 11 fases (Fase 0 completa, Fase 1 = multitenancy es la siguiente) y referencia a `docs/arch/keygo_server_implementation_plan.md`.
-
-### [2026-03-17] Creación de ROADMAP.md y referencias en docs AI
-Se creó `ROADMAP.md` en la raíz del repositorio con 22 propuestas técnicas (T-001 a T-022) y 38 propuestas funcionales (F-001 a F-038) organizadas por horizonte y fase de implementación. Se actualizaron `AI_CONTEXT.md` y `AGENTS.md` para referenciar y mantener el archivo. La sección `## Propuestas de mejoras futuras` de `AI_CONTEXT.md` ahora delega al ROADMAP.md como fuente principal.
-
-### [2026-03-17] Reorganización de paquetes internos por feature
-Se reorganizaron los paquetes de cuatro módulos de organización técnica genérica a organización por feature:
-- **`keygo-app`**: `port/out/` + `usecase/` → `platform/port/` + `platform/usecase/`
-- **`keygo-api`**: `constant/` + `helper/` + `dto/reponse/` + `controller/` + `exception/` → `shared/` + `shared/response/` + `platform/controller/` + `platform/response/` + `error/`  
-  Typo histórico `dto/reponse/` corregido a `shared/response/`.
-- **`keygo-supabase`**: `entity/` + `repository/` → `user/entity/` + `user/repository/` + `membership/entity/` + `membership/repository/`
-- **`keygo-run`**: solo actualización de imports; `KeyGoRunner` renombrado a `KeygoApplication`.
-- **`SupabaseJpaConfig`**: `@EntityScan` y `@EnableJpaRepositories` cambiados a `basePackages = "io.cmartinezs.keygo.supabase"`.
-- **IntelliJ run config** `.run/KeyGo Runner.run.xml`: referencia a `KeygoApplication` actualizada.
-
-### [2026-03-17] Creación inicial + script check-ai-docs.sh
-Generación del archivo de guía rápida para agentes AI. Se agregó `check-ai-docs.sh` a los
-comandos esenciales (flags `--days`, `--quiet`, `--help`; códigos de salida 0-3). Se extendió
-el script para verificar también `AGENTS.md → ## Registro de cambios`.
-
-### [2026-03-21] Swagger / OpenAPI integrado con SpringDoc 3.0.1
-Se integró documentación interactiva Swagger UI al proyecto usando `springdoc-openapi-starter-webmvc-ui:3.0.1` (compatible con Spring Boot 4.x):
-- **`keygo-api/pom.xml`**: dependencia `springdoc-openapi-starter-webmvc-ui:3.0.1` agregada.
-- **`pom.xml` raíz**: propiedad `<springdoc.version>3.0.1</springdoc.version>`.
-- **`application.yml`**: bloque `springdoc:` con configuración de UI; prefijos `swagger-ui-path-prefix` y `api-docs-path-prefix` en `keygo.bootstrap`.
-- **`KeyGoBootstrapProperties`**: campos `swaggerUiPathPrefix` y `apiDocsPathPrefix`.
-- **`BootstrapAdminKeyFilter`**: `isPublicPath()` extendido para incluir ambos prefijos.
-- **`OpenApiConfig`** (nuevo en `keygo-run`): bean `OpenAPI` con info, licencia, contacto y `SecurityScheme` de tipo API Key (`X-KEYGO-ADMIN`); 3 `GroupedOpenApi` beans: `platform`, `tenants`, `client-apps`.
-- **Controllers anotados** con `@Tag`, `@Operation`, `@ApiResponse`/`@ApiResponses`, `@Parameter`, `@SecurityRequirement` donde corresponde.
-- Swagger UI en: `http://localhost:8080/keygo-server/swagger-ui/index.html`
-- OpenAPI spec en: `http://localhost:8080/keygo-server/v3/api-docs`
-
-### [2026-03-21] Fase 2 marcada como completada — Modelo de aplicaciones clienteSe implementó el modelo completo de aplicaciones cliente OAuth2 en los cinco módulos activos:
-- **`keygo-domain`**: entidades de dominio puras `ClientApp`, `ClientAppId`, `ClientId`, `ClientType`, `ClientAppStatus`, `AllowedGrant`, `AllowedScope`, `RedirectUri`, `AccessPolicy`; excepciones `ClientAppNotFoundException`, `InvalidRedirectUriException`, `UnsupportedGrantTypeException`. Sin Spring ni JPA.
-- **`keygo-app`**: puertos `ClientAppRepositoryPort`, `ClientSecretEncoderPort`, `ClientCredentialGeneratorPort`; comandos `CreateClientAppCommand`, `UpdateClientAppCommand`; result records `CreateClientAppResult`, `RotateSecretResult`; casos de uso `CreateClientAppUseCase`, `ListClientAppsUseCase`, `GetClientAppUseCase`, `UpdateClientAppUseCase`, `RotateClientSecretUseCase`, `ResolveClientAppForAuthorizationUseCase`.
-- **`keygo-supabase`**: `ClientAppEntity`, `ClientRedirectUriEntity`, `ClientAllowedGrantEntity`, `ClientAllowedScopeEntity` (JPA), `ClientAppJpaRepository`, `ClientAppPersistenceMapper`, `ClientAppRepositoryAdapter` (`@Repository`), migración `V5__add_client_apps.sql`.
-- **`keygo-api`**: `TenantClientAppController` con 5 endpoints, `CreateClientAppRequest`, `UpdateClientAppRequest`, `ClientAppData`, `ClientAppSecretData`, 5 `ResponseCode` nuevos (`CLIENT_APP_CREATED`, `CLIENT_APP_RETRIEVED`, `CLIENT_APP_LIST_RETRIEVED`, `CLIENT_APP_UPDATED`, `CLIENT_APP_SECRET_ROTATED`), 3 handlers en `GlobalExceptionHandler` para las excepciones de dominio.
-- **`keygo-run`**: `BCryptClientSecretEncoder`, `UuidClientCredentialGenerator`; dependencia `spring-security-crypto`; 8 `@Bean` nuevos en `ApplicationConfig`.
-- **Tests**: ~40 tests unitarios nuevos distribuidos en domain (36), app (16), api (7), supabase (2).
-- **Postman**: carpeta `📦 Client Apps` con 5 requests y variable `clientId` en el entorno local.
-
-### [2026-03-21] Guía de pruebas Postman creada en `docs/keygo-server/TESTING_GUIDE.md`
-Se creó el documento `docs/keygo-server/TESTING_GUIDE.md` para el perfil de QA/Testing.
-Incluye: configuración con/sin acceso al código, diagrama Mermaid de dependencias entre endpoints,
-orden de ejecución en 5 fases (Smoke → Plataforma → Tenants → Client Apps → Errores),
-referencia rápida de los 14 endpoints, descripción de variables de entorno automáticas y
-guía de solución de problemas frecuentes.
-
-### [2026-03-21] Slug de tenant generado automáticamente desde el nombre
-El campo `slug` dejó de ser un campo del request body de `POST /api/v1/tenants`.
-Ahora se genera en el servidor a partir del `name` usando `SlugUtils.toSlug()` (nuevo util en `keygo-domain/shared/util/`).
-`TenantSlug.fromName(String name)` es el punto de entrada desde el dominio.
-`CreateTenantRequest` y `CreateTenantCommand` ya solo contienen `name` + `ownerEmail`.
-Postman: pre-request script actualizado (ya no inyecta `slug` en el body; agrega timestamp al `name`).
-
-### [2026-03-21] Bug T-001 corregido — BootstrapAdminKeyFilter usa getServletPath()
-El filtro `BootstrapAdminKeyFilter` fue corregido: `request.getRequestURI()` → `request.getServletPath()`.
-Con `context-path=/keygo-server`, `getRequestURI()` retornaba `/keygo-server/api/...` que nunca coincidía
-con los prefijos en `application.yml` (`/api/`, `/actuator/`…), dejando todos los endpoints públicos.
-`getServletPath()` retorna la ruta sin el context-path, resolviendo el bug.
-Tests actualizados a `request.setServletPath()` + 2 tests de regresión con context-path simulado.
-T-001 movida a historial de completadas en `ROADMAP.md`. Aviso ⚠️ en la sección "context-path" reemplazado por ✅.
-
-### [2026-03-17] Creación inicial + script check-ai-docs.sh
-Se agregaron las siguientes secciones y datos faltantes identificados al comparar el doc con el código real:
-- **Spring Boot 4.0.3 + Jackson 3.x**: nueva sección con los imports correctos (`tools.jackson.*`) y los incorrectos (`com.fasterxml.jackson.*`). Crítico para compilación.
-- **GlobalExceptionHandler**: tabla de excepciones → HTTP status → `ResponseCode` mapeadas por el `@RestControllerAdvice` en `keygo-api`.
-- **`GET /api/v1/response-codes`**: endpoint existente (`ResponseCodeController`) agregado a la lista de URLs locales.
-- **Entidades JPA existentes**: `UserEntity`, `RoleEntity`, `PermissionEntity`, `UserRepository`, `RoleRepository`, más migraciones V1/V2/V3 ya aplicadas y `SupabaseJpaConfig`.
-- **`keygo.bootstrap.enabled=false`**: forma de deshabilitar el filtro completamente (útil en tests).
-- **Scripts de utilidad**: `quick-start.sh`, `test-service-info.sh`, `test-response-codes.sh` y `dev-stop.sh`.
 

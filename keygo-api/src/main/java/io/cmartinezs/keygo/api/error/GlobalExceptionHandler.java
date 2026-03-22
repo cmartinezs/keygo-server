@@ -6,8 +6,15 @@ import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
+import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
+import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
+import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -166,6 +173,111 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnsupportedGrantTypeException.class)
   public ResponseEntity<BaseResponse<Void>> handleUnsupportedGrantTypeException(UnsupportedGrantTypeException ex) {
     log.error("Unsupported grant type: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles UserNotFoundException - returns 404 Not Found.
+   * Maneja UserNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(UserNotFoundException.class)
+  public ResponseEntity<BaseResponse<Void>> handleUserNotFoundException(UserNotFoundException ex) {
+    log.error("User not found: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+  }
+
+  /**
+   * Handles UserSuspendedException - returns 403 Forbidden.
+   * Maneja UserSuspendedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(UserSuspendedException.class)
+  public ResponseEntity<BaseResponse<Void>> handleUserSuspendedException(UserSuspendedException ex) {
+    log.error("User suspended: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.BUSINESS_RULE_VIOLATION))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+  }
+
+  /**
+   * Handles DuplicateUserException - returns 409 Conflict.
+   * Maneja DuplicateUserException - retorna 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateUserException.class)
+  public ResponseEntity<BaseResponse<Void>> handleDuplicateUserException(DuplicateUserException ex) {
+    log.error("Duplicate user: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.DUPLICATE_RESOURCE))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+  }
+
+  /**
+   * Handles InvalidCredentialsException - returns 401 Unauthorized.
+   * Maneja InvalidCredentialsException - retorna 401 Unauthorized.
+   */
+  @ExceptionHandler(InvalidCredentialsException.class)
+  public ResponseEntity<BaseResponse<Void>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+    log.error("Invalid credentials: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+  }
+
+  /**
+   * Handles MembershipNotFoundException - returns 404 Not Found.
+   * Maneja MembershipNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(MembershipNotFoundException.class)
+  public ResponseEntity<BaseResponse<Void>> handleMembershipNotFoundException(MembershipNotFoundException ex) {
+    log.error("Membership not found: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+  }
+
+  /**
+   * Handles MembershipInactiveException - returns 403 Forbidden.
+   * Maneja MembershipInactiveException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(MembershipInactiveException.class)
+  public ResponseEntity<BaseResponse<Void>> handleMembershipInactiveException(MembershipInactiveException ex) {
+    log.error("Membership inactive: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.BUSINESS_RULE_VIOLATION))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+  }
+
+  /**
+   * Handles InvalidRoleAssignmentException - returns 400 Bad Request.
+   * Maneja InvalidRoleAssignmentException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidRoleAssignmentException.class)
+  public ResponseEntity<BaseResponse<Void>> handleInvalidRoleAssignmentException(InvalidRoleAssignmentException ex) {
+    log.error("Invalid role assignment: {}", ex.getMessage());
 
     BaseResponse<Void> response = BaseResponse.<Void>builder()
         .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))

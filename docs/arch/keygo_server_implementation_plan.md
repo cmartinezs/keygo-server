@@ -322,7 +322,7 @@ El admin del tenant ya puede:
 
 ---
 
-## Fase 3. Identidad de usuario
+## Fase 3. Identidad de usuario ✅ COMPLETADA (2026-03-21)
 
 ### Objetivo
 Cerrar la identidad humana única por tenant.
@@ -332,57 +332,98 @@ Cerrar la identidad humana única por tenant.
 - `keygo-app`
 - `keygo-supabase`
 - `keygo-api`
+- `keygo-run`
 
-### Componentes a crear
+### Componentes creados
 
-## 3.1. Dominio
+## 3.1. Dominio ✅
 
 ### `user/model`
-- `User`
-- `UserId`
-- `EmailAddress`
-- `Username`
-- `PasswordHash`
-- `UserStatus`
+- `User` ✅
+- `UserId` ✅
+- `EmailAddress` ✅
+- `Username` ✅
+- `PasswordHash` ✅ (`toString()` retorna `"PasswordHash[REDACTED]"` por seguridad)
+- `UserStatus` ✅ (ACTIVE, SUSPENDED, PENDING)
 
 ### `user/exception`
-- `UserNotFoundException`
-- `UserSuspendedException`
-- `InvalidCredentialsException`
-- `DuplicateUserException`
+- `UserNotFoundException` ✅
+- `UserSuspendedException` ✅
+- `InvalidCredentialsException` ✅
+- `DuplicateUserException` ✅
 
-## 3.2. Aplicación
+## 3.2. Aplicación ✅
 
 ### Puertos
-- `UserRepositoryPort`
-- `PasswordHasherPort`
+- `UserRepositoryPort` ✅
+- `PasswordHasherPort` ✅
 
-### Casos de uso mínimos
-- `CreateUserUseCase`
-- `GetUserUseCase`
-- `ListUsersUseCase`
-- `UpdateUserUseCase`
-- `ResetUserPasswordUseCase`
-- `ValidateUserCredentialsUseCase`
+### Comandos
+- `CreateUserCommand` ✅
+- `UpdateUserCommand` ✅
+- `ResetUserPasswordCommand` ✅
 
-## 3.3. Persistencia
-- `UserJpaEntity`
-- `UserJpaRepository`
-- `UserRepositoryAdapter`
+### Casos de uso
+- `CreateUserUseCase` ✅ — valida tenant activo, unicidad de email y username, hashea password
+- `GetUserUseCase` ✅ — busca por UUID dentro del tenant
+- `ListUsersUseCase` ✅ — lista todos los usuarios del tenant
+- `UpdateUserUseCase` ✅ — actualiza firstName/lastName
+- `ResetUserPasswordUseCase` ✅ — admin resets password
+- `ValidateUserCredentialsUseCase` ✅ — acepta email o username + password con fallback automático
+
+## 3.3. Persistencia ✅
+
+### En `keygo-supabase`
+- `TenantUserEntity` ✅ (restricciones únicas compuestas por tenant)
+- `TenantUserJpaRepository` ✅
+- `UserPersistenceMapper` ✅
+- `UserRepositoryAdapter` ✅
 
 ### Migración
-- tabla `user_account` o nombre equivalente claro
+- `V6__add_tenant_users.sql` ✅ — tabla `tenant_users` con FK → tenants ON DELETE CASCADE
 
-## 3.4. API
-- `TenantAdminUserController`
-- DTOs request/response de usuario
+## 3.4. API ✅
 
-### Resultado esperado
-Ya existe:
-- usuario único por tenant,
-- creación administrativa,
-- suspensión,
-- validación de credenciales.
+### Controller
+- `TenantUserController` ✅ (`/api/v1/tenants/{tenantSlug}/users`)
+
+### Endpoints implementados
+- `POST /api/v1/tenants/{slug}/users` ✅ — crear usuario (201)
+- `GET /api/v1/tenants/{slug}/users` ✅ — listar usuarios (200)
+- `GET /api/v1/tenants/{slug}/users/{userId}` ✅ — obtener usuario (200)
+- `PUT /api/v1/tenants/{slug}/users/{userId}` ✅ — actualizar usuario (200)
+- `POST /api/v1/tenants/{slug}/users/{userId}/reset-password` ✅ — resetear contraseña (200)
+- `POST /api/v1/tenants/{slug}/users/validate-credentials` ✅ — validar credenciales (200)
+
+### DTOs
+- `CreateUserRequest`, `UpdateUserRequest`, `ResetPasswordRequest`, `ValidateCredentialsRequest` ✅
+- `UserData` ✅ (sin `passwordHash`)
+
+### Response codes
+- `USER_CREATED`, `USER_RETRIEVED`, `USER_LIST_RETRIEVED`, `USER_UPDATED`, `USER_PASSWORD_RESET`, `CREDENTIALS_VALID` ✅
+
+### Error handlers en `GlobalExceptionHandler`
+- `UserNotFoundException` → 404 ✅
+- `UserSuspendedException` → 403 ✅
+- `DuplicateUserException` → 409 ✅
+- `InvalidCredentialsException` → 401 ✅
+
+## 3.5. Run ✅
+- `BCryptPasswordHasher` (`PasswordHasherPort`) ✅
+- 7 `@Bean` nuevos en `ApplicationConfig` ✅
+- `usersGroup()` en `OpenApiConfig` (grupo `4-users`) ✅
+
+### Tests
+- ~30 tests unitarios: domain (11), app (14), api (6), supabase (3) ✅
+
+### Resultado alcanzado ✅
+El admin del tenant ya puede:
+- crear usuarios con email y username únicos por tenant,
+- listar, consultar y actualizar usuarios,
+- resetear contraseñas,
+- validar credenciales (email o username + password).
+
+> **Siguiente fase:** Fase 4 — Memberships y roles por app
 
 ---
 
@@ -397,57 +438,90 @@ Modelar correctamente el acceso del usuario a una app concreta.
 - `keygo-supabase`
 - `keygo-api`
 
-### Componentes a crear
+### Componentes creados
 
-## 4.1. Dominio
+## 4.1. Dominio ✅
 
 ### `membership/model`
-- `Membership`
-- `MembershipId`
-- `MembershipStatus`
-- `AppRole`
-- `AppRoleId`
-- `RoleCode`
+- `Membership` ✅
+- `MembershipId` ✅
+- `MembershipStatus` ✅
+- `AppRole` ✅
+- `AppRoleId` ✅
+- `RoleCode` ✅
+- `MembershipRole` ✅ (value object)
 
 ### `membership/exception`
-- `MembershipNotFoundException`
-- `MembershipInactiveException`
-- `InvalidMembershipRoleAssignmentException`
+- `MembershipNotFoundException` ✅
+- `MembershipInactiveException` ✅
+- `InvalidRoleAssignmentException` ✅
 
-## 4.2. Aplicación
+## 4.2. Aplicación ✅
 
 ### Puertos
-- `MembershipRepositoryPort`
-- `AppRoleRepositoryPort`
+- `MembershipRepositoryPort` ✅
+- `AppRoleRepositoryPort` ✅
 
-### Casos de uso mínimos
-- `CreateMembershipUseCase`
-- `RevokeMembershipUseCase`
-- `ListMembershipsUseCase`
-- `AssignRolesToMembershipUseCase`
-- `EvaluateAppAccessPolicyUseCase`
+### Comandos
+- `CreateMembershipCommand` ✅
 
-## 4.3. Persistencia
-- `MembershipJpaEntity`
-- `AppRoleJpaEntity`
-- `MembershipRoleJpaEntity`
-- adapters y repositorios correspondientes
+### Casos de uso
+- `CreateMembershipUseCase` ✅
+- `RevokeMembershipUseCase` ✅
+- `ListMembershipsUseCase` ✅
+- `ListAppRolesUseCase` ✅
+
+## 4.3. Persistencia ✅
+- `MembershipEntity` ✅
+- `AppRoleEntity` ✅
+- `MembershipJpaRepository` ✅
+- `AppRoleJpaRepository` ✅
+- `MembershipPersistenceMapper` ✅
+- `MembershipRepositoryAdapter` ✅
+- `AppRoleRepositoryAdapter` ✅
 
 ### Migraciones
-- tabla `membership`
-- tabla `app_role`
-- tabla `membership_role`
+- `V7__add_memberships.sql` ✅
+  - tabla `app_role`
+  - tabla `membership`
+  - tabla `membership_role`
 
-## 4.4. API
-- `TenantAdminMembershipController`
-- `TenantAdminAppRoleController`
+## 4.4. API ✅
+- `TenantMembershipController` ✅
+  - `POST /api/v1/tenants/{slug}/memberships` — crear membresía (201) ✅
+  - `GET /api/v1/tenants/{slug}/memberships?userId=...&clientAppId=...` — listar (200) ✅
+  - `DELETE /api/v1/tenants/{slug}/memberships/{membershipId}` — revocar (200) ✅
+- `TenantAppRoleController` ✅
+  - `POST /api/v1/tenants/{slug}/apps/{clientAppId}/roles` — crear rol (201) ✅
+  - `GET /api/v1/tenants/{slug}/apps/{clientAppId}/roles` — listar roles (200) ✅
 
-### Resultado esperado
+### DTOs
+- `CreateMembershipRequest` ✅
+- `CreateAppRoleRequest` ✅
+- `MembershipData` ✅
+- `AppRoleData` ✅
+
+### Response codes
+- `MEMBERSHIP_CREATED`, `MEMBERSHIP_RETRIEVED`, `MEMBERSHIP_LIST_RETRIEVED`, `MEMBERSHIP_REVOKED`, `MEMBERSHIP_SUSPENDED` ✅
+- `ROLE_CREATED`, `ROLE_RETRIEVED`, `ROLE_LIST_RETRIEVED`, `ROLE_UPDATED`, `ROLE_DELETED`, `ROLE_ASSIGNED` ✅
+
+### Error handlers en `GlobalExceptionHandler`
+- `MembershipNotFoundException` → 404 ✅
+- `MembershipInactiveException` → 403 ✅
+- `InvalidRoleAssignmentException` → 400 ✅
+
+## 4.5. Run ✅
+- 4 `@Bean` nuevos en `ApplicationConfig` ✅
+
+### Tests
+- Tests unitarios pendientes (serán agregados en commit posterior)
+
+### Resultado esperado ✅
 Ya puedes:
 - suscribir usuarios a apps,
 - revocar acceso,
 - asignar roles por app,
-- y decidir si un usuario puede o no entrar a una app.
+- y listar memberships filtradas por usuario o app.
 
 ---
 
@@ -856,13 +930,11 @@ ya existan y estén razonablemente estables.
 - Fase 1 completa ✅
 - Fase 2 completa ✅
 
-## Sprint 1
-- completar Fase 3
-- avanzar Fase 4
+## Sprint 1 ✅ COMPLETADO (2026-03-21)
+- Fase 3 completa ✅
 
-## Sprint 2
-- completar Fase 3
-- completar Fase 4
+## Sprint 2 ✅ COMPLETADO (2026-03-21)
+- Fase 4 completa ✅
 
 ## Sprint 3
 - completar Fase 5

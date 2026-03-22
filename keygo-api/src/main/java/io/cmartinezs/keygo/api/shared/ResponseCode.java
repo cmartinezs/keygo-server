@@ -24,12 +24,35 @@ public enum ResponseCode {
   TENANT_RETRIEVED("TENANT_RETRIEVED", "Tenant retrieved successfully"),
   TENANT_SUSPENDED("TENANT_SUSPENDED", "Tenant suspended successfully"),
 
+  // User Operations
+  USER_CREATED("USER_CREATED", "User created successfully"),
+  USER_RETRIEVED("USER_RETRIEVED", "User retrieved successfully"),
+  USER_LIST_RETRIEVED("USER_LIST_RETRIEVED", "User list retrieved successfully"),
+  USER_UPDATED("USER_UPDATED", "User updated successfully"),
+  USER_PASSWORD_RESET("USER_PASSWORD_RESET", "User password reset successfully"),
+  CREDENTIALS_VALID("CREDENTIALS_VALID", "Credentials validated successfully"),
+
   // Client App Operations
   CLIENT_APP_CREATED("CLIENT_APP_CREATED", "Client application created successfully"),
   CLIENT_APP_RETRIEVED("CLIENT_APP_RETRIEVED", "Client application retrieved successfully"),
   CLIENT_APP_LIST_RETRIEVED("CLIENT_APP_LIST_RETRIEVED", "Client application list retrieved successfully"),
   CLIENT_APP_UPDATED("CLIENT_APP_UPDATED", "Client application updated successfully"),
   CLIENT_APP_SECRET_ROTATED("CLIENT_APP_SECRET_ROTATED", "Client application secret rotated successfully"),
+
+  // Membership Operations
+  MEMBERSHIP_CREATED("MEMBERSHIP_CREATED", "Membership created successfully"),
+  MEMBERSHIP_RETRIEVED("MEMBERSHIP_RETRIEVED", "Membership retrieved successfully"),
+  MEMBERSHIP_LIST_RETRIEVED("MEMBERSHIP_LIST_RETRIEVED", "Membership list retrieved successfully"),
+  MEMBERSHIP_REVOKED("MEMBERSHIP_REVOKED", "Membership revoked successfully"),
+  MEMBERSHIP_SUSPENDED("MEMBERSHIP_SUSPENDED", "Membership suspended successfully"),
+
+  // Role Operations
+  ROLE_CREATED("ROLE_CREATED", "Role created successfully"),
+  ROLE_RETRIEVED("ROLE_RETRIEVED", "Role retrieved successfully"),
+  ROLE_LIST_RETRIEVED("ROLE_LIST_RETRIEVED", "Role list retrieved successfully"),
+  ROLE_UPDATED("ROLE_UPDATED", "Role updated successfully"),
+  ROLE_DELETED("ROLE_DELETED", "Role deleted successfully"),
+  ROLE_ASSIGNED("ROLE_ASSIGNED", "Role assigned successfully"),
 
   // Generic Operations (use when no specific code applies)
   OPERATION_COMPLETED("OPERATION_COMPLETED", "Operation completed successfully"),
