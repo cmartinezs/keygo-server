@@ -21,13 +21,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Security filter that validates admin key for protected API endpoints.
  * Filtro de seguridad que valida la clave de administrador para endpoints de API protegidos.
  *
+ * <p>Uses {@code request.getServletPath()} (not {@code getRequestURI()}) to compare paths against
+ * the configured prefixes, so that the context-path (e.g. {@code /keygo-server}) is excluded from
+ * the comparison and the prefixes in {@code application.yml} (e.g. {@code /api/}) match correctly.
+ *
  * <p>Protection rules / Reglas de protección:
  * - /actuator/** - Public, no authentication required / Público, sin autenticación requerida
  * - /service/info** - Public, no authentication required / Público, sin autenticación requerida
+ * - /swagger-ui/** - Public, no authentication required / Público, sin autenticación requerida
+ * - /v3/api-docs** - Public, no authentication required / Público, sin autenticación requerida
  * - /api/** - Protected, requires X-KEYGO-ADMIN header / Protegido, requiere header X-KEYGO-ADMIN
  *
  * @author cmartinezs
- * @version 1.0
+ * @version 1.1
  */
 @Slf4j
 @Component
@@ -46,9 +52,12 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
       HttpServletResponse response,
       FilterChain filterChain) throws ServletException, IOException {
 
-    String requestPath = request.getRequestURI();
+    // getServletPath() returns the path without the context-path (e.g. /api/v1/...).
+    // getRequestURI() would include the context-path (/keygo-server/api/v1/...) and the prefixes
+    // configured in application.yml would never match.
+    String requestPath = request.getServletPath();
 
-    log.debug("BootstrapAdminKeyFilter processing request: {}", requestPath);
+    log.debug("BootstrapAdminKeyFilter processing request: {} (URI: {})", requestPath, request.getRequestURI());
 
     // Check if bootstrap is enabled
     if (!bootstrapProperties.isEnabled()) {
@@ -104,7 +113,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     String providedKey = request.getHeader(ADMIN_KEY_HEADER);
 
     if (providedKey == null || providedKey.isBlank()) {
-      log.warn("Missing admin key header for path: {}", request.getRequestURI());
+      log.warn("Missing admin key header for path: {}", request.getServletPath());
       return false;
     }
 

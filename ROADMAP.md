@@ -27,7 +27,6 @@
 
 | ID | Propuesta | Módulo | Justificación |
 |---|---|---|---|
-| T-001 | Corregir bug `BootstrapAdminKeyFilter`: reemplazar `getRequestURI()` por `getServletPath()` para que el filtro funcione correctamente con `context-path` activo | `keygo-run` | Bug conocido documentado: todas las rutas son actualmente públicas |
 | T-002 | Agregar mapper dedicado en `keygo-api/platform/` para transformar `ServiceInfoProvider` → `ServiceInfoData` y descargar al controller de la lógica de mapeo | `keygo-api` | Principio de responsabilidad única en controllers |
 | T-003 | Agregar `request/` bajo `keygo-api/platform/` para DTOs de entrada cuando aparezcan endpoints con body o query params | `keygo-api` | Anticipa crecimiento ordenado |
 | T-004 | Crear sub-paquetes `command/`, `query/` y `result/` en `keygo-app/platform/` al implementar el primer use case con entrada/salida propia | `keygo-app` | Patrón CQRS mínimo para separar intención |
@@ -158,6 +157,7 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-001 | Corregir bug `BootstrapAdminKeyFilter`: `getRequestURI()` → `getServletPath()` para que el filtro funcione con `context-path` activo; +2 tests de regresión con context-path simulado | 2026-03-21 | `keygo-run/.../filter/BootstrapAdminKeyFilter.java`; `BootstrapAdminKeyFilterTest.java` — 15 tests, 0 fallos |
 | T-027 | Integrar Swagger / OpenAPI con SpringDoc 3.0.1 (compatible Spring Boot 4.x): `OpenApiConfig` en `keygo-run`, anotaciones `@Tag`/`@Operation`/`@ApiResponses` en los 4 controllers, 3 grupos de API, SecurityScheme `AdminKeyAuth` | 2026-03-21 | `keygo-run/config/OpenApiConfig.java` nuevo; `keygo-api/pom.xml` dependencia springdoc 3.0.1; controllers anotados; Swagger UI en `/keygo-server/swagger-ui/index.html` |
 | T-016 | Configurar JaCoCo para cobertura de tests y fallar el build si baja del umbral definido | 2026-03-21 | Plugin en `pom.xml` raíz; umbral 60% instrucciones; `report-aggregate` en `keygo-run`; CI actualizado a `./mvnw verify` |
 | T-006 | Configurar GitHub Actions: pipeline CI mínimo con `./mvnw test` y `./mvnw clean package` en cada push/PR | 2026-03-21 | `.github/workflows/ci.yml` creado; Fase 0 cerrada |

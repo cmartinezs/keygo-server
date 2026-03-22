@@ -319,6 +319,18 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 **Solución / Buena práctica:** Para que `orphanRemoval` funcione correctamente al actualizar colecciones: usar `entity.getRedirectUris().clear()` seguido de `entity.getRedirectUris().addAll(nuevaLista)`. Nunca reasignar la referencia de la colección. Este patrón está implementado en `ClientAppPersistenceMapper.toEntity()`. Aplicar también en futuros adapters con relaciones `@OneToMany` + `orphanRemoval`.
 **Archivos clave:** `keygo-supabase/.../clientapp/mapper/ClientAppPersistenceMapper.java`, `keygo-supabase/.../clientapp/entity/ClientAppEntity.java`
 
+### [2026-03-21] Guía de pruebas Postman para perfil Testing — convención de documentación
+**Contexto:** Creación del documento `docs/keygo-server/TESTING_GUIDE.md` dirigido a un perfil de QA/Testing que usa Postman o herramienta compatible para probar los endpoints REST de KeyGo Server.
+**Problema:** Sin un documento de referencia, el perfil de Testing debía inferir el orden de ejecución, las dependencias entre endpoints y las configuraciones necesarias leyendo el código o la colección Postman directamente — con alto riesgo de errores (ej: listar antes de crear, usar un tenant suspendido para crear apps).
+**Solución / Buena práctica:** Documentar tres dimensiones: (1) **configuración** — qué datos necesita con/sin acceso al código (variables de entorno, URL, admin key); (2) **dependencias** — qué recursos deben existir antes de ejecutar cada endpoint; (3) **orden recomendado** — fases de ejecución de menor a mayor dependencia (Smoke → Plataforma → Tenants → Client Apps → Errores). Incluir diagrama Mermaid de dependencias entre endpoints y tabla de solución de problemas frecuentes.
+**Archivos clave:** `docs/keygo-server/TESTING_GUIDE.md`, `postman/KeyGo-Server.postman_collection.json`, `postman/KeyGo-Server-Local.postman_environment.json`
+
+### [2026-03-21] Bug T-001 — BootstrapAdminKeyFilter: getRequestURI() vs. getServletPath() con context-path
+**Contexto:** Corrección del bug conocido en `BootstrapAdminKeyFilter` donde el filtro de seguridad nunca bloqueaba las rutas de API, dejando todos los endpoints públicos aunque `keygo.bootstrap.enabled=true`.
+**Problema:** El filtro usaba `request.getRequestURI()` para comparar con los prefijos configurados en `application.yml` (`/api/`, `/actuator/`, etc.). Sin embargo, con `server.servlet.context-path=/keygo-server` activo, `getRequestURI()` retorna `/keygo-server/api/v1/...` (incluye el context-path), mientras que los prefijos configurados no lo incluyen. Por tanto, `requestPath.startsWith("/api/")` nunca era `true` y el filtro pasaba todas las rutas a `filterChain.doFilter()` sin autenticar.
+**Solución / Buena práctica:** Usar `request.getServletPath()` en lugar de `request.getRequestURI()`. `getServletPath()` retorna la ruta relativa al context-path (ej: `/api/v1/tenants`), que sí coincide con los prefijos de `application.yml`. La misma corrección aplica en `validateAdminKey()` para el log de advertencia. En tests: usar `request.setServletPath()` (no `setRequestURI()`) para que el mock refleje el mismo comportamiento. Se añadieron dos tests de regresión con `setContextPath("/keygo-server")` + `setRequestURI(...)` + `setServletPath(...)` para documentar el escenario exacto del bug.
+**Archivos clave:** `keygo-run/src/main/java/.../filter/BootstrapAdminKeyFilter.java`, `keygo-run/src/test/java/.../filter/BootstrapAdminKeyFilterTest.java`
+
 ### [2026-03-21] Fase 2 — TenantEntity como referencia no-managed en ClientAppRepositoryAdapter
 **Contexto:** Al guardar un `ClientApp`, el adapter necesita asociar el `TenantEntity` correcto en la FK `tenant_id` de `ClientAppEntity` sin cargar el tenant desde la DB.
 **Problema:** JPA requiere una referencia a una entidad para la asociación `@ManyToOne`. No es posible pasar un UUID directamente como FK en la entidad. Pero cargar el `TenantEntity` completo solo para asociarlo sería ineficiente.
@@ -333,7 +345,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 
 ### Corto plazo
 
-- **T-001** — Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`): todas las rutas son actualmente públicas. Ver `ROADMAP.md T-001`.
+- ~~**T-001** — Corregir bug `BootstrapAdminKeyFilter` (`getRequestURI()` → `getServletPath()`): todas las rutas son actualmente públicas.~~ ✅ **Completada 2026-03-21**
 - **T-002** — Agregar mapper en `keygo-api/platform/` para descargar al controller del mapeo `ServiceInfoProvider → ServiceInfoData`. Ver `ROADMAP.md T-002`.
 - **T-023** — Configurar plugin de lint/formato automático (Checkstyle con Google Java Style o Spotless). Convención ya documentada en `docs/keygo-server/CODE_STYLE.md`. Ver `ROADMAP.md T-023`.
 - **T-024** — Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` como alternativa al header `X-Tenant-Slug`, necesaria para los endpoints OAuth2 de la Fase 5. Ver `ROADMAP.md T-024`.

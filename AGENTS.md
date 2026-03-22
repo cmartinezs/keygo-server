@@ -121,7 +121,7 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - **`http://localhost:8080/keygo-server/swagger-ui/index.html`** — Swagger UI interactiva (público)
 - **`http://localhost:8080/keygo-server/v3/api-docs`** — OpenAPI JSON spec (público)
 
-⚠️ **Known bug — `BootstrapAdminKeyFilter`:** uses `request.getRequestURI()` (returns `/keygo-server/api/...`) but path prefixes in `application.yml` are `/api/`, `/actuator/`, `/service/info` (no context-path prefix) → **filter never matches; all routes are currently public**. Fix: use `request.getServletPath()` instead.
+✅ **Bug T-001 corregido (2026-03-21) — `BootstrapAdminKeyFilter`:** now uses `request.getServletPath()` (strips the context-path) instead of `request.getRequestURI()`. With `context-path=/keygo-server`, `getRequestURI()` returned `/keygo-server/api/...` which never matched the prefixes in `application.yml` (e.g. `/api/`), leaving all routes public. `getServletPath()` returns `/api/...` directly. Tests updated to use `setServletPath()` + 2 regression tests with simulated context-path.
 
 The filter has three path categories (see `KeyGoBootstrapProperties`):
 
@@ -343,6 +343,21 @@ Se integró documentación interactiva Swagger UI al proyecto usando `springdoc-
 - **`keygo-run`**: `BCryptClientSecretEncoder`, `UuidClientCredentialGenerator`; dependencia `spring-security-crypto`; 8 `@Bean` nuevos en `ApplicationConfig`.
 - **Tests**: ~40 tests unitarios nuevos distribuidos en domain (36), app (16), api (7), supabase (2).
 - **Postman**: carpeta `📦 Client Apps` con 5 requests y variable `clientId` en el entorno local.
+
+### [2026-03-21] Guía de pruebas Postman creada en `docs/keygo-server/TESTING_GUIDE.md`
+Se creó el documento `docs/keygo-server/TESTING_GUIDE.md` para el perfil de QA/Testing.
+Incluye: configuración con/sin acceso al código, diagrama Mermaid de dependencias entre endpoints,
+orden de ejecución en 5 fases (Smoke → Plataforma → Tenants → Client Apps → Errores),
+referencia rápida de los 14 endpoints, descripción de variables de entorno automáticas y
+guía de solución de problemas frecuentes.
+
+### [2026-03-21] Bug T-001 corregido — BootstrapAdminKeyFilter usa getServletPath()
+El filtro `BootstrapAdminKeyFilter` fue corregido: `request.getRequestURI()` → `request.getServletPath()`.
+Con `context-path=/keygo-server`, `getRequestURI()` retornaba `/keygo-server/api/...` que nunca coincidía
+con los prefijos en `application.yml` (`/api/`, `/actuator/`…), dejando todos los endpoints públicos.
+`getServletPath()` retorna la ruta sin el context-path, resolviendo el bug.
+Tests actualizados a `request.setServletPath()` + 2 tests de regresión con context-path simulado.
+T-001 movida a historial de completadas en `ROADMAP.md`. Aviso ⚠️ en la sección "context-path" reemplazado por ✅.
 
 ### [2026-03-17] Creación inicial + script check-ai-docs.sh
 Se agregaron las siguientes secciones y datos faltantes identificados al comparar el doc con el código real:
