@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-22 | [Conversión de diagramas ASCII a Mermaid — criterio de selección](#2026-03-22-conversión-de-diagramas-ascii-a-mermaid--criterio-de-selección) | Documentación / Diagramas |
 | 2026-03-22 | [Corrección de inconsistencias: docs vs DB — criterio de decisión](#2026-03-22-corrección-de-inconsistencias-docs-vs-db--criterio-de-decisión) | Convenciones / DB |
 | 2026-03-22 | [Docs de datos desincronizados con migraciones Flyway](#2026-03-22-documentación-de-datos-desincronizada-con-migraciones-flyway-reales) | Documentación |
 | 2026-03-22 | [Value objects: acceso con records](#2026-03-22-value-objects-acceso-a-value-diferente-según-record-vs-clase-regular) | Java / Domain |
@@ -291,3 +292,21 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 
 **Última actualización:** 2026-03-22 | **Responsable:** AI Agent
 
+---
+
+### [2026-03-22] Conversión de diagramas ASCII a Mermaid — criterio de selección
+**Contexto:** Auditoría de todos los archivos `.md` del repositorio para identificar diagramas hechos con caracteres de dibujo de caja (box-drawing Unicode: `┌ ┐ └ ┘ │ ─ ▼ ▲`) y convertirlos a Mermaid.
+**Problema:** Tres archivos tenían diagramas en ASCII: arquitectura de módulos, componentes hexagonales y flujo del filtro de seguridad con jerarquía de excepciones. Además, múltiples archivos tenían árboles de directorios con `├──` `└──` que *parecían* diagramas ASCII pero no lo son.
+**Solución / Buena práctica:**
+- Usar `grep -rP '[\x{2500}-\x{257F}]'` para encontrar archivos con box-drawing Unicode.
+- **Convertir** diagramas visuales de cajas/flechas → Mermaid (`flowchart TD`, `classDiagram`, `flowchart LR`).
+- **No convertir** árboles de directorios (`├──`, `└──`): Mermaid no tiene tipo nativo de árbol de directorios y la versión `flowchart TD` es más verbosa y menos legible.
+- Al convertir, actualizar el estado de los módulos en el diagrama para reflejar el estado actual del proyecto (no copiar datos desactualizados del ASCII).
+**Archivos clave:**
+- `docs/keygo-server/ARCHITECTURE.md` (3 diagramas: módulos, flujo request, regla de dependencia)
+- `docs/keygo-api/SERVICE_INFO_ENDPOINT.md` (1 diagrama: capas hexagonales con subgraphs)
+- `docs/keygo-run/BOOTSTRAP_SECURITY_FILTER.md` (2 diagramas: flowchart de autenticación + classDiagram de excepciones)
+
+---
+
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent

@@ -75,33 +75,26 @@ El Filtro de Clave de Administrador Bootstrap proporciona autenticación y autor
 
 ### Authentication Flow / Flujo de Autenticación
 
-```
-┌─────────────────┐
-│  HTTP Request   │
-└────────┬────────┘
-         │
-         v
-┌────────────────────────────┐
-│ BootstrapAdminKeyFilter    │
-│ (OncePerRequestFilter)     │
-└────────┬───────────────────┘
-         │
-         ├──> Is bootstrap enabled?
-         │    └──> No: Allow request
-         │
-         ├──> Is public path?
-         │    (/actuator/**, /service/info**)
-         │    └──> Yes: Allow request
-         │
-         ├──> Is /api/** path?
-         │    └──> No: Allow request
-         │    └──> Yes: Validate X-KEYGO-ADMIN header
-         │          ├──> Valid: Continue
-         │          └──> Invalid/Missing: Return 401
-         v
-┌────────────────────────────┐
-│   Controller Endpoint      │
-└────────────────────────────┘
+```mermaid
+flowchart TD
+    A["HTTP Request"]
+    B["BootstrapAdminKeyFilter\n(OncePerRequestFilter)"]
+    C{"¿Bootstrap\nhabilitado?"}
+    D{"¿Es ruta\npública?\n/actuator/ · /.well-known/ · ..."}
+    E{"¿Empieza\ncon /api/**?"}
+    F{"¿Header\nX-KEYGO-ADMIN\nválido?"}
+    Allow["✅ Controller Endpoint"]
+    Reject["❌ 401 Unauthorized"]
+
+    A --> B --> C
+    C -->|No| Allow
+    C -->|Sí| D
+    D -->|Sí| Allow
+    D -->|No| E
+    E -->|No| Allow
+    E -->|Sí| F
+    F -->|Válido| Allow
+    F -->|Inválido o ausente| Reject
 ```
 
 ## Configuration / Configuración
@@ -165,12 +158,24 @@ All errors return a standardized `BaseResponse` structure:
 
 ### Exception Hierarchy / Jerarquía de Excepciones
 
-```
-Exception
-  └── RuntimeException
-        └── UnauthorizedException (401)
-        └── IllegalArgumentException (400)
-        └── NoResourceFoundException (404)
+```mermaid
+classDiagram
+    class Exception
+    class RuntimeException
+    class UnauthorizedException {
+        HTTP 401
+    }
+    class IllegalArgumentException {
+        HTTP 400
+    }
+    class NoResourceFoundException {
+        HTTP 404
+    }
+
+    Exception <|-- RuntimeException
+    RuntimeException <|-- UnauthorizedException
+    RuntimeException <|-- IllegalArgumentException
+    RuntimeException <|-- NoResourceFoundException
 ```
 
 ### Error Mapping / Mapeo de Errores

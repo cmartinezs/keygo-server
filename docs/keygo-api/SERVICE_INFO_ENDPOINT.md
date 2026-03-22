@@ -10,45 +10,29 @@ This document describes the implementation of the public service information end
 
 La implementación sigue el patrón de arquitectura hexagonal (puertos y adaptadores):
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         keygo-api (API Layer)                    │
-│  ┌─────────────────────┐         ┌─────────────────────────┐   │
-│  │ ServiceInfoController│ ───────▶│    ServiceInfoData      │   │
-│  │  (REST Controller)   │         │      (DTO)              │   │
-│  └──────────┬───────────┘         └─────────────────────────┘   │
-└─────────────┼───────────────────────────────────────────────────┘
-              │ uses
-              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    keygo-app (Application Layer)                 │
-│  ┌─────────────────────┐                                        │
-│  │GetServiceInfoUseCase│                                        │
-│  │   (Use Case)        │                                        │
-│  └──────────┬───────────┘                                        │
-│             │ depends on                                         │
-│             ▼                                                    │
-│  ┌─────────────────────┐                                        │
-│  │ServiceInfoProvider  │  ◀── Interface (Port OUT)              │
-│  │   (Interface)       │                                        │
-│  └─────────────────────┘                                        │
-└─────────────────────────────────────────────────────────────────┘
-              ▲
-              │ implements
-              │
-┌─────────────┼───────────────────────────────────────────────────┐
-│             │              keygo-run (Infrastructure)            │
-│  ┌──────────┴──────────────┐        ┌─────────────────────┐    │
-│  │ ServiceInfoProperties   │  ◀─────│  application.yml    │    │
-│  │ (@ConfigurationProperties)│       │  (Configuration)    │    │
-│  │ implements ServiceInfoProvider    └─────────────────────┘    │
-│  └─────────────────────────┘                                    │
-│                                                                  │
-│  ┌─────────────────────┐                                        │
-│  │  ApplicationConfig  │  ◀── Spring Configuration              │
-│  │  (@Configuration)   │      Bean definitions                  │
-│  └─────────────────────┘                                        │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph API["keygo-api — API Layer"]
+        Controller["ServiceInfoController\n(REST Controller)"]
+        DTO["ServiceInfoData\n(DTO)"]
+        Controller -->|produces| DTO
+    end
+
+    subgraph App["keygo-app — Application Layer"]
+        UseCase["GetServiceInfoUseCase\n(Use Case)"]
+        Port["ServiceInfoProvider\n(Interface — Port OUT)"]
+        UseCase -->|depends on| Port
+    end
+
+    subgraph Run["keygo-run — Infrastructure / Configuration"]
+        Props["ServiceInfoProperties\n(@ConfigurationProperties)\nimplements ServiceInfoProvider"]
+        Config["ApplicationConfig\n(@Configuration)\nBean definitions"]
+        Yml["application.yml"]
+        Yml -->|reads| Props
+    end
+
+    Controller -->|uses| UseCase
+    Props -->|implements| Port
 ```
 
 ## Componentes Implementados / Implemented Components
@@ -207,4 +191,3 @@ http://localhost:8080/keygo-server/api/v1/service/info
 - [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)
 - [Spring Boot Configuration Properties](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config.typesafe-configuration-properties)
 - [Maven Resource Filtering](https://maven.apache.org/plugins/maven-resources-plugin/examples/filter.html)
-

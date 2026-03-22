@@ -6,53 +6,36 @@ KeyGo Server está construido siguiendo los principios de **Arquitectura Hexagon
 
 ## Diagrama de Arquitectura
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        keygo-run                            │
-│              (Configuración y Arranque)                     │
-└──────────┬──────────────────┬──────────────────┬────────────┘
-           │                  │                  │
-  ┌────────▼───────┐  ┌───────▼──────┐  ┌────────▼──────────┐
-  │   keygo-api    │  │  keygo-infra │  │  keygo-supabase   │
-  │ (REST Controllers)│  │ 🚧 (vacío) │  │ (JPA/Flyway/DB)   │
-  └────────┬───────┘  └───────┬──────┘  └────────┬──────────┘
-           │                  │                  │
-           └──────────────────┴──────────────────┘
-                              │
-                     ┌────────▼─────────┐
-                     │    keygo-app     │
-                     │  (Casos de Uso)  │
-                     │  - Usecases      │
-                     │  - Puertos OUT   │
-                     └────────┬─────────┘
-                              │
-                     ┌────────▼─────────┐
-                     │   keygo-domain   │
-                     │  🚧 (vacío)     │
-                     └────────┬─────────┘
-                              │
-                     ┌────────▼─────────┐
-                     │   keygo-common   │
-                     │  🚧 (vacío)     │
-                     └──────────────────┘
+```mermaid
+flowchart TD
+    run["**keygo-run**\nConfiguración y Arranque"]
+    api["**keygo-api**\nREST Controllers"]
+    infra["**keygo-infra**\n✅ JWT / JWKS"]
+    supabase["**keygo-supabase**\nJPA / Flyway / DB"]
+    app["**keygo-app**\nCasos de Uso · Usecases · Puertos OUT"]
+    domain["**keygo-domain**\nDominio Puro\n✅ Tenant · ClientApp · Auth · SigningKey"]
+    common["**keygo-common**\n🚧 stub vacío"]
+    bom["**keygo-bom**\nDependencies"]
 
-  ┌──────────────────┐
-  │    keygo-bom     │
-  │  (Dependencies)  │
-  └──────────────────┘
+    run --> api
+    run --> infra
+    run --> supabase
+    api --> app
+    infra --> app
+    supabase --> infra
+    app --> domain
+    domain --> common
 ```
 
-> 🚧 Los módulos marcados están creados como estructura para la arquitectura hexagonal,
-> pero aún no tienen implementación de código fuente.
+> ℹ️ `keygo-common` es el único módulo que permanece como stub vacío.
+> El resto de los módulos están activos con implementación.
 
 ## Módulos
 
 ### keygo-domain (Núcleo)
 **Propósito**: Contendrá la lógica de negocio pura sin dependencias externas.
 
-> 🚧 **Estado actual:** módulo vacío — estructura reservada para el dominio futuro.
-
-**Contenido previsto:**
+**Contenido actual:**
 - **Entidades**: Objetos de negocio con identidad (User, Application, Service, etc.)
 - **Value Objects**: Objetos inmutables (Email, Password, Token, etc.)
 - **Reglas de Negocio**: Validaciones y lógica del dominio
@@ -160,37 +143,31 @@ KeyGo Server está construido siguiendo los principios de **Arquitectura Hexagon
 
 ## Flujo de una Request (estado actual)
 
-```
-1. HTTP Request
-   ↓
-2. keygo-api (Controller)
-   - Valida entrada
-   - Mapea a DTO/Domain
-   ↓
-3. keygo-app (Use Case)
-   - Ejecuta lógica de aplicación
-   - Invoca puertos OUT (interfaces)
-   ↓
-4. keygo-run (Adapter: @ConfigurationProperties)
-   - Provee ServiceInfoProperties como implementación de ServiceInfoProvider
-   ↓
-   [Futuro: keygo-infra / keygo-supabase implementarán puertos de persistencia]
-   ↓
-5. Response hacia arriba
+```mermaid
+flowchart TD
+    A["1. HTTP Request"]
+    B["2. **keygo-api** — Controller\nValida entrada · Mapea a DTO/Domain"]
+    C["3. **keygo-app** — Use Case\nEjecuta lógica de aplicación · Invoca puertos OUT"]
+    D["4. **keygo-run** — Adapter @ConfigurationProperties\nServiceInfoProperties implementa ServiceInfoProvider"]
+    E["**keygo-infra** · **keygo-supabase**\nImplementarán puertos de persistencia"]
+    F["5. Response HTTP"]
+
+    A --> B --> C --> D --> E --> F
 ```
 
-> ℹ️ **Actualmente:** `keygo-domain` e `keygo-infra` están vacíos. La única implementación de
-> puerto OUT existente es `ServiceInfoProperties` en `keygo-run`. Los repositorios JPA en
-> `keygo-supabase` (`UserRepository`, `RoleRepository`) aún no están conectados a puertos
-> de `keygo-app`.
+> ℹ️ **Estado actual:** `keygo-infra` implementa firma JWT/JWKS. `keygo-supabase` implementa
+> repositorios JPA conectados a puertos de `keygo-app`. `keygo-domain` contiene las entidades
+> de dominio puras (Tenant, ClientApp, Auth, SigningKey).
 
 ## Principios de Diseño
 
 ### 1. Dependency Rule
 Las dependencias apuntan hacia adentro (hacia el dominio).
-```
-infra → app → domain
-api → app → domain
+
+```mermaid
+flowchart LR
+    infra --> app --> domain
+    api --> app
 ```
 
 ### 2. Separation of Concerns
