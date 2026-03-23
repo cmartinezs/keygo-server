@@ -143,6 +143,7 @@
 | F-036 | E13-H3: Métricas básicas | P1 | Prometheus/Actuator: logins, tokens, errores |
 | F-037 | E12-H4/H5: Ver/cerrar sesiones activas | P2 | Self-service de sesiones para el usuario final |
 | F-038 | E13-H4: Alertas operativas | P2 | Umbral de errores de login, tasa de tokens fallidos |
+| F-039 | `keygo-ui` — Frontend React multi-portal | P1 | Monorepo Vite + React 19 + TypeScript con tres portales: Admin Global (`apps/admin-global`), Admin Tenant (`apps/tenant-admin`) y Usuario Final (`apps/user-portal`). Paquetes compartidos: `keygo-client` (Axios + interceptores), `keygo-auth` (PKCE + Zustand token store + silent refresh), `keygo-types` (DTOs de BaseResponse). Manual de implementación en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`. |
 
 ---
 

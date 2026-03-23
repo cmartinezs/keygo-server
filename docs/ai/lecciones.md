@@ -26,6 +26,8 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-23 | [keygo-ui — app unificada con roles en JWT (no tres portales separados)](#2026-03-23-keygo-ui--arquitectura-de-app-unificada-con-roles-en-jwt) | Arquitectura / Frontend |
+| 2026-03-23 | [Manual frontend: flujo OAuth2 retorna code en JSON, no HTTP 302](#2026-03-23-manual-frontend-flujo-oauth2-retorna-code-en-json-no-http-302) | OAuth2 / Frontend |
 | 2026-03-23 | [Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md](#2026-03-23-nuevas-variables-de-entorno-deben-documentarse-en-env-y-environment_setupmd) | Convenciones / Entorno |
 | 2026-03-23 | [Registro con verificación email — ClientApp requiere campos obligatorios en tests](#2026-03-23-registro-con-verificación-email--clientapp-requiere-campos-obligatorios-en-tests) | Tests / Dominio |
 | 2026-03-23 | [Fase 8: client_credentials — sub=clientId y ausencia de refresh_token/id_token](#2026-03-23-fase-8-client_credentials--sub-clientid-sin-refresh_token-ni-id_token) | OAuth2 / M2M |
@@ -66,6 +68,41 @@
 ---
 
 ## Lecciones
+
+### [2026-03-23] Manual frontend: flujo OAuth2 retorna code en JSON, no HTTP 302
+
+**Contexto:** Al crear el manual de desarrollador frontend (`docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`), se revisó el comportamiento actual del endpoint `POST /account/login`.
+
+**Problema:** El estándar OAuth2 (RFC 6749) define que el authorization code se entrega al cliente mediante un redirect HTTP 302 hacia `redirect_uri?code=...&state=...`. El backend de KeyGo actualmente devuelve el código directamente en el JSON de la respuesta (`data.code`) sin hacer el redirect. Esto es una desviación del estándar que debe ser transparente para el desarrollador frontend.
+
+**Solución / Buena práctica:** El frontend debe:
+1. Leer el `code` del JSON de la respuesta del `POST /account/login`.
+2. Construir manualmente la URL del callback y navegar a ella (`window.location.href`).
+3. Diseñar el `CallbackPage` para que pueda procesar el código tanto desde query params (cuando el backend implemente el redirect 302 real) como desde el estado de navegación (para compatibilidad futura).
+
+El manual documenta ambos comportamientos con notas explícitas. Ver `AGENTS.md` → tabla de fases (`POST /account/login` sección "Fase 7 planificada").
+
+**Archivos clave:** `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`, `docs/api/AUTH_FLOW.md` sección "Paso 2".
+
+---
+
+### [2026-03-23] keygo-ui — arquitectura de app unificada con roles en JWT
+
+**Contexto:** Se revisó y corrigió el diseño del manual de frontend. La primera versión planteaba tres portales separados (tres apps React), lo cual es un antipatrón para este tipo de sistema IAM.
+
+**Problema:** Diseñar portales separados implica múltiples apps registradas en el sistema, múltiples flujos de autenticación diferenciados y duplicación de código. Además, los admins siguen siendo usuarios del sistema y deben autenticarse igual que cualquier otro usuario.
+
+**Solución / Buena práctica:**
+- **Una sola app React** (`keygo-ui`) registrada como `ClientApp` en el tenant `keygo` (tenant raíz).
+- **Un solo flujo OAuth2/PKCE** para todos los usuarios, sin importar su rol.
+- Los roles (`ADMIN`, `ADMIN_TENANT`, `USER_TENANT`) se determinan por los claims del JWT.
+- El routing y las vistas se adaptan al rol con `<RoleGuard>` y `useHasRole()`.
+- El `ADMIN_TENANT` necesita el claim `managed_tenant` en el JWT para saber qué tenant gestiona — este claim es **pendiente de implementación en backend**.
+- Mientras el backend no emita roles en el JWT, simularlos con `VITE_MOCK_ROLE` y MSW en desarrollo.
+
+**Archivos clave:** `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`, `src/auth/roleGuard.tsx`, `src/auth/jwksVerify.ts`.
+
+---
 
 ### [2026-03-23] Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md
 
