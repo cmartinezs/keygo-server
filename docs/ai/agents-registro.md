@@ -22,6 +22,20 @@
 
 ## Registro de cambios
 
+### [2026-03-23] Corrección de documentación — Fase 9 marcada como ✅ COMPLETADA
+
+**Motivo:** La Fase 9 (Self-service de identidad — registro + verificación email) fue implementada el 2026-03-23
+pero no se actualizaron los documentos de estado. Se corrigió la discrepancia en:
+
+- `AGENTS.md` — tabla de fases: fila `9–11` dividida en Fase 9 (✅ Done) y Fases 10–11 (pendientes); descripción de Fase 9 corregida de "Token introspection, hardening, observability" a "Self-service de identidad"
+- `ROADMAP.md` — "Fase actual" actualizada de Fase 8 → Fase 9; conteo de endpoints (21→24), tests (305+→320+), Postman (29→38)
+- `docs/design/IMPLEMENTATION_PLAN.md` — Fase 9 marcada ✅ COMPLETADA con componentes reales implementados; plan original de password reset documentado como pendiente en fase futura
+
+**Nota:** El nombre original de la sección `9–11` en `AGENTS.md` ("Token introspection, hardening, observability")
+no correspondía ni al plan original (`IMPLEMENTATION_PLAN.md`) ni a lo que fue implementado como Fase 9.
+
+---
+
 ### [2026-03-23] Registro de usuarios con verificación de email
 
 **Dominio (`keygo-domain`)**:

@@ -8,13 +8,13 @@
  Dimensión  Estado 
 ------
  Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` 
- Autenticación  **Fase 8 completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, **client_credentials M2M** 
- Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, **Session, RefreshToken** 
- API pública  **21 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), OAuth2 (5 — incl. `client_credentials`), OIDC (2), **UserInfo (1)**, Revocation (1) 
+ Autenticación  **Fase 9 completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, client_credentials M2M, **registro con verificación email** 
+ Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, Session, RefreshToken, **EmailVerification** 
+ API pública  **24 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Users & memberships (6), OAuth2 (5 — incl. `client_credentials`), OIDC (2), UserInfo (1), Revocation (1), **Registro (3)** 
  CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
- Tests  **305+ tests unitarios** — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — **29 requests** con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 8 ✅ Completada** — próxima: Fase 9 (Token Introspection, Client Credentials hardening) |
+ Tests  **320+ tests unitarios** — sin integración ni e2e 
+ Postman  ✅ Colecciones en `postman/` — **38 requests** con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 9 ✅ Completada** — próxima: Fase 10 (Control plane y soporte) |
 
 ---
 

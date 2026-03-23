@@ -265,7 +265,8 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | 6 | Token signing RS256 + JWKS + OIDC Discovery | ✅ Done (2026-03-22) |
 | 7 | Refresh token (rotation + SHA-256 hash), Session, Revocation (RFC 7009), UserInfo (OIDC §5.3) | ✅ Done (2026-03-22) |
 | 8 | Client Credentials grant (M2M) — `IssueClientCredentialsTokenUseCase` | ✅ Done (2026-03-23) |
-| 9–11 | Token introspection, hardening, observability | — |
+| 9 | Self-service de identidad: registro de usuario (`RegisterTenantUserUseCase`), verificación email (`VerifyEmailUseCase`), reenvío código (`ResendVerificationEmailUseCase`), `EmailVerificationEntity` (V12), `SmtpEmailNotificationAdapter`, `RegistrationController` (3 endpoints públicos) | ✅ Done (2026-03-23) |
+| 10–11 | Control plane y soporte, auditoría, hardening operacional, observabilidad | — |
 
 **Golden rule from the plan:** never implement `/oauth2/authorize` before tenant, client app, user, and membership are solid.
 
@@ -312,6 +313,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-23 | Corrección de documentación — Fase 9 marcada como ✅ COMPLETADA: tabla de fases corregida, ROADMAP actualizado (endpoints 21→24, tests 305+→320+, Postman 29→38), IMPLEMENTATION_PLAN.md actualizado con componentes reales |
 | 2026-03-23 | Registro con verificación email — `RegisterTenantUserUseCase`, `VerifyEmailUseCase`, `ResendVerificationEmailUseCase`, `EmailVerificationEntity` (V12), `SmtpEmailNotificationAdapter`, `RegistrationController` (3 endpoints públicos), 3 nuevos sufijos en filtro, `lecciones.md` actualizado |
 | 2026-03-23 | Fase 8 — Client Credentials grant (M2M): `IssueClientCredentialsTokenUseCase`, rama `client_credentials` en `POST /oauth2/token`, `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`, Postman request |
 | 2026-03-22 | Fase 7 — Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3 |

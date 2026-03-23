@@ -896,10 +896,14 @@ Una app `CONFIDENTIAL` puede autenticarse con `client_id` + `client_secret` y ob
 
 ---
 
-## Fase 9. Self-service de identidad
+## Fase 9. Self-service de identidad ✅ COMPLETADA (2026-03-23)
 
 ### Objetivo
 Dar funciones mínimas de identidad al usuario final sin depender del tenant admin.
+
+> ⚠️ **Nota sobre la implementación real:** El alcance de esta fase se ajustó respecto al plan original.
+> Se priorizó el flujo de auto-registro con verificación de email por ser el prerequisito del flujo OAuth2 completo.
+> La recuperación de contraseña (forgot-password / reset-password self-service) queda pendiente para una fase futura.
 
 ### Módulos principales
 - `keygo-domain`
@@ -908,27 +912,74 @@ Dar funciones mínimas de identidad al usuario final sin depender del tenant adm
 - `keygo-api`
 - `keygo-supabase`
 
-### Componentes a crear
+### Componentes implementados
 
-### Casos de uso
-- `RequestPasswordResetUseCase`
-- `ConfirmPasswordResetUseCase`
-- `ChangePasswordUseCase`
+## 9.1. Aplicación ✅
+### Comandos
+- `RegisterTenantUserCommand` ✅ — `(tenantSlug, clientId, email, username, rawPassword, firstName, lastName)`
+- `VerifyEmailCommand` ✅ — `(tenantSlug, clientId, email, code)`
+- `ResendVerificationCommand` ✅ — `(tenantSlug, clientId, email)`
 
 ### Puertos
-- `PasswordResetTokenRepositoryPort`
-- `MailSenderPort`
+- `EmailNotificationPort` ✅ — `MailSenderPort` equivalente — envía email de verificación
+- `EmailVerificationRepositoryPort` ✅ — persistencia de códigos de verificación
 
-### API
-- `AccountRecoveryController`
+### Casos de uso
+- `RegisterTenantUserUseCase` ✅ — crea usuario con status `PENDING`, genera código, envía email
+- `VerifyEmailUseCase` ✅ — valida código, activa usuario (status `ACTIVE`)
+- `ResendVerificationEmailUseCase` ✅ — reenvía código solo si el previo expiró
 
-### Endpoints
-- `POST /{tenant}/account/forgot-password`
-- `POST /{tenant}/account/reset-password`
-- `POST /{tenant}/account/change-password`
+## 9.2. Infraestructura ✅
+- `SmtpEmailNotificationAdapter` ✅ — implementa `EmailNotificationPort` vía SMTP (`spring-boot-starter-mail`)
 
-### Resultado esperado
-El usuario puede recuperar o cambiar su contraseña de forma estándar.
+## 9.3. Persistencia ✅
+- `EmailVerificationEntity` ✅ + `EmailVerificationJpaRepository`
+- `V12__add_email_verifications.sql` ✅ — tabla `email_verifications` (tenant_user_id FK, code VARCHAR(10), expires_at, used_at)
+
+## 9.4. API ✅
+- `RegistrationController` ✅ — 3 endpoints públicos (no requieren `X-KEYGO-ADMIN`)
+
+### Endpoints implementados
+- `POST /api/v1/tenants/{slug}/apps/{clientId}/register` ✅ (público)
+- `POST /api/v1/tenants/{slug}/apps/{clientId}/verify-email` ✅ (público)
+- `POST /api/v1/tenants/{slug}/apps/{clientId}/resend-verification` ✅ (público)
+
+### Response codes
+- `USER_REGISTERED`, `EMAIL_VERIFIED`, `VERIFICATION_EMAIL_RESENT` ✅
+
+## 9.5. Run ✅
+- `BootstrapAdminKeyFilter` — 3 nuevas propiedades de path-suffix público:
+  `registerPathSuffix`, `verifyEmailPathSuffix`, `resendVerificationPathSuffix` ✅
+- 3 nuevos `@Bean` en `ApplicationConfig` ✅
+
+### Postman
+- `POST Register User` ✅
+- `POST Verify Email` ✅
+- `POST Resend Verification Email` ✅
+
+### Tests
+- `RegisterTenantUserUseCaseTest` ✅
+- `VerifyEmailUseCaseTest` ✅
+- `ResendVerificationEmailUseCaseTest` ✅
+
+### Resultado alcanzado ✅
+Un usuario final puede auto-registrarse en una app de un tenant, recibir un código de verificación por email,
+y activar su cuenta sin intervención del administrador. Prerequisito completado para el flujo de login OAuth2.
+
+---
+
+### Plan original de Fase 9 → pendiente en fase futura
+Los siguientes componentes del plan original de Fase 9 **no fueron implementados** en este ciclo:
+
+- `RequestPasswordResetUseCase` (self-service forgot-password) — pendiente
+- `ConfirmPasswordResetUseCase` (self-service confirm reset) — pendiente
+- `ChangePasswordUseCase` (self-service change password) — pendiente
+- `AccountRecoveryController` — pendiente
+- `POST /{tenant}/account/forgot-password` — pendiente
+- `POST /{tenant}/account/reset-password` — pendiente
+- `POST /{tenant}/account/change-password` — pendiente
+
+> Nota: existe `ResetUserPasswordUseCase` (admin-initiated) implementado en Fase 3, pero no cubre el flujo self-service.
 
 ---
 

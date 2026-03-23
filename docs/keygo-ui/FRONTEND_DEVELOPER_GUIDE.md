@@ -1,9 +1,9 @@
 # Manual del Desarrollador Frontend — `keygo-ui`
 
-> **Audiencia:** Desarrolladores frontend que implementan la interfaz de usuario de KeyGo usando React.
-> **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-8 completadas, Fase 9 en curso).
-> **Fecha:** 2026-03-23
-> **Estado:** Documento vivo — se actualiza conforme avanza el backend.
+> * **Audiencia:** Desarrolladores frontend que implementan la interfaz de usuario de KeyGo usando React. 
+> * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9 completadas, Fase 10 pendiente).
+> * **Fecha:** 2026-03-23
+> * **Estado:** Documento vivo — se actualiza conforme avanza el backend.
 
 ---
 
