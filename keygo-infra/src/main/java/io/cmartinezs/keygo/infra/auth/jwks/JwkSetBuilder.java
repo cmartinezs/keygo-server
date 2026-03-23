@@ -49,14 +49,7 @@ public class JwkSetBuilder implements JwksBuilderPort {
   }
 
   private static RSAPublicKey loadPublicKey(String pem) throws NoSuchAlgorithmException, InvalidKeySpecException {
-    String stripped = pem
-        .replaceAll("-----BEGIN.*?-----", "")
-        .replaceAll("-----END.*?-----", "")
-        .replaceAll("\\s", "");
-    byte[] decoded = Base64.getDecoder().decode(stripped);
-    X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
-    KeyFactory kf = KeyFactory.getInstance("RSA");
-    return (RSAPublicKey) kf.generatePublic(spec);
+      return getRsaPublicKey(pem);
   }
 
   private static com.nimbusds.jose.Algorithm resolveAlgorithm(SigningKey key) {
