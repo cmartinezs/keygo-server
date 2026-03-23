@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-22 | [Flyway: CREATE TABLE IF NOT EXISTS oculta errores de esquema incompleto](#2026-03-22-flyway-create-table-if-not-exists-oculta-errores-de-esquema-incompleto-de-ejecuciones-parciales) | Flyway / DB |
 | 2026-03-22 | [Fase 7: SHA-256 como hash determinista para refresh tokens](#2026-03-22-fase-7-sha-256-como-hash-determinista-para-refresh-tokens) | Security / OAuth2 |
 | 2026-03-22 | [Fase 7: Mockito UnnecessaryStubbing en tests de use cases complejos](#2026-03-22-fase-7-mockito-unnecessarystubbing-en-tests-de-use-cases-complejos) | Testing |
 | 2026-03-22 | [Fase 7: BootstrapAdminKeyFilter — rutas userinfo y revoke como públicas](#2026-03-22-fase-7-bootstrapadminkeyfilter--rutas-userinfo-y-revoke-como-públicas) | Security / Filter |
@@ -372,3 +373,25 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 
 ---
 
+### [2026-03-22] Flyway: CREATE TABLE IF NOT EXISTS oculta errores de esquema incompleto de ejecuciones parciales
+
+**Contexto:** La migración V11 fallaba con `ERROR: column "tenant_id" does not exist (SQLState 42703)` al intentar aplicarse.
+
+**Problema:** La tabla `sessions` ya existía en la base de datos desde una ejecución anterior de V11 que falló a mitad (Flyway no transaccional o interrupción). La sentencia `CREATE TABLE IF NOT EXISTS sessions (...)` la saltó silenciosamente porque la tabla existía, pero esa tabla estaba incompleta (no tenía la columna `tenant_id`). Cuando Flyway llegó a `CREATE INDEX IF NOT EXISTS idx_sessions_user_tenant ON sessions(user_id, tenant_id)`, PostgreSQL lanzó el error 42703 porque `tenant_id` no existía en la tabla residual.
+
+**Solución / Buena práctica:**
+- Para migraciones que crean tablas **nuevas** (no parte de un esquema ya en producción), agregar `DROP TABLE IF EXISTS <tabla> CASCADE;` al inicio del archivo, **antes** de los `CREATE TABLE IF NOT EXISTS`.
+- Esto garantiza idempotencia real: si la tabla existe con un esquema incompleto o anterior, se elimina y se recrea correctamente.
+- Después de modificar un archivo de migración que Flyway ya registró (aunque sea como fallido), ejecutar `flyway:repair` para recalcular el checksum:
+  ```bash
+  ./mvnw -pl keygo-supabase flyway:repair \
+    -Dflyway.url=$SUPABASE_URL \
+    -Dflyway.user=$SUPABASE_USER \
+    -Dflyway.password=$SUPABASE_PASSWORD
+  ```
+- **Regla:** `CREATE TABLE IF NOT EXISTS` solo es seguro cuando el esquema de la tabla no va a cambiar. En migraciones nuevas (desarrollo), preferir `DROP TABLE IF EXISTS ... CASCADE` + `CREATE TABLE`.
+
+**Archivos clave:**
+- `keygo-supabase/src/main/resources/db/migration/V11__add_refresh_tokens_and_sessions.sql`
+
+---

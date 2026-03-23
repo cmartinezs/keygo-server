@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.infra.auth.jwks;
 
+import static io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier.getRsaPublicKey;
+
 import com.nimbusds.jose.jwk.RSAKey;
 import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
 import io.cmartinezs.keygo.domain.auth.model.SigningKey;
