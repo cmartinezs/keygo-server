@@ -3,18 +3,18 @@
 > **Documento vivo.** Los agentes AI deben actualizar este archivo cuando generen nuevas propuestas
 > concretas al concluir tareas. Ver instrucciones de mantenimiento al final.
 
-## Estado actual del producto (2026-03-22)
+## Estado actual del producto (2026-03-23)
 
  Dimensión  Estado 
 ------
  Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` 
- Autenticación  **Fase 7 completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación y userinfo 
+ Autenticación  **Fase 8 completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, **client_credentials M2M** 
  Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, **Session, RefreshToken** 
- API pública  **20 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), OAuth2 (4), OIDC (2), **UserInfo (1)** 
+ API pública  **21 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), OAuth2 (5 — incl. `client_credentials`), OIDC (2), **UserInfo (1)**, Revocation (1) 
  CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
  Tests  **305+ tests unitarios** — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — **28 requests** con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 7 ✅ Completada** — próxima: Fase 8 (Refresh token expiración configurable, Client Credentials) |
+ Postman  ✅ Colecciones en `postman/` — **29 requests** con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 8 ✅ Completada** — próxima: Fase 9 (Token Introspection, Client Credentials hardening) |
 
 ---
 
@@ -77,7 +77,6 @@
 | T-022 | Implementar caching distribuido (Redis) para tokens, JWKS y sesiones activas | `keygo-infra` | Reducir latencia y carga a DB en validación de tokens |
 | T-032 | Evaluar generador de site estático (MkDocs con Material theme / Docusaurus) para consolidar `docs/` + archivos raíz en un portal navegable unificado con búsqueda full-text y versionado | `docs/` | El repositorio ya tiene ~30 archivos Markdown en múltiples carpetas; un site estático facilita onboarding y búsqueda entre categorías |
 | T-038 | Implementar lista negra de JTI (JWT ID) de access tokens revocados con TTL en Redis — permite invalidar access tokens antes de su expiración natural sin mantener estado en DB SQL | `keygo-infra`, `keygo-app` | El modelo actual requiere esperar expiración del access token tras revocar un refresh token; con lista negra de JTI + Redis la revocación es inmediata incluso para access tokens ya emitidos |
-| T-039 | Implementar grant type `client_credentials` (Fase 8) — emite access token técnico sin usuario para comunicación M2M; agrega `POST /oauth2/token` con `grant_type=client_credentials`, valida `client_id`+`client_secret`, restringe a apps de tipo `CONFIDENTIAL` | `keygo-api`, `keygo-app`, `keygo-supabase` | El flujo Authorization Code está orientado a usuarios; el grant M2M es necesario para integración servicio-a-servicio |
 
 ---
 
@@ -123,7 +122,7 @@
 | F-022 | E4-H3: Desactivar usuario | P1 | Suspensión lógica; impide login |
 | F-023 | E4-H4: Reset de contraseña | P1 | Token seguro de reset; endpoint de cambio |
 | F-024 | E5-H4: `AppRole` y `MembershipRole` | P1 | Roles locales por app; roles en tokens |
-| F-025 | E7-H1: `client_credentials` grant | P1 | M2M sin usuario; access token técnico |
+| ~~F-025~~ | ~~E7-H1: `client_credentials` grant~~ | ~~P1~~ | ✅ Completada en Fase 8 — ver historial |
 | F-026 | E8-H3: `openid-configuration` | P1 | Metadata OIDC por tenant |
 | ~~F-027~~ | ~~E8-H4: Refresh tokens con rotación~~ | ~~P1~~ | ✅ Completada en Fase 7 — ver historial |
 | ~~F-028~~ | ~~E9-H1: Endpoint `/userinfo`~~ | ~~P1~~ | ✅ Completada en Fase 7 — ver historial |
@@ -167,6 +166,8 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-039 | **Fase 8: `client_credentials` grant (M2M)** — `IssueClientCredentialsTokenUseCase`, rama `grant_type=client_credentials` en `POST /oauth2/token`; solo apps `CONFIDENTIAL`; `sub=clientId`; sin `id_token` ni `refresh_token`; resolución de scopes (intersección o todos si vacío); `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`; `@Bean` en `ApplicationConfig`; 1 request Postman | 2026-03-23 | `IssueClientCredentialsTokenUseCase.java`; `IssueClientCredentialsTokenCommand.java`; `IssueClientCredentialsTokenResult.java`; `AuthorizationController.java` |
+| F-025 | **E7-H1: `client_credentials` grant** — M2M sin usuario; access token técnico para apps `CONFIDENTIAL` | 2026-03-23 | `IssueClientCredentialsTokenUseCase`; `AuthorizationController` rama `client_credentials`; Postman request |
 | T-027 | **Fase 7: Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3** — `POST /oauth2/token` con `grant_type=refresh_token`, `POST /oauth2/revoke` (público, idempotente), `GET /userinfo` (Bearer token); sesiones persistidas; refresh token hash SHA-256 determinista | 2026-03-22 | `V11__add_refresh_tokens_and_sessions.sql`; `SessionEntity`, `RefreshTokenEntity`; `RotateRefreshTokenUseCase`, `RevokeTokenUseCase`, `GetUserInfoUseCase`, `OpenSessionUseCase`; `RevocationController`, `UserInfoController`; `TokenRequest` multi-grant; 3 nuevas requests Postman |
 | F-027 | **E8-H4: Refresh tokens con rotación** — Hash persistido (SHA-256), renovación segura, revocación RFC 7009 | 2026-03-22 | `refresh_tokens` table (V11); `RevokeTokenUseCase`; `RotateRefreshTokenUseCase` |
 | F-028 | **E9-H1: Endpoint `/userinfo`** — Claims OIDC del usuario autenticado vía Bearer token | 2026-03-22 | `UserInfoController`; `GetUserInfoUseCase`; `RsaJwtTokenVerifier` |

@@ -1,6 +1,6 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-03-22  
+> **Última actualización:** 2026-03-23  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
 > **Próxima migración:** `V12__...`
 

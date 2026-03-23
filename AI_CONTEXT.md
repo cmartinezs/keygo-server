@@ -203,4 +203,4 @@ Al concluir, incluir propuestas en tres horizontes:
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent
+**Última actualización:** 2026-03-23 | **Responsable:** AI Agent

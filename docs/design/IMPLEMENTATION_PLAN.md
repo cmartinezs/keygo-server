@@ -750,7 +750,7 @@ Los tokens JWT emitidos por KeyGo:
 
 ---
 
-## Fase 7. Refresh token y userinfo
+## Fase 7. Refresh token y userinfo ✅ COMPLETADA (2026-03-22)
 
 ### Objetivo
 Completar sesiones renovables y claims consultables.
@@ -762,75 +762,137 @@ Completar sesiones renovables y claims consultables.
 - `keygo-supabase`
 - `keygo-api`
 
-### Componentes a crear
+### Componentes implementados
 
-## 7.1. Dominio
-- `RefreshToken`
-- `RefreshTokenStatus`
-- `Session`
-- `SessionStatus`
+## 7.1. Dominio ✅
+- `RefreshToken` ✅ — modelo con hash SHA-256 determinista
+- `RefreshTokenId` ✅
+- `RefreshTokenStatus` ✅ — `ACTIVE | USED | EXPIRED | REVOKED`
+- `Session` ✅ — agrupa refresh tokens emitidos en un mismo contexto
+- `SessionId` ✅
+- `SessionStatus` ✅ — `ACTIVE | TERMINATED | EXPIRED`
+- `InvalidRefreshTokenException` ✅
+- `RefreshTokenExpiredException` ✅
 
-## 7.2. Aplicación
+## 7.2. Aplicación ✅
 ### Puertos
-- `RefreshTokenRepositoryPort`
-- `SessionRepositoryPort`
+- `RefreshTokenRepositoryPort` ✅
+- `SessionRepositoryPort` ✅
+- `AccessTokenVerifierPort` ✅ — verifica firma y expiración del access_token
+
+### Comandos
+- `OpenSessionCommand` ✅
+- `RotateRefreshTokenCommand` ✅
+- `RevokeTokenCommand` ✅
+- `GetUserInfoCommand` ✅
+
+### Results
+- `OpenSessionResult` ✅
+- `RotateRefreshTokenResult` ✅
+- `UserInfoResult` ✅
 
 ### Casos de uso
-- `RotateRefreshTokenUseCase`
-- `RevokeTokenUseCase`
-- `GetUserInfoUseCase`
-- `OpenSessionUseCase`
-- `TerminateSessionUseCase`
+- `OpenSessionUseCase` ✅
+- `TerminateSessionUseCase` ✅
+- `RotateRefreshTokenUseCase` ✅
+- `RevokeTokenUseCase` ✅
+- `GetUserInfoUseCase` ✅
 
-## 7.3. Persistencia
-- `RefreshTokenJpaEntity`
-- `SessionJpaEntity`
-- repositorios y adapters
+## 7.3. Infraestructura ✅
+- `RsaJwtTokenVerifier` ✅ — implementa `AccessTokenVerifierPort` (verifica firma RSA + expiración)
+
+## 7.4. Persistencia ✅
+- `SessionEntity` ✅ + `SessionJpaRepository` + `SessionPersistenceMapper` + `SessionRepositoryAdapter`
+- `RefreshTokenEntity` ✅ + `RefreshTokenJpaRepository` + `RefreshTokenPersistenceMapper` + `RefreshTokenRepositoryAdapter`
 
 ### Migraciones
-- tabla `refresh_token`
-- tabla `session`
+- `V11__add_refresh_tokens_and_sessions.sql` ✅ — tablas `sessions` + `refresh_tokens` con SHA-256 hash único
 
-## 7.4. API
-- ampliar `TokenController`
-- `UserInfoController`
-- `RevocationController`
+## 7.5. API ✅
+- `AuthorizationController` actualizado — branch `grant_type=refresh_token` en `POST /oauth2/token` ✅
+- `RevocationController` ✅ — `POST /oauth2/revoke` (público, RFC 7009, idempotente)
+- `UserInfoController` ✅ — `GET /userinfo` (público, valida Bearer token)
+- `GlobalExceptionHandler` — handlers `InvalidRefreshTokenException` (400) y `RefreshTokenExpiredException` (400) ✅
 
-### Endpoints
-- `POST /{tenant}/oauth2/token` *(refresh token branch)*
-- `POST /{tenant}/oauth2/revoke`
-- `GET /{tenant}/userinfo`
+### Endpoints implementados
+- `POST /api/v1/tenants/{slug}/oauth2/token` con `grant_type=refresh_token` ✅
+- `POST /api/v1/tenants/{slug}/oauth2/revoke` ✅ (RFC 7009, público)
+- `GET /api/v1/tenants/{slug}/userinfo` ✅ (Bearer token)
 
-### Resultado esperado
-Ya existe:
-- refresh token con rotación,
-- revoke,
-- userinfo,
-- y trazabilidad básica de sesión.
+### Response codes
+- `REFRESH_TOKEN_ROTATED`, `TOKEN_REVOKED`, `USER_INFO_RETRIEVED` ✅
+
+## 7.6. Run ✅
+- `BootstrapAdminKeyFilter` — nuevas propiedades `userInfoPathSuffix` y `revocationPathSuffix` como rutas públicas ✅
+- 6 `@Bean` nuevos en `ApplicationConfig` ✅
+
+### Tests
+- `SessionTest`, `RefreshTokenTest` (domain) ✅
+- `OpenSessionUseCaseTest`, `RotateRefreshTokenUseCaseTest`, `RevokeTokenUseCaseTest` (app) ✅
+
+### Postman
+- `Exchange Token — refresh_token grant` ✅
+- `Revoke Token` ✅
+- `UserInfo` ✅
+
+### Resultado alcanzado ✅
+- Refresh token con rotación SHA-256 y auto-referencia (`replaced_by_id`)
+- Revocación RFC 7009 idempotente
+- Userinfo OIDC §5.3 con Bearer token
+- Sesiones persistidas y trazables
 
 ---
 
-## Fase 8. Client Credentials
+## Fase 8. Client Credentials ✅ COMPLETADA (2026-03-23)
 
 ### Objetivo
 Habilitar machine-to-machine y cerrar el segundo grant esencial del MVP.
 
 ### Módulos principales
 - `keygo-app`
-- `keygo-infra`
 - `keygo-api`
+- `keygo-run`
 
-### Componentes a crear
+### Componentes implementados
+
+## 8.1. Dominio ✅
+- Reutiliza modelos existentes: `ClientApp`, `ClientType`, `AllowedGrant.CLIENT_CREDENTIALS`, `SigningKey`
+- `ClientAuthenticationException` ✅ — lanzada cuando la app es PUBLIC o el secret incorrecto
+
+## 8.2. Aplicación ✅
+### Comandos
+- `IssueClientCredentialsTokenCommand` ✅ — `(tenantSlug, clientId, rawClientSecret, scope)`
+
+### Results
+- `IssueClientCredentialsTokenResult` ✅ — `(accessToken, tokenType, expiresIn, scope)`
 
 ### Casos de uso
-- `AuthenticateClientUseCase`
-- `IssueClientAccessTokenUseCase`
+- `IssueClientCredentialsTokenUseCase` ✅ — valida tenant → busca app → verifica CONFIDENTIAL → valida grant → verifica secret → firma token
 
-### API
-- extender `TokenController` con rama `client_credentials`
+## 8.3. API ✅
+- `AuthorizationController` ampliado — rama `grant_type=client_credentials` en `POST /oauth2/token` ✅
 
-### Resultado esperado
-Una app confidential puede autenticarse y obtener token técnico sin usuario final.
+### Endpoint
+- `POST /api/v1/tenants/{slug}/oauth2/token` con `grant_type=client_credentials` ✅ — requiere `client_id` + `client_secret`
+
+### Response codes
+- `CLIENT_CREDENTIALS_TOKEN_ISSUED` ✅
+
+### Reglas de negocio
+- Solo apps de tipo `CONFIDENTIAL` pueden usar este grant
+- `client_secret` es obligatorio
+- El `sub` del token es el `client_id` (no un UUID de usuario)
+- No emite `id_token` ni `refresh_token`
+- Scopes efectivos = intersección entre solicitados y permitidos; si vacía → todos los permitidos
+
+## 8.4. Run ✅
+- `IssueClientCredentialsTokenUseCase` — `@Bean` en `ApplicationConfig` ✅
+
+### Postman
+- `Exchange Token — client_credentials grant` ✅ — con `pm.test()` validando `CLIENT_CREDENTIALS_TOKEN_ISSUED` y `access_token`
+
+### Resultado alcanzado ✅
+Una app `CONFIDENTIAL` puede autenticarse con `client_id` + `client_secret` y obtener un access token técnico sin usuario final. El token incluye `sub=clientId`, `aud=clientId`, scopes configurados y firma RS256.
 
 ---
 
@@ -1035,12 +1097,12 @@ ya existan y estén razonablemente estables.
 ## Sprint 3 ✅ COMPLETADO (2026-03-22)
 - Fase 5 completa ✅
 
-## Sprint 4
-- completar Fase 6
-- completar Fase 7
+## Sprint 4 ✅ COMPLETADO (2026-03-22 / 2026-03-23)
+- Fase 6 completa ✅
+- Fase 7 completa ✅
+- Fase 8 completa ✅
 
 ## Sprint 5
-- completar Fase 8
 - completar Fase 9
 
 ## Sprint 6

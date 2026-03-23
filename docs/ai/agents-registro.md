@@ -22,6 +22,42 @@
 
 ## Registro de cambios
 
+### [2026-03-23] Fase 8 — Client Credentials grant (M2M) completada
+
+**Dominio (`keygo-domain`)**:
+- Reutiliza modelos existentes: `ClientApp`, `ClientType`, `AllowedGrant.CLIENT_CREDENTIALS`, `SigningKey`
+- `ClientAuthenticationException` ya existía — se usa cuando la app es PUBLIC o el secret es incorrecto
+
+**Aplicación (`keygo-app`)**:
+- Nuevo comando: `IssueClientCredentialsTokenCommand` (`tenantSlug`, `clientId`, `rawClientSecret`, `scope`)
+- Nuevo result: `IssueClientCredentialsTokenResult` (`accessToken`, `tokenType`, `expiresIn`, `scope`)
+- Nuevo use case: `IssueClientCredentialsTokenUseCase` — flujo: valida tenant → busca app → verifica CONFIDENTIAL → valida grant CLIENT_CREDENTIALS → verifica secret → obtiene signing key activa → resuelve scopes (intersección o todos) → firma token JWT
+
+**API (`keygo-api`)**:
+- `AuthorizationController` ampliado: nuevo método privado `handleClientCredentialsGrant` en `POST /api/v1/tenants/{slug}/oauth2/token`
+- Respuesta: `access_token`, `token_type=Bearer`, `expires_in=3600`, `scope`; sin `id_token` ni `refresh_token` (excluidos por `NON_NULL` Jackson)
+- Nuevo `ResponseCode`: `CLIENT_CREDENTIALS_TOKEN_ISSUED`
+
+**Wiring (`keygo-run`)**:
+- `@Bean IssueClientCredentialsTokenUseCase` en `ApplicationConfig`
+
+**Postman**:
+- Nuevo request `Exchange Token — client_credentials grant` en carpeta `🔑 OIDC & JWKS`
+- 7 `pm.test()`: status 200, `CLIENT_CREDENTIALS_TOKEN_ISSUED`, `access_token`, ausencia de `refresh_token`, ausencia de `id_token`, `token_type=Bearer`, `expires_in > 0`
+- Guarda `m2mAccessToken` en variable de entorno
+
+**Documentación actualizada**:
+- `ROADMAP.md`: T-039 → historial, F-025 → completada (~~tachado~~), estado del producto actualizado a Fase 8 ✅
+- `AGENTS.md`: Fase 8 marcada como Done, endpoint `client_credentials` en lista de URLs, entrada en registro reciente
+- `docs/design/IMPLEMENTATION_PLAN.md`: Fases 7 y 8 documentadas con todos los componentes implementados; Sprint 4 marcado completo
+- `docs/data/DATA_MODEL.md`: sección "Tablas planificadas" corregida (eliminadas `refresh_tokens` y `tenant_sessions` que ya son V11); diagrama E/R actualizado con `SESSIONS` y `REFRESH_TOKENS`
+- `docs/ai/lecciones.md`: lección sobre `sub=clientId`, ausencia de `id_token`/`refresh_token` y resolución de scopes en M2M
+
+**URLs nuevas / actualizadas**:
+- `POST /api/v1/tenants/{slug}/oauth2/token` con `grant_type=client_credentials` (requiere `client_id` + `client_secret`)
+
+---
+
 ### [2026-03-22] Reorganización de documentos AI a docs/ai/
 
 Se movieron los sub-documentos de contexto AI desde la raíz a `docs/ai/` para mantener la raíz limpia.

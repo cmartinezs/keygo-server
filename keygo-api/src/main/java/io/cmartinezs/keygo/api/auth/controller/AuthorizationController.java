@@ -14,6 +14,7 @@ import io.cmartinezs.keygo.app.auth.command.AuthenticateUserCommand;
 import io.cmartinezs.keygo.app.auth.command.ExchangeAuthorizationCodeCommand;
 import io.cmartinezs.keygo.app.auth.command.InitiateAuthorizationCommand;
 import io.cmartinezs.keygo.app.auth.command.IssueAuthorizationCodeCommand;
+import io.cmartinezs.keygo.app.auth.command.IssueClientCredentialsTokenCommand;
 import io.cmartinezs.keygo.app.auth.command.OpenSessionCommand;
 import io.cmartinezs.keygo.app.auth.command.RotateRefreshTokenCommand;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
@@ -23,6 +24,7 @@ import io.cmartinezs.keygo.app.auth.usecase.AuthenticateUserForAuthorizationUseC
 import io.cmartinezs.keygo.app.auth.usecase.ExchangeAuthorizationCodeUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.InitiateAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.IssueClientCredentialsTokenUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.OpenSessionUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
@@ -73,6 +75,7 @@ public class AuthorizationController {
   private final IssueAuthorizationCodeUseCase issueAuthorizationCodeUseCase;
   private final ExchangeAuthorizationCodeUseCase exchangeAuthorizationCodeUseCase;
   private final IssueTokensUseCase issueTokensUseCase;
+  private final IssueClientCredentialsTokenUseCase issueClientCredentialsTokenUseCase;
   private final OpenSessionUseCase openSessionUseCase;
   private final RotateRefreshTokenUseCase rotateRefreshTokenUseCase;
   private final RefreshTokenRepositoryPort refreshTokenRepository;
@@ -90,6 +93,7 @@ public class AuthorizationController {
       IssueAuthorizationCodeUseCase issueAuthorizationCodeUseCase,
       ExchangeAuthorizationCodeUseCase exchangeAuthorizationCodeUseCase,
       IssueTokensUseCase issueTokensUseCase,
+      IssueClientCredentialsTokenUseCase issueClientCredentialsTokenUseCase,
       OpenSessionUseCase openSessionUseCase,
       RotateRefreshTokenUseCase rotateRefreshTokenUseCase,
       RefreshTokenRepositoryPort refreshTokenRepository,
@@ -104,6 +108,7 @@ public class AuthorizationController {
     this.issueAuthorizationCodeUseCase = issueAuthorizationCodeUseCase;
     this.exchangeAuthorizationCodeUseCase = exchangeAuthorizationCodeUseCase;
     this.issueTokensUseCase = issueTokensUseCase;
+    this.issueClientCredentialsTokenUseCase = issueClientCredentialsTokenUseCase;
     this.openSessionUseCase = openSessionUseCase;
     this.rotateRefreshTokenUseCase = rotateRefreshTokenUseCase;
     this.refreshTokenRepository = refreshTokenRepository;
@@ -234,11 +239,12 @@ public class AuthorizationController {
   /**
    * POST /api/v1/tenants/{tenantSlug}/oauth2/token
    *
-   * <p>Soporta dos grant types:
+   * <p>Soporta tres grant types:
    *
    * <ul>
    *   <li>{@code authorization_code} — canjea el código por tokens y emite refresh token
    *   <li>{@code refresh_token} — rota el refresh token y emite nuevos tokens
+   *   <li>{@code client_credentials} — emite access_token para apps M2M (sin usuario final)
    * </ul>
    */
   @PostMapping("/oauth2/token")
@@ -251,8 +257,47 @@ public class AuthorizationController {
       return handleRefreshTokenGrant(tenantSlug, request);
     }
 
+    if ("client_credentials".equals(grantType)) {
+      return handleClientCredentialsGrant(tenantSlug, request);
+    }
+
     // Default: authorization_code
     return handleAuthorizationCodeGrant(tenantSlug, request);
+  }
+
+  // ─── Grant: client_credentials ───────────────────────────────────────────
+
+  private ResponseEntity<BaseResponse<TokenData>> handleClientCredentialsGrant(
+      String tenantSlug, TokenRequest request) {
+
+    if (request.clientSecret() == null || request.clientSecret().isBlank()) {
+      throw new IllegalArgumentException("client_secret is required for client_credentials grant");
+    }
+
+    var command = new IssueClientCredentialsTokenCommand(
+        tenantSlug,
+        request.clientId(),
+        request.clientSecret(),
+        request.scope());
+
+    var result = issueClientCredentialsTokenUseCase.execute(command);
+
+    // Sin id_token, sin refresh_token, sin authorization_code_id — excluidos por NON_NULL Jackson
+    var responseData = new TokenData(
+        result.accessToken(),
+        null,
+        null,
+        result.tokenType(),
+        result.expiresIn(),
+        result.scope(),
+        null);
+
+    BaseResponse<TokenData> response = BaseResponse.<TokenData>builder()
+        .data(responseData)
+        .success(ResponseHelper.message(ResponseCode.CLIENT_CREDENTIALS_TOKEN_ISSUED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
   // ─── Grant: authorization_code ────────────────────────────────────────────

@@ -11,6 +11,7 @@ import io.cmartinezs.keygo.domain.auth.exception.NoActiveSigningKeyException;
 import io.cmartinezs.keygo.domain.auth.exception.RefreshTokenExpiredException;
 import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAuthenticationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
 import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
@@ -141,6 +142,21 @@ public class GlobalExceptionHandler {
         .build();
 
     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+  }
+
+  /**
+   * Handles ClientAuthenticationException - returns 401 Unauthorized.
+   * Lanzada cuando el client_secret es incorrecto o el cliente es PUBLIC en un grant M2M.
+   */
+  @ExceptionHandler(ClientAuthenticationException.class)
+  public ResponseEntity<BaseResponse<Void>> handleClientAuthenticationException(ClientAuthenticationException ex) {
+    log.error("Client authentication failed: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
   }
 
   /**

@@ -141,6 +141,62 @@ public ResponseEntity<BaseResponse<User>> createUser(@RequestBody UserDto dto) {
 | `SERVICE_INFO_RETRIEVED` | Info del servicio obtenida | 200 OK |
 | `RESPONSE_CODES_RETRIEVED` | Catálogo de códigos obtenido | 200 OK |
 
+### Operaciones de Tenant
+| Código | Uso | HTTP Status Típico |
+|--------|-----|-------------------|
+| `TENANT_CREATED` | Tenant creado | 201 Created |
+| `TENANT_RETRIEVED` | Tenant obtenido | 200 OK |
+| `TENANT_SUSPENDED` | Tenant suspendido | 200 OK |
+
+### Operaciones de Usuario (por tenant)
+| Código | Uso | HTTP Status Típico |
+|--------|-----|-------------------|
+| `USER_CREATED` | Usuario creado en el tenant | 201 Created |
+| `USER_RETRIEVED` | Usuario obtenido | 200 OK |
+| `USER_LIST_RETRIEVED` | Lista de usuarios obtenida | 200 OK |
+| `USER_UPDATED` | Usuario actualizado | 200 OK |
+| `USER_PASSWORD_RESET` | Contraseña del usuario reseteada | 200 OK |
+| `CREDENTIALS_VALID` | Credenciales validadas correctamente | 200 OK |
+
+### Operaciones de Client App
+| Código | Uso | HTTP Status Típico |
+|--------|-----|-------------------|
+| `CLIENT_APP_CREATED` | App cliente creada | 201 Created |
+| `CLIENT_APP_RETRIEVED` | App cliente obtenida | 200 OK |
+| `CLIENT_APP_LIST_RETRIEVED` | Lista de apps clientes obtenida | 200 OK |
+| `CLIENT_APP_UPDATED` | App cliente actualizada | 200 OK |
+| `CLIENT_APP_SECRET_ROTATED` | Secret de la app rotado | 200 OK |
+
+### Operaciones de Membership & Roles
+| Código | Uso | HTTP Status Típico |
+|--------|-----|-------------------|
+| `MEMBERSHIP_CREATED` | Membership creada | 201 Created |
+| `MEMBERSHIP_RETRIEVED` | Membership obtenida | 200 OK |
+| `MEMBERSHIP_LIST_RETRIEVED` | Lista de memberships obtenida | 200 OK |
+| `MEMBERSHIP_REVOKED` | Membership revocada | 200 OK |
+| `MEMBERSHIP_SUSPENDED` | Membership suspendida | 200 OK |
+| `ROLE_CREATED` | Rol creado | 201 Created |
+| `ROLE_RETRIEVED` | Rol obtenido | 200 OK |
+| `ROLE_LIST_RETRIEVED` | Lista de roles obtenida | 200 OK |
+| `ROLE_UPDATED` | Rol actualizado | 200 OK |
+| `ROLE_DELETED` | Rol eliminado | 200 OK |
+| `ROLE_ASSIGNED` | Rol asignado a una membership | 200 OK |
+
+### Operaciones OAuth2 / OIDC
+| Código | Uso | HTTP Status Típico | Grant / Endpoint |
+|--------|-----|-------------------|----|
+| `AUTHORIZATION_INITIATED` | Flujo de autorización iniciado (`GET /oauth2/authorize`) | 200 OK | Auth Code |
+| `LOGIN_SUCCESSFUL` | Login exitoso y código emitido (`POST /account/login`) | 200 OK | Auth Code |
+| `AUTHORIZATION_CODE_ISSUED` | Código de autorización emitido | 200 OK | Auth Code |
+| `AUTHORIZATION_CODE_EXCHANGED` | Código canjeado por tokens | 200 OK | Auth Code |
+| `TOKEN_ISSUED` | Access token + id_token + refresh_token emitidos | 200 OK | authorization_code |
+| `REFRESH_TOKEN_ROTATED` | Refresh token rotado y nuevos tokens emitidos | 200 OK | refresh_token |
+| `CLIENT_CREDENTIALS_TOKEN_ISSUED` | Access token técnico M2M emitido (sin id_token ni refresh_token) | 200 OK | client_credentials |
+| `TOKEN_REVOKED` | Token revocado (RFC 7009 — siempre 200, idempotente) | 200 OK | `POST /oauth2/revoke` |
+| `USER_INFO_RETRIEVED` | Claims OIDC del usuario autenticado obtenidos | 200 OK | `GET /userinfo` |
+| `JWKS_RETRIEVED` | JWK Set obtenido | 200 OK | `GET /.well-known/jwks.json` |
+| `OIDC_CONFIGURATION_RETRIEVED` | OIDC Discovery metadata obtenida | 200 OK | `GET /.well-known/openid-configuration` |
+
 ### Operaciones Genéricas / Generic Operations
 | Código | Uso | HTTP Status Típico |
 |--------|-----|-------------------|

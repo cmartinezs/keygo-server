@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V11
+> Fecha de actualización: **2026-03-23** | Estado: ✅ Sincronizado con migraciones V1–V11
 
 ---
 
@@ -349,7 +349,46 @@ graph LR
     I --> J["Login blocked; token refresh blocked"]
 ```
 
-**Nota:** Los access tokens (JWT firmados) no se revocan en DB; son válidos hasta su `exp`. Para revocación inmediata en Fase 7+, se implementará lista negra de `jti` o verificación de `tenant_sessions`.
+**Nota:** Los access tokens (JWT firmados) no se revocan en DB; son válidos hasta su `exp`. Para revocación inmediata en Fase 9+, se implementará lista negra de `jti` con TTL en Redis (T-038).
+
+---
+
+## Flujo client_credentials (M2M — Fase 8)
+
+```mermaid
+sequenceDiagram
+    participant Service as Servicio M2M
+    participant KeyGo as KeyGo Server
+    participant DB as DB
+
+    Service->>KeyGo: POST /oauth2/token<br/>(grant_type=client_credentials, client_id, client_secret, scope)
+    KeyGo->>DB: Buscar tenant por slug
+    alt Tenant activo?
+        KeyGo->>DB: Buscar ClientApp por client_id + tenant_id
+        alt App existe y es CONFIDENTIAL?
+            KeyGo->>KeyGo: Verificar que CLIENT_CREDENTIALS esté en allowed_grants
+            KeyGo->>KeyGo: Validar client_secret (BCrypt match)
+            alt Secret válido?
+                KeyGo->>DB: Obtener SigningKey activa
+                KeyGo->>KeyGo: Resolver scopes efectivos (intersección o todos)
+                KeyGo->>KeyGo: Firmar access_token (sub=clientId, RS256)
+                KeyGo->>Service: {access_token, token_type=Bearer, expires_in=3600, scope}
+            else
+                KeyGo->>Service: Error 401 — invalid client_secret
+            end
+        else
+            KeyGo->>Service: Error 400 — PUBLIC clients cannot use client_credentials
+        end
+    else
+        KeyGo->>Service: Error 404 — tenant not found
+    end
+```
+
+**Diferencias vs Authorization Code:**
+- `sub` = `client_id` (no un `user_id`)
+- Sin `id_token` (no hay usuario final)
+- Sin `refresh_token` (el servicio puede solicitar uno nuevo directamente)
+- Sin sesión ni membership — solo validación de app
 
 ---
 
@@ -622,5 +661,5 @@ classDiagram
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V11)
+**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V11, Fases 0–8)
 

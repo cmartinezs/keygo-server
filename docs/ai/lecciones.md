@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-23 | [Fase 8: client_credentials — sub=clientId y ausencia de refresh_token/id_token](#2026-03-23-fase-8-client_credentials--sub-clientid-sin-refresh_token-ni-id_token) | OAuth2 / M2M |
 | 2026-03-22 | [Flyway: CREATE TABLE IF NOT EXISTS oculta errores de esquema incompleto](#2026-03-22-flyway-create-table-if-not-exists-oculta-errores-de-esquema-incompleto-de-ejecuciones-parciales) | Flyway / DB |
 | 2026-03-22 | [Fase 7: SHA-256 como hash determinista para refresh tokens](#2026-03-22-fase-7-sha-256-como-hash-determinista-para-refresh-tokens) | Security / OAuth2 |
 | 2026-03-22 | [Fase 7: Mockito UnnecessaryStubbing en tests de use cases complejos](#2026-03-22-fase-7-mockito-unnecessarystubbing-en-tests-de-use-cases-complejos) | Testing |
@@ -63,6 +64,22 @@
 ---
 
 ## Lecciones
+
+### [2026-03-23] Fase 8: client_credentials — sub=clientId, sin refresh_token ni id_token
+**Contexto:** Implementación del grant `client_credentials` (Fase 8 — M2M) en `IssueClientCredentialsTokenUseCase` y rama correspondiente en `AuthorizationController`.
+**Problema:** El grant `client_credentials` no representa a un usuario final, lo que implica diferencias importantes respecto a `authorization_code`:
+- El `sub` del access token debe ser el `client_id` (string), **no** un UUID de usuario.
+- **No se emite** `id_token` (OIDC es para usuarios; M2M no tiene identidad de usuario).
+- **No se emite** `refresh_token` (las apps M2M pueden solicitar un token nuevo directamente).
+- Solo apps de tipo `CONFIDENTIAL` pueden usar este grant (las PUBLIC no tienen secret).
+- El campo `client_secret` es obligatorio en el request.
+**Solución / Buena práctica:**
+- En `TokenData`, los campos `idToken` y `refreshToken` se excluyen automáticamente por la config `NON_NULL` de Jackson — no hace falta serialización especial.
+- La resolución de scopes M2M es diferente: si no se solicitan scopes específicos, se retornan **todos los permitidos**; si se solicitan, se filtra la intersección con los permitidos.
+- El `aud` del token M2M se establece igual al `sub` (`clientId`), diferente al flujo user donde `aud = clientId` pero `sub = userId`.
+**Archivos clave:** `IssueClientCredentialsTokenUseCase.java`, `AuthorizationController.java` (método `handleClientCredentialsGrant`), `IssueClientCredentialsTokenCommand.java`, `IssueClientCredentialsTokenResult.java`
+
+---
 
 ### [2026-03-22] Fase 6: eliminar jacoco.skip cuando un módulo stub se activa
 **Contexto:** `keygo-infra` tenía `<jacoco.skip>true</jacoco.skip>` porque era un módulo "stub vacío". Al implementar la Fase 6 se llenó con código de producción (`RsaJwtTokenSigner`, `JwkSetBuilder`, `StandardTokenClaimsFactory`) y sus tests unitarios.

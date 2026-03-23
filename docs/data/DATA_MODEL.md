@@ -2,7 +2,7 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V11
+> Fecha de actualización: **2026-03-23** | Estado: ✅ Sincronizado con migraciones V1–V11
 
 ---
 
@@ -297,54 +297,28 @@
 
 > Estas tablas están **documentadas en el diseño** pero aún **no tienen migración implementada**. Se incluyen aquí para referencia de diseño.
 
-### Tabla: `refresh_tokens` — Planificada (Fase 7+)
+> ✅ Las tablas `sessions` y `refresh_tokens` (antes planificadas aquí) fueron implementadas en **V11** (`V11__add_refresh_tokens_and_sessions.sql`) durante la Fase 7. Ver diccionario completo en las secciones anteriores de este documento.
 
-| Campo | Tipo | Clave | Nulable | Descripción |
-|---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único |
-| `tenant_id` | UUID | FK | NO | Referencia al tenant |
-| `client_app_id` | UUID | FK | NO | Referencia al cliente propietario |
-| `user_id` | UUID | FK | SÍ | Referencia al usuario (nullable para M2M flows futuros) |
-| `token_hash` | VARCHAR(500) | UNIQUE | NO | Hash del token (nunca en claro) |
-| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `USED`, `REVOKED`, `EXPIRED` |
-| `rotated_from` | UUID | FK | SÍ | Referencia al token anterior si fue rotado |
-| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de emisión |
-| `expires_at` | TIMESTAMPTZ | | NO | Marca de tiempo de expiración |
+### Próximas tablas previstas (Fase 9+)
 
-**Reglas de negocio (diseño):**
-- Token nunca en claro, solo hash.
-- Al rotar: token anterior → `USED`, nuevo vinculado via `rotated_from`.
-- Token revocado no puede renovarse.
-
-**Próxima migración:** `V11__add_refresh_tokens.sql`
-
-### Tabla: `tenant_sessions` — Planificada (Fase 8+)
-
-> Diferente a la tabla `sessions` de V1 (que es legado global). Esta nueva tabla sería multi-tenant.
-
-| Campo | Tipo | Clave | Nulable | Descripción |
-|---|---|---|---|---|
-| `id` | UUID | PK | NO | Identificador único de sesión |
-| `tenant_id` | UUID | FK | NO | Referencia al tenant |
-| `user_id` | UUID | FK | NO | Referencia al usuario (`tenant_users`) |
-| `client_app_id` | UUID | FK | NO | Referencia a la app donde se autenticó |
-| `status` | VARCHAR(20) | | NO | Estado: `ACTIVE`, `TERMINATED`, `EXPIRED` |
-| `created_at` | TIMESTAMPTZ | | NO | Marca de tiempo de inicio |
-| `last_seen_at` | TIMESTAMPTZ | | NO | Última actividad |
-| `device_info` | JSON | | SÍ | Información del dispositivo |
-| `ip_address` | VARCHAR(45) | | SÍ | IP de origen (IPv4 o IPv6) |
+| Tabla | Descripción prevista | Migración |
+|---|---|---|
+| `token_blacklist` | Lista negra de JTI de access tokens revocados (opcionalmente en Redis) | `V12__...` |
+| `audit_events` | Registro de eventos de auditoría por tenant (login, token emitido, revocación) | futura |
 
 ---
 
 ## Modelo E/R (Diagrama Mermaid)
 
-> Solo tablas activas (V4–V9). Las tablas de legado se omiten para claridad.
+> Solo tablas activas (V4–V11). Las tablas de legado se omiten para claridad.
 
 ```mermaid
 erDiagram
     TENANTS ||--o{ CLIENT_APPS : "owns (tenant_id)"
     TENANTS ||--o{ TENANT_USERS : "contains (tenant_id)"
     TENANTS ||--o{ AUTHORIZATION_CODES : "issues (tenant_id)"
+    TENANTS ||--o{ SESSIONS : "has (tenant_id)"
+    TENANTS ||--o{ REFRESH_TOKENS : "owns (tenant_id)"
 
     CLIENT_APPS ||--o{ CLIENT_REDIRECT_URIS : "registers (client_app_id)"
     CLIENT_APPS ||--o{ CLIENT_ALLOWED_GRANTS : "permits (client_app_id)"
@@ -352,12 +326,19 @@ erDiagram
     CLIENT_APPS ||--o{ APP_ROLES : "defines (client_app_id)"
     CLIENT_APPS ||--o{ MEMBERSHIPS : "accessed-by (client_app_id)"
     CLIENT_APPS ||--o{ AUTHORIZATION_CODES : "requests (client_app_id)"
+    CLIENT_APPS ||--o{ SESSIONS : "used-in (client_app_id)"
+    CLIENT_APPS ||--o{ REFRESH_TOKENS : "issued-to (client_app_id)"
 
     TENANT_USERS ||--o{ MEMBERSHIPS : "has (user_id)"
     TENANT_USERS ||--o{ AUTHORIZATION_CODES : "authenticates (user_id)"
+    TENANT_USERS ||--o{ SESSIONS : "owns (user_id)"
+    TENANT_USERS ||--o{ REFRESH_TOKENS : "owns (user_id)"
 
     MEMBERSHIPS ||--o{ MEMBERSHIP_ROLES : "assigned (membership_id)"
     APP_ROLES ||--o{ MEMBERSHIP_ROLES : "grants (role_id)"
+
+    SESSIONS ||--o{ REFRESH_TOKENS : "contains (session_id)"
+    REFRESH_TOKENS ||--o| REFRESH_TOKENS : "replaced-by (replaced_by_id)"
 
     TENANTS {
         UUID id PK
@@ -464,6 +445,34 @@ erDiagram
         TEXT private_material
         TIMESTAMPTZ activated_at
         TIMESTAMPTZ retired_at
+        TIMESTAMPTZ created_at
+    }
+
+    SESSIONS {
+        UUID id PK
+        UUID tenant_id FK
+        UUID client_app_id FK
+        UUID user_id FK
+        VARCHAR status
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ last_accessed_at
+        TEXT user_agent
+        VARCHAR ip_address
+        TIMESTAMPTZ created_at
+    }
+
+    REFRESH_TOKENS {
+        UUID id PK
+        VARCHAR token_hash UK
+        UUID session_id FK
+        UUID tenant_id FK
+        UUID client_app_id FK
+        UUID user_id FK
+        TEXT requested_scopes
+        VARCHAR status
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ used_at
+        UUID replaced_by_id FK
         TIMESTAMPTZ created_at
     }
 ```
@@ -682,4 +691,4 @@ WHERE id = :id;
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V11
+**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V11

@@ -60,6 +60,7 @@ public enum ResponseCode {
   AUTHORIZATION_CODE_EXCHANGED("AUTHORIZATION_CODE_EXCHANGED", "Authorization code exchanged successfully"),
   LOGIN_SUCCESSFUL("LOGIN_SUCCESSFUL", "Login successful"),
   TOKEN_ISSUED("TOKEN_ISSUED", "Tokens issued successfully"),
+  CLIENT_CREDENTIALS_TOKEN_ISSUED("CLIENT_CREDENTIALS_TOKEN_ISSUED", "Client credentials token issued successfully"),
   REFRESH_TOKEN_ROTATED("REFRESH_TOKEN_ROTATED", "Refresh token rotated successfully"),
   TOKEN_REVOKED("TOKEN_REVOKED", "Token revoked successfully"),
   USER_INFO_RETRIEVED("USER_INFO_RETRIEVED", "User information retrieved successfully"),

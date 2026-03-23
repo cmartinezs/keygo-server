@@ -17,6 +17,7 @@ import io.cmartinezs.keygo.app.auth.usecase.GetOidcConfigurationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.GetUserInfoUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.InitiateAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.IssueClientCredentialsTokenUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.OpenSessionUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
@@ -372,6 +373,29 @@ public class ApplicationConfig {
     return new GetUserInfoUseCase(
         signingKeyRepositoryPort, accessTokenVerifierPort,
         userRepositoryPort, tenantRepositoryPort);
+  }
+
+  // ─── Fase 8: Client Credentials grant ────────────────────────────────────
+
+  @Bean
+  public IssueClientCredentialsTokenUseCase issueClientCredentialsTokenUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      ClientSecretEncoderPort clientSecretEncoderPort,
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      TokenSignerPort tokenSignerPort,
+      TokenClaimsFactoryPort tokenClaimsFactoryPort,
+      ClockPort clockPort,
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
+    return new IssueClientCredentialsTokenUseCase(
+        tenantRepositoryPort,
+        clientAppRepositoryPort,
+        clientSecretEncoderPort,
+        signingKeyRepositoryPort,
+        tokenSignerPort,
+        tokenClaimsFactoryPort,
+        clockPort,
+        issuerBaseUrl);
   }
 
     @Bean

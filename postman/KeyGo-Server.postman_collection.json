@@ -1926,8 +1926,17 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/.well-known/openid-configuration",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", ".well-known", "openid-configuration"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                ".well-known",
+                "openid-configuration"
+              ]
             },
             "description": "Obtiene el OIDC Discovery Document para el tenant.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration"
           },
@@ -1978,8 +1987,17 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/.well-known/jwks.json",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "tenants", "{{tenantSlug}}", ".well-known", "jwks.json"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                ".well-known",
+                "jwks.json"
+              ]
             },
             "description": "Obtiene el JWK Set con las claves públicas RSA para verificar tokens JWT.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json"
           },
@@ -2021,18 +2039,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-KEYGO-ADMIN", "value": "{{adminKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-KEYGO-ADMIN",
+                "value": "{{adminKey}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"grant_type\": \"refresh_token\",\n  \"client_id\": \"{{clientId}}\",\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/token",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api","v1","tenants","{{tenantSlug}}","oauth2","token"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "oauth2",
+                "token"
+              ]
             },
             "description": "Rota un refresh token. Emite nuevos access_token, id_token y refresh_token. Guarda el nuevo refresh_token en la variable de entorno."
           },
@@ -2061,21 +2098,102 @@
           "response": []
         },
         {
+          "name": "Exchange Token — client_credentials grant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-KEYGO-ADMIN",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grant_type\": \"client_credentials\",\n  \"client_id\": \"{{clientId}}\",\n  \"client_secret\": \"{{clientSecret}}\",\n  \"scope\": \"openid profile\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/token",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "oauth2",
+                "token"
+              ]
+            },
+            "description": "Emite un access_token técnico para apps M2M (machine-to-machine) usando el grant client_credentials.\n\nRequisitos:\n- La app debe ser de tipo CONFIDENTIAL.\n- El grant `CLIENT_CREDENTIALS` debe estar habilitado en la app.\n- `client_secret` es obligatorio.\n\nNo emite `id_token` ni `refresh_token`.\n\n**ResponseCode esperado:** `CLIENT_CREDENTIALS_TOKEN_ISSUED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('BaseResponse éxito', () => {",
+                  "  pm.expect(body).to.have.property('success');",
+                  "  pm.expect(body.success.code).to.equal('CLIENT_CREDENTIALS_TOKEN_ISSUED');",
+                  "});",
+                  "pm.test('Tiene access_token', () => pm.expect(body.data.access_token).to.be.a('string').and.not.empty);",
+                  "pm.test('NO tiene refresh_token (M2M no usa RT)', () => pm.expect(body.data.refresh_token).to.be.undefined);",
+                  "pm.test('NO tiene id_token (M2M no tiene usuario)', () => pm.expect(body.data.id_token).to.be.undefined);",
+                  "pm.test('token_type es Bearer', () => pm.expect(body.data.token_type).to.equal('Bearer'));",
+                  "pm.test('expires_in es número positivo', () => pm.expect(body.data.expires_in).to.be.above(0));",
+                  "if (body.data && body.data.access_token) {",
+                  "  pm.environment.set('m2mAccessToken', body.data.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Revoke Token",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"token\": \"{{refreshToken}}\",\n  \"token_type_hint\": \"refresh_token\",\n  \"client_id\": \"{{clientId}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/revoke",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api","v1","tenants","{{tenantSlug}}","oauth2","revoke"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "oauth2",
+                "revoke"
+              ]
             },
             "description": "Revoca un refresh token (RFC 7009). Siempre responde 200, incluso si el token no existe (idempotente)."
           },
@@ -2102,12 +2220,23 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/userinfo",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api","v1","tenants","{{tenantSlug}}","userinfo"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "userinfo"
+              ]
             },
             "description": "Obtiene claims de identidad del usuario autenticado (OIDC §5.3). Requiere Authorization: Bearer <access_token>."
           },

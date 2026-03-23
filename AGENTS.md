@@ -137,6 +137,7 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — rotate refresh_token grant)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — client_credentials grant, M2M, requiere `client_id` + `client_secret`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/revoke` (POST — revoke token, RFC 7009, **público**)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/userinfo` (GET — OIDC userinfo, **público** con Bearer token)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/.well-known/openid-configuration` (GET — OIDC discovery, **público**)
@@ -254,7 +255,8 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | ✅ Done (2026-03-22) |
 | 6 | Token signing RS256 + JWKS + OIDC Discovery | ✅ Done (2026-03-22) |
 | 7 | Refresh token (rotation + SHA-256 hash), Session, Revocation (RFC 7009), UserInfo (OIDC §5.3) | ✅ Done (2026-03-22) |
-| 8–11 | Client credentials grant, token introspection, hardening, observability | — |
+| 8 | Client Credentials grant (M2M) — `IssueClientCredentialsTokenUseCase` | ✅ Done (2026-03-23) |
+| 9–11 | Token introspection, hardening, observability | — |
 
 **Golden rule from the plan:** never implement `/oauth2/authorize` before tenant, client app, user, and membership are solid.
 
@@ -301,6 +303,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-23 | Fase 8 — Client Credentials grant (M2M): `IssueClientCredentialsTokenUseCase`, rama `client_credentials` en `POST /oauth2/token`, `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`, Postman request |
 | 2026-03-22 | Fase 7 — Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3 |
 | 2026-03-22 | Reorganización de documentos AI a `docs/ai/` |
 | 2026-03-22 | Re-auditoría de inconsistencias — corrección de tablas en singular via V10 |

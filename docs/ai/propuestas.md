@@ -51,8 +51,9 @@
 | T-020 | Observabilidad avanzada: OpenTelemetry + Prometheus + Grafana | 🔲 Pendiente |
 | T-032 | Evaluar generador de site estático (MkDocs / Docusaurus) que consolide `docs/` + archivos raíz en un portal navegable unificado con búsqueda | 🔲 Pendiente |
 | T-038 | Lista negra de JTI de access tokens revocados con TTL en Redis para revocación inmediata sin esperar expiración natural | 🔲 Pendiente |
-| T-039 | Soporte de `client_credentials` grant (Fase 8) — emite access token sin usuario, para comunicación M2M entre servicios | 🔲 Pendiente |
+| ~~T-039~~ | ~~Soporte de `client_credentials` grant (Fase 8) — emite access token sin usuario para comunicación M2M~~ | ✅ Completada 2026-03-23 (Fase 8) |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
+| ~~F-025~~ | ~~`client_credentials` grant M2M sin usuario final~~ | ✅ Completada 2026-03-23 (Fase 8) |
 | ~~F-027~~ | ~~Refresh tokens con rotación + SHA-256 hash~~ | ✅ Completada 2026-03-22 (Fase 7) |
 | ~~F-028~~ | ~~Endpoint `/userinfo` OIDC §5.3~~ | ✅ Completada 2026-03-22 (Fase 7) |
 
@@ -65,5 +66,5 @@
 
 ---
 
-**Última actualización:** 2026-03-22 (sincronización con ROADMAP.md) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-23 (Fase 8 completada) | **Responsable:** AI Agent
 
