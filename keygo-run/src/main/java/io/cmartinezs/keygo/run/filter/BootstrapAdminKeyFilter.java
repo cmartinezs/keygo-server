@@ -94,18 +94,38 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
    * @return true if public / true si es pública
    */
   private boolean isPublicPath(String path) {
-    return path.startsWith(bootstrapProperties.getActuatorPathPrefix())
-        || path.startsWith(bootstrapProperties.getServiceInfoPathPrefix())
-        || (bootstrapProperties.getSwaggerUiPathPrefix() != null
-            && path.startsWith(bootstrapProperties.getSwaggerUiPathPrefix()))
-        || (bootstrapProperties.getApiDocsPathPrefix() != null
-            && path.startsWith(bootstrapProperties.getApiDocsPathPrefix()))
-        || (bootstrapProperties.getWellKnownPathPrefix() != null
-            && path.contains(bootstrapProperties.getWellKnownPathPrefix()))
-        || (bootstrapProperties.getUserInfoPathSuffix() != null
-            && path.endsWith(bootstrapProperties.getUserInfoPathSuffix()))
-        || (bootstrapProperties.getRevocationPathSuffix() != null
-            && path.endsWith(bootstrapProperties.getRevocationPathSuffix()));
+    return isPublicByPrefix(path) || isPublicBySegment(path) || isPublicBySuffix(path);
+  }
+
+  private boolean isPublicByPrefix(String path) {
+    return hasPrefix(path, bootstrapProperties.getActuatorPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getServiceInfoPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getSwaggerUiPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getApiDocsPathPrefix());
+  }
+
+  private boolean isPublicBySegment(String path) {
+    return hasSegment(path, bootstrapProperties.getWellKnownPathPrefix());
+  }
+
+  private boolean isPublicBySuffix(String path) {
+    return hasSuffix(path, bootstrapProperties.getUserInfoPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getRevocationPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getRegisterPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getVerifyEmailPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getResendVerificationPathSuffix());
+  }
+
+  private static boolean hasPrefix(String path, String prefix) {
+    return prefix != null && path.startsWith(prefix);
+  }
+
+  private static boolean hasSegment(String path, String segment) {
+    return segment != null && path.contains(segment);
+  }
+
+  private static boolean hasSuffix(String path, String suffix) {
+    return suffix != null && path.endsWith(suffix);
   }
 
   /**

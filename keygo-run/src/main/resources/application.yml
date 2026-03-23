@@ -15,6 +15,12 @@ keygo:
     well-known-path-prefix: "/.well-known"
     userinfo-path-suffix: "/userinfo"
     revocation-path-suffix: "/oauth2/revoke"
+    register-path-suffix: "/register"
+    verify-email-path-suffix: "/verify-email"
+    resend-verification-path-suffix: "/resend-verification"
+  mail:
+    from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
+    app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -29,6 +35,17 @@ spring:
     name: "${keygo.info.name}-${keygo.info.version}"
   profiles:
     active: "${SPRING_PROFILES_ACTIVE:default}"
+  mail:
+    host: "${SMTP_HOST:localhost}"
+    port: "${SMTP_PORT:587}"
+    username: "${SMTP_USERNAME:}"
+    password: "${SMTP_PASSWORD:}"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 management:
   endpoint:
     health:

@@ -133,6 +133,9 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}` (PUT — update user)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/{userId}/reset-password` (POST — reset password)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/users/validate-credentials` (POST — validate credentials)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/register` (POST — **público** — register user with PENDING status + send verification email)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/verify-email` (POST — **público** — verify email code → activate user)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/resend-verification` (POST — **público** — resend code only if previous one expired)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/authorize` (GET — initiate auth)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
@@ -160,6 +163,9 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.well-known-path-prefix` | `/.well-known` | Public — OIDC discovery + JWKS |
 | `keygo.bootstrap.userinfo-path-suffix` | `/userinfo` | Public — Bearer token validated inside controller |
 | `keygo.bootstrap.revocation-path-suffix` | `/oauth2/revoke` | Public — RFC 7009, idempotente |
+| `keygo.bootstrap.register-path-suffix` | `/register` | Public — self-registration endpoint |
+| `keygo.bootstrap.verify-email-path-suffix` | `/verify-email` | Public — email verification endpoint |
+| `keygo.bootstrap.resend-verification-path-suffix` | `/resend-verification` | Public — resend verification code endpoint |
 
 ## Security header
 
@@ -192,6 +198,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `SigningKeyEntity` | `auth.entity` | `signing_keys` | `kid` unique; `status` check `ACTIVE\|RETIRED\|REVOKED`; `algorithm` (RS256/RS384/RS512); `public_material` + `private_material` PEM |
 | `SessionEntity` | `auth.entity` | `sessions` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `status` check `ACTIVE\|TERMINATED\|EXPIRED` |
 | `RefreshTokenEntity` | `auth.entity` | `refresh_tokens` | `@ManyToOne(fetch=LAZY)` → `SessionEntity`, `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `token_hash` unique (SHA-256 hex 64 chars); `status` check `ACTIVE\|USED\|EXPIRED\|REVOKED` |
+| `EmailVerificationEntity` | `user.entity` | `email_verifications` | `@ManyToOne(fetch=LAZY)` → `TenantUserEntity`; `code` VARCHAR(10); `expires_at`+`used_at` TIMESTAMPTZ; latest row per user = active verification |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -206,6 +213,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `SigningKeyJpaRepository` | `auth.repository` |
 | `SessionJpaRepository` | `auth.repository` |
 | `RefreshTokenJpaRepository` | `auth.repository` |
+| `EmailVerificationJpaRepository` | `user.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
@@ -219,8 +227,9 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V9__add_signing_keys.sql` — signing_keys table (kid unique, status check, algorithm, public/private PEM)
 - `V10__rename_membership_tables_to_plural.sql` — renames app_role→app_roles, membership→memberships, membership_role→membership_roles
 - `V11__add_refresh_tokens_and_sessions.sql` — sessions + refresh_tokens tables (SHA-256 hash, status checks, session FK)
+- `V12__add_email_verifications.sql` — email_verifications table (tenant_user_id FK, code VARCHAR(10), expires_at, used_at; latest row per user = active verification)
 
-Next migration must be `V12__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V13__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -303,6 +312,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-23 | Registro con verificación email — `RegisterTenantUserUseCase`, `VerifyEmailUseCase`, `ResendVerificationEmailUseCase`, `EmailVerificationEntity` (V12), `SmtpEmailNotificationAdapter`, `RegistrationController` (3 endpoints públicos), 3 nuevos sufijos en filtro, `lecciones.md` actualizado |
 | 2026-03-23 | Fase 8 — Client Credentials grant (M2M): `IssueClientCredentialsTokenUseCase`, rama `client_credentials` en `POST /oauth2/token`, `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`, Postman request |
 | 2026-03-22 | Fase 7 — Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3 |
 | 2026-03-22 | Reorganización de documentos AI a `docs/ai/` |

@@ -26,6 +26,8 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-23 | [Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md](#2026-03-23-nuevas-variables-de-entorno-deben-documentarse-en-env-y-environment_setupmd) | Convenciones / Entorno |
+| 2026-03-23 | [Registro con verificación email — ClientApp requiere campos obligatorios en tests](#2026-03-23-registro-con-verificación-email--clientapp-requiere-campos-obligatorios-en-tests) | Tests / Dominio |
 | 2026-03-23 | [Fase 8: client_credentials — sub=clientId y ausencia de refresh_token/id_token](#2026-03-23-fase-8-client_credentials--sub-clientid-sin-refresh_token-ni-id_token) | OAuth2 / M2M |
 | 2026-03-22 | [Flyway: CREATE TABLE IF NOT EXISTS oculta errores de esquema incompleto](#2026-03-22-flyway-create-table-if-not-exists-oculta-errores-de-esquema-incompleto-de-ejecuciones-parciales) | Flyway / DB |
 | 2026-03-22 | [Fase 7: SHA-256 como hash determinista para refresh tokens](#2026-03-22-fase-7-sha-256-como-hash-determinista-para-refresh-tokens) | Security / OAuth2 |
@@ -64,6 +66,37 @@
 ---
 
 ## Lecciones
+
+### [2026-03-23] Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md
+
+**Contexto:** Al agregar `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `KEYGO_MAIL_FROM` y `KEYGO_MAIL_APP_NAME` para el flujo de registro con verificación de email, se detectó que solo se habían declarado en `application.yml` pero no en los archivos `.env` ni en la documentación de entornos.
+
+**Problema:** Las variables de entorno nuevas declaradas en `application.yml` con sintaxis `${VAR:default}` no se propagan automáticamente a los archivos `.env*` ni a la documentación. El desarrollador que active un nuevo ambiente no sabrá qué variables configurar.
+
+**Solución / Buena práctica:** Ante **cualquier** variable de entorno nueva en `application.yml`, actualizar obligatoriamente:
+1. `keygo-supabase/.env.example` — agregar la variable con valor de ejemplo y comentario explicativo
+2. `keygo-supabase/.env-local` — valor apropiado para desarrollo local (ej: MailHog sin autenticación)
+3. `keygo-supabase/.env-desa` — valor para sandbox/staging (ej: Mailtrap)
+4. `keygo-supabase/.env-prod` — valor placeholder con comentario de dónde obtenerlo
+5. `keygo-supabase/.env` — mismo valor que `.env-desa` (es el ambiente activo)
+6. `docs/development/ENVIRONMENT_SETUP.md` — agregar a la tabla completa y, si aplica, al bloque `application.yml`
+7. `scripts/quick-start.sh` — si la variable es usada por el flujo de desarrollo
+
+**Regla de oro:** Si aparece en `application.yml` como `${VARIABLE:default}`, debe aparecer en todos los `.env*`.
+
+**Archivos clave:** `keygo-supabase/.env.example`, `docs/development/ENVIRONMENT_SETUP.md`, `scripts/quick-start.sh`
+
+---
+
+### [2026-03-23] Registro con verificación email — ClientApp requiere campos obligatorios en tests
+
+**Contexto:** Implementación del flujo de registro de usuarios con verificación por email (Fase 9). Tests unitarios para `RegisterTenantUserUseCase`, `VerifyEmailUseCase` y `ResendVerificationEmailUseCase`.
+
+**Problema:** Al construir un objeto `ClientApp` en los tests usando el builder sin todos los campos requeridos (`id`, `type`, `status`, `accessPolicy`), se obtenía `IllegalArgumentException: ClientApp id cannot be null` antes de que los tests pudieran ejecutarse. El dominio es estricto en validaciones en el constructor.
+
+**Solución / Buena práctica:** Siempre construir objetos de dominio con todos sus campos requeridos en los tests, aunque el objeto solo se use como valor de retorno de un mock. Para `ClientApp`: se requieren `id (ClientAppId.generate())`, `type (ClientType.PUBLIC)`, `status (ClientAppStatus.ACTIVE)`, y `accessPolicy (new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of()))`.
+
+**Archivos clave:** `keygo-domain/src/main/java/.../domain/clientapp/model/ClientApp.java` (líneas 44-52 — validaciones del constructor)
 
 ### [2026-03-23] Fase 8: client_credentials — sub=clientId, sin refresh_token ni id_token
 **Contexto:** Implementación del grant `client_credentials` (Fase 8 — M2M) en `IssueClientCredentialsTokenUseCase` y rama correspondiente en `AuthorizationController`.

@@ -614,6 +614,10 @@ CREATE INDEX idx_refresh_tokens_session ON refresh_tokens(session_id);          
 CREATE INDEX idx_refresh_tokens_user_tenant ON refresh_tokens(user_id, tenant_id); -- V11
 CREATE INDEX idx_refresh_tokens_status ON refresh_tokens(status);               -- V11
 
+-- V12
+CREATE INDEX idx_email_verifications_tenant_user_id ON email_verifications(tenant_user_id); -- V12
+CREATE INDEX idx_email_verifications_code ON email_verifications(code);                      -- V12
+
 -- 💡 Índices adicionales sugeridos para optimización
 CREATE INDEX idx_client_apps_tenant_status ON client_apps(tenant_id, status);
 CREATE INDEX idx_tenant_users_tenant_email ON tenant_users(tenant_id, email);
@@ -661,5 +665,52 @@ classDiagram
 
 ---
 
-**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V11, Fases 0–8)
+### Contexto 7: Verificación de Email (V12)
+
+```mermaid
+classDiagram
+    class TenantUser {
+        UUID id
+        UUID tenantId
+        String username
+        String email
+        String passwordHash
+        String status
+    }
+    class EmailVerification {
+        UUID id
+        UUID tenantUserId
+        String code
+        Instant expiresAt
+        Instant usedAt
+        Instant createdAt
+    }
+    TenantUser "1" --> "0..*" EmailVerification : tiene verificaciones
+```
+
+**Relación clave:** Un `TenantUser` puede tener múltiples filas en `email_verifications` (una por cada código emitido). La fila con el mayor `created_at` es el código activo.
+
+**Estados derivados de `EmailVerification`:**
+
+| Condición | Estado efectivo |
+|---|---|
+| `expires_at > NOW()` AND `used_at IS NULL` | Activo — aún puede usarse para verificar |
+| `expires_at <= NOW()` AND `used_at IS NULL` | Expirado — solicitar nuevo código |
+| `used_at IS NOT NULL` | Utilizado — verificación completada |
+
+**Flujo de transición de `TenantUser.status`:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : POST /register
+    PENDING --> ACTIVE : POST /verify-email (código válido)
+    PENDING --> PENDING : POST /resend-verification (nuevo código emitido)
+    ACTIVE --> [*] : usuario puede hacer login
+```
+
+**Índices:** `idx_email_verifications_tenant_user_id` (para buscar por usuario), `idx_email_verifications_code` (para buscar por código).
+
+---
+
+**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V12, Fases 0–9)
 

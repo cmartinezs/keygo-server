@@ -22,6 +22,67 @@
 
 ## Registro de cambios
 
+### [2026-03-23] Registro de usuarios con verificación de email
+
+**Dominio (`keygo-domain`)**:
+- Nuevo modelo: `EmailVerification` (`keygo-domain/.../user/model/`) — `create()`, `reconstitute()`, `isExpired()`, `isUsed()`, `isValid()`, `markUsed()`
+- Nuevo método en `User`: `isPending()` → `UserStatus.PENDING.equals(status)`
+- Nuevas excepciones en `keygo-domain/.../user/exception/`:
+  - `UserPendingVerificationException` — login con cuenta sin verificar (HTTP 403)
+  - `EmailVerificationExpiredException` — código expirado (HTTP 422)
+  - `EmailVerificationInvalidException` — código incorrecto o ya usado (HTTP 400)
+  - `EmailVerificationStillActiveException` — reenvío bloqueado porque el código aún es válido (HTTP 409)
+
+**Aplicación (`keygo-app`)**:
+- Nuevos puertos OUT en `app/user/port/`:
+  - `EmailVerificationRepositoryPort` — `save()` + `findLatestByUserIdAndTenantId()`
+  - `EmailNotificationPort` — `sendVerificationEmail()`
+- Nuevos comandos en `app/user/command/`:
+  - `RegisterTenantUserCommand`, `VerifyEmailCommand`, `ResendVerificationCommand`
+- Nuevos casos de uso en `app/user/usecase/`:
+  - `RegisterTenantUserUseCase` — crea usuario PENDING + genera código 6 dígitos (SecureRandom) + persiste verificación + envía email
+  - `VerifyEmailUseCase` — verifica código, activa usuario (PENDING → ACTIVE)
+  - `ResendVerificationEmailUseCase` — reenvía solo si el código anterior venció
+- Modificado `ValidateUserCredentialsUseCase` — agrega check `isPending()` → `UserPendingVerificationException` antes de verificar `isSuspended()`
+
+**Infraestructura (`keygo-infra`)**:
+- Nueva dependencia: `spring-boot-starter-mail`
+- Nuevo adaptador: `SmtpEmailNotificationAdapter implements EmailNotificationPort` — texto plano, instanciado como `@Bean`
+
+**Persistencia (`keygo-supabase`)**:
+- Migración `V12__add_email_verifications.sql` — tabla `email_verifications` con FK → `tenant_users`, `code VARCHAR(10)`, `expires_at`, `used_at`
+- Nueva entidad: `EmailVerificationEntity` (`user.entity`) — `@ManyToOne(LAZY)` → `TenantUserEntity`
+- Nuevo repositorio: `EmailVerificationJpaRepository` — `findTopByTenantUserOrderByCreatedAtDesc()`
+- Nuevo adaptador: `EmailVerificationRepositoryAdapter` — implementa `EmailVerificationRepositoryPort`
+
+**API (`keygo-api`)**:
+- Nuevos `ResponseCode`: `USER_REGISTERED`, `EMAIL_VERIFICATION_SENT`, `EMAIL_VERIFIED`, `EMAIL_VERIFICATION_EXPIRED`, `EMAIL_VERIFICATION_RESENT`, `EMAIL_VERIFICATION_STILL_ACTIVE`, `EMAIL_NOT_VERIFIED`
+- Nuevos DTOs en `api/registration/`:
+  - Request: `RegisterRequest`, `VerifyEmailRequest`, `ResendVerificationRequest`
+  - Response: `RegistrationData`
+- Nuevo controller: `RegistrationController` — path `/api/v1/tenants/{tenantSlug}/apps/{clientId}` — sin `@SecurityRequirement`
+  - `POST /register` → HTTP 201
+  - `POST /verify-email` → HTTP 200
+  - `POST /resend-verification` → HTTP 200
+- `GlobalExceptionHandler` — 4 nuevos handlers: `UserPendingVerificationException`, `EmailVerificationExpiredException`, `EmailVerificationInvalidException`, `EmailVerificationStillActiveException`
+
+**Configuración (`keygo-run`)**:
+- `application.yml` — sección `spring.mail` con `${SMTP_HOST}`, `${SMTP_PORT:587}`, `${SMTP_USERNAME}`, `${SMTP_PASSWORD}`; sección `keygo.mail.from`, `keygo.mail.app-name`; 3 nuevos path sufijos: `register-path-suffix`, `verify-email-path-suffix`, `resend-verification-path-suffix`
+- `KeyGoBootstrapProperties` — 3 nuevos campos: `registerPathSuffix`, `verifyEmailPathSuffix`, `resendVerificationPathSuffix`
+- `BootstrapAdminKeyFilter.isPublicPath()` — agrega los 3 nuevos sufijos
+- `ApplicationConfig` — nuevos `@Bean`: `emailNotificationPort`, `registerTenantUserUseCase`, `verifyEmailUseCase`, `resendVerificationEmailUseCase`
+
+**Tests**:
+- `RegisterTenantUserUseCaseTest` — 6 casos: éxito (PENDING + email enviado), tenant no encontrado, tenant suspendido, app no pertenece al tenant, email duplicado, username duplicado
+- `VerifyEmailUseCaseTest` — 4 casos: éxito (ACTIVE), código expirado, código incorrecto, código ya usado
+- `ResendVerificationEmailUseCaseTest` — 3 casos: éxito (código vencido), éxito (sin código previo), bloqueado (código vigente)
+
+**Postman** — carpeta `Registration` con 3 requests: `POST Register User`, `POST Verify Email`, `POST Resend Verification Email`
+
+**Lección aprendida**: `ClientApp.builder()` requiere `id`, `type`, `status` y `accessPolicy` — siempre pasar todos los campos obligatorios del dominio en tests, incluso si el objeto se usa solo como valor de retorno de un mock.
+
+---
+
 ### [2026-03-23] Fase 8 — Client Credentials grant (M2M) completada
 
 **Dominio (`keygo-domain`)**:

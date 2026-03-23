@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "col-keygo-server-v1",
     "name": "KeyGo Server API",
-    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar las carpetas en orden (Platform → Actuator → Tenants).\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints bajo `/api/**` requieren el header `X-KEYGO-ADMIN: {{adminKey}}`.\nEl valor por defecto de desarrollo es `changeMe`.\n\n> ⚠️ **Bug conocido:** `BootstrapAdminKeyFilter` actualmente usa `getRequestURI()` en lugar de `getServletPath()`,\n> por lo que el header no se valida en la versión actual. De todas formas se incluye para futura compatibilidad.",
+    "description": "Colecci\u00f3n de pruebas funcionales manuales para KeyGo Server.\n\n## C\u00f3mo usar\n1. Importar tambi\u00e9n el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server \u2014 Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app est\u00e9 corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar las carpetas en orden (Platform \u2192 Actuator \u2192 Tenants).\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticaci\u00f3n\nLos endpoints bajo `/api/**` requieren el header `X-KEYGO-ADMIN: {{adminKey}}`.\nEl valor por defecto de desarrollo es `changeMe`.\n\n> \u26a0\ufe0f **Bug conocido:** `BootstrapAdminKeyFilter` actualmente usa `getRequestURI()` en lugar de `getServletPath()`,\n> por lo que el header no se valida en la versi\u00f3n actual. De todas formas se incluye para futura compatibilidad.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -51,7 +51,7 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Script de tests globales — se ejecuta en TODAS las requests de la colección",
+          "// Script de tests globales \u2014 se ejecuta en TODAS las requests de la colecci\u00f3n",
           "pm.test('El tiempo de respuesta es menor a 3000ms', function () {",
           "    pm.expect(pm.response.responseTime).to.be.below(3000);",
           "});",
@@ -71,8 +71,8 @@
   ],
   "item": [
     {
-      "name": "🏠 Platform",
-      "description": "Endpoints de información de la plataforma: service info y catálogo de códigos de respuesta.",
+      "name": "\ud83c\udfe0 Platform",
+      "description": "Endpoints de informaci\u00f3n de la plataforma: service info y cat\u00e1logo de c\u00f3digos de respuesta.",
       "item": [
         {
           "name": "GET Service Info",
@@ -95,7 +95,7 @@
                 "info"
               ]
             },
-            "description": "Retorna información pública del servicio (nombre, versión, título).\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**ResponseCode esperado:** `SERVICE_INFO_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Retorna informaci\u00f3n p\u00fablica del servicio (nombre, versi\u00f3n, t\u00edtulo).\n\n**Ruta p\u00fablica** \u2014 no requiere `X-KEYGO-ADMIN`.\n\n**ResponseCode esperado:** `SERVICE_INFO_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -119,7 +119,7 @@
                   "    pm.expect(body.data).to.have.property('version');",
                   "});",
                   "",
-                  "pm.test('data.name no está vacío', function () {",
+                  "pm.test('data.name no est\u00e1 vac\u00edo', function () {",
                   "    pm.expect(body.data.name).to.be.a('string').and.not.empty;",
                   "});",
                   "",
@@ -132,7 +132,7 @@
           ],
           "response": [
             {
-              "name": "200 OK — Service Info",
+              "name": "200 OK \u2014 Service Info",
               "status": "OK",
               "code": 200,
               "header": [
@@ -163,7 +163,7 @@
                 "response-codes"
               ]
             },
-            "description": "Retorna el catálogo completo de códigos de respuesta del sistema, dividido en `successCodes` y `failureCodes`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN` (heredado de la colección).\n\n**ResponseCode esperado:** `RESPONSE_CODES_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Retorna el cat\u00e1logo completo de c\u00f3digos de respuesta del sistema, dividido en `successCodes` y `failureCodes`.\n\n**Ruta protegida** \u2014 requiere `X-KEYGO-ADMIN` (heredado de la colecci\u00f3n).\n\n**ResponseCode esperado:** `RESPONSE_CODES_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -186,11 +186,11 @@
                   "    pm.expect(body.data).to.have.property('failureCodes');",
                   "});",
                   "",
-                  "pm.test('successCodes es un array no vacío', function () {",
+                  "pm.test('successCodes es un array no vac\u00edo', function () {",
                   "    pm.expect(body.data.successCodes).to.be.an('array').that.is.not.empty;",
                   "});",
                   "",
-                  "pm.test('failureCodes es un array no vacío', function () {",
+                  "pm.test('failureCodes es un array no vac\u00edo', function () {",
                   "    pm.expect(body.data.failureCodes).to.be.an('array').that.is.not.empty;",
                   "});",
                   "",
@@ -207,7 +207,7 @@
                   "    });",
                   "});",
                   "",
-                  "pm.test('TENANT_CREATED está en successCodes', function () {",
+                  "pm.test('TENANT_CREATED est\u00e1 en successCodes', function () {",
                   "    const found = body.data.successCodes.some(c => c.code === 'TENANT_CREATED');",
                   "    pm.expect(found).to.be.true;",
                   "});"
@@ -217,7 +217,7 @@
           ],
           "response": [
             {
-              "name": "200 OK — Response Codes Catalog",
+              "name": "200 OK \u2014 Response Codes Catalog",
               "status": "OK",
               "code": 200,
               "header": [
@@ -234,8 +234,8 @@
       ]
     },
     {
-      "name": "🏥 Actuator",
-      "description": "Endpoints de Spring Boot Actuator. Son públicos (no requieren admin key).",
+      "name": "\ud83c\udfe5 Actuator",
+      "description": "Endpoints de Spring Boot Actuator. Son p\u00fablicos (no requieren admin key).",
       "item": [
         {
           "name": "GET Health",
@@ -256,7 +256,7 @@
                 "health"
               ]
             },
-            "description": "Endpoint de salud de Spring Boot Actuator.\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**HTTP Status:** `200 OK`"
+            "description": "Endpoint de salud de Spring Boot Actuator.\n\n**Ruta p\u00fablica** \u2014 no requiere `X-KEYGO-ADMIN`.\n\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -279,7 +279,7 @@
           ],
           "response": [
             {
-              "name": "200 OK — Health UP",
+              "name": "200 OK \u2014 Health UP",
               "status": "OK",
               "code": 200,
               "header": [
@@ -294,7 +294,7 @@
           ]
         },
         {
-          "name": "GET Actuator — All Endpoints",
+          "name": "GET Actuator \u2014 All Endpoints",
           "id": "req-actuator-all",
           "request": {
             "auth": {
@@ -311,7 +311,7 @@
                 "actuator"
               ]
             },
-            "description": "Lista todos los endpoints de Actuator disponibles.\n\n**Ruta pública**.\n**HTTP Status:** `200 OK`"
+            "description": "Lista todos los endpoints de Actuator disponibles.\n\n**Ruta p\u00fablica**.\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -329,7 +329,7 @@
                   "    pm.expect(body).to.have.property('_links');",
                   "});",
                   "",
-                  "pm.test('health está expuesto en los links', function () {",
+                  "pm.test('health est\u00e1 expuesto en los links', function () {",
                   "    pm.expect(body._links).to.have.property('health');",
                   "});"
                 ]
@@ -341,8 +341,8 @@
       ]
     },
     {
-      "name": "🏢 Tenants",
-      "description": "Operaciones CRUD sobre tenants. Todos los endpoints requieren `X-KEYGO-ADMIN`.\n\nFlujo de prueba recomendado:\n1. **POST Create Tenant** → guarda `tenantSlug` automáticamente en el entorno.\n2. **GET Tenant by Slug** → usa el `tenantSlug` guardado.\n3. **PUT Suspend Tenant** → suspende el tenant.\n4. **GET Tenant by Slug (Suspended)** → verifica el nuevo estado.",
+      "name": "\ud83c\udfe2 Tenants",
+      "description": "Operaciones CRUD sobre tenants. Todos los endpoints requieren `X-KEYGO-ADMIN`.\n\nFlujo de prueba recomendado:\n1. **POST Create Tenant** \u2192 guarda `tenantSlug` autom\u00e1ticamente en el entorno.\n2. **GET Tenant by Slug** \u2192 usa el `tenantSlug` guardado.\n3. **PUT Suspend Tenant** \u2192 suspende el tenant.\n4. **GET Tenant by Slug (Suspended)** \u2192 verifica el nuevo estado.",
       "item": [
         {
           "name": "POST Create Tenant",
@@ -375,7 +375,7 @@
                 "tenants"
               ]
             },
-            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n- `ownerEmail`: requerido, formato email válido.\n\nEl `slug` se genera automáticamente en el servidor a partir del `name` (minúsculas, guiones, sin caracteres especiales).\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
+            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** \u2014 requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, m\u00e1x 255 chars.\n- `ownerEmail`: requerido, formato email v\u00e1lido.\n\nEl `slug` se genera autom\u00e1ticamente en el servidor a partir del `name` (min\u00fasculas, guiones, sin caracteres especiales).\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda autom\u00e1ticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
           },
           "event": [
             {
@@ -383,7 +383,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// El slug ya no se envía en el body — el servidor lo genera automáticamente a partir del name.",
+                  "// El slug ya no se env\u00eda en el body \u2014 el servidor lo genera autom\u00e1ticamente a partir del name.",
                   "// Se agrega un timestamp al tenantName para evitar colisiones de slug en ejecuciones repetidas.",
                   "const ts = Date.now();",
                   "const baseName = pm.environment.get('tenantName') || 'Acme Corp';",
@@ -418,7 +418,7 @@
                   "    pm.expect(body.data.status).to.equal('ACTIVE');",
                   "});",
                   "",
-                  "pm.test('data.id no está vacío (UUID generado)', function () {",
+                  "pm.test('data.id no est\u00e1 vac\u00edo (UUID generado)', function () {",
                   "    pm.expect(body.data.id).to.be.a('string').and.not.empty;",
                   "});",
                   "",
@@ -430,7 +430,7 @@
                   "// Guardar slug en el entorno para requests subsiguientes",
                   "if (pm.response.code === 201 && body.data && body.data.slug) {",
                   "    pm.environment.set('tenantSlug', body.data.slug);",
-                  "    console.log('✅ tenantSlug guardado en entorno:', body.data.slug);",
+                  "    console.log('\u2705 tenantSlug guardado en entorno:', body.data.slug);",
                   "}"
                 ]
               }
@@ -438,7 +438,7 @@
           ],
           "response": [
             {
-              "name": "201 Created — Tenant creado",
+              "name": "201 Created \u2014 Tenant creado",
               "status": "Created",
               "code": 201,
               "header": [
@@ -451,7 +451,7 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "name": "400 Bad Request — Validación fallida",
+              "name": "400 Bad Request \u2014 Validaci\u00f3n fallida",
               "status": "Bad Request",
               "code": 400,
               "header": [
@@ -483,7 +483,7 @@
                 "{{tenantSlug}}"
               ]
             },
-            "description": "Obtiene un tenant por su slug.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno (se setea automáticamente al crear un tenant).\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`"
+            "description": "Obtiene un tenant por su slug.\n\n**Ruta protegida** \u2014 requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno (se setea autom\u00e1ticamente al crear un tenant).\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`"
           },
           "event": [
             {
@@ -493,7 +493,7 @@
                 "exec": [
                   "const slug = pm.environment.get('tenantSlug');",
                   "if (!slug) {",
-                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant.');",
+                  "    console.warn('\u26a0\ufe0f tenantSlug est\u00e1 vac\u00edo. Ejecuta primero POST Create Tenant.');",
                   "}"
                 ]
               }
@@ -527,7 +527,7 @@
           ],
           "response": [
             {
-              "name": "200 OK — Tenant encontrado",
+              "name": "200 OK \u2014 Tenant encontrado",
               "status": "OK",
               "code": 200,
               "header": [
@@ -540,7 +540,7 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "name": "404 Not Found — Tenant no existe",
+              "name": "404 Not Found \u2014 Tenant no existe",
               "status": "Not Found",
               "code": 404,
               "header": [
@@ -573,7 +573,7 @@
                 "suspend"
               ]
             },
-            "description": "Suspende un tenant existente. El tenant pasa de estado `ACTIVE` a `SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno.\n\n**ResponseCode esperado:** `TENANT_SUSPENDED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`\n**Si ya está suspendido:** `403 Forbidden` con code `BUSINESS_RULE_VIOLATION`"
+            "description": "Suspende un tenant existente. El tenant pasa de estado `ACTIVE` a `SUSPENDED`.\n\n**Ruta protegida** \u2014 requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno.\n\n**ResponseCode esperado:** `TENANT_SUSPENDED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`\n**Si ya est\u00e1 suspendido:** `403 Forbidden` con code `BUSINESS_RULE_VIOLATION`"
           },
           "event": [
             {
@@ -583,7 +583,7 @@
                 "exec": [
                   "const slug = pm.environment.get('tenantSlug');",
                   "if (!slug) {",
-                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant.');",
+                  "    console.warn('\u26a0\ufe0f tenantSlug est\u00e1 vac\u00edo. Ejecuta primero POST Create Tenant.');",
                   "}"
                 ]
               }
@@ -617,7 +617,7 @@
           ],
           "response": [
             {
-              "name": "200 OK — Tenant suspendido",
+              "name": "200 OK \u2014 Tenant suspendido",
               "status": "OK",
               "code": 200,
               "header": [
@@ -630,7 +630,7 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "name": "403 Forbidden — Tenant ya suspendido",
+              "name": "403 Forbidden \u2014 Tenant ya suspendido",
               "status": "Forbidden",
               "code": 403,
               "header": [
@@ -645,7 +645,7 @@
           ]
         },
         {
-          "name": "GET Tenant by Slug (después de suspender)",
+          "name": "GET Tenant by Slug (despu\u00e9s de suspender)",
           "id": "req-get-tenant-suspended",
           "request": {
             "method": "GET",
@@ -662,7 +662,7 @@
                 "{{tenantSlug}}"
               ]
             },
-            "description": "Verifica el estado del tenant después de suspenderlo. Debe retornar `status: SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nEjecutar después de **PUT Suspend Tenant** para confirmar el cambio de estado.\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Verifica el estado del tenant despu\u00e9s de suspenderlo. Debe retornar `status: SUSPENDED`.\n\n**Ruta protegida** \u2014 requiere `X-KEYGO-ADMIN`.\n\nEjecutar despu\u00e9s de **PUT Suspend Tenant** para confirmar el cambio de estado.\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -680,7 +680,7 @@
                   "    pm.expect(body.success).to.have.property('code', 'TENANT_RETRIEVED');",
                   "});",
                   "",
-                  "pm.test('data.status es SUSPENDED (confirmación post-suspensión)', function () {",
+                  "pm.test('data.status es SUSPENDED (confirmaci\u00f3n post-suspensi\u00f3n)', function () {",
                   "    pm.expect(body.data.status).to.equal('SUSPENDED');",
                   "});"
                 ]
@@ -692,11 +692,11 @@
       ]
     },
     {
-      "name": "⚠️ Escenarios de Error",
-      "description": "Casos negativos y de validación para verificar el manejo de errores del sistema.",
+      "name": "\u26a0\ufe0f Escenarios de Error",
+      "description": "Casos negativos y de validaci\u00f3n para verificar el manejo de errores del sistema.",
       "item": [
         {
-          "name": "POST Create Tenant — Body vacío (400)",
+          "name": "POST Create Tenant \u2014 Body vac\u00edo (400)",
           "id": "req-create-tenant-empty",
           "request": {
             "method": "POST",
@@ -726,7 +726,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant con body vacío. Debe retornar 400 por validación de campos requeridos.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+            "description": "Intenta crear un tenant con body vac\u00edo. Debe retornar 400 por validaci\u00f3n de campos requeridos.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
           "event": [
             {
@@ -734,7 +734,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400 Bad Request por validación', function () {",
+                  "pm.test('Status 400 Bad Request por validaci\u00f3n', function () {",
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
@@ -757,7 +757,7 @@
           ],
           "response": [
             {
-              "name": "400 Bad Request — Campos requeridos faltantes",
+              "name": "400 Bad Request \u2014 Campos requeridos faltantes",
               "status": "Bad Request",
               "code": 400,
               "header": [
@@ -772,7 +772,7 @@
           ]
         },
         {
-          "name": "POST Create Tenant — Nombre duplicado (400)",
+          "name": "POST Create Tenant \u2014 Nombre duplicado (400)",
           "id": "req-create-tenant-duplicate-name",
           "request": {
             "method": "POST",
@@ -802,7 +802,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant cuyo nombre genera un slug ya existente.\nEjecutar después de 'POST Create Tenant' exitoso para reproducir el conflicto.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+            "description": "Intenta crear un tenant cuyo nombre genera un slug ya existente.\nEjecutar despu\u00e9s de 'POST Create Tenant' exitoso para reproducir el conflicto.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
           "event": [
             {
@@ -826,7 +826,7 @@
           "response": []
         },
         {
-          "name": "POST Create Tenant — Email inválido (400)",
+          "name": "POST Create Tenant \u2014 Email inv\u00e1lido (400)",
           "id": "req-create-tenant-invalid-email",
           "request": {
             "method": "POST",
@@ -856,7 +856,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant con un email mal formado. Debe fallar la validación de `@Email`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+            "description": "Intenta crear un tenant con un email mal formado. Debe fallar la validaci\u00f3n de `@Email`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
           },
           "event": [
             {
@@ -864,7 +864,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400 Bad Request por email inválido', function () {",
+                  "pm.test('Status 400 Bad Request por email inv\u00e1lido', function () {",
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
@@ -880,7 +880,7 @@
           "response": []
         },
         {
-          "name": "GET Tenant — Slug inexistente (404)",
+          "name": "GET Tenant \u2014 Slug inexistente (404)",
           "id": "req-get-tenant-not-found",
           "request": {
             "method": "GET",
@@ -924,7 +924,7 @@
           ],
           "response": [
             {
-              "name": "404 Not Found — Tenant no existe",
+              "name": "404 Not Found \u2014 Tenant no existe",
               "status": "Not Found",
               "code": 404,
               "header": [
@@ -939,7 +939,7 @@
           ]
         },
         {
-          "name": "PUT Suspend Tenant — Slug inexistente (404)",
+          "name": "PUT Suspend Tenant \u2014 Slug inexistente (404)",
           "id": "req-suspend-tenant-not-found",
           "request": {
             "method": "PUT",
@@ -981,7 +981,7 @@
           "response": []
         },
         {
-          "name": "PUT Suspend Tenant — Ya suspendido (403)",
+          "name": "PUT Suspend Tenant \u2014 Ya suspendido (403)",
           "id": "req-suspend-tenant-already-suspended",
           "request": {
             "method": "PUT",
@@ -1009,7 +1009,7 @@
                 "exec": [
                   "const slug = pm.environment.get('tenantSlug');",
                   "if (!slug) {",
-                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant y PUT Suspend Tenant.');",
+                  "    console.warn('\u26a0\ufe0f tenantSlug est\u00e1 vac\u00edo. Ejecuta primero POST Create Tenant y PUT Suspend Tenant.');",
                   "}"
                 ]
               }
@@ -1034,7 +1034,7 @@
           ],
           "response": [
             {
-              "name": "403 Forbidden — Tenant ya suspendido",
+              "name": "403 Forbidden \u2014 Tenant ya suspendido",
               "status": "Forbidden",
               "code": 403,
               "header": [
@@ -1094,7 +1094,7 @@
       ]
     },
     {
-      "name": "📦 Client Apps",
+      "name": "\ud83d\udce6 Client Apps",
       "description": "CRUD de aplicaciones cliente OAuth2 bajo un tenant. Requiere que el tenant exista (variable {{tenantSlug}}) y el header X-KEYGO-ADMIN.",
       "item": [
         {
@@ -1160,7 +1160,7 @@
                 "apps"
               ]
             },
-            "description": "Crea una nueva aplicación cliente OAuth2 bajo el tenant especificado. Devuelve el clientId y el clientSecret en texto plano (solo disponible en este momento)."
+            "description": "Crea una nueva aplicaci\u00f3n cliente OAuth2 bajo el tenant especificado. Devuelve el clientId y el clientSecret en texto plano (solo disponible en este momento)."
           },
           "response": []
         },
@@ -1261,7 +1261,7 @@
                 "{{clientId}}"
               ]
             },
-            "description": "Obtiene los datos de una aplicación cliente específica."
+            "description": "Obtiene los datos de una aplicaci\u00f3n cliente espec\u00edfica."
           },
           "response": []
         },
@@ -1304,7 +1304,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"My Updated App\",\n  \"description\": \"Descripción actualizada\",\n  \"redirectUris\": [\"https://myapp.example.com/callback\", \"https://myapp.example.com/callback2\"],\n  \"grants\": [\"AUTHORIZATION_CODE\", \"REFRESH_TOKEN\"],\n  \"scopes\": [\"openid\", \"profile\"]\n}"
+              "raw": "{\n  \"name\": \"My Updated App\",\n  \"description\": \"Descripci\u00f3n actualizada\",\n  \"redirectUris\": [\"https://myapp.example.com/callback\", \"https://myapp.example.com/callback2\"],\n  \"grants\": [\"AUTHORIZATION_CODE\", \"REFRESH_TOKEN\"],\n  \"scopes\": [\"openid\", \"profile\"]\n}"
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}",
@@ -1320,7 +1320,7 @@
                 "{{clientId}}"
               ]
             },
-            "description": "Actualiza los datos de una aplicación cliente existente (nombre, descripción, redirect URIs, grants, scopes)."
+            "description": "Actualiza los datos de una aplicaci\u00f3n cliente existente (nombre, descripci\u00f3n, redirect URIs, grants, scopes)."
           },
           "response": []
         },
@@ -1373,15 +1373,15 @@
                 "rotate-secret"
               ]
             },
-            "description": "Rota el client secret de una aplicación confidencial. El nuevo secret solo está disponible en esta respuesta."
+            "description": "Rota el client secret de una aplicaci\u00f3n confidencial. El nuevo secret solo est\u00e1 disponible en esta respuesta."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "👤 Users",
-      "description": "Gestión de identidades de usuario con alcance por tenant. Requiere X-KEYGO-ADMIN.",
+      "name": "\ud83d\udc64 Users",
+      "description": "Gesti\u00f3n de identidades de usuario con alcance por tenant. Requiere X-KEYGO-ADMIN.",
       "item": [
         {
           "name": "Crear usuario",
@@ -1392,7 +1392,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
-                  "pm.test('BaseResponse válido', () => {",
+                  "pm.test('BaseResponse v\u00e1lido', () => {",
                   "  const body = pm.response.json();",
                   "  pm.expect(body).to.have.property('success');",
                   "  pm.expect(body).to.have.property('data');",
@@ -1442,7 +1442,7 @@
                 "users"
               ]
             },
-            "description": "Crea un nuevo usuario dentro del tenant. Username y email deben ser únicos en el tenant."
+            "description": "Crea un nuevo usuario dentro del tenant. Username y email deben ser \u00fanicos en el tenant."
           },
           "response": []
         },
@@ -1518,7 +1518,7 @@
                 "{{userId}}"
               ]
             },
-            "description": "Obtiene los detalles de un usuario específico por su UUID."
+            "description": "Obtiene los detalles de un usuario espec\u00edfico por su UUID."
           },
           "response": []
         },
@@ -1571,7 +1571,7 @@
           "response": []
         },
         {
-          "name": "Resetear contraseña",
+          "name": "Resetear contrase\u00f1a",
           "event": [
             {
               "listen": "test",
@@ -1614,7 +1614,7 @@
                 "reset-password"
               ]
             },
-            "description": "Resetea administrativamente la contraseña de un usuario."
+            "description": "Resetea administrativamente la contrase\u00f1a de un usuario."
           },
           "response": []
         },
@@ -1665,14 +1665,14 @@
                 "validate-credentials"
               ]
             },
-            "description": "Valida las credenciales de un usuario (email o username + contraseña). Retorna los datos del usuario en caso de éxito."
+            "description": "Valida las credenciales de un usuario (email o username + contrase\u00f1a). Retorna los datos del usuario en caso de \u00e9xito."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "🔐 OAuth2 Authorization",
+      "name": "\ud83d\udd10 OAuth2 Authorization",
       "description": "Endpoints del flujo OAuth 2.0 Authorization Code + PKCE",
       "item": [
         {
@@ -1724,7 +1724,7 @@
                 }
               ]
             },
-            "description": "Inicia el flujo OAuth2 Authorization Code + PKCE.\n\nValida:\n- El tenant existe y está activo\n- La aplicación cliente existe y pertenece al tenant\n- La redirect_uri está registrada en la app\n- El grant type (authorization_code) es válido\n\n**Guarda el estado en sesión HTTP** para que POST /account/login pueda recuperarlo.\n\n**ResponseCode esperado:** `AUTHORIZATION_INITIATED`\n**HTTP Status:** `200 OK`\n\n**Query Parameters:**\n- `client_id`: ID de la aplicación cliente\n- `redirect_uri`: URI donde se redirigirá con el código\n- `scope`: Permisos solicitados (espacio-separados)\n- `code_challenge`: PKCE challenge (S256 = SHA256(code_verifier))\n- `code_challenge_method`: \"S256\" o \"plain\"\n- `state`: Token aleatorio para protección CSRF (opcional pero recomendado)\n\n**Respuesta:**\n```json\n{\n  \"data\": {\n    \"client_id\": \"...\",\n    \"client_name\": \"My App\",\n    \"redirect_uri\": \"http://localhost:3000/callback\"\n  },\n  \"success\": { \"code\": \"AUTHORIZATION_INITIATED\", ... },\n  \"date\": \"...\"\n}\n```"
+            "description": "Inicia el flujo OAuth2 Authorization Code + PKCE.\n\nValida:\n- El tenant existe y est\u00e1 activo\n- La aplicaci\u00f3n cliente existe y pertenece al tenant\n- La redirect_uri est\u00e1 registrada en la app\n- El grant type (authorization_code) es v\u00e1lido\n\n**Guarda el estado en sesi\u00f3n HTTP** para que POST /account/login pueda recuperarlo.\n\n**ResponseCode esperado:** `AUTHORIZATION_INITIATED`\n**HTTP Status:** `200 OK`\n\n**Query Parameters:**\n- `client_id`: ID de la aplicaci\u00f3n cliente\n- `redirect_uri`: URI donde se redirigir\u00e1 con el c\u00f3digo\n- `scope`: Permisos solicitados (espacio-separados)\n- `code_challenge`: PKCE challenge (S256 = SHA256(code_verifier))\n- `code_challenge_method`: \"S256\" o \"plain\"\n- `state`: Token aleatorio para protecci\u00f3n CSRF (opcional pero recomendado)\n\n**Respuesta:**\n```json\n{\n  \"data\": {\n    \"client_id\": \"...\",\n    \"client_name\": \"My App\",\n    \"redirect_uri\": \"http://localhost:3000/callback\"\n  },\n  \"success\": { \"code\": \"AUTHORIZATION_INITIATED\", ... },\n  \"date\": \"...\"\n}\n```"
           },
           "event": [
             {
@@ -1791,7 +1791,7 @@
                 "login"
               ]
             },
-            "description": "Autentica usuario y emite authorization code.\n\nRequisitos:\n- Debe ejecutarse DESPUÉS de GET Authorize (que guarda estado en sesión).\n- Usa la misma sesión HTTP (cookies).\n\n**ResponseCode esperado:** `LOGIN_SUCCESSFUL`\n**HTTP Status:** `200 OK`\n\n**Respuesta:**\n```json\n{\n  \"data\": {\n    \"message\": \"Login successful\",\n    \"code\": \"<authorization_code>\",\n    \"redirect_uri\": \"http://localhost:3000/callback\"\n  },\n  \"success\": { ... },\n  \"date\": \"...\"\n}\n```"
+            "description": "Autentica usuario y emite authorization code.\n\nRequisitos:\n- Debe ejecutarse DESPU\u00c9S de GET Authorize (que guarda estado en sesi\u00f3n).\n- Usa la misma sesi\u00f3n HTTP (cookies).\n\n**ResponseCode esperado:** `LOGIN_SUCCESSFUL`\n**HTTP Status:** `200 OK`\n\n**Respuesta:**\n```json\n{\n  \"data\": {\n    \"message\": \"Login successful\",\n    \"code\": \"<authorization_code>\",\n    \"redirect_uri\": \"http://localhost:3000/callback\"\n  },\n  \"success\": { ... },\n  \"date\": \"...\"\n}\n```"
           },
           "event": [
             {
@@ -1825,7 +1825,7 @@
                   "  pm.expect(body.success.code).to.equal('LOGIN_SUCCESSFUL');",
                   "});",
                   "",
-                  "// Guardar el código para usarlo en POST Token Exchange",
+                  "// Guardar el c\u00f3digo para usarlo en POST Token Exchange",
                   "pm.collectionVariables.set('authCode', body.data.code);"
                 ]
               }
@@ -1865,7 +1865,7 @@
                 "token"
               ]
             },
-            "description": "Canjea el authorization code por token.\n\nRequisitos:\n- Debe ejecutarse DESPUÉS de POST Account Login (que guarda `authCode` en variables de colección).\n- `code_verifier` es el valor original que generó el `code_challenge` en GET /authorize.\n\n**ResponseCode esperado:** `AUTHORIZATION_CODE_EXCHANGED`\n**HTTP Status:** `200 OK`\n\n**Respuesta (Fase 5 — stub):**\n```json\n{\n  \"data\": {\n    \"authorization_code_id\": \"<UUID del código consumido>\"\n  },\n  \"success\": { \"code\": \"AUTHORIZATION_CODE_EXCHANGED\", ... },\n  \"date\": \"...\"\n}\n```\n\n> ⚠️ En Fase 6 se agregarán `access_token`, `token_type`, `expires_in` y `refresh_token`."
+            "description": "Canjea el authorization code por token.\n\nRequisitos:\n- Debe ejecutarse DESPU\u00c9S de POST Account Login (que guarda `authCode` en variables de colecci\u00f3n).\n- `code_verifier` es el valor original que gener\u00f3 el `code_challenge` en GET /authorize.\n\n**ResponseCode esperado:** `AUTHORIZATION_CODE_EXCHANGED`\n**HTTP Status:** `200 OK`\n\n**Respuesta (Fase 5 \u2014 stub):**\n```json\n{\n  \"data\": {\n    \"authorization_code_id\": \"<UUID del c\u00f3digo consumido>\"\n  },\n  \"success\": { \"code\": \"AUTHORIZATION_CODE_EXCHANGED\", ... },\n  \"date\": \"...\"\n}\n```\n\n> \u26a0\ufe0f En Fase 6 se agregar\u00e1n `access_token`, `token_type`, `expires_in` y `refresh_token`."
           },
           "event": [
             {
@@ -1917,7 +1917,7 @@
       ]
     },
     {
-      "name": "🔑 OIDC & JWKS",
+      "name": "\ud83d\udd11 OIDC & JWKS",
       "item": [
         {
           "name": "GET OIDC Configuration",
@@ -1938,7 +1938,7 @@
                 "openid-configuration"
               ]
             },
-            "description": "Obtiene el OIDC Discovery Document para el tenant.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration"
+            "description": "Obtiene el OIDC Discovery Document para el tenant.\n\nRuta p\u00fablica \u2014 no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration"
           },
           "event": [
             {
@@ -1999,7 +1999,7 @@
                 "jwks.json"
               ]
             },
-            "description": "Obtiene el JWK Set con las claves públicas RSA para verificar tokens JWT.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json"
+            "description": "Obtiene el JWK Set con las claves p\u00fablicas RSA para verificar tokens JWT.\n\nRuta p\u00fablica \u2014 no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json"
           },
           "event": [
             {
@@ -2035,7 +2035,7 @@
           "response": []
         },
         {
-          "name": "Exchange Token — refresh_token grant",
+          "name": "Exchange Token \u2014 refresh_token grant",
           "request": {
             "method": "POST",
             "header": [
@@ -2081,7 +2081,7 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('BaseResponse éxito', () => {",
+                  "pm.test('BaseResponse \u00e9xito', () => {",
                   "  pm.expect(body).to.have.property('success');",
                   "  pm.expect(body.success.code).to.equal('REFRESH_TOKEN_ROTATED');",
                   "});",
@@ -2098,7 +2098,7 @@
           "response": []
         },
         {
-          "name": "Exchange Token — client_credentials grant",
+          "name": "Exchange Token \u2014 client_credentials grant",
           "request": {
             "method": "POST",
             "header": [
@@ -2134,7 +2134,7 @@
                 "token"
               ]
             },
-            "description": "Emite un access_token técnico para apps M2M (machine-to-machine) usando el grant client_credentials.\n\nRequisitos:\n- La app debe ser de tipo CONFIDENTIAL.\n- El grant `CLIENT_CREDENTIALS` debe estar habilitado en la app.\n- `client_secret` es obligatorio.\n\nNo emite `id_token` ni `refresh_token`.\n\n**ResponseCode esperado:** `CLIENT_CREDENTIALS_TOKEN_ISSUED`\n**HTTP Status:** `200 OK`"
+            "description": "Emite un access_token t\u00e9cnico para apps M2M (machine-to-machine) usando el grant client_credentials.\n\nRequisitos:\n- La app debe ser de tipo CONFIDENTIAL.\n- El grant `CLIENT_CREDENTIALS` debe estar habilitado en la app.\n- `client_secret` es obligatorio.\n\nNo emite `id_token` ni `refresh_token`.\n\n**ResponseCode esperado:** `CLIENT_CREDENTIALS_TOKEN_ISSUED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -2144,7 +2144,7 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('BaseResponse éxito', () => {",
+                  "pm.test('BaseResponse \u00e9xito', () => {",
                   "  pm.expect(body).to.have.property('success');",
                   "  pm.expect(body.success.code).to.equal('CLIENT_CREDENTIALS_TOKEN_ISSUED');",
                   "});",
@@ -2152,7 +2152,7 @@
                   "pm.test('NO tiene refresh_token (M2M no usa RT)', () => pm.expect(body.data.refresh_token).to.be.undefined);",
                   "pm.test('NO tiene id_token (M2M no tiene usuario)', () => pm.expect(body.data.id_token).to.be.undefined);",
                   "pm.test('token_type es Bearer', () => pm.expect(body.data.token_type).to.equal('Bearer'));",
-                  "pm.test('expires_in es número positivo', () => pm.expect(body.data.expires_in).to.be.above(0));",
+                  "pm.test('expires_in es n\u00famero positivo', () => pm.expect(body.data.expires_in).to.be.above(0));",
                   "if (body.data && body.data.access_token) {",
                   "  pm.environment.set('m2mAccessToken', body.data.access_token);",
                   "}"
@@ -2205,7 +2205,7 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('BaseResponse éxito', () => {",
+                  "pm.test('BaseResponse \u00e9xito', () => {",
                   "  pm.expect(body).to.have.property('success');",
                   "  pm.expect(body.success.code).to.equal('TOKEN_REVOKED');",
                   "});"
@@ -2238,7 +2238,7 @@
                 "userinfo"
               ]
             },
-            "description": "Obtiene claims de identidad del usuario autenticado (OIDC §5.3). Requiere Authorization: Bearer <access_token>."
+            "description": "Obtiene claims de identidad del usuario autenticado (OIDC \u00a75.3). Requiere Authorization: Bearer <access_token>."
           },
           "event": [
             {
@@ -2248,7 +2248,7 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('BaseResponse éxito', () => {",
+                  "pm.test('BaseResponse \u00e9xito', () => {",
                   "  pm.expect(body).to.have.property('success');",
                   "  pm.expect(body.success.code).to.equal('USER_INFO_RETRIEVED');",
                   "});",
@@ -2259,6 +2259,152 @@
             }
           ],
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "POST Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/register",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"secret1234\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"BaseResponse success\", () => {",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.success).to.exist;",
+                  "  pm.expect(r.data.status).to.eql(\"PENDING\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/verify-email",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "verify-email"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"code\": \"123456\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"BaseResponse success EMAIL_VERIFIED\", () => {",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.success).to.exist;",
+                  "  pm.expect(r.success.code).to.eql(\"EMAIL_VERIFIED\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/resend-verification",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "resend-verification"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"BaseResponse success EMAIL_VERIFICATION_RESENT\", () => {",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.success).to.exist;",
+                  "  pm.expect(r.success.code).to.eql(\"EMAIL_VERIFICATION_RESENT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         }
       ]
     }

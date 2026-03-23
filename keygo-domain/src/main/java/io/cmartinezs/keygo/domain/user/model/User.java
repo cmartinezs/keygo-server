@@ -62,6 +62,14 @@ public class User {
   }
 
   /**
+   * Returns true if the user account is pending email verification.
+   * <p>Retorna true si la cuenta de usuario está pendiente de verificación de email.
+   */
+  public boolean isPending() {
+    return UserStatus.PENDING.equals(this.status);
+  }
+
+  /**
    * Returns true if the user account is suspended.
    * <p>Retorna true si la cuenta de usuario está suspendida.
    */

@@ -45,13 +45,20 @@ import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
+import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
+import io.cmartinezs.keygo.app.user.usecase.RegisterTenantUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ResendVerificationEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
+import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.infra.email.SmtpEmailNotificationAdapter;
+import org.springframework.mail.javamail.JavaMailSender;
 import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
@@ -207,6 +214,50 @@ public class ApplicationConfig {
       UserRepositoryPort userRepositoryPort,
       PasswordHasherPort passwordHasherPort) {
     return new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public EmailNotificationPort emailNotificationPort(
+      JavaMailSender mailSender,
+      @Value("${keygo.mail.from:noreply@keygo.example.com}") String fromAddress,
+      @Value("${keygo.mail.app-name:KeyGo}") String appName) {
+    return new SmtpEmailNotificationAdapter(mailSender, fromAddress, appName);
+  }
+
+  @Bean
+  public RegisterTenantUserUseCase registerTenantUserUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort,
+      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      EmailNotificationPort emailNotificationPort) {
+    return new RegisterTenantUserUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
+        passwordHasherPort, emailVerificationRepositoryPort, emailNotificationPort);
+  }
+
+  @Bean
+  public VerifyEmailUseCase verifyEmailUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      EmailVerificationRepositoryPort emailVerificationRepositoryPort) {
+    return new VerifyEmailUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort,
+        userRepositoryPort, emailVerificationRepositoryPort);
+  }
+
+  @Bean
+  public ResendVerificationEmailUseCase resendVerificationEmailUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      EmailNotificationPort emailNotificationPort) {
+    return new ResendVerificationEmailUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
+        emailVerificationRepositoryPort, emailNotificationPort);
   }
 
   @Bean

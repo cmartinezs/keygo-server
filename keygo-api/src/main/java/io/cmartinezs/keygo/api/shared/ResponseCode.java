@@ -26,6 +26,13 @@ public enum ResponseCode {
 
   // User Operations
   USER_CREATED("USER_CREATED", "User created successfully"),
+  USER_REGISTERED("USER_REGISTERED", "User registered successfully. Verification email sent."),
+  EMAIL_VERIFICATION_SENT("EMAIL_VERIFICATION_SENT", "Email verification code sent successfully"),
+  EMAIL_VERIFIED("EMAIL_VERIFIED", "Email verified successfully. User is now active."),
+  EMAIL_VERIFICATION_EXPIRED("EMAIL_VERIFICATION_EXPIRED", "Email verification code has expired. Please request a new one."),
+  EMAIL_VERIFICATION_RESENT("EMAIL_VERIFICATION_RESENT", "Email verification code resent successfully"),
+  EMAIL_VERIFICATION_STILL_ACTIVE("EMAIL_VERIFICATION_STILL_ACTIVE", "Current verification code is still active. Please wait until it expires before requesting a new one."),
+  EMAIL_NOT_VERIFIED("EMAIL_NOT_VERIFIED", "User email has not been verified. Please check your inbox and verify your account."),
   USER_RETRIEVED("USER_RETRIEVED", "User retrieved successfully"),
   USER_LIST_RETRIEVED("USER_LIST_RETRIEVED", "User list retrieved successfully"),
   USER_UPDATED("USER_UPDATED", "User updated successfully"),

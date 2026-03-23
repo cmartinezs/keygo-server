@@ -2,7 +2,7 @@
 
 > **Última actualización:** 2026-03-23  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
-> **Próxima migración:** `V12__...`
+> **Próxima migración:** `V13__...`
 
 ---
 
@@ -205,6 +205,7 @@ Esto alinea los nombres de tabla con la convención del resto del schema.
 | `SigningKeyEntity` | `signing_keys` | V9 |
 | `SessionEntity` | `sessions` | V11 |
 | `RefreshTokenEntity` | `refresh_tokens` | V11 |
+| `EmailVerificationEntity` | `email_verifications` | V12 |
 
 ---
 
@@ -229,11 +230,43 @@ Esto alinea los nombres de tabla con la convención del resto del schema.
 
 ---
 
+### V12 — `V12__add_email_verifications.sql`
+
+**Propósito:** Soporte para verificación de email en el flujo de auto-registro de usuarios. Cada fila representa un intento de verificación; la fila más reciente por usuario es el código activo.
+
+**Tablas creadas:**
+
+| Tabla | Descripción |
+|---|---|
+| `email_verifications` | Código de verificación de email generado al registrar un usuario con estado PENDING |
+
+**Columnas clave `email_verifications`:**
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | `UUID PK` | Identificador único generado con `gen_random_uuid()` |
+| `tenant_user_id` | `UUID FK NOT NULL` | Referencia a `tenant_users(id)` con `ON DELETE CASCADE` |
+| `code` | `VARCHAR(10) NOT NULL` | Código numérico de 6 dígitos generado con `SecureRandom` |
+| `expires_at` | `TIMESTAMPTZ NOT NULL` | Expiración del código (30 minutos desde la creación) |
+| `used_at` | `TIMESTAMPTZ` | Nullable — se llena cuando el usuario lo usa exitosamente |
+| `created_at` | `TIMESTAMPTZ NOT NULL DEFAULT NOW()` | Timestamp de creación |
+
+**Índices:** `idx_email_verifications_tenant_user_id`, `idx_email_verifications_code`.
+
+**Reglas de negocio:**
+- Solo el código más reciente (último `created_at`) es el activo para un usuario
+- El código expira 30 minutos después de su creación
+- Un nuevo código solo puede solicitarse cuando el anterior ha expirado (`expires_at < NOW()`)
+- Una vez usado (`used_at IS NOT NULL`), el código no puede reutilizarse
+- Al verificar exitosamente, el campo `used_at` se actualiza y el usuario pasa de `PENDING` a `ACTIVE` en `tenant_users`
+
+---
+
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V12)
-touch keygo-supabase/src/main/resources/db/migration/V12__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V13)
+touch keygo-supabase/src/main/resources/db/migration/V13__descripcion_del_cambio.sql
 
 # 2. Escribir el SQL de manera idempotente cuando sea posible
 # 3. Levantar DB local

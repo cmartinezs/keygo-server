@@ -8,6 +8,7 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.User;
@@ -60,6 +61,10 @@ public class ValidateUserCredentialsUseCase {
     }
 
     User user = userOpt.orElseThrow(() -> new UserNotFoundException(credential));
+
+    if (user.isPending()) {
+      throw new UserPendingVerificationException(user.getEmail().value());
+    }
 
     if (user.isSuspended()) {
       throw new UserSuspendedException(user.getUsername().value());

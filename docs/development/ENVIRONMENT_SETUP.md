@@ -1,6 +1,6 @@
 # Configuración de entornos — KeyGo Server
 
-> **Última actualización:** 2026-03-22  
+> **Última actualización:** 2026-03-23  
 > Fusiona: `ENVIRONMENT_STRATEGY.md` y `ENV_QUICK_REFERENCE.md` de `docs/keygo-supabase/`
 
 ---
@@ -24,11 +24,32 @@ export SUPABASE_PASSWORD="postgres"
 export KEYGO_ADMIN_KEY="changeMe"
 ```
 
+### Con envío de email (registro + verificación)
+
+```bash
+# Opción A: MailHog local (sin autenticación)
+export SMTP_HOST=localhost
+export SMTP_PORT=1025
+# UI de MailHog → http://localhost:8025
+# docker run -p 1025:1025 -p 8025:8025 mailhog/mailhog
+
+# Opción B: Mailtrap (sandbox cloud)
+export SMTP_HOST=sandbox.smtp.mailtrap.io
+export SMTP_PORT=587
+export SMTP_USERNAME=tu-usuario-mailtrap
+export SMTP_PASSWORD=tu-password-mailtrap
+
+# Sender y nombre de la app
+export KEYGO_MAIL_FROM=noreply@keygo.local
+export KEYGO_MAIL_APP_NAME=KeyGo
+```
+
 ### Tabla completa de variables
 
 | Variable | Requerida | Default dev | Descripción |
 |---|---|---|---|
 | `KEYGO_ADMIN_KEY` | Si `bootstrap.enabled=true` | `changeMe` | Header `X-KEYGO-ADMIN` |
+| `KEYGO_ISSUER_BASE_URL` | No | `http://localhost:8080/keygo-server` | URL base del emisor OAuth2 (claim `iss` en JWT) |
 | `SPRING_PROFILES_ACTIVE` | No | `default` | Ej: `supabase,local` |
 | `PORT` | No | `8080` | Puerto HTTP del servidor |
 | `SUPABASE_URL` | Solo perfil `supabase` | — | JDBC PostgreSQL URL |
@@ -37,6 +58,12 @@ export KEYGO_ADMIN_KEY="changeMe"
 | `SUPABASE_DB_HOST` | No | `localhost` | Host de la BD |
 | `SUPABASE_DB_PORT` | No | `5432` | Puerto de la BD |
 | `SUPABASE_DB_NAME` | No | `keygo` | Nombre de la BD |
+| `SMTP_HOST` | Solo si se usa email | `localhost` | Host del servidor SMTP |
+| `SMTP_PORT` | No | `587` | Puerto SMTP (587=STARTTLS, 1025=MailHog) |
+| `SMTP_USERNAME` | Solo si SMTP requiere auth | `""` | Usuario SMTP |
+| `SMTP_PASSWORD` | Solo si SMTP requiere auth | `""` | Contraseña / app password SMTP |
+| `KEYGO_MAIL_FROM` | No | `noreply@keygo.example.com` | Dirección remitente de emails |
+| `KEYGO_MAIL_APP_NAME` | No | `KeyGo` | Nombre de la app en emails |
 
 > ⚠️ **Nunca commitear credenciales.** Usar siempre variables de entorno o archivos `.env` en `.gitignore`.
 
@@ -163,6 +190,26 @@ keygo:
     well-known-path-prefix: "/.well-known"
     swagger-ui-path-prefix: "/swagger-ui"
     api-docs-path-prefix: "/v3/api-docs"
+    userinfo-path-suffix: "/userinfo"
+    revocation-path-suffix: "/oauth2/revoke"
+    register-path-suffix: "/register"
+    verify-email-path-suffix: "/verify-email"
+    resend-verification-path-suffix: "/resend-verification"
+  info:
+    issuer-base-url: "${KEYGO_ISSUER_BASE_URL:http://localhost:8080/keygo-server}"
+  mail:
+    from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
+    app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
+
+spring:
+  mail:
+    host: "${SMTP_HOST:localhost}"
+    port: "${SMTP_PORT:587}"
+    username: "${SMTP_USERNAME:}"
+    password: "${SMTP_PASSWORD:}"
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
 ```
 
 ### Perfil `supabase` (`application-supabase.yml` en keygo-supabase)
@@ -190,10 +237,18 @@ En GitHub Actions (o equivalente), declarar como secrets:
 ```yaml
 env:
   KEYGO_ADMIN_KEY: ${{ secrets.KEYGO_ADMIN_KEY }}
+  KEYGO_ISSUER_BASE_URL: ${{ secrets.KEYGO_ISSUER_BASE_URL }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_USER: ${{ secrets.SUPABASE_USER }}
   SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
   SPRING_PROFILES_ACTIVE: "supabase"
+  # Email / SMTP (usar servicio transaccional en CI)
+  SMTP_HOST: ${{ secrets.SMTP_HOST }}
+  SMTP_PORT: "587"
+  SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+  SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+  KEYGO_MAIL_FROM: ${{ secrets.KEYGO_MAIL_FROM }}
+  KEYGO_MAIL_APP_NAME: "KeyGo"
 ```
 
 ---

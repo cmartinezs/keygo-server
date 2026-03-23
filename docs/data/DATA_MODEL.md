@@ -679,16 +679,41 @@ WHERE id = :id;
 
 ---
 
+## Tabla: `email_verifications` — V12
+
+Almacena códigos de verificación de email generados durante el auto-registro de usuarios. La fila más reciente por usuario (mayor `created_at`) es el código activo.
+
+| Columna | Tipo | FK | Nullable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID PK | — | NO | Identificador único (`gen_random_uuid()`) |
+| `tenant_user_id` | UUID | → `tenant_users.id` ON DELETE CASCADE | NO | Usuario al que pertenece el código |
+| `code` | VARCHAR(10) | — | NO | Código numérico de 6 dígitos (generado con `SecureRandom`) |
+| `expires_at` | TIMESTAMPTZ | — | NO | Expiración: 30 minutos desde `created_at` |
+| `used_at` | TIMESTAMPTZ | — | SÍ | Timestamp de uso exitoso; `NULL` = no utilizado aún |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (`DEFAULT NOW()`) |
+
+**Índices:** `idx_email_verifications_tenant_user_id(tenant_user_id)`, `idx_email_verifications_code(code)`
+
+**Reglas de negocio:**
+- Solo el registro con el mayor `created_at` es el código activo para un usuario.
+- Un nuevo código solo se puede solicitar cuando el anterior ha expirado (`expires_at < NOW()`).
+- Al verificar exitosamente: `used_at` se actualiza en `email_verifications` y `status` pasa a `ACTIVE` en `tenant_users`.
+- Un código ya usado (`used_at IS NOT NULL`) no puede reutilizarse aunque no haya expirado.
+- La fila se elimina en cascada si el `tenant_user` es eliminado.
+
+---
+
 ## Próximas migraciones
 
 | Migración | Descripción | Estado |
 |---|---|---|
 | `V10__rename_membership_tables_to_plural.sql` | Renombrar `app_role`, `membership`, `membership_role` → `app_roles`, `memberships`, `membership_roles` | ✅ Aplicada (2026-03-22) |
 | `V11__add_refresh_tokens_and_sessions.sql` | Tablas `sessions` + `refresh_tokens` para Fase 7 (refresh token flow, SHA-256 hash) | ✅ Aplicada (2026-03-22) |
-| `V12__...` | Próxima migración — sin definir aún | ⏳ Planificada |
+| `V12__add_email_verifications.sql` | Tabla `email_verifications` para flujo de auto-registro con verificación de email | ✅ Aplicada (2026-03-23) |
+| `V13__...` | Próxima migración — sin definir aún | ⏳ Planificada |
 
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V12`.
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V13`.
 
 ---
 
-**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V11
+**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V12

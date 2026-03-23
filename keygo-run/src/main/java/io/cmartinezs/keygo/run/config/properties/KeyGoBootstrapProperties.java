@@ -66,6 +66,18 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de revocación que es público (RFC 7009). */
   private String revocationPathSuffix;
 
+  /* Self-registration path suffix that is public.
+   * Sufijo de ruta de auto-registro que es público. */
+  private String registerPathSuffix;
+
+  /* Email verification path suffix that is public.
+   * Sufijo de ruta de verificación de email que es público. */
+  private String verifyEmailPathSuffix;
+
+  /* Resend verification path suffix that is public.
+   * Sufijo de ruta de reenvío de verificación que es público. */
+  private String resendVerificationPathSuffix;
+
   /**
    * Validates that adminKey is not blank when enabled is true.
    * <p>Valida que adminKey no esté vacía cuando enabled es true.

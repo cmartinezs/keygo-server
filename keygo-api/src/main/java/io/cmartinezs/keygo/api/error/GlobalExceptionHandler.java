@@ -20,8 +20,12 @@ import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundExcepti
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
+import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
+import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -410,6 +414,74 @@ public class GlobalExceptionHandler {
         .build();
 
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+  }
+
+  /**
+   * Handles UserPendingVerificationException - returns 403 Forbidden.
+   * The user exists but has not verified their email yet.
+   * Maneja UserPendingVerificationException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(UserPendingVerificationException.class)
+  public ResponseEntity<BaseResponse<Void>> handleUserPendingVerificationException(
+      UserPendingVerificationException ex) {
+    log.warn("Login attempt by unverified user: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.EMAIL_NOT_VERIFIED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+  }
+
+  /**
+   * Handles EmailVerificationExpiredException - returns 422 Unprocessable Entity.
+   * The verification code has expired; user must request a new one.
+   * Maneja EmailVerificationExpiredException - retorna 422.
+   */
+  @ExceptionHandler(EmailVerificationExpiredException.class)
+  public ResponseEntity<BaseResponse<Void>> handleEmailVerificationExpiredException(
+      EmailVerificationExpiredException ex) {
+    log.warn("Expired verification code used: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.EMAIL_VERIFICATION_EXPIRED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(response);
+  }
+
+  /**
+   * Handles EmailVerificationInvalidException - returns 400 Bad Request.
+   * The code is wrong or already used.
+   * Maneja EmailVerificationInvalidException - retorna 400.
+   */
+  @ExceptionHandler(EmailVerificationInvalidException.class)
+  public ResponseEntity<BaseResponse<Void>> handleEmailVerificationInvalidException(
+      EmailVerificationInvalidException ex) {
+    log.warn("Invalid verification code: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles EmailVerificationStillActiveException - returns 409 Conflict.
+   * The current verification code is still active; resend is not allowed yet.
+   * Maneja EmailVerificationStillActiveException - retorna 409.
+   */
+  @ExceptionHandler(EmailVerificationStillActiveException.class)
+  public ResponseEntity<BaseResponse<Void>> handleEmailVerificationStillActiveException(
+      EmailVerificationStillActiveException ex) {
+    log.warn("Resend blocked — code still active: {}", ex.getMessage());
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .failure(ResponseHelper.message(ResponseCode.EMAIL_VERIFICATION_STILL_ACTIVE))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
   }
 
   /**

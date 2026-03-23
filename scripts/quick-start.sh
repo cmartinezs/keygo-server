@@ -33,6 +33,19 @@ export SUPABASE_PASSWORD=postgres
 
 echo "  ✅ SUPABASE_URL=$SUPABASE_URL"
 echo "  ✅ SUPABASE_USER=$SUPABASE_USER"
+
+# Optional: SMTP for email verification (registration flow)
+# Opcional: SMTP para verificación de email (flujo de registro)
+# Default uses MailHog on port 1025 (no auth needed)
+# Default usa MailHog en puerto 1025 (sin autenticación)
+export SMTP_HOST="${SMTP_HOST:-localhost}"
+export SMTP_PORT="${SMTP_PORT:-1025}"
+export SMTP_USERNAME="${SMTP_USERNAME:-}"
+export SMTP_PASSWORD="${SMTP_PASSWORD:-}"
+export KEYGO_MAIL_FROM="${KEYGO_MAIL_FROM:-noreply@keygo.local}"
+export KEYGO_MAIL_APP_NAME="${KEYGO_MAIL_APP_NAME:-KeyGo}"
+
+echo "  ✅ SMTP_HOST=$SMTP_HOST:$SMTP_PORT (override with env vars)"
 echo ""
 
 # Step 3: Run migrations
@@ -74,6 +87,11 @@ echo "🌐 PgAdmin available at:"
 echo "   http://localhost:5050"
 echo "   Email: admin@keygo.local"
 echo "   Password: admin"
+echo ""
+echo "📧 Email testing (MailHog — optional):"
+echo "   docker run -p 1025:1025 -p 8025:8025 mailhog/mailhog"
+echo "   UI → http://localhost:8025"
+echo "   SMTP_HOST=localhost SMTP_PORT=1025 (already set by this script)"
 echo ""
 echo "▶️  To start the application, run:"
 echo "   ./mvnw spring-boot:run -pl keygo-run"
