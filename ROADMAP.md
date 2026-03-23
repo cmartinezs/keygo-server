@@ -8,13 +8,13 @@
  Dimensión  Estado 
 ------
  Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` 
- Autenticación  **Fase 6 completada**: JWT RS256 firmados, JWKS endpoint, OIDC discovery 
- Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, **SigningKey** 
- API pública  **17 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), OAuth2 (3), **OIDC (2)** 
+ Autenticación  **Fase 7 completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación y userinfo 
+ Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, **Session, RefreshToken** 
+ API pública  **20 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Memberships & Roles (4), OAuth2 (4), OIDC (2), **UserInfo (1)** 
  CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
- Tests  **299 tests unitarios** — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — **25 requests en 7 carpetas** con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 6 ✅ Completada** — próxima: Fase 7 (Refresh Token) |
+ Tests  **305+ tests unitarios** — sin integración ni e2e 
+ Postman  ✅ Colecciones en `postman/` — **28 requests** con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 7 ✅ Completada** — próxima: Fase 8 (Refresh token expiración configurable, Client Credentials) |
 
 ---
 
@@ -35,8 +35,9 @@
 | T-025 | Agregar tests de integración con Testcontainers para el flujo completo de Tenant: crear → consultar → suspender vía `TenantRepositoryAdapter` | `keygo-supabase` | El adaptador solo tiene tests unitarios con Mockito; la persistencia real no se valida aún |
 | T-033 | Agregar endpoints `PUT /api/v1/tenants/{slug}/users/{userId}/suspend` y `PUT /api/v1/tenants/{slug}/users/{userId}/activate` para gestión del estado de usuarios por tenant | `keygo-api`, `keygo-app`, `keygo-supabase` | La entidad `TenantUserEntity` ya soporta estados; faltan los endpoints REST y use cases correspondientes |
 | T-026 | Mantener colecciones Postman actualizadas: agregar nuevas requests al crear endpoints; crear un environment adicional `KeyGo-Server-Docker` para pruebas contra imagen Docker | `postman/` | Las colecciones actuales cubren los 7 endpoints existentes; cada nueva feature debe extenderlas |
-| T-027 | Agregar endpoint `POST /api/v1/tenants/{slug}/oauth2/token` con grant type `refresh_token` — Fase 7 del plan de implementación | `keygo-api`, `keygo-app`, `keygo-supabase` | El flujo Authorization Code emite tokens pero no tiene mecanismo de renovación |
 | T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) — eliminar `private_material` de la DB en producción | `keygo-infra`, `keygo-supabase` | La clave privada en DB es práctica aceptable solo en dev/staging; producción requiere HSM o KMS |
+| T-034 | Agregar tests de regresión en `BootstrapAdminKeyFilterTest` para los nuevos sufijos `/userinfo` y `/oauth2/revoke` como rutas públicas — verificar que no requieran `X-KEYGO-ADMIN` y que el filtro siga protegiendo el resto de `/api/` | `keygo-run` | La Fase 7 agregó dos nuevas propiedades (`userInfoPathSuffix`, `revocationPathSuffix`) al filtro sin ampliar los tests existentes |
+| T-035 | Implementar detección de refresh token replay: si se intenta rotar un token en estado `USED`, revocar automáticamente todos los tokens activos de la misma sesión y terminar la sesión | `keygo-app`, `keygo-supabase` | Patrón de seguridad estándar (RFC 6749 §10.4) — detecta posible robo de token y cierra toda la sesión comprometida |
 | T-029 | Agregar columna `status VARCHAR(20)` a la tabla `app_roles` con valores `ACTIVE\|DISABLED` y migración `V11__add_app_role_status.sql`; actualizar `AppRoleEntity` y use cases para filtrar roles deshabilitados | `keygo-supabase`, `keygo-app`, `keygo-api` | La documentación original preveía este campo; permite deshabilitar un rol sin eliminarlo, útil para gestión de permisos granular en apps |
 | T-030 | Agregar verificación de referencias Markdown rotas tras la reorganización de `docs/ai/` — script o step en CI que detecte links rotos en los docs de la carpeta `docs/ai/` y en los archivos raíz que apuntan a ella | `docs/ai/`, CI | La reorganización eliminó 5 archivos de la raíz; links rotos a rutas antiguas no se detectarían sin un check explícito |
 
@@ -57,6 +58,8 @@
 | T-014 | Configurar perfiles de entorno separados: `dev`, `test`, `prod`; centralizar configuraciones sensibles en `keygo-run` | `keygo-run` | Actualmente sólo `supabase` y `local`; sin separación clara de entornos |
 | T-015 | Agregar comprobación de dependencias con `OWASP Dependency-Check` o similar en el pipeline CI | CI | Detectar CVEs en dependencias antes de merge |
 | T-031 | Automatizar verificación de links Markdown rotos en CI usando `markdown-link-check` o `lychee`; configurar como step en `.github/workflows/ci.yml` que falle si hay referencias a archivos que ya no existen | CI / `docs/` | Complemento de T-030 — aplica a todo el repositorio, no solo a `docs/ai/`; previene regresiones de documentación en cualquier PR |
+| T-036 | Hacer configurable el TTL de refresh tokens y sesiones vía `application.yml` (actualmente hardcodeado a `Duration.ofDays(30)` en `AuthorizationController`) — agregar `keygo.auth.refresh-token-ttl=30d` y `keygo.auth.session-ttl=30d` | `keygo-run`, `keygo-api` | Permite ajustar el TTL por entorno (dev más corto, prod ajustable) sin recompilar; sigue el patrón de `KeyGoBootstrapProperties` |
+| T-037 | Agregar endpoints de gestión de sesiones: `GET /api/v1/tenants/{slug}/users/{userId}/sessions` (listar sesiones activas) y `DELETE /api/v1/tenants/{slug}/users/{userId}/sessions/{sessionId}` (terminar sesión) | `keygo-api`, `keygo-app`, `keygo-supabase` | Permite al administrador y al propio usuario ver y cerrar sesiones activas — funcionalidad estándar en IAM modernos |
 
 ---
 
@@ -73,6 +76,8 @@
 | T-021 | Diseñar estrategia de multi-region / alta disponibilidad para el servicio de autenticación | Infra | Crítico para SLAs de producción en IAM |
 | T-022 | Implementar caching distribuido (Redis) para tokens, JWKS y sesiones activas | `keygo-infra` | Reducir latencia y carga a DB en validación de tokens |
 | T-032 | Evaluar generador de site estático (MkDocs con Material theme / Docusaurus) para consolidar `docs/` + archivos raíz en un portal navegable unificado con búsqueda full-text y versionado | `docs/` | El repositorio ya tiene ~30 archivos Markdown en múltiples carpetas; un site estático facilita onboarding y búsqueda entre categorías |
+| T-038 | Implementar lista negra de JTI (JWT ID) de access tokens revocados con TTL en Redis — permite invalidar access tokens antes de su expiración natural sin mantener estado en DB SQL | `keygo-infra`, `keygo-app` | El modelo actual requiere esperar expiración del access token tras revocar un refresh token; con lista negra de JTI + Redis la revocación es inmediata incluso para access tokens ya emitidos |
+| T-039 | Implementar grant type `client_credentials` (Fase 8) — emite access token técnico sin usuario para comunicación M2M; agrega `POST /oauth2/token` con `grant_type=client_credentials`, valida `client_id`+`client_secret`, restringe a apps de tipo `CONFIDENTIAL` | `keygo-api`, `keygo-app`, `keygo-supabase` | El flujo Authorization Code está orientado a usuarios; el grant M2M es necesario para integración servicio-a-servicio |
 
 ---
 
@@ -120,8 +125,8 @@
 | F-024 | E5-H4: `AppRole` y `MembershipRole` | P1 | Roles locales por app; roles en tokens |
 | F-025 | E7-H1: `client_credentials` grant | P1 | M2M sin usuario; access token técnico |
 | F-026 | E8-H3: `openid-configuration` | P1 | Metadata OIDC por tenant |
-| F-027 | E8-H4: Refresh tokens con rotación | P1 | Hash persistido, renovación segura, revocación |
-| F-028 | E9-H1: Endpoint `/userinfo` | P1 | Devolver claims básicas del usuario autenticado |
+| ~~F-027~~ | ~~E8-H4: Refresh tokens con rotación~~ | ~~P1~~ | ✅ Completada en Fase 7 — ver historial |
+| ~~F-028~~ | ~~E9-H1: Endpoint `/userinfo`~~ | ~~P1~~ | ✅ Completada en Fase 7 — ver historial |
 | F-029 | E10: Tenant Admin API | P1 | CRUD de apps, usuarios, memberships, roles |
 | F-030 | E12-H1/H2/H3: Self-service del usuario | P1 | Forgot password, reset, change password |
 | F-031 | E14-H3: Rate limiting | P1 | Proteger login y token endpoint contra fuerza bruta |
@@ -162,6 +167,9 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-027 | **Fase 7: Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3** — `POST /oauth2/token` con `grant_type=refresh_token`, `POST /oauth2/revoke` (público, idempotente), `GET /userinfo` (Bearer token); sesiones persistidas; refresh token hash SHA-256 determinista | 2026-03-22 | `V11__add_refresh_tokens_and_sessions.sql`; `SessionEntity`, `RefreshTokenEntity`; `RotateRefreshTokenUseCase`, `RevokeTokenUseCase`, `GetUserInfoUseCase`, `OpenSessionUseCase`; `RevocationController`, `UserInfoController`; `TokenRequest` multi-grant; 3 nuevas requests Postman |
+| F-027 | **E8-H4: Refresh tokens con rotación** — Hash persistido (SHA-256), renovación segura, revocación RFC 7009 | 2026-03-22 | `refresh_tokens` table (V11); `RevokeTokenUseCase`; `RotateRefreshTokenUseCase` |
+| F-028 | **E9-H1: Endpoint `/userinfo`** — Claims OIDC del usuario autenticado vía Bearer token | 2026-03-22 | `UserInfoController`; `GetUserInfoUseCase`; `RsaJwtTokenVerifier` |
 | — | **Re-auditoría de inconsistencias: corrección de tablas en singular → plural** — `V10__rename_membership_tables_to_plural.sql`: renombra `app_role→app_roles`, `membership→memberships`, `membership_role→membership_roles`; actualiza índices, constraints, entidades JPA (`AppRoleEntity`, `MembershipEntity`), documentación completa (`DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `INCONSISTENCIAS.datos.md`, `AGENTS.md`) | 2026-03-22 | `V10__rename_membership_tables_to_plural.sql`; `AppRoleEntity.java`; `MembershipEntity.java` |
 | T-001 | Corregir bug `BootstrapAdminKeyFilter`: `getRequestURI()` → `getServletPath()` para que el filtro funcione con `context-path` activo; +2 tests de regresión con context-path simulado | 2026-03-21 | `keygo-run/.../filter/BootstrapAdminKeyFilter.java`; `BootstrapAdminKeyFilterTest.java` — 15 tests, 0 fallos |
 | T-024 | Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/` — los endpoints de Fase 5/6 resuelven tenant desde el path, complementando el header `X-Tenant-Slug` | 2026-03-22 | `TenantContextHolder`; `AuthorizationController`; `AccountController`; `TokenController` — todos los endpoints OAuth2/OIDC ya usan `{slug}` como path variable |

@@ -58,6 +58,14 @@ public class KeyGoBootstrapProperties {
    * Prefijo de ruta .well-known que es público (discovery OIDC, JWKS). */
   private String wellKnownPathPrefix;
 
+  /* UserInfo path suffix that is public (validated via Bearer token).
+   * Sufijo de ruta de userinfo que es público (validado vía Bearer token). */
+  private String userInfoPathSuffix;
+
+  /* Token revocation path suffix that is public (RFC 7009).
+   * Sufijo de ruta de revocación que es público (RFC 7009). */
+  private String revocationPathSuffix;
+
   /**
    * Validates that adminKey is not blank when enabled is true.
    * <p>Valida que adminKey no esté vacía cuando enabled es true.

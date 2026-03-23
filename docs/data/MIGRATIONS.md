@@ -2,7 +2,7 @@
 
 > **Última actualización:** 2026-03-22  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
-> **Próxima migración:** `V11__...`
+> **Próxima migración:** `V12__...`
 
 ---
 
@@ -203,14 +203,37 @@ Esto alinea los nombres de tabla con la convención del resto del schema.
 | `MembershipEntity` | `memberships` | V7 + V10 |
 | `AuthorizationCodeEntity` | `authorization_codes` | V8 |
 | `SigningKeyEntity` | `signing_keys` | V9 |
+| `SessionEntity` | `sessions` | V11 |
+| `RefreshTokenEntity` | `refresh_tokens` | V11 |
+
+---
+
+### V11 — `V11__add_refresh_tokens_and_sessions.sql`
+
+**Propósito:** Soporte para Refresh Tokens (rotación SHA-256) y Sesiones de usuario (Fase 7).
+
+**Tablas creadas:**
+
+| Tabla | Descripción |
+|---|---|
+| `sessions` | Sesión OAuth2 de usuario; agrupa todos los refresh tokens emitidos en ese contexto |
+| `refresh_tokens` | Hash SHA-256 del refresh token plano; nunca almacena el token en claro |
+
+**Columnas clave `sessions`:** `id UUID PK`, `tenant_id FK`, `client_app_id FK`, `user_id FK`, `status VARCHAR(20) CHECK(ACTIVE|TERMINATED|EXPIRED)`, `expires_at`, `last_accessed_at`, `user_agent TEXT`, `ip_address VARCHAR(64)`, `created_at`.
+
+**Columnas clave `refresh_tokens`:** `id UUID PK`, `token_hash VARCHAR(64) UNIQUE` (SHA-256 hex), `session_id FK`, `tenant_id FK`, `client_app_id FK`, `user_id FK`, `requested_scopes TEXT`, `status VARCHAR(20) CHECK(ACTIVE|USED|EXPIRED|REVOKED)`, `expires_at`, `used_at`, `replaced_by_id FK self-ref`, `created_at`.
+
+**Índices:** `idx_sessions_user_tenant`, `idx_sessions_status`, `idx_refresh_tokens_hash` (para búsqueda por token), `idx_refresh_tokens_session`, `idx_refresh_tokens_user_tenant`, `idx_refresh_tokens_status`.
+
+**Decisión de diseño:** El campo `token_hash` usa SHA-256 (determinista, 64 hex chars) en lugar de BCrypt para permitir búsqueda directa en DB. El token plano se genera con `SecureRandom` (256 bits) y se entrega al cliente una sola vez.
 
 ---
 
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V11)
-touch keygo-supabase/src/main/resources/db/migration/V11__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V12)
+touch keygo-supabase/src/main/resources/db/migration/V12__descripcion_del_cambio.sql
 
 # 2. Escribir el SQL de manera idempotente cuando sea posible
 # 3. Levantar DB local

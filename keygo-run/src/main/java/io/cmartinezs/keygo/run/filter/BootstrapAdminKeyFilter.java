@@ -101,7 +101,11 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || (bootstrapProperties.getApiDocsPathPrefix() != null
             && path.startsWith(bootstrapProperties.getApiDocsPathPrefix()))
         || (bootstrapProperties.getWellKnownPathPrefix() != null
-            && path.contains(bootstrapProperties.getWellKnownPathPrefix()));
+            && path.contains(bootstrapProperties.getWellKnownPathPrefix()))
+        || (bootstrapProperties.getUserInfoPathSuffix() != null
+            && path.endsWith(bootstrapProperties.getUserInfoPathSuffix()))
+        || (bootstrapProperties.getRevocationPathSuffix() != null
+            && path.endsWith(bootstrapProperties.getRevocationPathSuffix()));
   }
 
   /**

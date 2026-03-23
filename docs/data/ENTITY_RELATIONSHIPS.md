@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V10
+> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V11
 
 ---
 
@@ -206,7 +206,7 @@ classDiagram
 
 > ⚠️ `authorization_codes.status` usa valores en **minúsculas**: `pending`, `used`, `expired`, `revoked`.  
 > ⚠️ El campo es `requested_scopes` (no `scope_set`).  
-> ⚠️ `RefreshToken` y `Session` son tablas **planificadas** (Fase 7+) — no existen aún en la DB.  
+> ✅ `RefreshToken` y `Session` existen en DB desde **V11** (`sessions` + `refresh_tokens`).  
 > `SigningKey.status`: `ACTIVE`, `RETIRED`, `REVOKED` (UPPERCASE).
 
 **Flujos:**
@@ -568,6 +568,12 @@ CREATE INDEX idx_authorization_codes_user_id ON authorization_codes(user_id);   
 CREATE INDEX idx_authorization_codes_status ON authorization_codes(status);               -- V8
 CREATE INDEX idx_authorization_codes_expires_at ON authorization_codes(expires_at);       -- V8
 CREATE INDEX idx_signing_keys_status ON signing_keys(status);                   -- V9
+CREATE INDEX idx_sessions_user_tenant ON sessions(user_id, tenant_id);          -- V11
+CREATE INDEX idx_sessions_status ON sessions(status);                           -- V11
+CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);             -- V11
+CREATE INDEX idx_refresh_tokens_session ON refresh_tokens(session_id);          -- V11
+CREATE INDEX idx_refresh_tokens_user_tenant ON refresh_tokens(user_id, tenant_id); -- V11
+CREATE INDEX idx_refresh_tokens_status ON refresh_tokens(status);               -- V11
 
 -- 💡 Índices adicionales sugeridos para optimización
 CREATE INDEX idx_client_apps_tenant_status ON client_apps(tenant_id, status);
@@ -577,7 +583,44 @@ CREATE INDEX idx_memberships_user_app ON memberships(user_id, client_app_id, sta
 CREATE INDEX idx_authorization_codes_expires_status ON authorization_codes(expires_at, status);
 ```
 
+### Contexto 6: Sesiones y Refresh Tokens (V11)
+
+```mermaid
+classDiagram
+    class Session {
+        UUID id
+        UUID tenantId
+        UUID clientAppId
+        UUID userId
+        String status
+        Instant expiresAt
+        Instant lastAccessedAt
+        String userAgent
+        String ipAddress
+        Instant createdAt
+    }
+    class RefreshToken {
+        UUID id
+        String tokenHash
+        UUID sessionId
+        UUID tenantId
+        UUID clientAppId
+        UUID userId
+        String requestedScopes
+        String status
+        Instant expiresAt
+        Instant usedAt
+        UUID replacedById
+        Instant createdAt
+    }
+    Session "1" --> "0..*" RefreshToken : contiene
+    RefreshToken "0..1" --> "0..1" RefreshToken : replacedBy (self-ref)
+```
+
+**Estados de Session:** `ACTIVE` → `TERMINATED` | `EXPIRED`  
+**Estados de RefreshToken:** `ACTIVE` → `USED` (al rotar) | `REVOKED` (RFC 7009) | `EXPIRED`
+
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Estado:** ✅ Completo
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V11)
 

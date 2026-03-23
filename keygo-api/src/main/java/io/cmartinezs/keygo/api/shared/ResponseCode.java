@@ -60,6 +60,9 @@ public enum ResponseCode {
   AUTHORIZATION_CODE_EXCHANGED("AUTHORIZATION_CODE_EXCHANGED", "Authorization code exchanged successfully"),
   LOGIN_SUCCESSFUL("LOGIN_SUCCESSFUL", "Login successful"),
   TOKEN_ISSUED("TOKEN_ISSUED", "Tokens issued successfully"),
+  REFRESH_TOKEN_ROTATED("REFRESH_TOKEN_ROTATED", "Refresh token rotated successfully"),
+  TOKEN_REVOKED("TOKEN_REVOKED", "Token revoked successfully"),
+  USER_INFO_RETRIEVED("USER_INFO_RETRIEVED", "User information retrieved successfully"),
   JWKS_RETRIEVED("JWKS_RETRIEVED", "JWK Set retrieved successfully"),
   OIDC_CONFIGURATION_RETRIEVED("OIDC_CONFIGURATION_RETRIEVED", "OpenID Configuration retrieved successfully"),
 

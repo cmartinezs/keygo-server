@@ -140,6 +140,55 @@ Bajo orden explícita: `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `MIGRATIONS.m
 - **`keygo-api`**: `TenantClientAppController` (5 endpoints + rotate-secret), DTOs, 5 nuevos `ResponseCode`.
 - Postman: carpeta `🔐 Client Apps` con 6 requests. **11 requests totales**.
 
+### [2026-03-22] Fase 7 — Refresh token, Session, Revocación RFC 7009, UserInfo OIDC §5.3
+
+**Dominio (`keygo-domain`)**:
+- Nuevas excepciones: `InvalidRefreshTokenException`, `RefreshTokenExpiredException`
+- Nuevos modelos: `Session`, `SessionId`, `SessionStatus`, `RefreshToken`, `RefreshTokenId`, `RefreshTokenStatus`
+
+**Aplicación (`keygo-app`)**:
+- Nuevos puertos: `SessionRepositoryPort`, `RefreshTokenRepositoryPort`, `AccessTokenVerifierPort`
+- Nuevos comandos: `OpenSessionCommand`, `RotateRefreshTokenCommand`, `RevokeTokenCommand`, `GetUserInfoCommand`
+- Nuevos resultados: `OpenSessionResult`, `RotateRefreshTokenResult`, `UserInfoResult`
+- Nuevos use cases: `OpenSessionUseCase`, `TerminateSessionUseCase`, `RotateRefreshTokenUseCase`, `RevokeTokenUseCase`, `GetUserInfoUseCase`
+
+**Infraestructura (`keygo-infra`)**:
+- Nuevo: `RsaJwtTokenVerifier` implementa `AccessTokenVerifierPort` con verificación de firma RSA + expiración
+
+**Persistencia (`keygo-supabase`)**:
+- Migración `V11__add_refresh_tokens_and_sessions.sql` (tablas `sessions` + `refresh_tokens` con índices)
+- Nuevas entidades: `SessionEntity`, `RefreshTokenEntity`
+- Nuevos repositorios JPA: `SessionJpaRepository`, `RefreshTokenJpaRepository`
+- Nuevos mappers: `SessionPersistenceMapper`, `RefreshTokenPersistenceMapper`
+- Nuevos adapters: `SessionRepositoryAdapter`, `RefreshTokenRepositoryAdapter`
+
+**API (`keygo-api`)**:
+- `TokenRequest`: ahora soporta `grant_type` + campos opcionales para `refresh_token` grant
+- `TokenData`: agrega campo `refresh_token` en la respuesta
+- Nuevos `ResponseCode`: `REFRESH_TOKEN_ROTATED`, `TOKEN_REVOKED`, `USER_INFO_RETRIEVED`
+- Nuevo request: `RevokeTokenRequest`
+- `AuthorizationController`: agrega branch `refresh_token` en `POST /oauth2/token` + emite RT tras `authorization_code` grant
+- Nuevo controller: `RevocationController` → `POST /oauth2/revoke`
+- Nuevo controller: `UserInfoController` → `GET /userinfo`
+- `GlobalExceptionHandler`: agrega handlers para `InvalidRefreshTokenException` y `RefreshTokenExpiredException`
+
+**Wiring (`keygo-run`)**:
+- `ApplicationConfig`: 6 nuevos beans (AccessTokenVerifierPort, OpenSessionUseCase, TerminateSessionUseCase, RotateRefreshTokenUseCase, RevokeTokenUseCase, GetUserInfoUseCase)
+- `KeyGoBootstrapProperties`: 2 nuevas propiedades de ruta pública (`userInfoPathSuffix`, `revocationPathSuffix`)
+- `BootstrapAdminKeyFilter`: `/userinfo` y `/oauth2/revoke` marcadas como rutas públicas vía sufijos configurables
+- `application.yml`: agrega `userinfo-path-suffix` y `revocation-path-suffix`
+
+**Tests**:
+- `SessionTest`, `RefreshTokenTest` (domain)
+- `OpenSessionUseCaseTest`, `RotateRefreshTokenUseCaseTest`, `RevokeTokenUseCaseTest` (app)
+
+**Postman**: 3 nuevos requests: `Exchange Token — refresh_token grant`, `Revoke Token`, `UserInfo`
+
+**URLs nuevas**:
+- `POST /api/v1/tenants/{slug}/oauth2/token` con `grant_type=refresh_token`
+- `POST /api/v1/tenants/{slug}/oauth2/revoke` (público, RFC 7009)
+- `GET  /api/v1/tenants/{slug}/userinfo` (público, Bearer token)
+
 ### [2026-03-21] Fase 1 — Multitenancy completada
 - **`keygo-domain`**: `Tenant`, `TenantId`, `TenantSlug`, `TenantStatus`; excepción `TenantNotFoundException`.
 - **`keygo-supabase`**: `TenantEntity`, `TenantJpaRepository`, `V4__add_tenants.sql`.

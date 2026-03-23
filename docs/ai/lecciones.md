@@ -26,6 +26,9 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-22 | [Fase 7: SHA-256 como hash determinista para refresh tokens](#2026-03-22-fase-7-sha-256-como-hash-determinista-para-refresh-tokens) | Security / OAuth2 |
+| 2026-03-22 | [Fase 7: Mockito UnnecessaryStubbing en tests de use cases complejos](#2026-03-22-fase-7-mockito-unnecessarystubbing-en-tests-de-use-cases-complejos) | Testing |
+| 2026-03-22 | [Fase 7: BootstrapAdminKeyFilter — rutas userinfo y revoke como públicas](#2026-03-22-fase-7-bootstrapadminkeyfilter--rutas-userinfo-y-revoke-como-públicas) | Security / Filter |
 | 2026-03-22 | [Fase 6: jacoco.skip en módulos que maduran de stub a activo](#2026-03-22-fase-6-eliminar-jacocoskip-cuando-un-módulo-stub-se-activa) | Maven / CI |
 | 2026-03-22 | [Fase 6: tests de controllers con MockMvc standalone sin Spring context](#2026-03-22-fase-6-tests-de-controllers-oidcjwks-con-mockmvc-standalone) | Testing |
 | 2026-03-22 | [Reorganización de docs AI a docs/ai/](#2026-03-22-reorganización-de-documentos-ai-a-docsai) | Proceso / Documentación |
@@ -331,5 +334,41 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent
+### [2026-03-22] Fase 7: SHA-256 como hash determinista para refresh tokens
+**Contexto:** Implementación de refresh tokens (Fase 7). El refresh token plano se genera con `SecureRandom` y no se persiste; solo se guarda su hash para búsqueda posterior.
+**Problema:** BCrypt genera un salt distinto por cada invocación, haciendo imposible la búsqueda directa en DB por hash. Para encontrar un refresh token a partir del valor plano recibido del cliente, se necesita un hash determinista.
+**Solución / Buena práctica:**
+- Usar **SHA-256 (hex, 64 chars)** como `token_hash` en DB — determinista, permite búsqueda directa con `WHERE token_hash = ?`.
+- El campo está indexado (`idx_refresh_tokens_hash`) para búsquedas eficientes.
+- El token plano tiene 256 bits de entropía (`SecureRandom.nextBytes(32)` + Base64URL), lo que hace inviable la fuerza bruta sobre el hash SHA-256.
+- BCrypt no se usa para refresh tokens (solo para contraseñas de usuario).
+- Exponer el método `sha256Hex()` como `static` package-private en `RotateRefreshTokenUseCase` para que los tests puedan calcular el hash esperado sin duplicar la lógica.
+**Archivos clave:**
+- `keygo-app/src/main/java/io/cmartinezs/keygo/app/auth/usecase/RotateRefreshTokenUseCase.java`
+- `keygo-app/src/main/java/io/cmartinezs/keygo/app/auth/usecase/RevokeTokenUseCase.java`
+- `keygo-supabase/src/main/resources/db/migration/V11__add_refresh_tokens_and_sessions.sql`
+
+### [2026-03-22] Fase 7: Mockito UnnecessaryStubbing en tests de use cases complejos
+**Contexto:** Test `RotateRefreshTokenUseCaseTest` configuraba stub para `clientApp.getClientId()` en el método `setupCommonMocks`.
+**Problema:** Mockito strict stubbing lanzó `UnnecessaryStubbingException` porque `RotateRefreshTokenUseCase` compara el `clientAppId` (UUID) pero nunca llama a `getClientId()` — ese método es para el `ClientId` (string), no para el `ClientAppId` (UUID).
+**Solución / Buena práctica:**
+- Revisar qué métodos del mock usa realmente el use case antes de agregar stubs en helpers de tests.
+- Si un mock se usa con muchos métodos en múltiples tests, preferir `@MockitoSettings(strictness = Strictness.LENIENT)` o usar `lenient().when(...)` solo para los stubs opcionales.
+- Eliminar `when(clientApp.getClientId())` ya que el use case solo usa `clientApp.getId()`.
+**Archivos clave:**
+- `keygo-app/src/test/java/io/cmartinezs/keygo/app/auth/usecase/RotateRefreshTokenUseCaseTest.java`
+
+### [2026-03-22] Fase 7: BootstrapAdminKeyFilter — rutas userinfo y revoke como públicas
+**Contexto:** El filtro `BootstrapAdminKeyFilter` protege todas las rutas bajo `/api/` con `X-KEYGO-ADMIN`. Los nuevos endpoints `/userinfo` y `/oauth2/revoke` son endpoints de usuario (Bearer token) y deben ser accesibles sin clave admin.
+**Problema:** Al agregar `/api/v1/tenants/{slug}/userinfo` y `/api/v1/tenants/{slug}/oauth2/revoke` bajo `/api/`, el filtro los bloqueaba con 401 si no se enviaba `X-KEYGO-ADMIN`.
+**Solución / Buena práctica:**
+- Agregar propiedades `userinfo-path-suffix: /userinfo` y `revocation-path-suffix: /oauth2/revoke` a `KeyGoBootstrapProperties`.
+- En `isPublicPath()` del filtro, usar `path.endsWith()` para estos sufijos.
+- Patrón: cada tipo de ruta pública tiene su propia propiedad de configuración, lo que permite ajustes sin recompilar.
+**Archivos clave:**
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilter.java`
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/properties/KeyGoBootstrapProperties.java`
+- `keygo-run/src/main/resources/application.yml`
+
+---
 

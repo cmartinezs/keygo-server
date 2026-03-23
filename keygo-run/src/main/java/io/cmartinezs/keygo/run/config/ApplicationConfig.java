@@ -3,7 +3,10 @@ package io.cmartinezs.keygo.run.config;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
+import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
+import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
+import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.TokenClaimsFactoryPort;
 import io.cmartinezs.keygo.app.auth.port.TokenSignerPort;
@@ -11,9 +14,14 @@ import io.cmartinezs.keygo.app.auth.usecase.AuthenticateUserForAuthorizationUseC
 import io.cmartinezs.keygo.app.auth.usecase.ExchangeAuthorizationCodeUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.GetJwksUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.GetOidcConfigurationUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.GetUserInfoUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.InitiateAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.OpenSessionUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.RevokeTokenUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.TerminateSessionUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
@@ -48,6 +56,7 @@ import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
+import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
 import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import java.util.TimeZone;
@@ -307,6 +316,62 @@ public class ApplicationConfig {
   public GetOidcConfigurationUseCase getOidcConfigurationUseCase(
       @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
     return new GetOidcConfigurationUseCase(issuerBaseUrl);
+  }
+
+  // ─── Fase 7: Refresh tokens, sesiones, userinfo ───────────────────────────
+
+  @Bean
+  public AccessTokenVerifierPort accessTokenVerifierPort() {
+    return new RsaJwtTokenVerifier();
+  }
+
+  @Bean
+  public OpenSessionUseCase openSessionUseCase(
+      SessionRepositoryPort sessionRepositoryPort) {
+    return new OpenSessionUseCase(sessionRepositoryPort);
+  }
+
+  @Bean
+  public TerminateSessionUseCase terminateSessionUseCase(
+      SessionRepositoryPort sessionRepositoryPort,
+      RefreshTokenRepositoryPort refreshTokenRepositoryPort) {
+    return new TerminateSessionUseCase(sessionRepositoryPort, refreshTokenRepositoryPort);
+  }
+
+  @Bean
+  public RotateRefreshTokenUseCase rotateRefreshTokenUseCase(
+      RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+      SessionRepositoryPort sessionRepositoryPort,
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      TokenSignerPort tokenSignerPort,
+      TokenClaimsFactoryPort tokenClaimsFactoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      ClockPort clockPort,
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
+    return new RotateRefreshTokenUseCase(
+        refreshTokenRepositoryPort, sessionRepositoryPort,
+        signingKeyRepositoryPort, tokenSignerPort, tokenClaimsFactoryPort,
+        tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
+        clockPort, issuerBaseUrl);
+  }
+
+  @Bean
+  public RevokeTokenUseCase revokeTokenUseCase(
+      RefreshTokenRepositoryPort refreshTokenRepositoryPort) {
+    return new RevokeTokenUseCase(refreshTokenRepositoryPort);
+  }
+
+  @Bean
+  public GetUserInfoUseCase getUserInfoUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      UserRepositoryPort userRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort) {
+    return new GetUserInfoUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        userRepositoryPort, tenantRepositoryPort);
   }
 
     @Bean

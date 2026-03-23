@@ -13,6 +13,8 @@ keygo:
     swagger-ui-path-prefix: "/swagger-ui"
     api-docs-path-prefix: "/v3/api-docs"
     well-known-path-prefix: "/.well-known"
+    userinfo-path-suffix: "/userinfo"
+    revocation-path-suffix: "/oauth2/revoke"
 springdoc:
   api-docs:
     path: /v3/api-docs

@@ -2,7 +2,7 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V9
+> Fecha de actualización: **2026-03-22** | Estado: ✅ Sincronizado con migraciones V1–V11
 
 ---
 
@@ -614,6 +614,59 @@ WHERE id = :id;
 | `membership_roles` | PK `(membership_id, role_id)` | PK compuesta; sin columna `id` propia |
 | `authorization_codes` | `UNIQUE(code)` | Authorization code único globalmente |
 | `signing_keys` | `UNIQUE(kid)` | Key ID único globalmente |
+| `refresh_tokens` | `UNIQUE(token_hash)` | Hash SHA-256 único globalmente (64 hex chars) |
+
+---
+
+## Tabla: `sessions` — V11
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único de la sesión |
+| `tenant_id` | UUID | FK → `tenants.id` | NO | Tenant de la sesión |
+| `client_app_id` | UUID | FK → `client_apps.id` | NO | App cliente que inició la sesión |
+| `user_id` | UUID | FK → `tenant_users.id` | NO | Usuario propietario de la sesión |
+| `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `TERMINATED`, `EXPIRED` |
+| `expires_at` | TIMESTAMPTZ | — | NO | Expiración de la sesión (configurado en 30 días) |
+| `last_accessed_at` | TIMESTAMPTZ | — | NO | Último acceso (se actualiza en cada rotación de RT) |
+| `user_agent` | TEXT | — | SÍ | User-agent del cliente (para auditoría) |
+| `ip_address` | VARCHAR(64) | — | SÍ | IP de origen (para auditoría) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (auto, `CURRENT_TIMESTAMP`) |
+
+**Índices:** `idx_sessions_user_tenant(user_id, tenant_id)`, `idx_sessions_status(status)`
+
+**Reglas de negocio:**
+- Una sesión ACTIVE puede tener múltiples refresh tokens, pero solo uno es válido (ACTIVE) en un momento dado.
+- Al terminar la sesión (`TERMINATED`), todos sus refresh tokens se revocan.
+- El `last_accessed_at` se actualiza en cada rotación de refresh token exitosa.
+
+---
+
+## Tabla: `refresh_tokens` — V11
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único del refresh token |
+| `token_hash` | VARCHAR(64) | UNIQUE | NO | Hash SHA-256 (hex) del token plano — 64 caracteres |
+| `session_id` | UUID | FK → `sessions.id` | NO | Sesión a la que pertenece este token |
+| `tenant_id` | UUID | FK → `tenants.id` | NO | Tenant propietario |
+| `client_app_id` | UUID | FK → `client_apps.id` | NO | App que recibió el token |
+| `user_id` | UUID | FK → `tenant_users.id` | NO | Usuario propietario |
+| `requested_scopes` | TEXT | — | NO | Scopes otorgados (espacio separado, e.g. `openid profile`) |
+| `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `USED`, `EXPIRED`, `REVOKED` |
+| `expires_at` | TIMESTAMPTZ | — | NO | Expiración del token (mismo que la sesión, 30 días) |
+| `used_at` | TIMESTAMPTZ | — | SÍ | Cuándo fue canjeado (solo para estado `USED`) |
+| `replaced_by_id` | UUID | FK → `refresh_tokens.id` | SÍ | Auto-referencia al nuevo RT que lo reemplazó |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (auto, `CURRENT_TIMESTAMP`) |
+
+**Índices:** `idx_refresh_tokens_hash(token_hash)`, `idx_refresh_tokens_session(session_id)`, `idx_refresh_tokens_user_tenant(user_id, tenant_id)`, `idx_refresh_tokens_status(status)`
+
+**Reglas de negocio:**
+- El token plano (`raw`) **nunca se almacena** en DB; solo el hash SHA-256 determinista.
+- El token plano se entrega al cliente una única vez al emitirlo. Si se pierde, debe re-autenticar.
+- Al recibir un token en estado `USED` para rotación, se interpreta como posible ataque de replay.
+- RFC 7009: la revocación es idempotente — si el token no existe o ya fue revocado, se responde 200.
+- `replaced_by_id` permite trazar la cadena completa de rotación para auditoría.
 
 ---
 
@@ -622,11 +675,11 @@ WHERE id = :id;
 | Migración | Descripción | Estado |
 |---|---|---|
 | `V10__rename_membership_tables_to_plural.sql` | Renombrar `app_role`, `membership`, `membership_role` → `app_roles`, `memberships`, `membership_roles` | ✅ Aplicada (2026-03-22) |
-| `V11__add_refresh_tokens.sql` | Tabla `refresh_tokens` para Fase 7 (refresh token flow) | ⏳ Planificada |
-| `V12__add_tenant_sessions.sql` | Tabla `tenant_sessions` multi-tenancy para Fase 8 | ⏳ Planificada |
+| `V11__add_refresh_tokens_and_sessions.sql` | Tablas `sessions` + `refresh_tokens` para Fase 7 (refresh token flow, SHA-256 hash) | ✅ Aplicada (2026-03-22) |
+| `V12__...` | Próxima migración — sin definir aún | ⏳ Planificada |
 
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V11`.
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V12`.
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V10
+**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V11

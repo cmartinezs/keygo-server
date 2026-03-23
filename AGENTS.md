@@ -136,6 +136,9 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/authorize` (GET — initiate auth)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — rotate refresh_token grant)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/revoke` (POST — revoke token, RFC 7009, **público**)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/userinfo` (GET — OIDC userinfo, **público** con Bearer token)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/.well-known/openid-configuration` (GET — OIDC discovery, **público**)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/.well-known/jwks.json` (GET — JWK Set, **público**)
 - `http://localhost:8080/keygo-server/actuator/health`
@@ -154,6 +157,8 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.swagger-ui-path-prefix` | `/swagger-ui` | Public |
 | `keygo.bootstrap.api-docs-path-prefix` | `/v3/api-docs` | Public |
 | `keygo.bootstrap.well-known-path-prefix` | `/.well-known` | Public — OIDC discovery + JWKS |
+| `keygo.bootstrap.userinfo-path-suffix` | `/userinfo` | Public — Bearer token validated inside controller |
+| `keygo.bootstrap.revocation-path-suffix` | `/oauth2/revoke` | Public — RFC 7009, idempotente |
 
 ## Security header
 
@@ -184,6 +189,8 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `MembershipEntity` | `membership.entity` | `memberships` | `@ManyToOne` → `TenantUserEntity`, `ClientAppEntity`; `@ManyToMany` → `AppRoleEntity` via `membership_roles` |
 | `AuthorizationCodeEntity` | `auth.entity` | `authorization_codes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`, `TenantEntity`, `TenantUserEntity` |
 | `SigningKeyEntity` | `auth.entity` | `signing_keys` | `kid` unique; `status` check `ACTIVE\|RETIRED\|REVOKED`; `algorithm` (RS256/RS384/RS512); `public_material` + `private_material` PEM |
+| `SessionEntity` | `auth.entity` | `sessions` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `status` check `ACTIVE\|TERMINATED\|EXPIRED` |
+| `RefreshTokenEntity` | `auth.entity` | `refresh_tokens` | `@ManyToOne(fetch=LAZY)` → `SessionEntity`, `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `token_hash` unique (SHA-256 hex 64 chars); `status` check `ACTIVE\|USED\|EXPIRED\|REVOKED` |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -196,6 +203,8 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `TenantUserJpaRepository` | `user.repository` |
 | `AuthorizationCodeJpaRepository` | `auth.repository` |
 | `SigningKeyJpaRepository` | `auth.repository` |
+| `SessionJpaRepository` | `auth.repository` |
+| `RefreshTokenJpaRepository` | `auth.repository` |
 
 **Flyway migrations already applied:**
 - `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
@@ -208,8 +217,9 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V8__add_oauth_authorization_codes.sql` — authorization_codes table
 - `V9__add_signing_keys.sql` — signing_keys table (kid unique, status check, algorithm, public/private PEM)
 - `V10__rename_membership_tables_to_plural.sql` — renames app_role→app_roles, membership→memberships, membership_role→membership_roles
+- `V11__add_refresh_tokens_and_sessions.sql` — sessions + refresh_tokens tables (SHA-256 hash, status checks, session FK)
 
-Next migration must be `V11__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V12__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -243,7 +253,8 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | 4 | Memberships & roles per app | ✅ Done (2026-03-21) |
 | 5 | OAuth2/OIDC authorization flow (Auth Code + PKCE) | ✅ Done (2026-03-22) |
 | 6 | Token signing RS256 + JWKS + OIDC Discovery | ✅ Done (2026-03-22) |
-| 7–11 | Refresh token, userinfo, client credentials, hardening | — |
+| 7 | Refresh token (rotation + SHA-256 hash), Session, Revocation (RFC 7009), UserInfo (OIDC §5.3) | ✅ Done (2026-03-22) |
+| 8–11 | Client credentials grant, token introspection, hardening, observability | — |
 
 **Golden rule from the plan:** never implement `/oauth2/authorize` before tenant, client app, user, and membership are solid.
 
@@ -290,6 +301,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-22 | Fase 7 — Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3 |
 | 2026-03-22 | Reorganización de documentos AI a `docs/ai/` |
 | 2026-03-22 | Re-auditoría de inconsistencias — corrección de tablas en singular via V10 |
 | 2026-03-22 | Refactorización de docs AI en sub-documentos temáticos |

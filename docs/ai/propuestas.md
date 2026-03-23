@@ -19,10 +19,13 @@
 | T-023 | Configurar lint/formato automático (Checkstyle / Spotless). Convención ya en `docs/development/CODE_STYLE.md` | 🔲 Pendiente |
 | ~~T-024~~ | ~~Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/`~~ | ✅ Completada (Fases 5/6) |
 | ~~T-027~~ | ~~Integrar Swagger / OpenAPI con SpringDoc 3.0.1~~ | ✅ Completada 2026-03-21 |
+| ~~T-027~~ | ~~Refresh token grant + revocación RFC 7009 + userinfo OIDC~~ | ✅ Completada 2026-03-22 (Fase 7) |
 | T-026 | Mantener colecciones Postman actualizadas; crear environment `KeyGo-Server-Docker` | 🔲 Pendiente |
-| T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) — eliminar `private_material` de la DB en producción | 🔲 Pendiente |
-| T-030 | Agregar verificación de referencias Markdown rotas post-reorganización `docs/ai/` — script o check de links en `docs/ai/README.md` | 🔲 Pendiente |
+| T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) | 🔲 Pendiente |
+| T-030 | Agregar verificación de referencias Markdown rotas post-reorganización `docs/ai/` | 🔲 Pendiente |
 | T-033 | Endpoints `PUT /api/v1/tenants/{slug}/users/{userId}/suspend` y `/activate` | 🔲 Pendiente |
+| T-034 | Tests de regresión en `BootstrapAdminKeyFilterTest` para los nuevos sufijos `/userinfo` y `/oauth2/revoke` como rutas públicas | 🔲 Pendiente |
+| T-035 | Detección de replay attack: al recibir un refresh token en estado `USED`, revocar toda la cadena de sesión automáticamente | 🔲 Pendiente |
 
 ---
 
@@ -34,7 +37,9 @@
 | T-010 | Poblar `keygo-infra` con puertos: `PasswordHasherPort`, `TokenSignerPort`, `ClockProvider` | 🟡 Parcial (`PasswordHasherPort`, `TokenSignerPort`, `ClockProvider` ✅) |
 | T-013 | Tests de integración con Testcontainers para `keygo-supabase` | 🔲 Pendiente |
 | T-025 | Tests de integración con Testcontainers para flujo completo de Tenant | 🔲 Pendiente |
-| T-031 | Automatizar verificación de links Markdown rotos en CI (p. ej. `markdown-link-check` o `lychee`) para detectar referencias entre documentos que ya no existen | 🔲 Pendiente |
+| T-031 | Automatizar verificación de links Markdown rotos en CI (p. ej. `markdown-link-check` o `lychee`) | 🔲 Pendiente |
+| T-036 | TTL configurable para refresh tokens y sesiones vía `application.yml` (actualmente fijo a 30 días en `AuthorizationController`) | 🔲 Pendiente |
+| T-037 | Endpoint `GET /api/v1/tenants/{slug}/sessions` + `DELETE /…/{sessionId}` para que el administrador pueda listar y terminar sesiones activas de usuarios | 🔲 Pendiente |
 
 ---
 
@@ -45,7 +50,11 @@
 | T-017 | Renombrar `keygo-supabase` → `keygo-adapter-persistence-postgres` | 🔲 Pendiente |
 | T-020 | Observabilidad avanzada: OpenTelemetry + Prometheus + Grafana | 🔲 Pendiente |
 | T-032 | Evaluar generador de site estático (MkDocs / Docusaurus) que consolide `docs/` + archivos raíz en un portal navegable unificado con búsqueda | 🔲 Pendiente |
+| T-038 | Lista negra de JTI de access tokens revocados con TTL en Redis para revocación inmediata sin esperar expiración natural | 🔲 Pendiente |
+| T-039 | Soporte de `client_credentials` grant (Fase 8) — emite access token sin usuario, para comunicación M2M entre servicios | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
+| ~~F-027~~ | ~~Refresh tokens con rotación + SHA-256 hash~~ | ✅ Completada 2026-03-22 (Fase 7) |
+| ~~F-028~~ | ~~Endpoint `/userinfo` OIDC §5.3~~ | ✅ Completada 2026-03-22 (Fase 7) |
 
 ---
 
