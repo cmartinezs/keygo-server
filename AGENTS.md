@@ -108,7 +108,10 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 6. **Postman** — add or update the request in `postman/KeyGo-Server.postman_collection.json` **before closing the task**.  
    Include: HTTP method, URL with env variables (`{{fullBaseUrl}}/api/v1/...`), required headers, example body (if applicable), and `pm.test()` scripts validating status code, `BaseResponse` structure and business fields.  
    This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
-7. **Data docs (if Flyway migration added)** — when a new `V{n}__*.sql` migration is created, update **all three** data documents **before closing the task**:
+7. **Frontend Guide** — update section §14 (endpoint inventory) in `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **before closing the task**.  
+   Include: HTTP method, full URL with `context-path`, required auth (`X-KEYGO-ADMIN` / Bearer / public), body/params example and `BaseResponse` structure.  
+   This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
+8. **Data docs (if Flyway migration added)** — when a new `V{n}__*.sql` migration is created, update **all three** data documents **before closing the task**:
    - `docs/keygo-server/DATA_MODEL.md` — add table dictionary (fields, types, constraints, business rules)
    - `docs/keygo-server/ENTITY_RELATIONSHIPS.md` — update affected context diagrams and relationships
    - `docs/keygo-server/DATA_DICTIONARY.md` — update "Próximas migraciones" section and cross-references

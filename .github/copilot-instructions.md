@@ -83,6 +83,7 @@ Al concluir **cualquier tarea** (feature, corrección, refactor, configuración,
 | Propuesta completada / implementada | `docs/ai/propuestas.md` + `ROADMAP.md` | Marcar ✅ + tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o URLs del quick-start | `AGENTS.md` + `docs/ai/agents-registro.md` | Sección correspondiente + entrada en registro |
 | Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
+| Nuevo endpoint REST creado o modificado | `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` | Actualizar sección §14 (inventario de endpoints) con método, URL, auth requerida, body/params y ejemplo de respuesta |
 | Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
 | Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
 | Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
@@ -136,6 +137,7 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - La lógica de negocio va en usecases dentro de `keygo-app`.
 - Implementaciones concretas (repos, clients externos) van en `keygo-infra` o `keygo-supabase`.
 - **Al crear o modificar cualquier endpoint REST**, agregar o actualizar el request correspondiente en `postman/KeyGo-Server.postman_collection.json` **antes de cerrar la tarea**. Incluir: método, URL con variables de entorno, headers necesarios, body de ejemplo (si aplica) y scripts `pm.test()` que validen status code y estructura `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
+- **Al crear o modificar cualquier endpoint REST**, actualizar también la sección §14 (inventario de endpoints) en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **antes de cerrar la tarea**. Incluir: método HTTP, URL completa con `context-path`, autenticación requerida (`X-KEYGO-ADMIN` / Bearer / público), parámetros o body de ejemplo y estructura de respuesta `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
 - Si necesitas DB:
   - Perfil `supabase` debe estar activo (`SPRING_PROFILES_ACTIVE`).
   - Variables requeridas: `SUPABASE_URL`, `SUPABASE_USER`, `SUPABASE_PASSWORD`.

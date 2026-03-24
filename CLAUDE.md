@@ -74,6 +74,7 @@ Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de es
 | Propuesta completada / implementada | `docs/ai/propuestas.md` + `ROADMAP.md` | Marcar ✅ + tabla **Historial de propuestas completadas** |
 | Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` + `docs/ai/agents-registro.md` | Sección correspondiente + entrada en registro |
 | Nuevo endpoint REST creado o modificado | `postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
+| Nuevo endpoint REST creado o modificado | `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` | Actualizar sección §14 (inventario de endpoints) con método, URL, auth requerida, body/params y ejemplo de respuesta |
 | Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
 | Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
 | Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
@@ -124,6 +125,7 @@ Al concluir cualquier tarea, el agente **debe** incluir propuestas organizadas e
    ./mvnw clean package
    ```
 7. **Al crear o modificar cualquier endpoint REST**, actualizar `postman/KeyGo-Server.postman_collection.json` con el request correspondiente **antes de cerrar la tarea**. La actualización de Postman **no requiere orden explícita** del usuario — es parte del ciclo de trabajo estándar de un endpoint.
+8. **Al crear o modificar cualquier endpoint REST**, actualizar también la sección §14 (inventario de endpoints) en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **antes de cerrar la tarea**. Incluir: método HTTP, URL completa con `context-path`, autenticación requerida (`X-KEYGO-ADMIN` / Bearer / público), parámetros o body de ejemplo y estructura de respuesta `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
 
 ## Cómo trabajar al implementar una feature
 
@@ -131,7 +133,8 @@ Al concluir cualquier tarea, el agente **debe** incluir propuestas organizadas e
 2. **Cambios pequeños:** genera un commit lógico por vez.
 3. **Tests:** agrega tests unitarios (JUnit 5 + Mockito/AssertJ).
 4. **Postman:** agrega o actualiza el request en `postman/KeyGo-Server.postman_collection.json` incluyendo scripts `pm.test()` que validen status code, estructura `BaseResponse` y campos de negocio.
-5. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` **solo si el usuario lo solicita explícitamente**.
+5. **Frontend Guide:** actualiza la sección §14 en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` con el inventario del nuevo/modificado endpoint (método, URL, auth, body/params, respuesta). Esta actualización **no requiere orden explícita** del usuario.
+6. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` **solo si el usuario lo solicita explícitamente**.
 
 ## Módulos y sus roles
 
