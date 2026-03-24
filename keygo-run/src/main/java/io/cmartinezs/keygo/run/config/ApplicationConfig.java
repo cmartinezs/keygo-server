@@ -402,13 +402,14 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
+      MembershipRepositoryPort membershipRepositoryPort,
       ClockPort clockPort,
       @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
     return new RotateRefreshTokenUseCase(
         refreshTokenRepositoryPort, sessionRepositoryPort,
         signingKeyRepositoryPort, tokenSignerPort, tokenClaimsFactoryPort,
         tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        clockPort, issuerBaseUrl);
+        membershipRepositoryPort, clockPort, issuerBaseUrl);
   }
 
   @Bean

@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-24 | [Claim `roles` en JWT: agregar parámetro a ambas firmas de TokenClaimsFactoryPort](#2026-03-24-claim-roles-en-jwt) | OAuth2 / JWT / Arquitectura |
 | 2026-03-23 | [keygo-ui — app unificada con roles en JWT (no tres portales separados)](#2026-03-23-keygo-ui--arquitectura-de-app-unificada-con-roles-en-jwt) | Arquitectura / Frontend |
 | 2026-03-23 | [Manual frontend: flujo OAuth2 retorna code en JSON, no HTTP 302](#2026-03-23-manual-frontend-flujo-oauth2-retorna-code-en-json-no-http-302) | OAuth2 / Frontend |
 | 2026-03-23 | [Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md](#2026-03-23-nuevas-variables-de-entorno-deben-documentarse-en-env-y-environment_setupmd) | Convenciones / Entorno |
@@ -68,6 +69,18 @@
 ---
 
 ## Lecciones
+
+### [2026-03-24] Claim `roles` en JWT
+**Contexto:** Implementación del claim `roles` en `access_token` e `id_token` para que el frontend `keygo-ui` lea los roles directamente desde el JWT sin llamadas adicionales a la API.
+**Problema:** El claim `roles` debe propagarse por toda la cadena de emisión de tokens: `MembershipRepositoryPort` → use case → `TokenClaimsFactoryPort` → `StandardTokenClaimsFactory`. Al agregar un parámetro a la interfaz, **todos** los callers deben actualizarse: `IssueTokensUseCase`, `RotateRefreshTokenUseCase`, `AuthorizationController` y también `IssueClientCredentialsTokenUseCase` (que pasa `null` porque M2M no tiene usuario ni membresía).
+**Solución / Buena práctica:**
+1. Agregar `findRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId): List<String>` al port `MembershipRepositoryPort`.
+2. Usar `@Query(nativeQuery = true)` en `MembershipJpaRepository` para el JOIN de 3 tablas (`app_roles` ← `membership_roles` ← `memberships`) filtrando por `status = 'ACTIVE'` — evita múltiples roundtrips.
+3. Propagar `List<String> roles` como parámetro explícito en **ambas** firmas de `TokenClaimsFactoryPort`.
+4. Para M2M (`client_credentials`), pasar `null` — la factory omite el claim si la lista es null o vacía.
+5. Al agregar `MembershipRepositoryPort` como dependencia de `RotateRefreshTokenUseCase`, actualizar el bean en `ApplicationConfig` con el nuevo parámetro en el orden correcto del constructor.
+6. Los tests de `IssueTokensUseCaseTest`, `RotateRefreshTokenUseCaseTest` y `StandardTokenClaimsFactoryTest` deben actualizarse para reflejar las nuevas firmas.
+**Archivos clave:** `keygo-app/src/main/java/.../app/auth/port/TokenClaimsFactoryPort.java`, `keygo-app/src/main/java/.../app/membership/port/MembershipRepositoryPort.java`, `keygo-infra/src/main/java/.../infra/auth/jwt/StandardTokenClaimsFactory.java`, `keygo-supabase/src/main/java/.../supabase/membership/repository/MembershipJpaRepository.java`, `keygo-run/src/main/java/.../run/config/ApplicationConfig.java`
 
 ### [2026-03-24] replace_string_in_file puede duplicar clase si el texto a reemplazar es solo el import/paquete
 **Contexto:** Al actualizar `UserPersistenceMapper.java` para agregar campos OIDC extendidos, se usó `replace_string_in_file` con solo la sección de imports como `oldString`, reemplazándola por el archivo completo nuevo.

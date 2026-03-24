@@ -95,5 +95,10 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
   public void deleteById(MembershipId membershipId) {
     jpaRepository.deleteById(membershipId.value());
   }
+
+  @Override
+  public List<String> findRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId) {
+    return jpaRepository.findRoleCodesByUserIdAndClientAppId(userId, clientAppId);
+  }
 }
 

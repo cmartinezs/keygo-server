@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.app.auth.port.TokenClaimsFactoryPort;
 import io.cmartinezs.keygo.app.auth.port.TokenSignerPort;
 import io.cmartinezs.keygo.app.auth.result.RotateRefreshTokenResult;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
@@ -31,6 +32,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -60,6 +62,7 @@ public class RotateRefreshTokenUseCase {
   private final TenantRepositoryPort tenantRepository;
   private final ClientAppRepositoryPort clientAppRepository;
   private final UserRepositoryPort userRepository;
+  private final MembershipRepositoryPort membershipRepository;
   private final ClockPort clock;
   private final String issuerBaseUrl;
   private final SecureRandom secureRandom = new SecureRandom();
@@ -73,6 +76,7 @@ public class RotateRefreshTokenUseCase {
       TenantRepositoryPort tenantRepository,
       ClientAppRepositoryPort clientAppRepository,
       UserRepositoryPort userRepository,
+      MembershipRepositoryPort membershipRepository,
       ClockPort clock,
       String issuerBaseUrl) {
     this.refreshTokenRepository = refreshTokenRepository;
@@ -83,6 +87,7 @@ public class RotateRefreshTokenUseCase {
     this.tenantRepository = tenantRepository;
     this.clientAppRepository = clientAppRepository;
     this.userRepository = userRepository;
+    this.membershipRepository = membershipRepository;
     this.clock = clock;
     this.issuerBaseUrl = issuerBaseUrl;
   }
@@ -139,6 +144,10 @@ public class RotateRefreshTokenUseCase {
         ? buildName(user.getFirstName(), user.getLastName())
         : null;
 
+    // 4b. Obtener roles del usuario en la app para incluirlos en el JWT
+    List<String> roles = membershipRepository.findRoleCodesByUserAndClientApp(
+        userId.value(), clientApp.getId().value());
+
     // 5. Firmar nuevos tokens
     SigningKey signingKey = signingKeyRepository.findActiveKey()
         .orElseThrow(() -> new NoActiveSigningKeyException("No active signing key found"));
@@ -150,12 +159,12 @@ public class RotateRefreshTokenUseCase {
     String issuer = buildIssuer(command.tenantSlug());
 
     var accessClaims = tokenClaimsFactory.buildAccessTokenClaims(
-        issuer, userId.value().toString(), command.clientId(), scope, accessJti, now, expiresAt);
+        issuer, userId.value().toString(), command.clientId(), scope, accessJti, now, expiresAt, roles);
     String accessToken = tokenSigner.signJwt(accessClaims, signingKey);
 
     var idClaims = tokenClaimsFactory.buildIdTokenClaims(
         issuer, userId.value().toString(), command.clientId(), idJti, now, expiresAt,
-        null, email, name, accessToken);
+        null, email, name, accessToken, roles);
     String idToken = tokenSigner.signJwt(idClaims, signingKey);
 
     // 6. Generar nuevo refresh token plano + hash + persistir
@@ -227,6 +236,4 @@ public class RotateRefreshTokenUseCase {
     return issuerBaseUrl + "/api/v1/tenants/" + tenantSlug;
   }
 }
-
-
 

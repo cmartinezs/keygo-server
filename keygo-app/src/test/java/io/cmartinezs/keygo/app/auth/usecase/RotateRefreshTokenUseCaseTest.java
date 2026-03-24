@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import io.cmartinezs.keygo.app.auth.command.RotateRefreshTokenCommand;
 import io.cmartinezs.keygo.app.auth.port.*;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
@@ -20,6 +21,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +42,7 @@ class RotateRefreshTokenUseCaseTest {
   @Mock TenantRepositoryPort tenantRepository;
   @Mock ClientAppRepositoryPort clientAppRepository;
   @Mock UserRepositoryPort userRepository;
+  @Mock MembershipRepositoryPort membershipRepository;
   @Mock ClockPort clock;
 
   RotateRefreshTokenUseCase useCase;
@@ -56,6 +59,7 @@ class RotateRefreshTokenUseCaseTest {
         refreshTokenRepository, sessionRepository,
         signingKeyRepository, tokenSigner, tokenClaimsFactory,
         tenantRepository, clientAppRepository, userRepository,
+        membershipRepository,
         clock, "http://localhost:8080/keygo-server");
   }
 
@@ -82,6 +86,7 @@ class RotateRefreshTokenUseCaseTest {
         .thenReturn(Optional.of(clientApp));
 
     when(userRepository.findByIdAndTenantId(userId, tenantId)).thenReturn(Optional.empty());
+    when(membershipRepository.findRoleCodesByUserAndClientApp(any(), any())).thenReturn(List.of());
 
     SigningKey key = SigningKey.builder()
         .id(new SigningKeyId("k1")).kid("kid1")
@@ -91,9 +96,9 @@ class RotateRefreshTokenUseCaseTest {
         .activatedAt(now).build();
     when(signingKeyRepository.findActiveKey()).thenReturn(Optional.of(key));
 
-    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any()))
+    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Map.of());
-    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Map.of());
     when(tokenSigner.signJwt(any(), any())).thenReturn("signed.jwt.token");
     when(refreshTokenRepository.save(any())).thenReturn(newRt);
@@ -160,5 +165,3 @@ class RotateRefreshTokenUseCaseTest {
         .isInstanceOf(InvalidRefreshTokenException.class);
   }
 }
-
-

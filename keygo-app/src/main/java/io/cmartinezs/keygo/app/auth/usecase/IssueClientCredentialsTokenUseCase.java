@@ -132,8 +132,9 @@ public class IssueClientCredentialsTokenUseCase {
     String jti = UUID.randomUUID().toString();
     String issuer = issuerBaseUrl + "/api/v1/tenants/" + command.tenantSlug();
 
+    // M2M (client_credentials) no tiene usuario final ni roles de membresía
     var claims = tokenClaimsFactory.buildAccessTokenClaims(
-        issuer, command.clientId(), command.clientId(), scope, jti, now, expiresAt);
+        issuer, command.clientId(), command.clientId(), scope, jti, now, expiresAt, null);
     String accessToken = tokenSigner.signJwt(claims, signingKey);
 
     return new IssueClientCredentialsTokenResult(accessToken, "Bearer", ACCESS_TOKEN_TTL.toSeconds(), scope);

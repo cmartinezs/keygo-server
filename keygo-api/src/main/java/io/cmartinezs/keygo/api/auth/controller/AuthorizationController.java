@@ -29,6 +29,7 @@ import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.OpenSessionUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.model.RefreshToken;
@@ -47,6 +48,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -82,6 +84,7 @@ public class AuthorizationController {
   private final UserRepositoryPort userRepository;
   private final TenantRepositoryPort tenantRepository;
   private final ClientAppRepositoryPort clientAppRepository;
+  private final MembershipRepositoryPort membershipRepository;
   private final ClockPort clock;
   private final String issuerBaseUrl;
 
@@ -100,6 +103,7 @@ public class AuthorizationController {
       UserRepositoryPort userRepository,
       TenantRepositoryPort tenantRepository,
       ClientAppRepositoryPort clientAppRepository,
+      MembershipRepositoryPort membershipRepository,
       ClockPort clock,
       @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}")
           String issuerBaseUrl) {
@@ -115,6 +119,7 @@ public class AuthorizationController {
     this.userRepository = userRepository;
     this.tenantRepository = tenantRepository;
     this.clientAppRepository = clientAppRepository;
+    this.membershipRepository = membershipRepository;
     this.clock = clock;
     this.issuerBaseUrl = issuerBaseUrl;
   }
@@ -322,24 +327,31 @@ public class AuthorizationController {
                 request.redirectUri(),
                 request.codeVerifier()));
 
-    // 2. Obtener datos del usuario para los claims
+    // 2. Obtener datos del usuario y roles para los claims
     Instant now = clock.now();
     String email = null;
     String name = null;
+    List<String> roles = List.of();
     var tenantOpt = tenantRepository.findBySlug(new TenantSlug(tenantSlug));
     if (tenantOpt.isPresent()) {
       TenantId tenantId = tenantOpt.get().getId();
-      var userOpt =
-          userRepository.findByIdAndTenantId(
-              new UserId(UUID.fromString(exchangeResult.userId())), tenantId);
+      UUID userUUID = UUID.fromString(exchangeResult.userId());
+      var userOpt = userRepository.findByIdAndTenantId(new UserId(userUUID), tenantId);
       if (userOpt.isPresent()) {
         var user = userOpt.get();
         email = user.getEmail() != null ? user.getEmail().value() : null;
         name = buildName(user.getFirstName(), user.getLastName());
       }
+      // Resolver clientApp UUID para obtener roles de la membresía
+      var clientAppOpt = clientAppRepository.findByClientIdAndTenantId(
+          new ClientId(exchangeResult.clientId()), tenantId);
+      if (clientAppOpt.isPresent()) {
+        UUID clientAppUUID = clientAppOpt.get().getId().value();
+        roles = membershipRepository.findRoleCodesByUserAndClientApp(userUUID, clientAppUUID);
+      }
     }
 
-    // 3. Emitir access_token + id_token
+    // 3. Emitir access_token + id_token (incluye claim roles)
     String issuer = issuerBaseUrl + "/api/v1/tenants/" + tenantSlug;
     IssueTokensResult tokenResult =
         issueTokensUseCase.execute(
@@ -350,7 +362,8 @@ public class AuthorizationController {
             null,
             email,
             name,
-            exchangeResult.authorizationCodeId());
+            exchangeResult.authorizationCodeId(),
+            roles);
 
     // 4. Abrir sesión
     Instant sessionExpiresAt = now.plus(REFRESH_TOKEN_TTL);

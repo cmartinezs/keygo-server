@@ -10,6 +10,7 @@ import io.cmartinezs.keygo.domain.auth.model.SigningKeyAlgorithm;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyId;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyStatus;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,9 +54,9 @@ class IssueTokensUseCaseTest {
     // Given
     when(signingKeyRepository.findActiveKey()).thenReturn(Optional.of(activeKey));
     when(clock.now()).thenReturn(Instant.now());
-    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any()))
+    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Map.of("iss", "http://localhost"));
-    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Map.of("iss", "http://localhost", "sub", "user-1"));
     when(tokenSigner.signJwt(any(), eq(activeKey)))
         .thenReturn("access.jwt.token", "id.jwt.token");
@@ -67,7 +68,8 @@ class IssueTokensUseCaseTest {
         "client-id",
         "openid profile",
         null, null, null,
-        "code-id-123");
+        "code-id-123",
+        List.of("ADMIN", "USER"));
 
     // Then
     assertThat(result.accessToken()).isEqualTo("access.jwt.token");
@@ -79,14 +81,36 @@ class IssueTokensUseCaseTest {
   }
 
   @Test
+  void givenActiveKeyAndEmptyRoles_whenExecute_thenReturnsBothTokens() {
+    // Given
+    when(signingKeyRepository.findActiveKey()).thenReturn(Optional.of(activeKey));
+    when(clock.now()).thenReturn(Instant.now());
+    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Map.of("iss", "http://localhost"));
+    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Map.of("iss", "http://localhost", "sub", "user-1"));
+    when(tokenSigner.signJwt(any(), eq(activeKey)))
+        .thenReturn("access.jwt.token", "id.jwt.token");
+
+    // When
+    var result = useCase.execute(
+        "http://localhost/keygo-server/api/v1/tenants/my-tenant",
+        "user-uuid", "client-id", "openid profile",
+        null, null, null, "code-id-456", List.of());
+
+    // Then
+    assertThat(result.accessToken()).isEqualTo("access.jwt.token");
+    assertThat(result.idToken()).isEqualTo("id.jwt.token");
+  }
+
+  @Test
   void givenNoActiveKey_whenExecute_thenThrowsNoActiveSigningKeyException() {
     // Given
     when(signingKeyRepository.findActiveKey()).thenReturn(Optional.empty());
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
-        "http://localhost", "user", "client", "openid", null, null, null, "code-1"))
+        "http://localhost", "user", "client", "openid", null, null, null, "code-1", null))
         .isInstanceOf(NoActiveSigningKeyException.class);
   }
 }
-

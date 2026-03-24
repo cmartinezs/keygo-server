@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,7 +27,8 @@ public class StandardTokenClaimsFactory implements TokenClaimsFactoryPort {
       String scope,
       String jti,
       Instant issuedAt,
-      Instant expiresAt) {
+      Instant expiresAt,
+      List<String> roles) {
 
     Map<String, Object> claims = new LinkedHashMap<>();
     claims.put("iss", issuer);
@@ -36,6 +38,9 @@ public class StandardTokenClaimsFactory implements TokenClaimsFactoryPort {
     claims.put("jti", jti);
     claims.put("iat", issuedAt.getEpochSecond());
     claims.put("exp", expiresAt.getEpochSecond());
+    if (roles != null && !roles.isEmpty()) {
+      claims.put("roles", roles);
+    }
     return claims;
   }
 
@@ -50,7 +55,8 @@ public class StandardTokenClaimsFactory implements TokenClaimsFactoryPort {
       String nonce,
       String email,
       String name,
-      String accessToken) {
+      String accessToken,
+      List<String> roles) {
 
     Map<String, Object> claims = new LinkedHashMap<>();
     claims.put("iss", issuer);
@@ -73,6 +79,9 @@ public class StandardTokenClaimsFactory implements TokenClaimsFactoryPort {
     if (name != null && !name.isBlank()) {
       claims.put("name", name);
     }
+    if (roles != null && !roles.isEmpty()) {
+      claims.put("roles", roles);
+    }
     return claims;
   }
 
@@ -93,4 +102,3 @@ public class StandardTokenClaimsFactory implements TokenClaimsFactoryPort {
     }
   }
 }
-

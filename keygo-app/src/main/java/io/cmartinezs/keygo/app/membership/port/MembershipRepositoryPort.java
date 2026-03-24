@@ -80,5 +80,16 @@ public interface MembershipRepositoryPort {
    * @param membershipId the ID of the membership to delete
    */
   void deleteById(MembershipId membershipId);
+
+  /**
+   * Find the role codes of the active membership for a given user and client app.
+   * <p>Retorna los códigos de rol de la membresía activa del usuario en la app indicada.
+   * Returns an empty list if the user has no active membership or no roles assigned.
+   *
+   * @param userId      the tenant user ID
+   * @param clientAppId the client app ID
+   * @return list of role code strings (e.g. ["ADMIN", "USER_TENANT"])
+   */
+  List<String> findRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId);
 }
 
