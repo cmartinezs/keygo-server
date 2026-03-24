@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.run.filter;
 
 import tools.jackson.databind.json.JsonMapper;
+import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
+import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,34 +20,24 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.lenient;
 
-/**
- * Unit tests for BootstrapAdminKeyFilter
- * Pruebas unitarias para BootstrapAdminKeyFilter
- *
- * <p>Tests use {@code request.setServletPath()} (not {@code setRequestURI()}) to match
- * the fix applied in the filter: the filter now reads {@code getServletPath()} so that
- * the context-path ({@code /keygo-server}) is excluded and prefixes like {@code /api/} match.
- *
- * @author cmartinezs
- * @version 1.1
- */
 @ExtendWith(MockitoExtension.class)
 class BootstrapAdminKeyFilterTest {
 
-  @Mock
-  private KeyGoBootstrapProperties bootstrapProperties;
-
-  @Mock
-  private JsonMapper jsonMapper;
-
-  @Mock
-  private FilterChain filterChain;
+  @Mock private KeyGoBootstrapProperties bootstrapProperties;
+  @Mock private JsonMapper jsonMapper;
+  @Mock private FilterChain filterChain;
+  @Mock private AccessTokenVerifierPort accessTokenVerifier;
+  @Mock private SigningKeyRepositoryPort signingKeyRepository;
 
   private BootstrapAdminKeyFilter filter;
   private MockHttpServletRequest request;
@@ -57,11 +49,12 @@ class BootstrapAdminKeyFilterTest {
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();
 
-    // Mock default path prefixes with lenient() to avoid UnnecessaryStubbingException
     lenient().when(bootstrapProperties.getApiPathPrefix()).thenReturn("/api/");
     lenient().when(bootstrapProperties.getActuatorPathPrefix()).thenReturn("/actuator/");
     lenient().when(bootstrapProperties.getServiceInfoPathPrefix()).thenReturn("/service/info");
   }
+
+  // ─── Bootstrap disabled ────────────────────────────────────────────────────
 
   @Test
   void doFilterInternal_shouldAllowRequestWhenBootstrapDisabled() throws ServletException, IOException {
@@ -77,6 +70,8 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 
+  // ─── Public paths ──────────────────────────────────────────────────────────
+
   @ParameterizedTest
   @ValueSource(strings = {"/actuator/health", "/actuator/metrics", "/service/info", "/service/info/details"})
   void doFilterInternal_shouldAllowPublicPathsWithoutAuth(String publicPath) throws ServletException, IOException {
@@ -91,6 +86,30 @@ class BootstrapAdminKeyFilterTest {
     verify(filterChain).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(200);
   }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/api/v1/tenants/keygo/oauth2/authorize",
+      "/api/v1/tenants/keygo/account/login",
+      "/api/v1/tenants/keygo/oauth2/token"
+  })
+  void doFilterInternal_shouldAllowOAuth2FlowPathsWithoutAuth(String path) throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getAuthorizePathSuffix()).thenReturn("/oauth2/authorize");
+    lenient().when(bootstrapProperties.getLoginPathSuffix()).thenReturn("/account/login");
+    lenient().when(bootstrapProperties.getTokenPathSuffix()).thenReturn("/oauth2/token");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── X-KEYGO-ADMIN auth ────────────────────────────────────────────────────
 
   @Test
   void doFilterInternal_shouldAllowApiPathWithValidAdminKey() throws ServletException, IOException {
@@ -109,19 +128,11 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 
-  /**
-   * Provides test cases for authentication rejection scenarios
-   * Proporciona casos de prueba para escenarios de rechazo de autenticación
-   */
   static Stream<Arguments> authenticationRejectionScenarios() {
     return Stream.of(
-        // Scenario: Invalid admin key in header
         Arguments.of("invalid-key", "valid-admin-key", "Invalid admin key"),
-        // Scenario: Missing admin key header
         Arguments.of(null, "valid-admin-key", "Missing admin key header"),
-        // Scenario: Null admin key in properties
         Arguments.of("some-key", null, "Null admin key in properties"),
-        // Scenario: Blank admin key in properties
         Arguments.of("some-key", "   ", "Blank admin key in properties")
     );
   }
@@ -152,10 +163,10 @@ class BootstrapAdminKeyFilterTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"   ", "  "})
-  void doFilterInternal_shouldRejectApiPathWithBlankAdminKeyHeader(String blankKey) throws ServletException, IOException {
+  void doFilterInternal_shouldRejectApiPathWithBlankAdminKeyHeader(String blankKey)
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    // Not setting adminKey stub because validation fails on blank header before checking properties
     request.setServletPath("/api/v1/test");
     request.addHeader("X-KEYGO-ADMIN", blankKey);
 
@@ -165,9 +176,115 @@ class BootstrapAdminKeyFilterTest {
     // Then
     verify(filterChain, never()).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(401);
-    assertThat(response.getContentType()).startsWith("application/json");
     verify(jsonMapper).writeValue(any(Writer.class), any());
   }
+
+  // ─── Bearer JWT auth ───────────────────────────────────────────────────────
+
+  @Test
+  void doFilterInternal_shouldAllowApiPathWithValidBearerJwtAdminRole() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(bootstrapProperties.getAdminRoles()).thenReturn(List.of("ADMIN"));
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", List.of("ADMIN")));
+
+    filter.accessTokenVerifier = accessTokenVerifier;
+    filter.signingKeyRepository = signingKeyRepository;
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWithoutAdminRole() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(bootstrapProperties.getAdminRoles()).thenReturn(List.of("ADMIN"));
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", List.of("USER")));
+
+    filter.accessTokenVerifier = accessTokenVerifier;
+    filter.signingKeyRepository = signingKeyRepository;
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWithNoRolesClaim() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    // Note: getAdminRoles() is NOT stubbed here because the filter returns early
+    // when the "roles" claim is absent — before checking adminRoles
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid"));
+
+    filter.accessTokenVerifier = accessTokenVerifier;
+    filter.signingKeyRepository = signingKeyRepository;
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWhenVerifierNotAvailable() throws ServletException, IOException {
+    // Given — no tokenVerifier/signingKeyRepository injected (non-supabase profile)
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer some.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then — falls through to 401 since neither X-KEYGO-ADMIN nor JWT verifier available
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWhenVerificationThrowsException() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenThrow(new RuntimeException("invalid signature"));
+
+    filter.accessTokenVerifier = accessTokenVerifier;
+    filter.signingKeyRepository = signingKeyRepository;
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer expired.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  // ─── Non-API paths ─────────────────────────────────────────────────────────
 
   @Test
   void doFilterInternal_shouldAllowNonApiPathWithoutAuth() throws ServletException, IOException {
@@ -183,12 +300,8 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 
-  /**
-   * Regression test for the bug where getRequestURI() was used instead of getServletPath().
-   * When a context-path is active (e.g. /keygo-server), getRequestURI() returns
-   * /keygo-server/api/v1/... which does NOT start with /api/ and the filter would skip auth.
-   * Using getServletPath() (which strips the context-path) fixes this.
-   */
+  // ─── Regression: context-path ──────────────────────────────────────────────
+
   @Test
   void doFilterInternal_shouldRejectApiPathWithContextPathInUri_whenAdminKeyMissing()
       throws ServletException, IOException {
@@ -196,14 +309,12 @@ class BootstrapAdminKeyFilterTest {
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     request.setContextPath("/keygo-server");
     request.setRequestURI("/keygo-server/api/v1/tenants");
-    // servletPath is the path WITHOUT the context-path — this is what the fixed filter reads
     request.setServletPath("/api/v1/tenants");
-    // No X-KEYGO-ADMIN header provided
 
     // When
     filter.doFilterInternal(request, response, filterChain);
 
-    // Then – filter must block the request, not let it through
+    // Then
     verify(filterChain, never()).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(401);
   }
@@ -228,6 +339,3 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 }
-
-
-

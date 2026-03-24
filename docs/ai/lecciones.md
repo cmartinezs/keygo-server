@@ -27,6 +27,9 @@
 | Fecha | Tema | Categoría |
 |---|---|---|
 | 2026-03-24 | [Claim `roles` en JWT: agregar parámetro a ambas firmas de TokenClaimsFactoryPort](#2026-03-24-claim-roles-en-jwt) | OAuth2 / JWT / Arquitectura |
+| 2026-03-24 | [JWT admin en filtro: rutas OAuth2 públicas + Bearer con rol admin](#2026-03-24-jwt-admin-en-filtro-rutas-oauth2-públicas--bearer-con-rol-admin) | Security / Filter |
+| 2026-03-24 | [SigningKeyInitializer: auto-generar clave RSA en startup con @Profile](#2026-03-24-signingkeyinitializer-auto-generar-clave-rsa-en-startup) | Spring / Startup |
+| 2026-03-24 | [replace_string_in_file duplica clase si el string a reemplazar es solo la cabecera](#2026-03-24-replace_string_in_file-puede-duplicar-clase-si-el-texto-a-reemplazar-es-solo-el-importpaquete) | Tooling |
 | 2026-03-23 | [keygo-ui — app unificada con roles en JWT (no tres portales separados)](#2026-03-23-keygo-ui--arquitectura-de-app-unificada-con-roles-en-jwt) | Arquitectura / Frontend |
 | 2026-03-23 | [Manual frontend: flujo OAuth2 retorna code en JSON, no HTTP 302](#2026-03-23-manual-frontend-flujo-oauth2-retorna-code-en-json-no-http-302) | OAuth2 / Frontend |
 | 2026-03-23 | [Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md](#2026-03-23-nuevas-variables-de-entorno-deben-documentarse-en-env-y-environment_setupmd) | Convenciones / Entorno |
@@ -70,8 +73,7 @@
 
 ## Lecciones
 
-### [2026-03-24] Claim `roles` en JWT
-**Contexto:** Implementación del claim `roles` en `access_token` e `id_token` para que el frontend `keygo-ui` lea los roles directamente desde el JWT sin llamadas adicionales a la API.
+### [2026-03-24] Claim `roles` en JWT para que el frontend `keygo-ui` lea los roles directamente desde el JWT sin llamadas adicionales a la API.
 **Problema:** El claim `roles` debe propagarse por toda la cadena de emisión de tokens: `MembershipRepositoryPort` → use case → `TokenClaimsFactoryPort` → `StandardTokenClaimsFactory`. Al agregar un parámetro a la interfaz, **todos** los callers deben actualizarse: `IssueTokensUseCase`, `RotateRefreshTokenUseCase`, `AuthorizationController` y también `IssueClientCredentialsTokenUseCase` (que pasa `null` porque M2M no tiene usuario ni membresía).
 **Solución / Buena práctica:**
 1. Agregar `findRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId): List<String>` al port `MembershipRepositoryPort`.
@@ -81,6 +83,23 @@
 5. Al agregar `MembershipRepositoryPort` como dependencia de `RotateRefreshTokenUseCase`, actualizar el bean en `ApplicationConfig` con el nuevo parámetro en el orden correcto del constructor.
 6. Los tests de `IssueTokensUseCaseTest`, `RotateRefreshTokenUseCaseTest` y `StandardTokenClaimsFactoryTest` deben actualizarse para reflejar las nuevas firmas.
 **Archivos clave:** `keygo-app/src/main/java/.../app/auth/port/TokenClaimsFactoryPort.java`, `keygo-app/src/main/java/.../app/membership/port/MembershipRepositoryPort.java`, `keygo-infra/src/main/java/.../infra/auth/jwt/StandardTokenClaimsFactory.java`, `keygo-supabase/src/main/java/.../supabase/membership/repository/MembershipJpaRepository.java`, `keygo-run/src/main/java/.../run/config/ApplicationConfig.java`
+
+### [2026-03-24] JWT admin en filtro: rutas OAuth2 públicas + Bearer con rol admin
+**Contexto:** Implementar el ítem "Los endpoints admin aún no validan JWT" para habilitar el frontend `keygo-ui` a llamar endpoints protegidos con su Bearer token (obtenido tras login OAuth2).
+**Problema:** Dos issues combinados: (1) las rutas OAuth2 del flujo de autorización (`/oauth2/authorize`, `/account/login`, `/oauth2/token`) estaban protegidas por `X-KEYGO-ADMIN`, creando un círculo vicioso — el frontend no puede obtener un JWT sin autenticarse primero. (2) el filtro solo aceptaba `X-KEYGO-ADMIN` pero no Bearer JWT.
+**Solución / Buena práctica:**
+1. Agregar sufijos públicos para las rutas OAuth2: `authorizePathSuffix`, `loginPathSuffix`, `tokenPathSuffix` en `KeyGoBootstrapProperties` + `application.yml`.
+2. Agregar dos campos opcionales al filtro con `@Autowired(required = false)` (package-private para permitir inyección en tests del mismo paquete): `AccessTokenVerifierPort` y `SigningKeyRepositoryPort`.
+3. El nuevo método `validateBearerAdminToken()` usa `signingKeyRepository.findPublishableKeys()` + `accessTokenVerifier.verify()` y luego comprueba el claim `roles` contra `bootstrapProperties.getAdminRoles()`.
+4. El método `validateAuthentication()` prueba primero `X-KEYGO-ADMIN` (si está presente), luego Bearer JWT. Si ninguno está disponible, retorna false.
+5. Cuando se usa `replace_string_in_file` sobre archivos largos con coincidencia de texto corta, el tool puede DUPLICAR el archivo. La solución segura es usar `create_file` para archivos nuevos o `head -N > tmp && mv tmp original` para truncar duplicaciones.
+**Archivos clave:** `keygo-run/.../filter/BootstrapAdminKeyFilter.java`, `keygo-run/.../properties/KeyGoBootstrapProperties.java`, `keygo-run/src/main/resources/application.yml`
+
+### [2026-03-24] SigningKeyInitializer: auto-generar clave RSA en startup
+**Contexto:** El frontend necesita un signing key RSA activo para que el flujo OAuth2 emita JWTs. Sin una clave activa, el endpoint de token falla con `NoActiveSigningKeyException`.
+**Problema:** No había mecanismo automático para generar la primera clave RSA al iniciar el servidor en un entorno nuevo (DB vacía). Los desarrolladores debían insertar la clave manualmente o via script SQL.
+**Solución / Buena práctica:** Crear `SigningKeyInitializer implements ApplicationRunner` en `keygo-run`, anotado con `@Profile("supabase")` para que solo se active cuando hay DB. En `run()`: si no hay clave ACTIVE, genera un par RSA-2048 usando `KeyPairGenerator`, codifica a PEM con `Base64.getMimeEncoder(64, ...)` y persiste via `SigningKeyRepositoryPort.save()`. Esto es idempotente: en re-inicios con clave existente, el método es un no-op.
+**Archivos clave:** `keygo-run/src/main/java/.../run/startup/SigningKeyInitializer.java`
 
 ### [2026-03-24] replace_string_in_file puede duplicar clase si el texto a reemplazar es solo el import/paquete
 **Contexto:** Al actualizar `UserPersistenceMapper.java` para agregar campos OIDC extendidos, se usó `replace_string_in_file` con solo la sección de imports como `oldString`, reemplazándola por el archivo completo nuevo.

@@ -165,6 +165,37 @@ class KeyGoBootstrapPropertiesTest {
         assertThat(properties.getActuatorPathPrefix()).isEqualTo(customActuatorPath);
         assertThat(properties.getServiceInfoPathPrefix()).isEqualTo(customServiceInfoPath);
     }
+
+    @Test
+    void adminRoles_shouldDefaultToAdminOnly() {
+        // When / Then
+        assertThat(properties.getAdminRoles())
+            .isNotNull()
+            .containsExactly("ADMIN");
+    }
+
+    @Test
+    void adminRoles_shouldBeConfigurable() {
+        // Given
+        java.util.List<String> roles = java.util.List.of("ADMIN", "SUPERADMIN");
+
+        // When
+        properties.setAdminRoles(roles);
+
+        // Then
+        assertThat(properties.getAdminRoles()).containsExactlyInAnyOrder("ADMIN", "SUPERADMIN");
+    }
+
+    @Test
+    void oauth2PublicSuffixes_shouldBeConfigurable() {
+        // Given / When
+        properties.setAuthorizePathSuffix("/oauth2/authorize");
+        properties.setLoginPathSuffix("/account/login");
+        properties.setTokenPathSuffix("/oauth2/token");
+
+        // Then
+        assertThat(properties.getAuthorizePathSuffix()).isEqualTo("/oauth2/authorize");
+        assertThat(properties.getLoginPathSuffix()).isEqualTo("/account/login");
+        assertThat(properties.getTokenPathSuffix()).isEqualTo("/oauth2/token");
+    }
 }
-
-

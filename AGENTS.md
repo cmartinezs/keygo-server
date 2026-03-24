@@ -156,6 +156,8 @@ All endpoints are served under `/keygo-server`. Local URLs:
 
 ✅ **Bug T-001 corregido (2026-03-21) — `BootstrapAdminKeyFilter`:** now uses `request.getServletPath()` (strips the context-path) instead of `request.getRequestURI()`. With `context-path=/keygo-server`, `getRequestURI()` returned `/keygo-server/api/...` which never matched the prefixes in `application.yml` (e.g. `/api/`), leaving all routes public. `getServletPath()` returns `/api/...` directly. Tests updated to use `setServletPath()` + 2 regression tests with simulated context-path.
 
+✅ **JWT admin auth añadida (2026-03-24) — `BootstrapAdminKeyFilter`:** protected `/api/**` endpoints now accept **either** `X-KEYGO-ADMIN: <key>` (service-to-service) **or** `Authorization: Bearer <jwt>` with a `roles` claim containing a value listed in `keygo.bootstrap.admin-roles` (default `["ADMIN"]`). The OAuth2 flow paths (`/oauth2/authorize`, `/account/login`, `/oauth2/token`) are now **public** so the browser can initiate login without pre-existing credentials. On startup with the `supabase` profile, `SigningKeyInitializer` auto-generates an RSA-2048 signing key if none exists.
+
 The filter has three path categories (see `KeyGoBootstrapProperties`):
 
 | Property | `application.yml` value | Behaviour |
@@ -172,6 +174,10 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.verify-email-path-suffix` | `/verify-email` | Public — email verification endpoint |
 | `keygo.bootstrap.resend-verification-path-suffix` | `/resend-verification` | Public — resend verification code endpoint |
 | `keygo.bootstrap.account-profile-path-suffix` | `/account/profile` | Public — Bearer token validated inside controller (GET + PATCH self-service) |
+| `keygo.bootstrap.authorize-path-suffix` | `/oauth2/authorize` | Public — browser navigates here to start the OAuth2 flow |
+| `keygo.bootstrap.login-path-suffix` | `/account/login` | Public — user POSTs credentials during the authorization code flow |
+| `keygo.bootstrap.token-path-suffix` | `/oauth2/token` | Public — code exchange (PKCE-protected) and token rotation |
+| `keygo.bootstrap.admin-roles` | `[ADMIN]` | JWT roles that grant admin access via Bearer token to protected `/api/**` routes |
 
 ## Security header
 

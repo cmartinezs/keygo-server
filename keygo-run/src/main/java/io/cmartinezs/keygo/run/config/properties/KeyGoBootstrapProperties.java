@@ -82,6 +82,22 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de perfil de cuenta que es público (validado vía Bearer token). */
   private String accountProfilePathSuffix;
 
+  /* OAuth2 authorize path suffix that is public (browser navigates here to start the flow).
+   * Sufijo de ruta authorize que es público (el navegador navega aquí para iniciar el flujo). */
+  private String authorizePathSuffix;
+
+  /* Account login path suffix that is public (user POSTs credentials during OAuth2 flow).
+   * Sufijo de ruta login que es público (el usuario envía credenciales durante el flujo OAuth2). */
+  private String loginPathSuffix;
+
+  /* OAuth2 token path suffix that is public (code exchange, PKCE-protected).
+   * Sufijo de ruta token que es público (canje de código, protegido por PKCE). */
+  private String tokenPathSuffix;
+
+  /* List of JWT role codes (case-sensitive) that grant admin access to protected API endpoints.
+   * Lista de códigos de rol JWT (sensibles a mayúsculas) que otorgan acceso admin a endpoints protegidos. */
+  private java.util.List<String> adminRoles = java.util.List.of("ADMIN");
+
   /**
    * Validates that adminKey is not blank when enabled is true.
    * <p>Valida que adminKey no esté vacía cuando enabled es true.
