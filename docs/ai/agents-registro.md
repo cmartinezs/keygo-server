@@ -22,6 +22,44 @@
 
 ## Registro de cambios
 
+### [2026-03-24] Fase 9b — Perfil de usuario OIDC extendido + endpoints self-service
+
+**Motivo:** Implementación completa del perfil de usuario OIDC extendido basado en la decisión de diseño:
+perfil canónico en `tenant_users`, metadata app-específica en `membership_attributes` (futuro V14).
+
+**Cambios en AGENTS.md:**
+- Tabla de filtro: agregado `account-profile-path-suffix: "/account/profile"` como sufijo público
+- Lista de migraciones: agregada V13 (`extend_tenant_user_profile`) y actualizado "próxima" a V14
+- Tabla de fases: fila Fase 9b marcada como ✅ Done (2026-03-24)
+- URLs de referencia rápida: agregados GET y PATCH `/account/profile`
+
+**Nuevos archivos:**
+- `V13__extend_tenant_user_profile.sql` — 6 campos OIDC en `tenant_users`
+- `GetUserProfileUseCase.java` + `GetUserProfileCommand.java`
+- `UpdateUserProfileUseCase.java` + `UpdateUserProfileCommand.java`
+- `UserProfileResult.java` (keygo-app result)
+- `AccountProfileController.java` (keygo-api)
+- `UpdateUserProfileRequest.java` + `UserProfileData.java` (keygo-api)
+- `UserProfileUseCaseTest.java` (7 nuevos tests)
+
+**Archivos modificados:**
+- `User.java` — 6 nuevos campos + `updateProfile()`
+- `TenantUserEntity.java` — 6 nuevas columnas JPA
+- `UserPersistenceMapper.java` — mapeo de nuevos campos
+- `UpdateUserCommand.java` / `UpdateUserRequest.java` — 6 campos opcionales
+- `UpdateUserUseCase.java` — usa `updateProfile()` en vez de `updateName()`
+- `UserInfoResult.java` — claims OIDC extendidos
+- `GetUserInfoUseCase.java` — retorna claims extendidos
+- `ResponseCode.java` — `USER_PROFILE_RETRIEVED`, `USER_PROFILE_UPDATED`
+- `UserData.java` — 6 campos de perfil en DTO admin
+- `KeyGoBootstrapProperties.java` — `accountProfilePathSuffix`
+- `BootstrapAdminKeyFilter.java` — check de sufijo en `isPublicBySuffix()`
+- `application.yml` — `account-profile-path-suffix: "/account/profile"`
+- `ApplicationConfig.java` — 2 nuevos `@Bean`
+- `TenantUserController.java` — pasa nuevos campos al command + toData() extendido
+- Postman — carpeta "👤 Account Profile" con GET + PATCH (40 requests total)
+- `FRONTEND_DEVELOPER_GUIDE.md` §14 — 2 nuevos endpoints en tabla 14.1
+
 ### [2026-03-23] Corrección de documentación — Fase 9 marcada como ✅ COMPLETADA
 
 **Motivo:** La Fase 9 (Self-service de identidad — registro + verificación email) fue implementada el 2026-03-23

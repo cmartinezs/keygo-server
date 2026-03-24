@@ -37,6 +37,8 @@ public enum ResponseCode {
   USER_LIST_RETRIEVED("USER_LIST_RETRIEVED", "User list retrieved successfully"),
   USER_UPDATED("USER_UPDATED", "User updated successfully"),
   USER_PASSWORD_RESET("USER_PASSWORD_RESET", "User password reset successfully"),
+  USER_PROFILE_RETRIEVED("USER_PROFILE_RETRIEVED", "User profile retrieved successfully"),
+  USER_PROFILE_UPDATED("USER_PROFILE_UPDATED", "User profile updated successfully"),
   CREDENTIALS_VALID("CREDENTIALS_VALID", "Credentials validated successfully"),
 
   // Client App Operations

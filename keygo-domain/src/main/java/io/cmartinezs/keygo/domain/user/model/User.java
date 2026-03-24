@@ -24,6 +24,20 @@ public class User {
   private String lastName;
   private UserStatus status;
 
+  // ─── OIDC extended profile claims (OIDC §5.3) ────────────────────────────
+  /** OIDC phone_number — "phone" scope */
+  private String phoneNumber;
+  /** OIDC locale — BCP47 tag, e.g. "es-MX" — "profile" scope */
+  private String locale;
+  /** OIDC zoneinfo — tz database, e.g. "America/Mexico_City" — "profile" scope */
+  private String zoneinfo;
+  /** OIDC picture — external URL — "profile" scope */
+  private String profilePictureUrl;
+  /** OIDC birthdate — ISO 8601 date string, e.g. "1990-01-15" — "profile" scope */
+  private String birthdate;
+  /** OIDC website — URL — "profile" scope */
+  private String website;
+
   @Builder
   private User(
       UserId id,
@@ -33,7 +47,13 @@ public class User {
       PasswordHash passwordHash,
       String firstName,
       String lastName,
-      UserStatus status) {
+      UserStatus status,
+      String phoneNumber,
+      String locale,
+      String zoneinfo,
+      String profilePictureUrl,
+      String birthdate,
+      String website) {
     if (id == null) throw new IllegalArgumentException("User id cannot be null");
     if (tenantId == null) throw new IllegalArgumentException("User tenantId cannot be null");
     if (username == null) throw new IllegalArgumentException("User username cannot be null");
@@ -49,6 +69,12 @@ public class User {
     this.firstName = firstName;
     this.lastName = lastName;
     this.status = status;
+    this.phoneNumber = phoneNumber;
+    this.locale = locale;
+    this.zoneinfo = zoneinfo;
+    this.profilePictureUrl = profilePictureUrl;
+    this.birthdate = birthdate;
+    this.website = website;
   }
 
   // ─── Domain behaviour ─────────────────────────────────────────────────────
@@ -118,6 +144,40 @@ public class User {
   public void updateName(String firstName, String lastName) {
     this.firstName = firstName;
     this.lastName = lastName;
+  }
+
+  /**
+   * Update the user's extended OIDC profile claims.
+   * <p>Actualiza los claims de perfil OIDC extendidos del usuario.
+   * All parameters are optional — pass null to leave a field unchanged, pass empty string to clear it.
+   * <p>Todos los parámetros son opcionales — pasar null deja el campo sin cambio, pasar string vacío lo borra.
+   *
+   * @param firstName         new first name (null = no change)
+   * @param lastName          new last name (null = no change)
+   * @param phoneNumber       OIDC phone_number (null = no change)
+   * @param locale            BCP47 locale (null = no change)
+   * @param zoneinfo          tz database zoneinfo (null = no change)
+   * @param profilePictureUrl external picture URL (null = no change)
+   * @param birthdate         ISO 8601 date (null = no change)
+   * @param website           website URL (null = no change)
+   */
+  public void updateProfile(
+      String firstName,
+      String lastName,
+      String phoneNumber,
+      String locale,
+      String zoneinfo,
+      String profilePictureUrl,
+      String birthdate,
+      String website) {
+    if (firstName != null)         this.firstName = firstName;
+    if (lastName != null)          this.lastName = lastName;
+    if (phoneNumber != null)       this.phoneNumber = phoneNumber;
+    if (locale != null)            this.locale = locale;
+    if (zoneinfo != null)          this.zoneinfo = zoneinfo;
+    if (profilePictureUrl != null) this.profilePictureUrl = profilePictureUrl;
+    if (birthdate != null)         this.birthdate = birthdate;
+    if (website != null)           this.website = website;
   }
 
   @Override

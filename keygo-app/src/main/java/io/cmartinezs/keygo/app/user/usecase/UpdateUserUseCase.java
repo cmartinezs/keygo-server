@@ -42,7 +42,15 @@ public class UpdateUserUseCase {
     User user = userRepositoryPort.findByIdAndTenantId(UserId.of(command.userId()), tenant.getId())
         .orElseThrow(() -> new UserNotFoundException(command.userId()));
 
-    user.updateName(command.firstName(), command.lastName());
+    user.updateProfile(
+        command.firstName(),
+        command.lastName(),
+        command.phoneNumber(),
+        command.locale(),
+        command.zoneinfo(),
+        command.profilePictureUrl(),
+        command.birthdate(),
+        command.website());
 
     return userRepositoryPort.save(user);
   }

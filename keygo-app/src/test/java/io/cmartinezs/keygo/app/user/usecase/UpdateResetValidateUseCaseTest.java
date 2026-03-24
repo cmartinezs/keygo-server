@@ -76,11 +76,34 @@ class UpdateResetValidateUseCaseTest {
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
-    User result = uc.execute(new UpdateUserCommand(TENANT_SLUG, activeUser.getId().toString(), "Jane", "Smith"));
+    User result = uc.execute(new UpdateUserCommand(TENANT_SLUG, activeUser.getId().toString(),
+        "Jane", "Smith", null, null, null, null, null, null));
 
     // Then
     assertThat(result.getFirstName()).isEqualTo("Jane");
     assertThat(result.getLastName()).isEqualTo("Smith");
+  }
+
+  @Test
+  void updateUserChangesExtendedProfileFields() {
+    // Given
+    UpdateUserUseCase uc = new UpdateUserUseCase(tenantRepositoryPort, userRepositoryPort);
+    when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
+    when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    User result = uc.execute(new UpdateUserCommand(TENANT_SLUG, activeUser.getId().toString(),
+        null, null, "+521234567890", "es-MX", "America/Mexico_City",
+        "https://example.com/pic.jpg", "1990-01-15", "https://johndoe.dev"));
+
+    // Then
+    assertThat(result.getPhoneNumber()).isEqualTo("+521234567890");
+    assertThat(result.getLocale()).isEqualTo("es-MX");
+    assertThat(result.getZoneinfo()).isEqualTo("America/Mexico_City");
+    assertThat(result.getProfilePictureUrl()).isEqualTo("https://example.com/pic.jpg");
+    assertThat(result.getBirthdate()).isEqualTo("1990-01-15");
+    assertThat(result.getWebsite()).isEqualTo("https://johndoe.dev");
   }
 
   @Test
@@ -89,7 +112,8 @@ class UpdateResetValidateUseCaseTest {
     UpdateUserUseCase uc = new UpdateUserUseCase(tenantRepositoryPort, userRepositoryPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.empty());
     String userId = UUID.randomUUID().toString();
-    UpdateUserCommand command = new UpdateUserCommand(TENANT_SLUG, userId, "X", "Y");
+    UpdateUserCommand command = new UpdateUserCommand(TENANT_SLUG, userId, "X", "Y",
+        null, null, null, null, null, null);
 
     // When / Then
     assertThatThrownBy(() -> uc.execute(command))
@@ -103,7 +127,8 @@ class UpdateResetValidateUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.empty());
     String userId = UUID.randomUUID().toString();
-    UpdateUserCommand command = new UpdateUserCommand(TENANT_SLUG, userId, "X", "Y");
+    UpdateUserCommand command = new UpdateUserCommand(TENANT_SLUG, userId, "X", "Y",
+        null, null, null, null, null, null);
 
     // When / Then
     assertThatThrownBy(() -> uc.execute(command))

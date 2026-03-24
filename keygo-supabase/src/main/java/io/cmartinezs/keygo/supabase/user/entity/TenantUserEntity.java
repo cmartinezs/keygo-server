@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -69,6 +70,26 @@ public class TenantUserEntity {
   @Column(nullable = false, length = 20)
   @Builder.Default
   private UserStatus status = UserStatus.ACTIVE;
+
+  // ─── OIDC extended profile claims (V13) ───────────────────────────────────
+
+  @Column(name = "phone_number", length = 30)
+  private String phoneNumber;
+
+  @Column(name = "locale", length = 10)
+  private String locale;
+
+  @Column(name = "zoneinfo", length = 50)
+  private String zoneinfo;
+
+  @Column(name = "profile_picture_url", columnDefinition = "TEXT")
+  private String profilePictureUrl;
+
+  @Column(name = "birthdate")
+  private LocalDate birthdate;
+
+  @Column(name = "website", length = 2048)
+  private String website;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

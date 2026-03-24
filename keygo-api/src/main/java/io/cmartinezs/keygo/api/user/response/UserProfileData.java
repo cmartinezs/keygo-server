@@ -4,39 +4,38 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Response DTO for user data.
- * <p>DTO de respuesta con datos del usuario.
- * Note: passwordHash is intentionally excluded from this DTO.
- * <p>Nota: passwordHash se excluye intencionalmente de este DTO.
+ * Response DTO para el perfil propio del usuario autenticado (self-service).
+ * <p>Incluye todos los campos OIDC extendidos del perfil, retornados al
+ * propietario del token. Análogo a {@link UserData} pero sin el campo
+ * {@code tenantId} expuesto por separado y con el perfil completo siempre visible.
+ *
  * @author cmartinezs
- * @version 1.1
+ * @version 1.0
  */
 @Getter
 @Builder
-public class UserData {
+public class UserProfileData {
 
-  /* Unique user identifier (UUID) */
+  /* UUID del usuario */
   private final String id;
 
-  /* Tenant the user belongs to */
+  /* UUID del tenant */
   private final String tenantId;
 
-  /* Unique username within the tenant */
+  /* Nombre de usuario único en el tenant */
   private final String username;
 
-  /* Email address of the user */
+  /* Email del usuario */
   private final String email;
 
-  /* Optional first name */
+  /* Nombre de pila */
   private final String firstName;
 
-  /* Optional last name */
+  /* Apellido */
   private final String lastName;
 
-  /* Account status: ACTIVE, SUSPENDED, PENDING */
+  /* Estado de la cuenta (ACTIVE, PENDING, SUSPENDED) */
   private final String status;
-
-  // ─── OIDC extended profile fields (V13) ───────────────────────────────────
 
   /* OIDC phone_number */
   private final String phoneNumber;
@@ -47,10 +46,10 @@ public class UserData {
   /* OIDC zoneinfo (tz database, e.g. "America/Mexico_City") */
   private final String zoneinfo;
 
-  /* OIDC picture — external URL */
+  /* OIDC picture — URL externa */
   private final String profilePictureUrl;
 
-  /* OIDC birthdate — ISO 8601 date string */
+  /* OIDC birthdate — fecha ISO 8601 */
   private final String birthdate;
 
   /* OIDC website — URL */

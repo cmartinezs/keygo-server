@@ -179,7 +179,10 @@ public class TenantUserController {
       @RequestBody UpdateUserRequest request) {
 
     User user = updateUserUseCase.execute(new UpdateUserCommand(
-        tenantSlug, userId, request.firstName(), request.lastName()));
+        tenantSlug, userId,
+        request.firstName(), request.lastName(),
+        request.phoneNumber(), request.locale(), request.zoneinfo(),
+        request.profilePictureUrl(), request.birthdate(), request.website()));
 
     return ResponseEntity.status(HttpStatus.OK).body(
         BaseResponse.<UserData>builder()
@@ -263,6 +266,12 @@ public class TenantUserController {
         .firstName(user.getFirstName())
         .lastName(user.getLastName())
         .status(user.getStatus().name())
+        .phoneNumber(user.getPhoneNumber())
+        .locale(user.getLocale())
+        .zoneinfo(user.getZoneinfo())
+        .profilePictureUrl(user.getProfilePictureUrl())
+        .birthdate(user.getBirthdate())
+        .website(user.getWebsite())
         .build();
   }
 }

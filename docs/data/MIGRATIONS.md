@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-03-23  
+> **Última actualización:** 2026-03-24  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
-> **Próxima migración:** `V13__...`
+> **Próxima migración:** `V14__...`
 
 ---
 
@@ -262,11 +262,58 @@ Esto alinea los nombres de tabla con la convención del resto del schema.
 
 ---
 
+### V13 — `V13__extend_tenant_user_profile.sql`
+
+**Tablas modificadas:** `tenant_users`
+
+**Propósito:** Extender la tabla `tenant_users` con los campos de perfil estándar OIDC §5.3.
+
+**Decisión de diseño:** El perfil canónico del usuario vive en `tenant_users` (nivel tenant), no en `memberships` (nivel app). Esto sigue el patrón OIDC §5.3, Auth0 y Keycloak: "el usuario tiene un perfil, las apps tienen atributos de membresía".
+
+**Columnas agregadas:**
+
+| Columna | Tipo | Nullable | Scope OIDC | Descripción |
+|---|---|---|---|---|
+| `phone_number` | `VARCHAR(30)` | ✅ | `phone` | Número de teléfono en formato E.164 |
+| `locale` | `VARCHAR(10)` | ✅ | `profile` | Locale BCP47, e.g. `es-MX` |
+| `zoneinfo` | `VARCHAR(50)` | ✅ | `profile` | tz database, e.g. `America/Mexico_City` |
+| `profile_picture_url` | `TEXT` | ✅ | `profile` | URL externa de foto de perfil |
+| `birthdate` | `DATE` | ✅ | `profile` | Fecha de nacimiento ISO 8601 |
+| `website` | `VARCHAR(2048)` | ✅ | `profile` | URL del sitio web personal |
+
+**Nuevos endpoints habilitados por esta migración:**
+- `GET /api/v1/tenants/{slug}/account/profile` — perfil propio (Bearer token)
+- `PATCH /api/v1/tenants/{slug}/account/profile` — editar perfil propio (Bearer token)
+- `/userinfo` ahora retorna los campos extendidos (`given_name`, `family_name`, `picture`, `locale`, `zoneinfo`, `birthdate`, `website`, `phone_number`)
+
+---
+
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V13)
-touch keygo-supabase/src/main/resources/db/migration/V13__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V14)
+touch keygo-supabase/src/main/resources/db/migration/V14__descripcion_del_cambio.sql
+
+# 2. Escribir el SQL de manera idempotente cuando sea posible
+# 3. Levantar DB local
+cd keygo-supabase && ./scripts/dev-start.sh
+
+# 4. Aplicar (Flyway corre automáticamente al arrancar la app)
+export SPRING_PROFILES_ACTIVE="supabase,local"
+./mvnw spring-boot:run -pl keygo-run
+
+# 5. Verificar
+./mvnw -pl keygo-supabase test
+```
+
+### Reglas de escritura
+
+- Usar `IF NOT EXISTS` / `IF EXISTS` cuando corresponda para mayor seguridad
+- Definir constraints con nombre explícito (`CONSTRAINT pk_... PRIMARY KEY`, `CONSTRAINT fk_...`)
+- Agregar índices relevantes en la misma migración
+- No usar `DROP TABLE` sin `IF EXISTS`
+- **Nunca** modificar migraciones ya aplicadas
+
 
 # 2. Escribir el SQL de manera idempotente cuando sea posible
 # 3. Levantar DB local

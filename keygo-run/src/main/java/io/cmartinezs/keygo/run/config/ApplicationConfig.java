@@ -57,6 +57,8 @@ import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetUserProfileUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
 import io.cmartinezs.keygo.infra.email.SmtpEmailNotificationAdapter;
 import org.springframework.mail.javamail.JavaMailSender;
 import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
@@ -422,6 +424,30 @@ public class ApplicationConfig {
       UserRepositoryPort userRepositoryPort,
       TenantRepositoryPort tenantRepositoryPort) {
     return new GetUserInfoUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        userRepositoryPort, tenantRepositoryPort);
+  }
+
+  // ─── Perfil de usuario self-service ──────────────────────────────────────
+
+  @Bean
+  public GetUserProfileUseCase getUserProfileUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      UserRepositoryPort userRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort) {
+    return new GetUserProfileUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        userRepositoryPort, tenantRepositoryPort);
+  }
+
+  @Bean
+  public UpdateUserProfileUseCase updateUserProfileUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      UserRepositoryPort userRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort) {
+    return new UpdateUserProfileUseCase(
         signingKeyRepositoryPort, accessTokenVerifierPort,
         userRepositoryPort, tenantRepositoryPort);
   }

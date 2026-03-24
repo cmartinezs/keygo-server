@@ -78,6 +78,10 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de reenvío de verificación que es público. */
   private String resendVerificationPathSuffix;
 
+  /* Account profile path suffix that is public (validated via Bearer token).
+   * Sufijo de ruta de perfil de cuenta que es público (validado vía Bearer token). */
+  private String accountProfilePathSuffix;
+
   /**
    * Validates that adminKey is not blank when enabled is true.
    * <p>Valida que adminKey no esté vacía cuando enabled es true.

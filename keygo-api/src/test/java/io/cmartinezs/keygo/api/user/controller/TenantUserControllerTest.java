@@ -113,7 +113,8 @@ class TenantUserControllerTest {
     when(updateUserUseCase.execute(any())).thenReturn(sampleUser);
 
     // When
-    var response = controller.updateUser(TENANT_SLUG, sampleUser.getId().toString(), new UpdateUserRequest("Jane", "Smith"));
+    var response = controller.updateUser(TENANT_SLUG, sampleUser.getId().toString(),
+        new UpdateUserRequest("Jane", "Smith", null, null, null, null, null, null));
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

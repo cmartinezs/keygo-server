@@ -1,32 +1,39 @@
-package io.cmartinezs.keygo.app.auth.usecase;
+package io.cmartinezs.keygo.app.user.usecase;
 
-import io.cmartinezs.keygo.app.auth.command.GetUserInfoCommand;
 import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
-import io.cmartinezs.keygo.app.auth.result.UserInfoResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.app.user.command.GetUserProfileCommand;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.result.UserProfileResult;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Caso de uso: obtener información del usuario autenticado (OIDC §5.3 userinfo).
+ * Caso de uso: obtener perfil completo del usuario autenticado (self-service).
  *
- * <p>Verifica el access_token JWT, extrae el subject (sub), localiza al usuario
- * en el tenant y retorna sus claims de identidad.
+ * <p>Verifica el access_token JWT, extrae el {@code sub} (UUID del usuario),
+ * localiza al usuario en el tenant y retorna su perfil completo (todos los
+ * campos de perfil OIDC extendido, sin filtrado por scope).
+ *
+ * <p>Usado por: {@code GET /api/v1/tenants/{slug}/account/profile}
+ *
+ * @author cmartinezs
+ * @version 1.0
  */
-public class GetUserInfoUseCase {
+public class GetUserProfileUseCase {
 
   private final SigningKeyRepositoryPort signingKeyRepository;
   private final AccessTokenVerifierPort accessTokenVerifier;
   private final UserRepositoryPort userRepository;
   private final TenantRepositoryPort tenantRepository;
 
-  public GetUserInfoUseCase(
+  public GetUserProfileUseCase(
       SigningKeyRepositoryPort signingKeyRepository,
       AccessTokenVerifierPort accessTokenVerifier,
       UserRepositoryPort userRepository,
@@ -38,14 +45,12 @@ public class GetUserInfoUseCase {
   }
 
   /**
-   * Ejecuta la obtención de userinfo.
+   * Ejecuta la obtención del perfil propio del usuario.
    *
    * @param command parámetros del comando (tenantSlug + bearerToken)
-   * @return claims de identidad del usuario
-   * @throws InvalidRefreshTokenException si el token es inválido o expirado
-   * @throws UserNotFoundException        si el usuario referenciado no existe
+   * @return perfil completo del usuario autenticado
    */
-  public UserInfoResult execute(GetUserInfoCommand command) {
+  public UserProfileResult execute(GetUserProfileCommand command) {
     // 1. Obtener claves públicas para verificar el token
     var publicKeys = signingKeyRepository.findPublishableKeys();
     if (publicKeys.isEmpty()) {
@@ -72,7 +77,7 @@ public class GetUserInfoUseCase {
     var tenant = tenantRepository.findBySlug(new TenantSlug(command.tenantSlug()))
         .orElseThrow(() -> new InvalidRefreshTokenException("Tenant not found: " + command.tenantSlug()));
 
-    // 5. Buscar usuario
+    // 5. Parsear userId
     UUID userId;
     try {
       userId = UUID.fromString(sub);
@@ -80,31 +85,25 @@ public class GetUserInfoUseCase {
       throw new InvalidRefreshTokenException("Access token 'sub' is not a valid UUID: " + sub);
     }
 
+    // 6. Buscar usuario
     var user = userRepository.findByIdAndTenantId(new UserId(userId), tenant.getId())
         .orElseThrow(() -> new UserNotFoundException("User not found: " + sub));
 
-    // 6. Construir resultado
-    String fullName = buildName(user.getFirstName(), user.getLastName());
-    return new UserInfoResult(
-        sub,
-        user.getEmail() != null ? user.getEmail().value() : null,
-        fullName,
+    // 7. Construir resultado con perfil completo
+    return new UserProfileResult(
+        user.getId().value().toString(),
+        user.getTenantId().value().toString(),
         user.getUsername() != null ? user.getUsername().value() : null,
+        user.getEmail() != null ? user.getEmail().value() : null,
         user.getFirstName(),
         user.getLastName(),
-        user.getProfilePictureUrl(),
+        user.getStatus() != null ? user.getStatus().name() : null,
+        user.getPhoneNumber(),
         user.getLocale(),
         user.getZoneinfo(),
+        user.getProfilePictureUrl(),
         user.getBirthdate(),
-        user.getWebsite(),
-        user.getPhoneNumber());
-  }
-
-  private String buildName(String firstName, String lastName) {
-    if (firstName == null && lastName == null) return null;
-    if (firstName == null) return lastName;
-    if (lastName == null) return firstName;
-    return firstName + " " + lastName;
+        user.getWebsite());
   }
 }
 

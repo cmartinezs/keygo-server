@@ -3,18 +3,18 @@
 > **Documento vivo.** Los agentes AI deben actualizar este archivo cuando generen nuevas propuestas
 > concretas al concluir tareas. Ver instrucciones de mantenimiento al final.
 
-## Estado actual del producto (2026-03-23)
+## Estado actual del producto (2026-03-24)
 
  Dimensión  Estado 
 ------
  Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` 
- Autenticación  **Fase 9 completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, client_credentials M2M, **registro con verificación email** 
- Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, Session, RefreshToken, **EmailVerification** 
- API pública  **24 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Users & memberships (6), OAuth2 (5 — incl. `client_credentials`), OIDC (2), UserInfo (1), Revocation (1), **Registro (3)** 
+ Autenticación  **Fase 9b completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, client_credentials M2M, registro con verificación email, **perfil de usuario OIDC extendido (V13)** 
+ Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, Session, RefreshToken, EmailVerification. V13: 6 campos OIDC extendidos en `tenant_users` 
+ API pública  **26 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Users & memberships (6), OAuth2 (5), OIDC (2), UserInfo (1), Revocation (1), Registro (3), **Account Profile (2: GET+PATCH)** 
  CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
- Tests  **320+ tests unitarios** — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — **38 requests** con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 9 ✅ Completada** — próxima: Fase 10 (Control plane y soporte) |
+ Tests  **338+ tests unitarios** — sin integración ni e2e 
+ Postman  ✅ Colecciones en `postman/` — **40 requests** con scripts `pm.test()` y entorno local 
+ Fase actual  **Fase 9b ✅ Completada** — próxima: Fase 10 (Control plane y soporte) |
 
 ---
 
@@ -62,10 +62,14 @@
 | T-037 | Agregar endpoints de gestión de sesiones: `GET /api/v1/tenants/{slug}/users/{userId}/sessions` (listar sesiones activas) y `DELETE /api/v1/tenants/{slug}/users/{userId}/sessions/{sessionId}` (terminar sesión) | `keygo-api`, `keygo-app`, `keygo-supabase` | Permite al administrador y al propio usuario ver y cerrar sesiones activas — funcionalidad estándar en IAM modernos |
 | T-039 | Agregar tests de regresión en `BootstrapAdminKeyFilterTest` para los tres nuevos sufijos públicos `/register`, `/verify-email` y `/resend-verification` — verificar que no requieran `X-KEYGO-ADMIN` y que el filtro siga protegiendo el resto de `/api/` | `keygo-run` | La Fase 9 (registro + verificación) agregó tres nuevas propiedades al filtro sin ampliar los tests específicos de cada sufijo |
 | T-040 | Hacer configurable el TTL del código de verificación de email vía `application.yml` (actualmente hardcodeado a 30 minutos en `RegisterTenantUserUseCase` y `ResendVerificationEmailUseCase`) — agregar `keygo.registration.verification-code-ttl=30m` | `keygo-run`, `keygo-app` | Permite ajustar el TTL por entorno sin recompilar; sigue el patrón de `KeyGoBootstrapProperties` |
+| T-043 | Extender `GetUserInfoUseCase` para filtrar claims según el scope solicitado en el access token: scope `profile` → `given_name`, `family_name`, `picture`, `locale`, `zoneinfo`, `birthdate`, `website`; scope `phone` → `phone_number`. Actualmente retorna todos los campos sin filtrar | `keygo-app`, `keygo-api` | OIDC §5.3 mandates scope-based claim filtering; actualmente todos los campos se retornan siempre |
+| T-044 | Crear tabla `membership_attributes` (V14) + `MembershipAttributeEntity` + port + use cases para leer/escribir metadata app-específica del usuario (análogo a Auth0 `app_metadata`) | `keygo-supabase`, `keygo-app`, `keygo-api` | Capa 2 del modelo de perfil: datos específicos por app-usuario, complementa el perfil canónico en `tenant_users` |
+| T-045 | Implementar claim mappers por `ClientApp`: el admin configura qué campos de `membership_attributes` incluir como claims custom en `id_token` y `access_token` | `keygo-app`, `keygo-supabase` | Permite a cada app extender el token con atributos propios sin modificar el esquema global |
+| T-046 | Agregar scope `profile:write` explícito y validarlo en `PATCH /account/profile` contra los scopes del access token | `keygo-app`, `keygo-api` | Granularidad de permisos; sigue OAuth2 scope-based authorization; actualmente cualquier token válido puede modificar el perfil |
 
 ---
 
-### Largo plazo
+### Mediano plazo
 
 > Capacidades estratégicas del sistema; alto esfuerzo o dependencias externas.
 
@@ -79,6 +83,8 @@
 | T-022 | Implementar caching distribuido (Redis) para tokens, JWKS y sesiones activas | `keygo-infra` | Reducir latencia y carga a DB en validación de tokens |
 | T-032 | Evaluar generador de site estático (MkDocs con Material theme / Docusaurus) para consolidar `docs/` + archivos raíz en un portal navegable unificado con búsqueda full-text y versionado | `docs/` | El repositorio ya tiene ~30 archivos Markdown en múltiples carpetas; un site estático facilita onboarding y búsqueda entre categorías |
 | T-038 | Implementar lista negra de JTI (JWT ID) de access tokens revocados con TTL en Redis — permite invalidar access tokens antes de su expiración natural sin mantener estado en DB SQL | `keygo-infra`, `keygo-app` | El modelo actual requiere esperar expiración del access token tras revocar un refresh token; con lista negra de JTI + Redis la revocación es inmediata incluso para access tokens ya emitidos |
+| T-047 | Implementar SCIM 2.0 endpoint `/api/v1/tenants/{slug}/scim/v2/Users` para aprovisionamiento y sincronización de perfiles desde sistemas HR externos (Workday, BambooHR) | `keygo-api`, `keygo-app` | Estándar de aprovisionamiento de identidades para integraciones enterprise; requiere mapeo `tenant_users` ↔ SCIM User Schema |
+| T-048 | Soporte a esquemas de atributos personalizados por tenant — el admin define campos adicionales del perfil (análogo a Keycloak `declarativeUserProfile`); requiere tabla de metadatos de esquema y validación dinámica | `keygo-supabase`, `keygo-app`, `keygo-api` | Permite a cada tenant extender el perfil con campos de negocio propios sin migraciones de DB adicionales |
 
 ---
 
@@ -169,6 +175,8 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-041 | **Fase 9b — V13 + perfil OIDC extendido:** migración `V13__extend_tenant_user_profile.sql` agrega 6 campos OIDC a `tenant_users` (`phone_number`, `locale`, `zoneinfo`, `profile_picture_url`, `birthdate`, `website`); `User` domain extendido con `updateProfile()`; `TenantUserEntity` + `UserPersistenceMapper` actualizados; `UserInfoResult` ahora retorna claims extendidos; `UpdateUserCommand/Request` extendidos | 2026-03-24 | `V13__extend_tenant_user_profile.sql`; `User.java`; `TenantUserEntity.java`; `UserPersistenceMapper.java` |
+| T-042 | **Fase 9b — Endpoints self-service de perfil:** `GetUserProfileUseCase`, `UpdateUserProfileUseCase`, `AccountProfileController` (GET+PATCH `/account/profile`); `UserProfileData`, `UpdateUserProfileRequest`; sufijo `accountProfilePathSuffix` en filtro; 7 nuevos tests unitarios | 2026-03-24 | `AccountProfileController.java`; `GetUserProfileUseCase.java`; `UpdateUserProfileUseCase.java`; `UserProfileUseCaseTest.java` |
 | T-039 | **Fase 8: `client_credentials` grant (M2M)** — `IssueClientCredentialsTokenUseCase`, rama `grant_type=client_credentials` en `POST /oauth2/token`; solo apps `CONFIDENTIAL`; `sub=clientId`; sin `id_token` ni `refresh_token`; resolución de scopes (intersección o todos si vacío); `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`; `@Bean` en `ApplicationConfig`; 1 request Postman | 2026-03-23 | `IssueClientCredentialsTokenUseCase.java`; `IssueClientCredentialsTokenCommand.java`; `IssueClientCredentialsTokenResult.java`; `AuthorizationController.java` |
 | F-025 | **E7-H1: `client_credentials` grant** — M2M sin usuario; access token técnico para apps `CONFIDENTIAL` | 2026-03-23 | `IssueClientCredentialsTokenUseCase`; `AuthorizationController` rama `client_credentials`; Postman request |
 | T-027 | **Fase 7: Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3** — `POST /oauth2/token` con `grant_type=refresh_token`, `POST /oauth2/revoke` (público, idempotente), `GET /userinfo` (Bearer token); sesiones persistidas; refresh token hash SHA-256 determinista | 2026-03-22 | `V11__add_refresh_tokens_and_sessions.sql`; `SessionEntity`, `RefreshTokenEntity`; `RotateRefreshTokenUseCase`, `RevokeTokenUseCase`, `GetUserInfoUseCase`, `OpenSessionUseCase`; `RevocationController`, `UserInfoController`; `TokenRequest` multi-grant; 3 nuevas requests Postman |

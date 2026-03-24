@@ -113,7 +113,8 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasSuffix(path, bootstrapProperties.getRevocationPathSuffix())
         || hasSuffix(path, bootstrapProperties.getRegisterPathSuffix())
         || hasSuffix(path, bootstrapProperties.getVerifyEmailPathSuffix())
-        || hasSuffix(path, bootstrapProperties.getResendVerificationPathSuffix());
+        || hasSuffix(path, bootstrapProperties.getResendVerificationPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getAccountProfilePathSuffix());
   }
 
   private static boolean hasPrefix(String path, String prefix) {

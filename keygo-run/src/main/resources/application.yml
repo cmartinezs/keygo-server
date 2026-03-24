@@ -18,6 +18,7 @@ keygo:
     register-path-suffix: "/register"
     verify-email-path-suffix: "/verify-email"
     resend-verification-path-suffix: "/resend-verification"
+    account-profile-path-suffix: "/account/profile"
   mail:
     from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
     app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"

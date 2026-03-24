@@ -69,6 +69,29 @@
 
 ## Lecciones
 
+### [2026-03-24] replace_string_in_file puede duplicar clase si el texto a reemplazar es solo el import/paquete
+**Contexto:** Al actualizar `UserPersistenceMapper.java` para agregar campos OIDC extendidos, se usó `replace_string_in_file` con solo la sección de imports como `oldString`, reemplazándola por el archivo completo nuevo.
+**Problema:** El tool concatenó el nuevo contenido al principio del string coincidente pero dejó el resto del contenido original intacto. El resultado fue que el archivo tenía dos declaraciones `public class UserPersistenceMapper` — error `duplicate class` en compilación.
+**Solución / Buena práctica:** Cuando se quiere reescribir un archivo Java completamente, usar el comando shell `cat > file << 'EOF' ... EOF` en lugar de `replace_string_in_file`. Alternativamente, si se usa `replace_string_in_file` para reemplazar por contenido completo, el `oldString` debe incluir la clase completa (package + imports + class body) para que el reemplazo sea total.
+**Archivos clave:** `keygo-supabase/src/main/java/io/cmartinezs/keygo/supabase/user/mapper/UserPersistenceMapper.java`
+
+### [2026-03-24] Al extender un record Java (command/request/result), actualizar todos los sitios de construcción del record
+**Contexto:** Se extendió `UpdateUserCommand` de 4 a 10 parámetros para soportar campos OIDC extendidos del perfil de usuario.
+**Problema:** Los tests existentes que usaban `new UpdateUserCommand(slug, id, "Jane", "Smith")` fallaron al compilar porque el constructor del record cambió.
+**Solución / Buena práctica:** Tras cambiar la firma de un record, buscar con grep todos los `new UpdateUserCommand(` / `new UpdateUserRequest(` en el código de producción y tests, y actualizar los constructores con los nuevos parámetros (pasar `null` para opcionales). Hacer esto antes de compilar evita el ciclo error-corrección.
+**Archivos clave:** `keygo-app/src/test/java/.../UpdateResetValidateUseCaseTest.java`, `keygo-api/src/test/java/.../TenantUserControllerTest.java`
+
+### [2026-03-24] Diseño de perfil de usuario en IAM: perfil canónico en tenant_users, metadata app en membership_attributes
+**Contexto:** Decisión de diseño sobre si el perfil de usuario debía vivir en `tenant_users` (nivel tenant) o en `memberships` (nivel app).
+**Problema:** La pregunta era válida ya que cada app podría querer campos diferentes del usuario.
+**Solución / Buena práctica:** Adoptar el modelo en dos capas que siguen Auth0, Keycloak y OIDC §5.3:
+  - **Capa 1 (V13):** perfil canónico OIDC en `tenant_users` — los 6 claims estándar (`phone_number`, `locale`, `zoneinfo`, `profile_picture_url`, `birthdate`, `website`) viven aquí porque son del usuario, no de la app.
+  - **Capa 2 (pendiente V14):** metadata app-específica en `membership_attributes` — pares clave-valor para datos que varían por app.
+  La regla de oro: si el dato respondería a "¿quién eres?" → perfil canónico. Si responde a "¿qué eres en esta app?" → membership_attributes.
+**Archivos clave:** `docs/data/MIGRATIONS.md`, `V13__extend_tenant_user_profile.sql`, `keygo-domain/src/main/java/.../user/model/User.java`
+
+
+
 ### [2026-03-23] Manual frontend: flujo OAuth2 retorna code en JSON, no HTTP 302
 
 **Contexto:** Al crear el manual de desarrollador frontend (`docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`), se revisó el comportamiento actual del endpoint `POST /account/login`.

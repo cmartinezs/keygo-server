@@ -141,6 +141,8 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/resend-verification` (POST — **público** — resend code only if previous one expired)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/authorize` (GET — initiate auth)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (GET — **público con Bearer** — perfil propio del usuario autenticado)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (PATCH — **público con Bearer** — editar perfil propio, PATCH semántica)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — rotate refresh_token grant)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — client_credentials grant, M2M, requiere `client_id` + `client_secret`)
@@ -169,6 +171,7 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.register-path-suffix` | `/register` | Public — self-registration endpoint |
 | `keygo.bootstrap.verify-email-path-suffix` | `/verify-email` | Public — email verification endpoint |
 | `keygo.bootstrap.resend-verification-path-suffix` | `/resend-verification` | Public — resend verification code endpoint |
+| `keygo.bootstrap.account-profile-path-suffix` | `/account/profile` | Public — Bearer token validated inside controller (GET + PATCH self-service) |
 
 ## Security header
 
@@ -231,8 +234,9 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V10__rename_membership_tables_to_plural.sql` — renames app_role→app_roles, membership→memberships, membership_role→membership_roles
 - `V11__add_refresh_tokens_and_sessions.sql` — sessions + refresh_tokens tables (SHA-256 hash, status checks, session FK)
 - `V12__add_email_verifications.sql` — email_verifications table (tenant_user_id FK, code VARCHAR(10), expires_at, used_at; latest row per user = active verification)
+- `V13__extend_tenant_user_profile.sql` — extends tenant_users with 6 OIDC profile fields: phone_number, locale, zoneinfo, profile_picture_url, birthdate, website
 
-Next migration must be `V13__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V14__...`. **Never reuse or edit existing migration files.**
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -269,6 +273,7 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 | 7 | Refresh token (rotation + SHA-256 hash), Session, Revocation (RFC 7009), UserInfo (OIDC §5.3) | ✅ Done (2026-03-22) |
 | 8 | Client Credentials grant (M2M) — `IssueClientCredentialsTokenUseCase` | ✅ Done (2026-03-23) |
 | 9 | Self-service de identidad: registro de usuario (`RegisterTenantUserUseCase`), verificación email (`VerifyEmailUseCase`), reenvío código (`ResendVerificationEmailUseCase`), `EmailVerificationEntity` (V12), `SmtpEmailNotificationAdapter`, `RegistrationController` (3 endpoints públicos) | ✅ Done (2026-03-23) |
+| 9b | Perfil de usuario OIDC extendido (V13): 6 campos en `tenant_users`, `GetUserProfileUseCase`, `UpdateUserProfileUseCase`, `AccountProfileController` (GET+PATCH `/account/profile`), campo `accountProfilePathSuffix` en filtro | ✅ Done (2026-03-24) |
 | 10–11 | Control plane y soporte, auditoría, hardening operacional, observabilidad | — |
 
 **Golden rule from the plan:** never implement `/oauth2/authorize` before tenant, client app, user, and membership are solid.
