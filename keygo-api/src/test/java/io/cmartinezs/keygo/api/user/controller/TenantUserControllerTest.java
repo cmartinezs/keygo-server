@@ -102,6 +102,7 @@ class TenantUserControllerTest {
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
     UserData data = response.getBody().getData();
     assertThat(data.getUsername()).isEqualTo("johndoe");
     assertThat(data.getEmail()).isEqualTo("john@acme.com");
@@ -142,6 +143,7 @@ class TenantUserControllerTest {
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getData().getStatus()).isEqualTo("ACTIVE");
   }
 }

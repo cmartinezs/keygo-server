@@ -54,7 +54,7 @@ public class TenantUserEntity {
   @Column(nullable = false, length = 100)
   private String username;
 
-  @Column(nullable = false, length = 255)
+  @Column(nullable = false)
   private String email;
 
   @Column(name = "password_hash", nullable = false)
