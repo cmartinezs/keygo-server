@@ -26,19 +26,20 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-25 | [Mermaid en Markdown: evitar signos de interrogación invertidos en nodos validados por parser](#2026-03-25-mermaid-en-markdown-evitar-signos-de-interrogación-invertidos-en-nodos-validados-por-parser) | Documentación / Tooling |
 | 2026-03-25 | [Tests Maven por módulo en monorepo: usar `-am` para resolver dependencias de clases](#2026-03-25-tests-maven-por-módulo-en-monorepo-usar--am-para-resolver-dependencias-de-clases) | Build / Testing |
 | 2026-03-25 | [Bearer-only admin auth: `@PreAuthorize` + tenant match token/path](#2026-03-25-bearer-only-admin-auth-preauthorize--tenant-match-tokenpath) | Security / Authorization |
 | 2026-03-25 | [Claims map puede ser inmutable en tests: copiar antes de agregar `tenant_slug`](#2026-03-25-claims-map-puede-ser-inmutable-en-tests-copiar-antes-de-agregar-tenant_slug) | OAuth2 / Testing |
 | 2026-03-24 | [Endpoint `POST /roles`: evitar respuestas "exitosas" sin persistencia real](#2026-03-24-endpoint-post-roles-evitar-respuestas-exitosas-sin-persistencia-real) | API / Hexagonal / Persistencia |
-| 2026-03-24 | [Claim `roles` en JWT: agregar parámetro a ambas firmas de TokenClaimsFactoryPort](#2026-03-24-claim-roles-en-jwt) | OAuth2 / JWT / Arquitectura |
-| 2026-03-24 | [JWT admin en filtro: rutas OAuth2 públicas + Bearer con rol admin](#2026-03-24-jwt-admin-en-filtro-rutas-oauth2-públicas--bearer-con-rol-admin) | Security / Filter |
+| | 2026-03-24 | [Claim `roles` en JWT para que el frontend lea roles directamente desde el JWT](#2026-03-24-claim-roles-en-jwt-para-que-el-frontend-keygo-ui-lea-los-roles-directamente-desde-el-jwt-sin-llamadas-adicionales-a-la-api) | OAuth2 / JWT / Arquitectura |
+| | 2026-03-24 | [JWT admin en filtro: rutas OAuth2 públicas + Bearer con rol admin](#2026-03-24-jwt-admin-en-filtro-rutas-oauth2-públicas--bearer-con-rol-admin) | Security / Filter |
 | 2026-03-24 | [SigningKeyInitializer: auto-generar clave RSA en startup con @Profile](#2026-03-24-signingkeyinitializer-auto-generar-clave-rsa-en-startup) | Spring / Startup |
 | 2026-03-24 | [replace_string_in_file duplica clase si el string a reemplazar es solo la cabecera](#2026-03-24-replace_string_in_file-puede-duplicar-clase-si-el-texto-a-reemplazar-es-solo-el-importpaquete) | Tooling |
 | 2026-03-23 | [keygo-ui — app unificada con roles en JWT (no tres portales separados)](#2026-03-23-keygo-ui--arquitectura-de-app-unificada-con-roles-en-jwt) | Arquitectura / Frontend |
 | 2026-03-23 | [Manual frontend: flujo OAuth2 retorna code en JSON, no HTTP 302](#2026-03-23-manual-frontend-flujo-oauth2-retorna-code-en-json-no-http-302) | OAuth2 / Frontend |
 | 2026-03-23 | [Nuevas variables de entorno deben documentarse en .env y ENVIRONMENT_SETUP.md](#2026-03-23-nuevas-variables-de-entorno-deben-documentarse-en-env-y-environment_setupmd) | Convenciones / Entorno |
 | 2026-03-23 | [Registro con verificación email — ClientApp requiere campos obligatorios en tests](#2026-03-23-registro-con-verificación-email--clientapp-requiere-campos-obligatorios-en-tests) | Tests / Dominio |
-| 2026-03-23 | [Fase 8: client_credentials — sub=clientId y ausencia de refresh_token/id_token](#2026-03-23-fase-8-client_credentials--sub-clientid-sin-refresh_token-ni-id_token) | OAuth2 / M2M |
+| | 2026-03-23 | [Fase 8: client_credentials — sub=clientId, sin refresh_token ni id_token](#2026-03-23-fase-8-client_credentials--sub-clientid-sin-refresh_token-ni-id_token) | OAuth2 / M2M |
 | 2026-03-22 | [Flyway: CREATE TABLE IF NOT EXISTS oculta errores de esquema incompleto](#2026-03-22-flyway-create-table-if-not-exists-oculta-errores-de-esquema-incompleto-de-ejecuciones-parciales) | Flyway / DB |
 | 2026-03-22 | [Fase 7: SHA-256 como hash determinista para refresh tokens](#2026-03-22-fase-7-sha-256-como-hash-determinista-para-refresh-tokens) | Security / OAuth2 |
 | 2026-03-22 | [Fase 7: Mockito UnnecessaryStubbing en tests de use cases complejos](#2026-03-22-fase-7-mockito-unnecessarystubbing-en-tests-de-use-cases-complejos) | Testing |
@@ -76,6 +77,12 @@
 ---
 
 ## Lecciones
+
+### [2026-03-25] Mermaid en Markdown: evitar signos de interrogación invertidos en nodos validados por parser
+**Contexto:** Validación de documentos AI tras registrar una inconsistencia documental de seguridad.
+**Problema:** El validador reportó error en un bloque Mermaid de `docs/ai/inconsistencias.md` cuando un nodo usaba texto con signo de interrogación invertido (`¿Corregida?`).
+**Solución / Buena práctica:** Cuando un Markdown sea validado por parser estricto, preferir labels Mermaid simples y ASCII-safe en los nodos (por ejemplo `Corregida?`) para evitar falsos errores de sintaxis.
+**Archivos clave:** `docs/ai/inconsistencias.md`, `docs/ai/lecciones.md`
 
 ### [2026-03-25] Tests Maven por módulo en monorepo: usar `-am` para resolver dependencias de clases
 **Contexto:** Validación de cambios de migración en `keygo-supabase` ejecutando tests del módulo de forma aislada.

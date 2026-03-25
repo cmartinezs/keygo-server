@@ -24,7 +24,7 @@ Una inconsistencia es cualquier diferencia detectada entre:
 flowchart LR
     A["🔍 Detección\n(revisión, auditoría,\nerror en runtime)"] --> B["📝 Documentar\nen inconsistencias-&lt;cat&gt;.md"]
     B --> C["🔗 Registrar aquí\nen tabla de estado"]
-    C --> D{¿Corregida?}
+    C --> D{Corregida?}
     D -->|SÍ| E["✅ Marcar como corregida\n+ fecha"]
     D -->|NO| F["🔲 Priorizar en ROADMAP.md"]
     F --> B
@@ -37,6 +37,7 @@ flowchart LR
 | Documento | Categoría | Inconsistencias | Estado |
 |---|---|---|---|
 | [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
+| [`inconsistencias-seguridad.md`](inconsistencias-seguridad.md) | Seguridad / autenticación / docs operativas | 2 | 🔲 Pendientes |
 
 ---
 
@@ -45,7 +46,8 @@ flowchart LR
 | Categoría | Total | ✅ Corregidas | 🔲 Pendientes | 🔴 Críticas |
 |---|---|---|---|---|
 | Modelo de datos | 12 | 12 | 0 | 0 |
-| **Total** | **12** | **12** | **0** | **0** |
+| Seguridad / autenticación | 2 | 0 | 2 | 0 |
+| **Total** | **14** | **12** | **2** | **0** |
 
 ---
 
@@ -73,6 +75,7 @@ flowchart LR
 
 | Fecha | Alcance | Detectó | Corrigió |
 |---|---|---|---|
+| 2026-03-25 | Seguridad Bearer-only vs documentación operativa (`ARCHITECTURE.md`, `docs/api/BOOTSTRAP_FILTER.md`) | 2 inconsistencias de documentación sobre autenticación admin | Pendiente |
 | 2026-03-22 | Migraciones SQL V1–V9 vs `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `AUTH_FLOW.md` | 12 inconsistencias en modelo de datos | Mismo día — AI Agent (corrección en docs) |
 | 2026-03-22 | Re-auditoría: inconsistencias "resueltas" — docs vs DB real | Tablas V7 en singular (`app_role`, `membership`, `membership_role`) — corrección docs-only era insuficiente | Mismo día — AI Agent via `V10__rename_membership_tables_to_plural.sql` |
 

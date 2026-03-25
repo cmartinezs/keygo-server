@@ -1,9 +1,8 @@
-# Flujo de Autenticación — KeyGo Server
+# Flujo de Autenticacion — KeyGo Server
 
-> Guía de referencia para implementar el flujo OAuth 2.0 Authorization Code + PKCE
-> en una **aplicación cliente** (SPA, Mobile o Web tradicional) que usa **KeyGo Server** como proveedor de identidad.
+> Guia de referencia del flujo OAuth2/OIDC implementado actualmente en KeyGo Server para clientes SPA, mobile y server-to-server.
 >
-> Fecha de actualización: **2026-03-22** | Estado: **Fases 5 y 6 implementadas** ✅ (JWT RS256 + JWKS + OIDC Discovery)
+> Fecha de actualizacion: **2026-03-25** | Estado: **Fases 5, 6, 7, 8 y 9b implementadas**
 
 ---
 
@@ -11,693 +10,380 @@
 
 1. [Resumen ejecutivo](#resumen-ejecutivo)
 2. [Prerrequisitos del sistema](#prerrequisitos-del-sistema)
-3. [Diagrama de secuencia completo](#diagrama-de-secuencia-completo)
-4. [Paso 0 — Generar PKCE en el cliente](#paso-0--generar-pkce-en-el-cliente)
-5. [Paso 1 — Iniciar autorización](#paso-1--iniciar-autorización)
-6. [Paso 2 — Enviar credenciales (Login)](#paso-2--enviar-credenciales-login)
-7. [Paso 3 — Canjear el código por token](#paso-3--canjear-el-código-por-token)
-8. [Manejo de errores](#manejo-de-errores)
-9. [Estado actual vs. Fases futuras](#estado-actual-vs-fases-futuras)
-10. [Guía de implementación para el cliente](#guía-de-implementación-para-el-cliente)
-11. [Checklist de seguridad](#checklist-de-seguridad)
+3. [Seguridad de endpoints (publico vs protegido)](#seguridad-de-endpoints-publico-vs-protegido)
+4. [Flujo principal: Authorization Code + PKCE](#flujo-principal-authorization-code--pkce)
+5. [Endpoint de tokens: grants soportados](#endpoint-de-tokens-grants-soportados)
+6. [Manejo de errores](#manejo-de-errores)
+7. [Checklist para clientes](#checklist-para-clientes)
+8. [Referencias cruzadas](#referencias-cruzadas)
 
 ---
 
 ## Resumen ejecutivo
 
-KeyGo Server implementa el flujo **OAuth 2.0 Authorization Code + PKCE** (RFC 7636) como mecanismo
-central de autenticación. Es el flujo recomendado para aplicaciones públicas (SPA, mobile) porque
-**elimina la necesidad de un `client_secret`** y protege contra el robo del código de autorización
-mediante el par `code_verifier` / `code_challenge`.
+KeyGo Server implementa el flujo **OAuth 2.0 Authorization Code + PKCE** como flujo principal para usuarios finales, y tambien soporta **refresh token rotation** y **client_credentials** para M2M.
 
-| Característica | Valor |
+| Caracteristica | Estado actual |
 |---|---|
-| Grant type | `authorization_code` |
-| PKCE soportado | ✅ S256 y plain |
-| Duración del authorization code | **10 minutos** (no renovable) |
-| Uso del authorization code | **Una sola vez** (`pending` → `used` tras el canje) |
-| Sesión HTTP entre pasos 1 y 2 | Cookie de sesión (JSESSIONID) |
-| Access token (JWT RS256) | ✅ Implementado (Fase 6) |
-| ID token (OIDC) | ✅ Implementado (Fase 6) |
-| JWKS endpoint | ✅ Implementado — `GET /.well-known/jwks.json` |
-| OIDC Discovery | ✅ Implementado — `GET /.well-known/openid-configuration` |
-| Refresh token | ⏳ Planificado (Fase 7) |
+| Authorization Code + PKCE | Implementado |
+| Login con sesion HTTP intermedia (JSESSIONID) | Implementado |
+| Access token JWT RS256 | Implementado |
+| ID token (OIDC) | Implementado |
+| Refresh token (emision + rotacion) | Implementado |
+| Client Credentials (M2M) | Implementado |
+| Revocacion de token (`/oauth2/revoke`) | Implementado |
+| OIDC Discovery + JWKS + UserInfo | Implementado |
+
+Notas relevantes del estado actual:
+- El `grant_type` en `POST /oauth2/token` es opcional; si no se envia, el backend asume `authorization_code`.
+- `POST /account/login` **retorna el authorization code en JSON** (`BaseResponse<LoginData>`), no hace redirect `302`.
+- El `context-path` activo es `/keygo-server`; todas las URLs deben incluirlo.
+
+### ¿Cuando interactua realmente el usuario final?
+
+En este flujo hay **tres actores distintos** que conviene no mezclar:
+
+| Actor | Rol en el flujo | Ejemplos en KeyGo actual |
+|---|---|---|
+| **Usuario final** | Persona que toma decisiones y captura datos | Hace clic en "Iniciar sesion", escribe usuario/password, espera entrar a la app |
+| **Cliente SPA/Mobile** | La app frontend que orquesta el flujo OAuth2 | Genera PKCE, llama `/authorize`, conserva `JSESSIONID`, llama `/account/login`, canjea el code en `/oauth2/token`, renueva tokens |
+| **KeyGo Server** | Backend que valida y emite artefactos OAuth2/OIDC | Valida tenant/app/redirect URI, autentica credenciales, emite `authorization_code`, `access_token`, `id_token`, `refresh_token` |
+
+Regla practica para leer el resto del documento:
+- Si el paso habla de **capturar credenciales** o de que alguien "ve" la pantalla, la interaccion es del **usuario final**.
+- Si el paso habla de **hacer requests HTTP**, **guardar PKCE**, **reenviar cookies** o **canjear tokens**, la interaccion es de la **SPA/Mobile**.
+- Si el paso habla de **validar**, **persistir** o **emitir** codigos/tokens, la accion es de **KeyGo Server**.
 
 ---
 
 ## Prerrequisitos del sistema
 
-Antes de que un usuario pueda autenticarse, **deben existir** los siguientes recursos en KeyGo Server:
+Antes de iniciar autenticacion de usuario, deben existir y estar activos:
 
 ```mermaid
 graph LR
-    A["1. Tenant activo<br/>(slug: acme-corp)"] --> B["2. ClientApp activa<br/>(client_id: webapp-001)"]
-    B --> C["3. Redirect URI registrada<br/>(https://app.acme.com/callback)"]
-    A --> D["4. TenantUser activo<br/>(email + password hash)"]
-    D --> E["5. Membership ACTIVE<br/>(usuario ↔ app)"]
+    A[1. Tenant activo] --> B[2. ClientApp activa]
+    B --> C[3. Redirect URI registrada]
+    A --> D[4. TenantUser activo y verificado]
+    D --> E[5. Membership ACTIVE usuario-app]
     B --> E
 ```
 
-| Recurso | Endpoint de creación | Campo clave |
+| Recurso | Endpoint de creacion (referencia) | Campo clave |
 |---|---|---|
 | Tenant | `POST /api/v1/tenants` | `slug` |
 | ClientApp | `POST /api/v1/tenants/{slug}/apps` | `clientId`, `redirectUris` |
 | TenantUser | `POST /api/v1/tenants/{slug}/users` | `email`, `username`, `password` |
-| Membership | `POST /api/v1/tenants/{slug}/apps/{clientId}/memberships` | `userId` |
-
-> ⚠️ Si cualquiera de estos recursos no existe o está inactivo, el flujo fallará con un error específico.
-> Ver [Manejo de errores](#manejo-de-errores).
+| Membership | `POST /api/v1/tenants/{slug}/memberships` | `userId`, `clientAppId`, `roleCodes` |
 
 ---
 
-## Diagrama de secuencia completo
+## Seguridad de endpoints (publico vs protegido)
 
-Escenario: **usuario inicia sesión en `Acme WebApp`** (SPA React corriendo en `http://localhost:3000`).
+Con el filtro `BootstrapAdminKeyFilter` actual:
+
+- Rutas `/api/**` estan protegidas por Bearer **excepto** ciertos sufijos/public paths.
+- Estos endpoints de flujo OAuth2/OIDC son **publicos** (el filtro no exige Bearer en el borde):
+  - `GET /api/v1/tenants/{tenantSlug}/oauth2/authorize`
+  - `POST /api/v1/tenants/{tenantSlug}/account/login`
+  - `POST /api/v1/tenants/{tenantSlug}/oauth2/token`
+  - `POST /api/v1/tenants/{tenantSlug}/oauth2/revoke`
+  - `GET /api/v1/tenants/{tenantSlug}/userinfo`
+  - `GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration`
+  - `GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json`
+
+> Publico en este contexto significa "sin autenticacion exigida por el filtro de borde". Algunos endpoints validan credenciales propias (por ejemplo `refresh_token`, `client_secret`, Bearer token de usuario, etc.) dentro del caso de uso/controlador.
+
+---
+
+## Flujo principal: Authorization Code + PKCE
+
+Escenario: autenticacion de usuario final (SPA/mobile/web).
+
+### Vista rapida: quien hace que en cada paso
+
+| Paso | Usuario final | Cliente SPA/Mobile | KeyGo Server |
+|---|---|---|---|
+| 0. Preparacion | Aun no interactua | Genera `code_verifier`, `code_challenge` y `state` | — |
+| 1. Inicio de autorizacion | Hace clic en login o entra a una ruta protegida | Llama `GET /oauth2/authorize` | Valida tenant/app/redirect URI y guarda estado en sesion HTTP |
+| 2. Login | Escribe usuario/email y password | Renderiza formulario, envia `POST /account/login` y preserva `JSESSIONID` | Valida credenciales y emite `authorization_code` |
+| 3. Canje del code | Ya no interactua directamente | Llama `POST /oauth2/token` con `code` + `code_verifier` | Valida code/PKCE y emite tokens |
+| 4. Sesion activa | Usa la app normalmente | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
+| 5. Renovacion | Normalmente no interactua | Llama `POST /oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
+
+> Punto clave: en el backend actual **el usuario final solo interactua de forma directa en el inicio de login y en la captura de credenciales**. El resto del flujo lo ejecuta la **SPA/Mobile** de forma programatica.
 
 ```mermaid
 sequenceDiagram
-    actor Usuario as 👤 Usuario
-    participant WebApp as 🌐 Acme WebApp<br/>(SPA/React)
-    participant KeyGo as 🔑 KeyGo Server
-    participant DB as 🗄️ Base de Datos
+    actor U as Usuario
+    participant C as Cliente (SPA/Mobile)
+    participant K as KeyGo Server
+    participant DB as Base de datos
 
-    Note over WebApp: PASO 0: Preparar PKCE
-    WebApp->>WebApp: Generar code_verifier (random 64 bytes, Base64URL)
-    WebApp->>WebApp: code_challenge = Base64URL(SHA256(code_verifier))
-    WebApp->>WebApp: state = random UUID (anti-CSRF)
-    WebApp->>WebApp: Guardar code_verifier + state en sessionStorage
+    Note over U,C: Interaccion humana inicial: el usuario abre la app o pulsa "Iniciar sesion"
+    Note over C: Paso 0: La app genera PKCE + state
+    C->>C: code_verifier, code_challenge(S256), state
 
-    Note over Usuario,KeyGo: PASO 1: Iniciar autorización
-    Usuario->>WebApp: Click "Iniciar sesión"
-    WebApp->>KeyGo: GET /api/v1/tenants/acme-corp/oauth2/authorize<br/>?client_id=webapp-001<br/>&redirect_uri=http://localhost:3000/callback<br/>&scope=openid profile<br/>&response_type=code<br/>&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM<br/>&code_challenge_method=S256<br/>&state=xK2pQ7rM9...
+    Note over U,C: El usuario aun no captura credenciales
+    Note over C,K: Paso 1: La app inicia autorizacion
+    C->>K: GET /keygo-server/api/v1/tenants/{slug}/oauth2/authorize
+    K->>DB: Validar tenant + client + redirect_uri
+    K->>K: Guardar estado en sesion HTTP (JSESSIONID)
+    K-->>C: 200 AUTHORIZATION_INITIATED
 
-    KeyGo->>DB: Buscar tenant 'acme-corp' (activo)
-    DB-->>KeyGo: ✅ TenantEntity encontrado
-    KeyGo->>DB: Buscar ClientApp client_id='webapp-001' en tenant
-    DB-->>KeyGo: ✅ ClientAppEntity encontrado
-    KeyGo->>KeyGo: Validar redirect_uri registrada
-    KeyGo->>KeyGo: Guardar estado en sesión HTTP (cookie JSESSIONID)
-    KeyGo-->>WebApp: 200 OK — BaseResponse<AuthorizationInitiatedData>
+    Note over U,C: Paso 2: Aqui si interactua el usuario final
+    U->>C: Captura email/username y password
+    Note over C,K: La app envia credenciales usando la sesion previa
+    C->>K: POST /keygo-server/api/v1/tenants/{slug}/account/login (Cookie JSESSIONID)
+    K->>DB: Validar usuario + password + membership ACTIVE
+    K->>DB: Crear authorization code (TTL 10 min, un solo uso)
+    K-->>C: 200 LOGIN_SUCCESSFUL (code en JSON)
 
-    WebApp->>WebApp: Mostrar formulario de login<br/>(usa datos de client_name de la respuesta)
+    Note over U,C: Desde aqui el usuario ya no suele intervenir
+    Note over C,K: Paso 3: La app canjea el code por tokens
+    C->>K: POST /keygo-server/api/v1/tenants/{slug}/oauth2/token
+    K->>DB: Validar code + redirect_uri + PKCE
+    K->>DB: Marcar code como used
+    K->>DB: Crear session + refresh token hash
+    K-->>C: 200 TOKEN_ISSUED (access_token + id_token + refresh_token)
 
-    Note over Usuario,KeyGo: PASO 2: Enviar credenciales
-    Usuario->>WebApp: Ingresa email + contraseña
-    WebApp->>KeyGo: POST /api/v1/tenants/acme-corp/account/login<br/>Cookie: JSESSIONID=...<br/>Body: {"emailOrUsername":"ana@acme.com","password":"***"}
-
-    KeyGo->>KeyGo: Recuperar estado de autorización desde sesión
-    KeyGo->>DB: Buscar TenantUser por email en tenant
-    DB-->>KeyGo: ✅ TenantUserEntity encontrado (status=ACTIVE)
-    KeyGo->>KeyGo: Validar password_hash (BCrypt)
-    KeyGo->>DB: Verificar Membership activa (user ↔ app)
-    DB-->>KeyGo: ✅ Membership status=ACTIVE encontrada
-    KeyGo->>DB: Crear AuthorizationCode (status='pending', TTL=10min)
-    DB-->>KeyGo: ✅ AuthorizationCode guardado
-    KeyGo-->>WebApp: 200 OK — BaseResponse<LoginData><br/>(contiene code + redirect_uri)
-
-    Note over WebApp,KeyGo: PASO 3: Canjear código por token
-    WebApp->>WebApp: Leer code_verifier desde sessionStorage
-    WebApp->>KeyGo: POST /api/v1/tenants/acme-corp/oauth2/token<br/>Body: {"client_id":"webapp-001","code":"ABC123...","code_verifier":"dBjftJeZ4CVP...","redirect_uri":"http://localhost:3000/callback"}
-
-    KeyGo->>DB: Buscar AuthorizationCode donde code='ABC123...' AND status='pending'
-    DB-->>KeyGo: ✅ AuthorizationCode encontrado y no expirado
-    KeyGo->>KeyGo: Verificar código no expirado (expires_at > NOW())
-    KeyGo->>KeyGo: Validar PKCE: SHA256(code_verifier) == code_challenge
-    KeyGo->>DB: Marcar AuthorizationCode status='used', used_at=NOW()
-    KeyGo->>DB: Cargar SigningKey donde status='ACTIVE'
-    DB-->>KeyGo: ✅ RSA-2048 signing key (kid=keygo-01)
-    KeyGo->>KeyGo: Firmar access_token + id_token con RS256
-    KeyGo-->>WebApp: 200 OK — BaseResponse<TokenData><br/>(access_token + id_token + token_type + expires_in + scope)
-
-    Note over WebApp: Flujo completado ✅
-    WebApp->>WebApp: Guardar access_token en memoria (NO en localStorage)
+    Note over C,U: La app guarda tokens segun su estrategia y navega a la pantalla final
 ```
 
----
+### Lectura funcional del flujo
 
-## Paso 0 — Generar PKCE en el cliente
+1. **El usuario inicia la autenticacion desde la app**, no llamando el endpoint manualmente.
+2. **La SPA/Mobile prepara el contexto tecnico** (`state`, PKCE, almacenamiento temporal y manejo de cookie de sesion).
+3. **El usuario solo participa activamente en el login**: captura credenciales y confirma entrar.
+4. **La SPA/Mobile retoma el control** en cuanto recibe `data.code` desde `POST /account/login`.
+5. **La obtencion y renovacion de tokens es responsabilidad del cliente**, no del usuario final.
 
-PKCE (Proof Key for Code Exchange) se debe generar **antes** de iniciar el flujo. El cliente
-almacena el `code_verifier` y envía solo el `code_challenge` al servidor.
+### Particularidad importante del backend actual
 
-### Algoritmo S256 (recomendado)
+En una implementacion OAuth2 "clasica" con login hospedado, el navegador suele terminar en un `302` hacia la `redirect_uri`.
+En **KeyGo Server hoy no ocurre eso**:
 
-```
-code_verifier  = Base64URL(random(64 bytes))  ← guardar en sessionStorage
-code_challenge = Base64URL(SHA256(code_verifier))  ← enviar al server
-```
+- `GET /oauth2/authorize` devuelve `200` con datos de la app cliente.
+- `POST /account/login` devuelve `200` con `data.code` en JSON.
+- Por lo tanto, la **SPA/Mobile** debe decidir que hacer con ese `code`:
+  - canjearlo de inmediato en `POST /oauth2/token`, o
+  - navegar manualmente a su callback si quiere modelar una UX mas parecida al redirect tradicional.
 
-### Implementación JavaScript (navegador)
+Esto explica por que, al leer el flujo, puede parecer ambiguo "quien interactua":
+- **el usuario** interactua con la interfaz visual;
+- **la SPA/Mobile** interactua con los endpoints OAuth2;
+- **KeyGo** solo responde a las llamadas del cliente y aplica validaciones/reglas.
 
-```javascript
-// Generar code_verifier aleatorio
-function generateCodeVerifier() {
-  const array = new Uint8Array(64);
-  crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
+### Paso 0 — Generar PKCE
 
-// Calcular code_challenge con SHA-256
-async function generateCodeChallenge(verifier) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(verifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
+- Generar `code_verifier` aleatorio (Base64URL).
+- Generar `code_challenge` usando `S256`.
+- Guardar `code_verifier` y `state` en almacenamiento de sesion del cliente.
+- **Actor principal:** Cliente SPA/Mobile.
+- **Intervencion del usuario:** ninguna todavia.
 
-// Generar state anti-CSRF
-function generateState() {
-  return crypto.randomUUID();
-}
+### Paso 1 — `GET /oauth2/authorize`
 
-// Uso
-const codeVerifier  = generateCodeVerifier();
-const codeChallenge = await generateCodeChallenge(codeVerifier);
-const state         = generateState();
-
-// Guardar para usar en Paso 3
-sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-sessionStorage.setItem('oauth_state', state);
-```
-
-### Implementación Swift (iOS/macOS)
-
-```swift
-import CryptoKit
-import Foundation
-
-func generateCodeVerifier() -> String {
-    var buffer = [UInt8](repeating: 0, count: 64)
-    _ = SecRandomCopyBytes(kSecRandomDefault, buffer.count, &buffer)
-    return Data(buffer).base64EncodedString()
-        .replacingOccurrences(of: "+", with: "-")
-        .replacingOccurrences(of: "/", with: "_")
-        .replacingOccurrences(of: "=", with: "")
-}
-
-func generateCodeChallenge(from verifier: String) -> String {
-    let data = Data(verifier.utf8)
-    let hash = SHA256.hash(data: data)
-    return Data(hash).base64EncodedString()
-        .replacingOccurrences(of: "+", with: "-")
-        .replacingOccurrences(of: "/", with: "_")
-        .replacingOccurrences(of: "=", with: "")
-}
-```
-
----
-
-## Paso 1 — Iniciar autorización
-
-### Request
+URL completa (ejemplo local):
 
 ```http
-GET /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/authorize HTTP/1.1
-Host: localhost:8080
+GET /keygo-server/api/v1/tenants/acme-corp/oauth2/authorize?client_id=webapp-001&redirect_uri=http://localhost:3000/callback&scope=openid%20profile&response_type=code&code_challenge=...&code_challenge_method=S256&state=...
 ```
 
-| Query param | Requerido | Descripción |
-|---|---|---|
-| `client_id` | ✅ | ID de la aplicación cliente |
-| `redirect_uri` | ✅ | URI de redirección registrada en la app |
-| `scope` | ✅ | Permisos solicitados (ej. `openid profile`) |
-| `response_type` | ✅ | Debe ser `code` |
-| `code_challenge` | Recomendado | PKCE challenge (Base64URL SHA256 del verifier) |
-| `code_challenge_method` | Recomendado | `S256` o `plain` |
-| `state` | Recomendado | Token aleatorio para protección CSRF |
+Valida:
+- Tenant existe y esta ACTIVE.
+- Client app existe en tenant.
+- `redirect_uri` registrada.
+- `response_type=code`.
 
-**Ejemplo:**
+Respuesta exitosa:
+- HTTP `200`
+- `success.code = AUTHORIZATION_INITIATED`
+- `data`: `client_id`, `client_name`, `redirect_uri`
+
+Lectura por actor:
+- **Usuario final:** normalmente solo ve que la app entra al modo "login".
+- **SPA/Mobile:** dispara la request, conserva la cookie `JSESSIONID` y prepara la UI de autenticacion.
+- **KeyGo Server:** valida parametros y deja guardado `authorizationState` en la sesion HTTP.
+
+### Paso 2 — `POST /account/login`
+
+URL completa (ejemplo local):
 
 ```http
-GET /keygo-server/api/v1/tenants/acme-corp/oauth2/authorize
-    ?client_id=webapp-001
-    &redirect_uri=http://localhost:3000/callback
-    &scope=openid%20profile
-    &response_type=code
-    &code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
-    &code_challenge_method=S256
-    &state=xK2pQ7rM9vLs3nT1
-Host: localhost:8080
-```
-
-### Response exitosa — `200 OK`
-
-```json
-{
-  "date": "2026-03-22T14:30:00.000Z",
-  "success": {
-    "code": "AUTHORIZATION_INITIATED",
-    "message": "Authorization initiated"
-  },
-  "data": {
-    "client_id": "webapp-001",
-    "client_name": "Acme WebApp",
-    "redirect_uri": "http://localhost:3000/callback"
-  }
-}
-```
-
-> **⚠️ Nota importante:** El servidor guarda el estado de autorización en la **sesión HTTP** (cookie `JSESSIONID`).
-> El cliente **debe enviar esta cookie** en el Paso 2 para que el servidor pueda recuperar el estado.
-> En navegadores esto es automático. En apps mobile, usar la misma instancia de `URLSession`/`OkHttpClient` con gestión de cookies habilitada.
-
-### Qué valida KeyGo en este paso
-
-```mermaid
-flowchart TD
-    A[GET /authorize] --> B{"¿Tenant existe?"}
-    B -->|NO| E1["❌ 404 — TenantNotFoundException<br/>ResponseCode: RESOURCE_NOT_FOUND"]
-    B -->|SÍ| C{"¿Tenant ACTIVE?"}
-    C -->|NO| E2["❌ 400 — TenantSuspendedException<br/>ResponseCode: INVALID_INPUT"]
-    C -->|SÍ| D{"¿ClientApp existe<br/>en el tenant?"}
-    D -->|NO| E3["❌ 404 — ClientAppNotFoundException<br/>ResponseCode: RESOURCE_NOT_FOUND"]
-    D -->|SÍ| F{"¿redirect_uri<br/>registrada?"}
-    F -->|NO| E4["❌ 400 — InvalidRedirectUriException<br/>ResponseCode: INVALID_INPUT"]
-    F -->|SÍ| G["✅ Guardar estado en sesión<br/>Retornar AUTHORIZATION_INITIATED"]
-```
-
----
-
-## Paso 2 — Enviar credenciales (Login)
-
-### Request
-
-```http
-POST /keygo-server/api/v1/tenants/{tenantSlug}/account/login HTTP/1.1
-Host: localhost:8080
+POST /keygo-server/api/v1/tenants/acme-corp/account/login
 Content-Type: application/json
 Cookie: JSESSIONID=<cookie-del-paso-1>
 ```
 
-**Body:**
+Body ejemplo:
 
 ```json
 {
   "emailOrUsername": "ana@acme.com",
-  "password": "mi-contraseña-segura"
+  "password": "mi-password"
 }
 ```
 
-| Campo | Requerido | Descripción |
-|---|---|---|
-| `emailOrUsername` | ✅ | Email o username del usuario en el tenant |
-| `password` | ✅ | Contraseña en texto plano (se compara contra hash) |
+Valida:
+- Sesion con estado de autorizacion previo.
+- Credenciales del usuario.
+- Usuario activo/verificado.
+- Membership ACTIVE del usuario para la app.
 
-> **La cookie de sesión es obligatoria.** Sin ella el servidor no puede recuperar el estado de autorización
-> guardado en el Paso 1 y retornará `IllegalArgumentException`.
+Respuesta exitosa:
+- HTTP `200`
+- `success.code = LOGIN_SUCCESSFUL`
+- `data.code` (authorization code), `data.redirect_uri`
 
-### Response exitosa — `200 OK`
+Lectura por actor:
+- **Usuario final:** captura `emailOrUsername` y `password`.
+- **SPA/Mobile:** renderiza el formulario, envia el body JSON y reenvia la cookie `JSESSIONID` obtenida en el paso 1.
+- **KeyGo Server:** autentica al usuario y emite el `authorization_code` temporal.
 
-```json
-{
-  "date": "2026-03-22T14:30:05.000Z",
-  "success": {
-    "code": "LOGIN_SUCCESSFUL",
-    "message": "Login successful"
-  },
-  "data": {
-    "message": "Login successful",
-    "code": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
-    "redirect_uri": "http://localhost:3000/callback"
-  }
-}
-```
+> Importante: despues de este paso el usuario no tiene que copiar ni pegar el code. Ese trabajo le corresponde al cliente SPA/Mobile.
 
-| Campo | Descripción |
-|---|---|
-| `data.code` | Authorization code temporal — válido **10 minutos**, uso **único** |
-| `data.redirect_uri` | URI de redirección donde el cliente debe navegar con el código |
-| `data.message` | Mensaje de confirmación |
+### Paso 3 — `POST /oauth2/token` con `authorization_code`
 
-> **Comportamiento actual (Fase 5):** El código se retorna directamente en el JSON de respuesta.
-> En Fase 6 se implementará la redirección HTTP real (`302 Found` a `redirect_uri?code=...&state=...`),
-> que es el comportamiento estándar OAuth2 para flujos basados en navegador.
-
-### Qué valida KeyGo en este paso
-
-```mermaid
-flowchart TD
-    A[POST /account/login] --> B{"¿Estado de sesión<br/>existe?"}
-    B -->|NO| E0["❌ 400 — IllegalArgumentException<br/>Mensaje: Call GET /authorize first"]
-    B -->|SÍ| C{"¿Usuario existe<br/>en el tenant?"}
-    C -->|NO| E1["❌ 404 — UserNotFoundException<br/>ResponseCode: RESOURCE_NOT_FOUND"]
-    C -->|SÍ| D{"¿Password válido?"}
-    D -->|NO| E2["❌ 401 — UnauthorizedException<br/>ResponseCode: AUTHENTICATION_REQUIRED"]
-    D -->|SÍ| E{"¿Membership ACTIVE<br/>para esta app?"}
-    E -->|NO| E3["❌ 403 — MembershipInactiveException<br/>ResponseCode: OPERATION_FAILED"]
-    E -->|SÍ| F["✅ Crear AuthorizationCode<br/>(TTL: 10 min, status: 'pending')<br/>Retornar LOGIN_SUCCESSFUL"]
-```
-
----
-
-## Paso 3 — Canjear el código por token
-
-### Request
+URL completa (ejemplo local):
 
 ```http
-POST /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/token HTTP/1.1
-Host: localhost:8080
+POST /keygo-server/api/v1/tenants/acme-corp/oauth2/token
 Content-Type: application/json
 ```
 
-**Body:**
+Body ejemplo:
 
 ```json
 {
+  "grant_type": "authorization_code",
   "client_id": "webapp-001",
-  "code": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
-  "code_verifier": "M25iVXpKU3puUjFaYWg3T1NDTDQtcW1ROUY5YXlwalNoc0hhakxifmZHag",
+  "code": "abc123...",
+  "code_verifier": "verifier-original",
   "redirect_uri": "http://localhost:3000/callback"
 }
 ```
 
-| Campo | Requerido | Descripción |
-|---|---|---|
-| `client_id` | ✅ | Mismo `client_id` del Paso 1 |
-| `code` | ✅ | Authorization code recibido en Paso 2 |
-| `code_verifier` | Si se usó PKCE | El verifier original que generó el `code_challenge` |
-| `redirect_uri` | ✅ | Debe coincidir **exactamente** con la del Paso 1 |
+Respuesta exitosa:
+- HTTP `200`
+- `success.code = TOKEN_ISSUED`
+- `data`: `access_token`, `id_token`, `refresh_token`, `token_type`, `expires_in`, `scope`, `authorization_code_id`
 
-### Response exitosa — `200 OK`
+Lectura por actor:
+- **Usuario final:** normalmente ya no interactua; solo espera que la app termine el login.
+- **SPA/Mobile:** envia `code`, `code_verifier`, `client_id` y `redirect_uri`; despues guarda/usa los tokens segun su estrategia.
+- **KeyGo Server:** valida PKCE, marca el code como usado, abre sesion y emite tokens.
+
+---
+
+## Endpoint de tokens: grants soportados
+
+`POST /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/token`
+
+| Grant | Requisitos minimos | ResponseCode de exito | Tokens devueltos |
+|---|---|---|---|
+| `authorization_code` (default) | `client_id`, `code`, `redirect_uri` (+ `code_verifier` si aplica PKCE) | `TOKEN_ISSUED` | `access_token`, `id_token`, `refresh_token` |
+| `refresh_token` | `client_id`, `refresh_token` | `REFRESH_TOKEN_ROTATED` | `access_token`, `id_token`, `refresh_token` (nuevo) |
+| `client_credentials` | `client_id`, `client_secret` | `CLIENT_CREDENTIALS_TOKEN_ISSUED` | `access_token` (sin `id_token`, sin `refresh_token`) |
+
+### Refresh token rotation
+
+Ejemplo:
 
 ```json
 {
-  "date": "2026-03-22T14:30:08.000Z",
-  "success": {
-    "code": "AUTHORIZATION_CODE_EXCHANGED",
-    "message": "Authorization code exchanged"
-  },
-  "data": {
-    "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtleWdvLTAxIn0.eyJzdWIiOiJ1c2VyLXV1aWQiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAva2V5Z28tc2VydmVyIiwiYXVkIjoid2ViYXBwLTAwMSIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUiLCJleHAiOjE3NDI2NTcwMDgsImlhdCI6MTc0MjY1MzQwOH0.signature",
-    "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtleWdvLTAxIn0.eyJzdWIiOiJ1c2VyLXV1aWQiLCJlbWFpbCI6ImFuYUBhY21lLmNvbSIsIm5hbWUiOiJBbmEgR2FyY8OtYSIsImlhdCI6MTc0MjY1MzQwOCwiZXhwIjoxNzQyNjU3MDA4fQ.signature",
-    "token_type": "Bearer",
-    "expires_in": 3600,
-    "scope": "openid profile"
-  }
+  "grant_type": "refresh_token",
+  "client_id": "webapp-001",
+  "refresh_token": "rt_old_...",
+  "scope": "openid profile"
 }
 ```
 
-| Campo | Descripción |
-|---|---|
-| `data.access_token` | JWT firmado con RS256. Incluir como `Authorization: Bearer <token>` en APIs protegidas |
-| `data.id_token` | JWT con claims de identidad del usuario (OIDC) |
-| `data.token_type` | Siempre `Bearer` |
-| `data.expires_in` | Segundos de validez del access token (3600 = 1 hora) |
-| `data.scope` | Scopes autorizados efectivamente concedidos |
+Comportamiento:
+- Valida refresh token (vigencia, estado, pertenencia tenant/client).
+- Revoca/consume token anterior segun reglas de rotacion.
+- Emite nuevo `access_token`, nuevo `id_token` y nuevo `refresh_token`.
 
-> **Verificar el JWT:** la clave pública para verificar la firma está en `GET /keygo-server/api/v1/tenants/{slug}/.well-known/jwks.json`.  
-> El campo `kid` del header del JWT identifica qué clave usar del JWKS.
+Actor esperado:
+- **Usuario final:** usualmente no participa.
+- **SPA/Mobile:** hace la renovacion silenciosa o al detectar expiracion.
+- **KeyGo Server:** rota el refresh token y mantiene la sesion.
 
-### Qué valida KeyGo en este paso
+### Client credentials (M2M)
 
-```mermaid
-flowchart TD
-    A[POST /oauth2/token] --> B{"¿AuthorizationCode<br/>existe con status='pending'?"}
-    B -->|NO| E1["❌ 400 — InvalidAuthorizationCodeException<br/>ResponseCode: INVALID_INPUT"]
-    B -->|SÍ| C{"¿Código expirado?<br/>(expires_at ≤ NOW())"}
-    C -->|SÍ| E2["❌ 400 — AuthorizationCodeExpiredException<br/>ResponseCode: INVALID_INPUT"]
-    C -->|NO| D{"¿PKCE válido?<br/>SHA256(verifier)==challenge"}
-    D -->|NO| E4["❌ 400 — InvalidPkceVerificationException<br/>ResponseCode: INVALID_INPUT"]
-    D -->|SÍ| F{"¿client_id y<br/>redirect_uri coinciden?"}
-    F -->|NO| E5["❌ 400 — InvalidAuthorizationCodeException"]
-    F -->|SÍ| G["✅ Marcar código status='used', used_at=NOW()<br/>Cargar SigningKey ACTIVE<br/>Firmar JWT RS256 (access_token + id_token)<br/>Retornar AUTHORIZATION_CODE_EXCHANGED"]
+Ejemplo:
+
+```json
+{
+  "grant_type": "client_credentials",
+  "client_id": "backend-job-01",
+  "client_secret": "secret-plano",
+  "scope": "service.read service.write"
+}
 ```
+
+Comportamiento:
+- Autentica cliente por `client_id` + `client_secret`.
+- Emite `access_token` para app-to-app (sin usuario final).
+
+Actor esperado:
+- **No hay usuario final**.
+- El actor que interactua es exclusivamente el **cliente tecnico** (backend, job, worker, integracion server-to-server).
 
 ---
 
 ## Manejo de errores
 
-Todos los errores siguen el envelope `BaseResponse<Void>`:
+Todos los errores devuelven `BaseResponse<Void>` con `failure.code` y `failure.message`.
+
+Ejemplo:
 
 ```json
 {
-  "date": "2026-03-22T14:30:00.000Z",
+  "date": "2026-03-25T10:00:00.000Z",
   "failure": {
-    "code": "RESOURCE_NOT_FOUND",
-    "message": "Tenant not found"
+    "code": "INVALID_INPUT",
+    "message": "Invalid input data provided"
   }
 }
 ```
 
-### Tabla de errores por paso
+### Errores frecuentes por paso
 
-| Paso | Excepción | HTTP | ResponseCode | Causa |
-|---|---|---|---|---|
-| 1 | `TenantNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | Tenant no existe |
-| 1 | `TenantSuspendedException` | `400` | `INVALID_INPUT` | Tenant suspendido |
-| 1 | `ClientAppNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | App no existe en el tenant |
-| 1 | `InvalidRedirectUriException` | `400` | `INVALID_INPUT` | redirect_uri no registrada |
-| 1 | `IllegalArgumentException` | `400` | `INVALID_INPUT` | response_type != "code" |
-| 2 | `IllegalArgumentException` | `400` | `INVALID_INPUT` | Sesión sin estado de autorización (Paso 1 no ejecutado) |
-| 2 | `UserNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | Usuario no existe en el tenant |
-| 2 | `UnauthorizedException` | `401` | `AUTHENTICATION_REQUIRED` | Password incorrecto |
-| 2 | `MembershipInactiveException` | `500` | `OPERATION_FAILED` | Usuario sin membership activa en la app |
-| 3 | `InvalidAuthorizationCodeException` | `400` | `INVALID_INPUT` | Código no encontrado, ya usado o inválido |
-| 3 | `AuthorizationCodeExpiredException` | `400` | `INVALID_INPUT` | Código expirado (> 10 min) |
-| 3 | `InvalidPkceVerificationException` | `400` | `INVALID_INPUT` | PKCE verification falló |
-| 3 | `NoActiveSigningKeyException` | `503` | `OPERATION_FAILED` | No hay clave de firma activa en DB |
-
----
-
-## Estado actual vs. Fases futuras
-
-```mermaid
-timeline
-    title Evolución del flujo de autenticación
-    section Fase 5 ✅ (completada)
-        GET /authorize : Valida tenant + app + redirect URI
-                       : Guarda estado en sesión HTTP
-        POST /account/login : Autentica usuario
-                            : Verifica membership ACTIVE
-                            : Emite authorization code (10 min, status=pending)
-        POST /oauth2/token : Valida código + PKCE
-                           : Marca código status=used
-    section Fase 6 ✅ (completada)
-        POST /oauth2/token : Firma JWT RS256 con signing_key ACTIVE
-                           : Emite access_token + id_token
-                           : Retorna token_type Bearer, expires_in, scope
-        GET /.well-known/jwks.json : Publica claves públicas RSA para verificación
-        GET /.well-known/openid-configuration : OIDC Discovery endpoint
-    section Fase 7 ⏳ (planificada)
-        POST /oauth2/token (refresh) : Acepta grant_type=refresh_token
-                                     : Rota refresh_token (tabla V10)
-                                     : Emite nuevo access_token
-```
-
-| Característica | Fase 5 ✅ | Fase 6 ✅ | Fase 7 ⏳ |
+| Paso | Excepcion | HTTP | ResponseCode |
 |---|---|---|---|
-| Validación de tenant/app | ✅ | ✅ | ✅ |
-| Autenticación de usuario | ✅ | ✅ | ✅ |
-| Verificación de membership | ✅ | ✅ | ✅ |
-| Authorization code (10 min) | ✅ | ✅ | ✅ |
-| Validación PKCE (S256/plain) | ✅ | ✅ | ✅ |
-| Access token JWT (RS256) | ❌ | ✅ | ✅ |
-| ID token (OIDC) | ❌ | ✅ | ✅ |
-| JWKS endpoint | ❌ | ✅ | ✅ |
-| OIDC Discovery | ❌ | ✅ | ✅ |
-| Refresh token | ❌ | ❌ | ✅ |
-| Redirect HTTP 302 real | ❌ | ❌ | ✅ |
+| 1 (`/authorize`) | `TenantNotFoundException` | `404` | `RESOURCE_NOT_FOUND` |
+| 1 (`/authorize`) | `TenantSuspendedException` | `403` | `BUSINESS_RULE_VIOLATION` |
+| 1 (`/authorize`) | `ClientAppNotFoundException` | `404` | `RESOURCE_NOT_FOUND` |
+| 1 (`/authorize`) | `InvalidRedirectUriException` | `400` | `INVALID_INPUT` |
+| 1 (`/authorize`) | `IllegalArgumentException` (response_type invalido) | `400` | `INVALID_INPUT` |
+| 2 (`/account/login`) | `IllegalArgumentException` (sin sesion previa) | `400` | `INVALID_INPUT` |
+| 2 (`/account/login`) | `UserNotFoundException` | `404` | `RESOURCE_NOT_FOUND` |
+| 2 (`/account/login`) | `UnauthorizedException` / `InvalidCredentialsException` | `401` | `AUTHENTICATION_REQUIRED` |
+| 2 (`/account/login`) | `MembershipInactiveException` | `403` | `BUSINESS_RULE_VIOLATION` |
+| 2 (`/account/login`) | `UserPendingVerificationException` | `403` | `EMAIL_NOT_VERIFIED` |
+| 3 (`/oauth2/token` auth code) | `InvalidAuthorizationCodeException` | `400` | `INVALID_INPUT` |
+| 3 (`/oauth2/token` auth code) | `AuthorizationCodeExpiredException` | `400` | `INVALID_INPUT` |
+| 3 (`/oauth2/token` auth code) | `InvalidPkceVerificationException` | `400` | `INVALID_INPUT` |
+| 3 (`/oauth2/token`) | `NoActiveSigningKeyException` | `503` | `OPERATION_FAILED` |
+| token (`refresh_token`) | `InvalidRefreshTokenException` | `401` | `AUTHENTICATION_REQUIRED` |
+| token (`refresh_token`) | `RefreshTokenExpiredException` | `401` | `AUTHENTICATION_REQUIRED` |
+| token (grant invalido) | `UnsupportedGrantTypeException` | `400` | `INVALID_INPUT` |
 
 ---
 
-## Guía de implementación para el cliente
+## Checklist para clientes
 
-### SPA (React / Vue / Angular)
-
-```typescript
-// auth.ts — Servicio de autenticación KeyGo
-
-const KEYGO_BASE = 'http://localhost:8080/keygo-server';
-const TENANT    = 'acme-corp';
-const CLIENT_ID = 'webapp-001';
-const REDIRECT  = 'http://localhost:3000/callback';
-
-// ------------------------------------------------------------------
-// PASO 0: Generar PKCE + state
-// ------------------------------------------------------------------
-async function startLogin(): Promise<void> {
-  const codeVerifier  = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-  const state         = generateState();
-
-  sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-  sessionStorage.setItem('oauth_state', state);
-
-  const params = new URLSearchParams({
-    client_id:             CLIENT_ID,
-    redirect_uri:          REDIRECT,
-    scope:                 'openid profile',
-    response_type:         'code',
-    code_challenge:        codeChallenge,
-    code_challenge_method: 'S256',
-    state,
-  });
-
-  // ------------------------------------------------------------------
-  // PASO 1: Iniciar autorización
-  // ------------------------------------------------------------------
-  const res = await fetch(
-    `${KEYGO_BASE}/api/v1/tenants/${TENANT}/oauth2/authorize?${params}`,
-    { credentials: 'include' }  // ← importante: enviar/recibir cookies
-  );
-  const body = await res.json();
-
-  if (!res.ok) throw new Error(body.failure?.message ?? 'Error al iniciar autorización');
-
-  // Mostrar formulario de login con los datos de la app
-  showLoginForm({
-    clientName:  body.data.client_name,
-    redirectUri: body.data.redirect_uri,
-  });
-}
-
-// ------------------------------------------------------------------
-// PASO 2: Enviar credenciales
-// ------------------------------------------------------------------
-async function submitLogin(emailOrUsername: string, password: string): Promise<string> {
-  const res = await fetch(
-    `${KEYGO_BASE}/api/v1/tenants/${TENANT}/account/login`,
-    {
-      method:      'POST',
-      credentials: 'include',  // ← importante: enviar cookie de sesión
-      headers:     { 'Content-Type': 'application/json' },
-      body:        JSON.stringify({ emailOrUsername, password }),
-    }
-  );
-  const body = await res.json();
-
-  if (!res.ok) throw new Error(body.failure?.message ?? 'Credenciales inválidas');
-
-  return body.data.code; // authorization code
-}
-
-// ------------------------------------------------------------------
-// PASO 3: Canjear código por token
-// ------------------------------------------------------------------
-async function exchangeCode(code: string): Promise<void> {
-  const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
-  if (!codeVerifier) throw new Error('PKCE verifier no encontrado en sesión');
-
-  const res = await fetch(
-    `${KEYGO_BASE}/api/v1/tenants/${TENANT}/oauth2/token`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        client_id:     CLIENT_ID,
-        code,
-        code_verifier: codeVerifier,
-        redirect_uri:  REDIRECT,
-      }),
-    }
-  );
-  const body = await res.json();
-
-  if (!res.ok) throw new Error(body.failure?.message ?? 'Error al canjear código');
-
-  // Fase 6: access_token + id_token reales (JWT RS256)
-  const { access_token, id_token, token_type, expires_in, scope } = body.data;
-
-  // Guardar en memoria (NO en localStorage — riesgo XSS)
-  this.accessToken = access_token;
-  this.idToken     = id_token;
-  this.tokenExpiry = Date.now() + expires_in * 1000;
-
-  console.log('Token scope:', scope);
-  console.log('Token type:', token_type);   // siempre "Bearer"
-
-  sessionStorage.removeItem('pkce_code_verifier');
-  sessionStorage.removeItem('oauth_state');
-}
-```
-
-### Mobile (Kotlin/Android con OkHttp)
-
-```kotlin
-// AuthRepository.kt — Repositorio de autenticación
-
-class AuthRepository(private val client: OkHttpClient) {
-    private val base   = "http://10.0.2.2:8080/keygo-server"
-    private val tenant = "acme-corp"
-    private val clientId = "webapp-001"
-    private val redirectUri = "com.acme.app://callback"
-
-    // PASO 1: Iniciar autorización
-    suspend fun authorize(codeChallenge: String, state: String): AuthInitResult {
-        val url = HttpUrl.Builder()
-            .scheme("http").host("10.0.2.2").port(8080)
-            .addPathSegments("keygo-server/api/v1/tenants/$tenant/oauth2/authorize")
-            .addQueryParameter("client_id", clientId)
-            .addQueryParameter("redirect_uri", redirectUri)
-            .addQueryParameter("scope", "openid profile")
-            .addQueryParameter("response_type", "code")
-            .addQueryParameter("code_challenge", codeChallenge)
-            .addQueryParameter("code_challenge_method", "S256")
-            .addQueryParameter("state", state)
-            .build()
-
-        val request = Request.Builder().url(url).get().build()
-        // OkHttp maneja cookies automáticamente si se configura CookieJar
-        val response = client.newCall(request).await()
-        return response.parseBody()
-    }
-
-    // PASO 2: Login
-    suspend fun login(emailOrUsername: String, password: String): String {
-        val body = """{"emailOrUsername":"$emailOrUsername","password":"$password"}"""
-            .toRequestBody("application/json".toMediaType())
-
-        val request = Request.Builder()
-            .url("$base/api/v1/tenants/$tenant/account/login")
-            .post(body)
-            .build()
-
-        val response = client.newCall(request).await()
-        return response.parseBody<LoginResponse>().data.code
-    }
-
-    // PASO 3: Canjear código
-    suspend fun exchangeCode(code: String, codeVerifier: String): TokenResponse {
-        val bodyJson = """
-          {
-            "client_id":     "$clientId",
-            "code":          "$code",
-            "code_verifier": "$codeVerifier",
-            "redirect_uri":  "$redirectUri"
-          }
-        """.trimIndent().toRequestBody("application/json".toMediaType())
-
-        val request = Request.Builder()
-            .url("$base/api/v1/tenants/$tenant/oauth2/token")
-            .post(bodyJson)
-            .build()
-
-        val response = client.newCall(request).await()
-        return response.parseBody()
-    }
-}
-```
-
----
-
-## Checklist de seguridad
-
-Antes de pasar a producción, verificar que la aplicación cliente cumple con:
-
-| # | Control | SPA | Mobile | Descripción |
-|---|---|---|---|---|
-| 1 | ✅ Usar PKCE S256 | ✅ | ✅ | Nunca usar `plain`; usar SHA-256 siempre |
-| 2 | ✅ Generar `state` aleatorio | ✅ | ✅ | Verificar que el `state` recibido coincide con el enviado |
-| 3 | ✅ Validar `state` en callback | ✅ | ✅ | Protege contra CSRF |
-| 4 | ✅ No guardar tokens en `localStorage` | ✅ | N/A | Usar memoria o httpOnly cookies |
-| 5 | ✅ Limpiar `sessionStorage` tras el canje | ✅ | N/A | Eliminar `code_verifier` y `state` |
-| 6 | ✅ Enviar cookie de sesión entre pasos 1 y 2 | ✅ | ✅ | `credentials: 'include'` en fetch / CookieJar en OkHttp |
-| 7 | ✅ Canjear código una sola vez | ✅ | ✅ | El código se invalida automáticamente al canjearse |
-| 8 | ✅ Usar HTTPS en producción | ✅ | ✅ | Nunca exponer `code` ni tokens en HTTP plain |
-| 9 | ✅ `redirect_uri` exacta sin wildcards | ✅ | ✅ | Registrar URIs explícitas en la app |
-| 10 | ✅ No incluir `client_secret` en apps públicas | ✅ | ✅ | PKCE reemplaza al secret para SPAs y mobile |
+| Control | Estado recomendado |
+|---|---|
+| Usar PKCE `S256` | Obligatorio para clientes publicos |
+| Enviar/recibir cookie de sesion entre Paso 1 y 2 | Obligatorio en flujo interactivo |
+| No guardar tokens en `localStorage` | Recomendado (evitar XSS) |
+| Validar `state` anti-CSRF | Obligatorio |
+| Usar HTTPS en produccion | Obligatorio |
+| Registrar `redirect_uri` exactas (sin wildcards) | Obligatorio |
+| Manejar rotacion de refresh token | Obligatorio si se usa sesion persistente |
+| Verificar JWT contra JWKS (`kid`) | Obligatorio para consumidores de tokens |
 
 ---
 
@@ -705,14 +391,16 @@ Antes de pasar a producción, verificar que la aplicación cliente cumple con:
 
 | Documento | Contenido relacionado |
 |---|---|
-| [`AGENTS.md`](../../AGENTS.md) | Lista de endpoints, URLs base, headers requeridos |
-| [`ENTITY_RELATIONSHIPS.md`](./ENTITY_RELATIONSHIPS.md) | Diagrama de entidades `AuthorizationCode`, `RefreshToken`, flujos OAuth2 |
-| [`DATA_MODEL.md`](./DATA_MODEL.md) | Tabla `authorization_codes`, campos y constraints |
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Capas hexagonales, UseCases, Ports involucrados |
-| [`postman/KeyGo-Server.postman_collection.json`](../../postman/KeyGo-Server.postman_collection.json) | Carpeta `🔐 OAuth2 Authorization` con 3 requests listos para ejecutar |
-| [`docs/arch/keygo_server_implementation_plan.md`](../arch/keygo_server_implementation_plan.md) | Fases 5 y 6 del plan de implementación |
+| `AGENTS.md` | Estado operativo de endpoints, context-path y seguridad |
+| `docs/api/BOOTSTRAP_FILTER.md` | Comportamiento detallado del filtro de autenticacion |
+| `docs/data/ENTITY_RELATIONSHIPS.md` | Relaciones entre entidades OAuth2/OIDC |
+| `docs/data/DATA_MODEL.md` | Modelo de tablas (`authorization_codes`, `sessions`, `refresh_tokens`, `signing_keys`) |
+| `ARCHITECTURE.md` | Arquitectura hexagonal y ubicacion de use cases/puertos |
+| `docs/design/IMPLEMENTATION_PLAN.md` | Historial de fases implementadas |
+| `postman/KeyGo-Server.postman_collection.json` | Requests de OAuth2/OIDC para pruebas |
 
 ---
 
-**Última actualización:** 2026-03-22 | **Responsable:** AI Agent | **Alcance:** Fases 5 y 6 implementadas ✅
-
+**Ultima actualizacion:** 2026-03-25  
+**Responsable:** AI Agent  
+**Alcance:** Flujo OAuth2/OIDC alineado con backend actual (auth code + PKCE, refresh rotation, client credentials, JWKS/OIDC)
