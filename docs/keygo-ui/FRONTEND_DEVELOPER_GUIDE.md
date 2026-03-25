@@ -74,13 +74,11 @@ graph TB
 |---|---|---|
 | Login | OAuth2/PKCE ✅ | OAuth2/PKCE ✅ |
 | Roles en JWT | Roles básicos en claim `roles` — ⏳ pendiente | Claims ricos: `roles`, `managed_tenant` ⏳ |
-| Protección endpoints admin | Header `X-KEYGO-ADMIN` | JWT con rol `ADMIN` / `ADMIN_TENANT` ⏳ |
+| Protección endpoints admin | JWT Bearer (`roles` + tenant match) ✅ | JWT Bearer (`ADMIN` / `ADMIN_TENANT`) |
 | Validación de rol en backend | No implementada | `@PreAuthorize` / filtro por rol ⏳ |
 
-> ⚠️ **Compatibilidad temporal:** Mientras el backend no valide JWT para los endpoints admin, el frontend
-> debe pasar también el header `X-KEYGO-ADMIN`. Esto es transparente para el usuario — el access_token
-> se usa para autorizar las vistas en el frontend, y el header se agrega automáticamente por el
-> interceptor HTTP. Ver [sección 13](#13-interceptores-http-y-manejo-de-errores).
+> ✅ **Estado actual:** El backend valida Bearer JWT en endpoints admin y aplica autorización por
+> `@PreAuthorize` con validación de tenant (`tenant_slug` o `iss` vs `tenantSlug` en path).
 
 ---
 
@@ -95,7 +93,7 @@ graph TB
 | Estado global | **Zustand** | 5.x | Liviano, sin boilerplate, tokens en memoria |
 | Fetching / caché | **TanStack Query** | 5.x | Invalidación automática, loading/error states |
 | Formularios | **React Hook Form + Zod** | latest | Validación declarativa e inferida desde tipos |
-| HTTP | **Axios** | 1.x | Interceptores para `Authorization`, `X-KEYGO-ADMIN` |
+| HTTP | **Axios** | 1.x | Interceptores para `Authorization: Bearer` |
 | Estilos | **Tailwind CSS v4 + shadcn/ui** | latest | Accesibilidad, headless, personalizable |
 | JWT (browser) | **jose** | 5.x | Verificación RS256 con JWKS + decodificación de claims |
 | PKCE | **Web Crypto API** | nativo | Sin dependencias externas para SHA-256 + Base64URL |
@@ -217,16 +215,16 @@ graph LR
 
 ```bash
 BASE="http://localhost:8080/keygo-server/api/v1"
-KEY="changeMe"
+TOKEN="<admin_bearer_jwt>"
 
 # 1. Crear tenant raíz "keygo"
 curl -s -X POST "$BASE/tenants" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"slug":"keygo","name":"KeyGo Platform"}' | jq .
 
 # 2. Crear la ClientApp keygo-ui (PUBLIC — SPA, sin client_secret)
 RESP=$(curl -s -X POST "$BASE/tenants/keygo/apps" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{
     "name": "KeyGo UI",
     "clientType": "PUBLIC",
@@ -239,26 +237,26 @@ echo "CLIENT_ID: $CLIENT_ID"   # Usa este valor en VITE_CLIENT_ID
 
 # 3. Crear usuario administrador global
 USER_RESP=$(curl -s -X POST "$BASE/tenants/keygo/users" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"email":"admin@keygo.io","username":"admin","password":"Admin1234!","displayName":"KeyGo Admin"}')
 USER_ID=$(echo $USER_RESP | jq -r '.data.id')
 
 # 4. Crear membership del admin en keygo-ui
 curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/memberships" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d "{\"userId\":\"$USER_ID\"}" | jq .
 
 # 5. Crear los tres roles en keygo-ui
 curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/roles" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"code":"ADMIN","name":"Administrador Global"}' | jq .
 
 curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/roles" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"code":"ADMIN_TENANT","name":"Administrador de Tenant"}' | jq .
 
 curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/roles" \
-  -H "X-KEYGO-ADMIN: $KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"code":"USER_TENANT","name":"Usuario del Sistema"}' | jq .
 ```
 
@@ -271,9 +269,7 @@ VITE_TENANT_SLUG=keygo
 VITE_CLIENT_ID=keygo-ui                         # clientId devuelto en el paso 2 del bootstrap
 VITE_REDIRECT_URI=http://localhost:5173/callback
 
-# Temporal — compatibilidad con backend actual (X-KEYGO-ADMIN)
-# Retirar cuando el backend valide JWT en endpoints admin
-VITE_ADMIN_KEY=changeMe
+# Backend admin auth es Bearer-only
 
 # MSW — mocks para endpoints pendientes (solo desarrollo)
 VITE_MOCK_ENABLED=true
@@ -1235,13 +1231,8 @@ export const apiClient = axios.create({ baseURL: API_V1 });
 apiClient.interceptors.request.use((config) => {
   const { accessToken } = useTokenStore.getState();
 
-  // 1. Bearer token (rutas que lo requieren — ej: /userinfo)
+  // Bearer token para rutas protegidas
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
-
-  // 2. X-KEYGO-ADMIN — compatibilidad temporal
-  //    Retirar este bloque cuando el backend valide JWT en endpoints admin
-  const adminKey = import.meta.env.VITE_ADMIN_KEY;
-  if (adminKey) config.headers['X-KEYGO-ADMIN'] = adminKey;
 
   config.headers['Content-Type'] = 'application/json';
   return config;
@@ -1259,8 +1250,7 @@ apiClient.interceptors.response.use(
 );
 ```
 
-> **Migración futura:** cuando el backend valide JWT en los endpoints admin, eliminar el bloque
-> `X-KEYGO-ADMIN` del interceptor. El resto del frontend no cambia.
+> El backend ya valida Bearer JWT en endpoints admin. No se requiere `X-KEYGO-ADMIN`.
 
 ### 13.2. Manejo centralizado de `BaseResponse<T>`
 
@@ -1333,12 +1323,46 @@ export function BaseResponseHandler<T>({ response, isLoading, children }:
 | Listar memberships | GET | `/api/v1/tenants/{slug}/apps/{clientId}/memberships` | ✅ |
 | Revocar membership | DELETE | `/api/v1/tenants/{slug}/apps/{clientId}/memberships/{id}` | ✅ |
 | Crear rol | POST | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | ✅ |
-| Listar roles | GET | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | ⏳ |
+| Listar roles | GET | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | ✅ |
 | Editar rol | PUT | `/api/v1/tenants/{slug}/apps/{clientId}/roles/{roleId}` | ⏳ |
 | Eliminar rol | DELETE | `/api/v1/tenants/{slug}/apps/{clientId}/roles/{roleId}` | ⏳ |
 | Asignar roles a membership | POST | `/api/v1/tenants/{slug}/apps/{clientId}/memberships/{id}/roles` | ⏳ |
 | Suspender usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/suspend` | ⏳ T-033 |
 | Activar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/activate` | ⏳ T-033 |
+
+**Detalle endpoint actualizado — Crear rol de app**
+
+- Método: `POST`
+- URL completa: `/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/roles`
+- Auth requerida: `Authorization: Bearer <jwt>` con rol admin (`ADMIN` o `ADMIN_TENANT` con tenant match)
+- Body ejemplo:
+
+```json
+{
+  "code": "admin",
+  "displayName": "Administrator",
+  "description": "Rol admin para gestión del tenant"
+}
+```
+
+- Respuesta (`BaseResponse<AppRoleData>`) ejemplo:
+
+```json
+{
+  "date": "2026-03-24T22:00:00",
+  "success": {
+    "code": "ROLE_CREATED",
+    "message": "Role created successfully"
+  },
+  "data": {
+    "id": "2c2e9f4a-88ca-4db1-bdf3-1b2d2acb7d9f",
+    "clientAppId": "f7f89f0d-a7d2-4fd3-b418-58ef6d95be1f",
+    "code": "admin",
+    "displayName": "Administrator",
+    "description": "Rol admin para gestión del tenant"
+  }
+}
+```
 
 ---
 
@@ -1519,11 +1543,10 @@ export SPRING_PROFILES_ACTIVE="supabase,local"
 export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
 export SUPABASE_USER="postgres"
 export SUPABASE_PASSWORD="postgres"
-export KEYGO_ADMIN_KEY="changeMe"
 ./mvnw spring-boot:run -pl keygo-run
 
 # Verificar
-curl -H "X-KEYGO-ADMIN: changeMe" \
+curl -H "Authorization: Bearer <access_token>" \
      http://localhost:8080/keygo-server/api/v1/service/info | jq .
 
 # OIDC Discovery del tenant keygo

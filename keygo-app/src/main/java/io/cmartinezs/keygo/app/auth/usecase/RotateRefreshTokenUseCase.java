@@ -32,6 +32,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -158,8 +159,9 @@ public class RotateRefreshTokenUseCase {
     String scope = command.scope() != null ? command.scope() : refreshToken.getScopes();
     String issuer = buildIssuer(command.tenantSlug());
 
-    var accessClaims = tokenClaimsFactory.buildAccessTokenClaims(
-        issuer, userId.value().toString(), command.clientId(), scope, accessJti, now, expiresAt, roles);
+    var accessClaims = new LinkedHashMap<>(tokenClaimsFactory.buildAccessTokenClaims(
+        issuer, userId.value().toString(), command.clientId(), scope, accessJti, now, expiresAt, roles));
+    accessClaims.put("tenant_slug", command.tenantSlug());
     String accessToken = tokenSigner.signJwt(accessClaims, signingKey);
 
     var idClaims = tokenClaimsFactory.buildIdTokenClaims(

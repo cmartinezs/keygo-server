@@ -24,8 +24,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
-  /* Name of the API key security scheme used in OpenAPI spec */
-  private static final String SECURITY_SCHEME_NAME = "AdminKeyAuth";
+  /* Name of the Bearer security scheme used in OpenAPI spec */
+  private static final String SECURITY_SCHEME_NAME = "BearerAuth";
 
   /**
    * Global OpenAPI metadata: title, version, description, contact, license and security scheme.
@@ -38,7 +38,7 @@ public class OpenApiConfig {
   @Bean
   public OpenAPI keyGoOpenAPI(KeyGoBootstrapProperties bootstrapProperties) {
     String securityNote = bootstrapProperties.isEnabled()
-        ? "🔒 Protected endpoints require the `X-KEYGO-ADMIN` header."
+        ? "🔒 Protected endpoints require `Authorization: Bearer <jwt>`."
         : "⚠️ Bootstrap security is disabled — all endpoints are public.";
 
     Info info = new Info()
@@ -54,16 +54,15 @@ public class OpenApiConfig {
             .name("AGPL-3.0")
             .url("https://www.gnu.org/licenses/agpl-3.0.txt"));
 
-    SecurityScheme adminKeyScheme = new SecurityScheme()
-        .type(SecurityScheme.Type.APIKEY)
-        .in(SecurityScheme.In.HEADER)
-        .name("X-KEYGO-ADMIN")
-        .description("Admin API key. Default dev value: `changeMe`. "
-                     + "Set via `KEYGO_ADMIN_KEY` environment variable.");
+    SecurityScheme bearerScheme = new SecurityScheme()
+        .type(SecurityScheme.Type.HTTP)
+        .scheme("bearer")
+        .bearerFormat("JWT")
+        .description("Bearer JWT token issued by KeyGo OAuth2/OIDC endpoints.");
 
     return new OpenAPI()
         .info(info)
-        .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME, adminKeyScheme));
+        .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME, bearerScheme));
   }
 
   /**

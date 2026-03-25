@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -31,8 +32,9 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/tenants")
-@Tag(name = "Tenants", description = "Tenant lifecycle management — requires X-KEYGO-ADMIN header")
-@SecurityRequirement(name = "AdminKeyAuth")
+@Tag(name = "Tenants", description = "Tenant lifecycle management — requires Bearer JWT")
+@SecurityRequirement(name = "BearerAuth")
+@PreAuthorize("hasRole('ADMIN')")
 public class PlatformTenantController {
 
   private final CreateTenantUseCase createTenantUseCase;

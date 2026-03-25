@@ -34,6 +34,7 @@ import io.cmartinezs.keygo.app.clientapp.usecase.RotateClientSecretUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.UpdateClientAppUseCase;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
@@ -260,6 +261,14 @@ public class ApplicationConfig {
     return new ResendVerificationEmailUseCase(
         tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
         emailVerificationRepositoryPort, emailNotificationPort);
+  }
+
+  @Bean
+  public CreateAppRoleUseCase createAppRoleUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort) {
+    return new CreateAppRoleUseCase(tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
   }
 
   @Bean

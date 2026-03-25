@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.domain.auth.exception.NoActiveSigningKeyException;
 import io.cmartinezs.keygo.domain.auth.model.SigningKey;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,9 +81,13 @@ public class IssueTokensUseCase {
     String idJti = UUID.randomUUID().toString();
 
     // Then: construir y firmar access_token
-    var accessClaims =
+    var accessClaims = new LinkedHashMap<>(
         tokenClaimsFactory.buildAccessTokenClaims(
-            issuer, subject, audience, scope, accessJti, now, expiresAt, roles);
+            issuer, subject, audience, scope, accessJti, now, expiresAt, roles));
+    String tenantSlug = extractTenantSlugFromIssuer(issuer);
+    if (tenantSlug != null) {
+      accessClaims.put("tenant_slug", tenantSlug);
+    }
     String accessToken = tokenSigner.signJwt(accessClaims, signingKey);
 
     // Then: construir y firmar id_token (incluye at_hash del access_token)
@@ -93,6 +98,20 @@ public class IssueTokensUseCase {
 
     return new IssueTokensResult(
         accessToken, idToken, "Bearer", ACCESS_TOKEN_TTL.toSeconds(), scope, authorizationCodeId);
+  }
+
+  private String extractTenantSlugFromIssuer(String issuer) {
+    if (issuer == null || issuer.isBlank()) {
+      return null;
+    }
+    String marker = "/api/v1/tenants/";
+    int markerIndex = issuer.indexOf(marker);
+    if (markerIndex < 0) {
+      return null;
+    }
+    String tail = issuer.substring(markerIndex + marker.length());
+    int slashIndex = tail.indexOf('/');
+    return slashIndex >= 0 ? tail.substring(0, slashIndex) : tail;
   }
 }
 

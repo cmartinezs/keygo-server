@@ -6,6 +6,7 @@
 > - [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) — Historial de cambios al quick-start
 > - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) — Inconsistencias detectadas
 > - [`docs/ai/lecciones.md`](docs/ai/lecciones.md) — Lecciones aprendidas
+> - [`docs/ai/propuestas.md`](docs/ai/propuestas.md) — Propuestas de mejoras futuras (corto/mediano/largo)
 
 ## Module map & dependency rules
 
@@ -109,7 +110,7 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
    Include: HTTP method, URL with env variables (`{{fullBaseUrl}}/api/v1/...`), required headers, example body (if applicable), and `pm.test()` scripts validating status code, `BaseResponse` structure and business fields.  
    This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
 7. **Frontend Guide** — update section §14 (endpoint inventory) in `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **before closing the task**.  
-   Include: HTTP method, full URL with `context-path`, required auth (`X-KEYGO-ADMIN` / Bearer / public), body/params example and `BaseResponse` structure.  
+   Include: HTTP method, full URL with `context-path`, required auth (Bearer / public), body/params example and `BaseResponse` structure.  
    This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
 8. **Data docs (if Flyway migration added)** — when a new `V{n}__*.sql` migration is created, update **all three** data documents **before closing the task**:
    - `docs/keygo-server/DATA_MODEL.md` — add table dictionary (fields, types, constraints, business rules)
@@ -156,13 +157,13 @@ All endpoints are served under `/keygo-server`. Local URLs:
 
 ✅ **Bug T-001 corregido (2026-03-21) — `BootstrapAdminKeyFilter`:** now uses `request.getServletPath()` (strips the context-path) instead of `request.getRequestURI()`. With `context-path=/keygo-server`, `getRequestURI()` returned `/keygo-server/api/...` which never matched the prefixes in `application.yml` (e.g. `/api/`), leaving all routes public. `getServletPath()` returns `/api/...` directly. Tests updated to use `setServletPath()` + 2 regression tests with simulated context-path.
 
-✅ **JWT admin auth añadida (2026-03-24) — `BootstrapAdminKeyFilter`:** protected `/api/**` endpoints now accept **either** `X-KEYGO-ADMIN: <key>` (service-to-service) **or** `Authorization: Bearer <jwt>` with a `roles` claim containing a value listed in `keygo.bootstrap.admin-roles` (default `["ADMIN"]`). The OAuth2 flow paths (`/oauth2/authorize`, `/account/login`, `/oauth2/token`) are now **public** so the browser can initiate login without pre-existing credentials. On startup with the `supabase` profile, `SigningKeyInitializer` auto-generates an RSA-2048 signing key if none exists.
+✅ **Bearer-only admin auth (2026-03-25) — `BootstrapAdminKeyFilter` + `@PreAuthorize`:** protected `/api/**` endpoints now require **only** `Authorization: Bearer <jwt>`. The filter validates signature/expiration and publishes authorities from claim `roles`; authorization is enforced per endpoint with `@PreAuthorize` (`ADMIN` global, `ADMIN_TENANT` scoped by tenant). Tenant scope is validated against `tenant_slug` claim (or `iss` fallback) vs `tenantSlug` in path.
 
 The filter has three path categories (see `KeyGoBootstrapProperties`):
 
 | Property | `application.yml` value | Behaviour |
 |---|---|---|
-| `keygo.bootstrap.api-path-prefix` | `/api/` | Protected — requires `X-KEYGO-ADMIN` |
+| `keygo.bootstrap.api-path-prefix` | `/api/` | Protected — requires `Authorization: Bearer <jwt>` |
 | `keygo.bootstrap.actuator-path-prefix` | `/actuator/` | Public |
 | `keygo.bootstrap.service-info-path-prefix` | `/service/info` | Public |
 | `keygo.bootstrap.swagger-ui-path-prefix` | `/swagger-ui` | Public |
@@ -177,12 +178,11 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.authorize-path-suffix` | `/oauth2/authorize` | Public — browser navigates here to start the OAuth2 flow |
 | `keygo.bootstrap.login-path-suffix` | `/account/login` | Public — user POSTs credentials during the authorization code flow |
 | `keygo.bootstrap.token-path-suffix` | `/oauth2/token` | Public — code exchange (PKCE-protected) and token rotation |
-| `keygo.bootstrap.admin-roles` | `[ADMIN]` | JWT roles that grant admin access via Bearer token to protected `/api/**` routes |
 
 ## Security header
 
-Protected routes require `X-KEYGO-ADMIN: <value of KEYGO_ADMIN_KEY>`.  
-Default dev key: `changeMe` — **never use in production**.  
+Protected routes require `Authorization: Bearer <jwt>`.  
+The filter extracts roles from JWT claim `roles` and `@PreAuthorize` enforces endpoint permissions.  
 Set `keygo.bootstrap.enabled=false` in `application.yml` (or `KEYGO_BOOTSTRAP_ENABLED=false`) to disable the filter entirely and make all routes public (useful in tests).
 
 `KeyGoBootstrapProperties` has `@AssertTrue` bean validation: **the app fails to start** if `keygo.bootstrap.enabled=true` and `adminKey` is null or blank. Use `keygo.bootstrap.enabled=false` in tests to bypass both the filter and this validation.
@@ -287,6 +287,15 @@ Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ord
 ## Git — never execute directly
 
 List suggested `git` commands for the user; do not run them.
+
+## Propuestas de mejoras futuras
+
+Al cerrar cualquier tarea, incluir propuestas accionables en 3 horizontes (corto, mediano y largo plazo) y registrarlas en:
+
+- `docs/ai/propuestas.md` (resumen operativo para agentes)
+- `ROADMAP.md` (registro canónico con IDs `T-NNN` / `F-NNN`)
+
+Si una propuesta es recurrente o de alto valor, también reflejarla en `AI_CONTEXT.md`.
 
 ## Docs — only on explicit request
 

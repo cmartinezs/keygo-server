@@ -5,10 +5,10 @@ import io.cmartinezs.keygo.api.membership.response.AppRoleData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.app.membership.command.CreateAppRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.domain.membership.model.AppRole;
-import io.cmartinezs.keygo.domain.membership.model.AppRoleId;
-import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,13 +32,18 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientAppId}/roles")
-@SecurityRequirement(name = "AdminKeyAuth")
+@SecurityRequirement(name = "BearerAuth")
 @Tag(name = "6-roles", description = "Application-scoped roles")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantAppRoleController {
 
+  private final CreateAppRoleUseCase createAppRoleUseCase;
   private final ListAppRolesUseCase listAppRolesUseCase;
 
-  public TenantAppRoleController(ListAppRolesUseCase listAppRolesUseCase) {
+  public TenantAppRoleController(
+      CreateAppRoleUseCase createAppRoleUseCase,
+      ListAppRolesUseCase listAppRolesUseCase) {
+    this.createAppRoleUseCase = createAppRoleUseCase;
     this.listAppRolesUseCase = listAppRolesUseCase;
   }
 
@@ -54,13 +60,14 @@ public class TenantAppRoleController {
       @Parameter(description = "Client app ID") @PathVariable UUID clientAppId,
       @Valid @RequestBody CreateAppRoleRequest request) {
 
-    AppRole role = AppRole.builder()
-        .id(AppRoleId.generate())
-        .clientAppId(io.cmartinezs.keygo.domain.clientapp.model.ClientAppId.of(clientAppId))
-        .code(RoleCode.of(request.code()))
-        .displayName(request.displayName())
-        .description(request.description())
-        .build();
+    CreateAppRoleCommand command = new CreateAppRoleCommand(
+        tenantSlug,
+        clientAppId,
+        request.code(),
+        request.displayName(),
+        request.description());
+
+    AppRole role = createAppRoleUseCase.execute(command);
 
     AppRoleData data = AppRoleData.builder()
         .id(role.getId().value())
@@ -109,5 +116,4 @@ public class TenantAppRoleController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
-
 

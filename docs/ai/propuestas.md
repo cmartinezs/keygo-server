@@ -29,6 +29,9 @@
 | ~~T-041~~ | ~~Agregar V13 y extender `TenantUserEntity` con 6 campos OIDC estándar~~ | ✅ Completada 2026-03-24 (Fase 9b) |
 | ~~T-042~~ | ~~Implementar endpoints self-service de perfil: GET y PATCH `/account/profile` con Bearer token~~ | ✅ Completada 2026-03-24 (Fase 9b) |
 | T-043 | Extender `GetUserInfoUseCase` para filtrar claims por scope solicitado (`profile`, `email`, `phone`) | 🔲 Pendiente |
+| T-049 | Agregar request Postman `GET /api/v1/tenants/{slug}/apps/{clientId}/roles` con `pm.test()` de status 200, estructura `BaseResponse` y validación de lista | 🔲 Pendiente |
+| T-051 | Suite de autorización por endpoint (`@PreAuthorize`) con matriz rol/tenant (ADMIN, ADMIN_TENANT match/mismatch, USER_TENANT) | 🔲 Pendiente |
+| ~~T-052~~ | ~~Hardening seguridad admin Bearer-only (sin `X-KEYGO-ADMIN`, `@PreAuthorize` + tenant match)~~ | ✅ Completada 2026-03-25 |
 
 ---
 
@@ -46,6 +49,7 @@
 | T-044 | Crear tabla `membership_attributes` (V14) + `MembershipAttributeEntity` + port + use cases para leer/escribir metadata app-específica del usuario | 🔲 Pendiente |
 | T-045 | Implementar claim mappers por `ClientApp`: configurar qué claims incluir en `id_token` y `access_token` desde `membership_attributes` | 🔲 Pendiente |
 | T-046 | Agregar scope `profile:write` explícito y validarlo en PATCH `/account/profile` contra los scopes del access token | 🔲 Pendiente |
+| T-050 | Reemplazar validación en `CreateAppRoleUseCase` basada en `findAllByTenantId(...).stream().anyMatch(...)` por lookup directo app+tenant (p. ej. `findByIdAndTenantId`) | 🔲 Pendiente |
 
 ---
 
@@ -60,6 +64,7 @@
 | ~~T-039~~ | ~~Soporte de `client_credentials` grant (Fase 8) — emite access token sin usuario para comunicación M2M~~ | ✅ Completada 2026-03-23 (Fase 8) |
 | T-047 | Implementar SCIM 2.0 endpoint `/api/v1/tenants/{slug}/scim/v2/Users` para aprovisionamiento de perfiles desde sistemas HR externos | 🔲 Pendiente |
 | T-048 | Soporte a esquemas de atributos personalizados por tenant — el admin define campos adicionales del perfil (análogo a Keycloak declarativeUserProfile) | 🔲 Pendiente |
+| F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
 | ~~F-025~~ | ~~`client_credentials` grant M2M sin usuario final~~ | ✅ Completada 2026-03-23 (Fase 8) |
 | ~~F-027~~ | ~~Refresh tokens con rotación + SHA-256 hash~~ | ✅ Completada 2026-03-22 (Fase 7) |
@@ -74,4 +79,4 @@
 
 ---
 
-**Última actualización:** 2026-03-24 (Fase 9b completada — perfil de usuario OIDC extendido) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-25 (se agregan T-051 y T-052) | **Responsable:** AI Agent

@@ -66,7 +66,6 @@ export SUPABASE_PASSWORD="postgres"
 |---|---|---|
 | `PORT` | Puerto del servidor | `8080` |
 | `SPRING_PROFILES_ACTIVE` | Perfiles activos | `default` |
-| `KEYGO_ADMIN_KEY` | Bootstrap admin key | `changeMe` ⚠️ |
 | `SUPABASE_URL` | JDBC URL de PostgreSQL | — |
 | `SUPABASE_USER` | Usuario de DB | — |
 | `SUPABASE_PASSWORD` | Contraseña de DB | — |
@@ -108,9 +107,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 ## Seguridad
 
-- `KEYGO_ADMIN_KEY` default `changeMe` — **no válido en producción**.
-- `BootstrapAdminKeyFilter` protege `/api/**` con header `X-KEYGO-ADMIN`.
-- Usa `request.getServletPath()` (no `getRequestURI()`) para comparar prefijos. Ver lección [Bug T-001](AI_CONTEXT.lecciones.md#2026-03-21-bug-t-001--bootstrapadminkeyfilter-getrequesturi-vs-getservletpath-con-context-path).
+- `BootstrapAdminKeyFilter` protege `/api/**` con `Authorization: Bearer <jwt>`.
+- `@PreAuthorize` en controllers admin aplica RBAC por endpoint (`ADMIN` / `ADMIN_TENANT`).
+- Para `ADMIN_TENANT`, el tenant del token (`tenant_slug` o `iss`) debe coincidir con `tenantSlug` del path.
+- Usa `request.getServletPath()` (no `getRequestURI()`) para comparar prefijos. Ver lección [Bug T-001](docs/ai/lecciones.md#2026-03-21-bug-t-001--bootstrapadminkeyfilter-getrequesturi-vs-getservletpath-con-context-path).
 - Actuator expuesto completo — **restringir en prod**.
 
 ---
@@ -182,9 +182,11 @@ Al concluir, incluir propuestas en tres horizontes:
 
 | Horizonte | Criterio | Registrar en |
 |---|---|---|
-| **Corto plazo** | Relacionado con lo recién implementado; bajo esfuerzo | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) |
-| **Mediano plazo** | Evoluciones naturales; esfuerzo moderado | [`AI_CONTEXT.propuestas.md`](AI_CONTEXT.propuestas.md) |
-| **Largo plazo** | Capacidades estratégicas; alto esfuerzo | [`ROADMAP.md`](ROADMAP.md) |
+| **Corto plazo** | Relacionado con lo recién implementado; bajo esfuerzo | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) |
+| **Mediano plazo** | Evoluciones naturales; esfuerzo moderado | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) |
+| **Largo plazo** | Capacidades estratégicas; alto esfuerzo | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) |
+
+Regla práctica: describir la propuesta en la respuesta final (corto/mediano/largo), y si es relevante/recurrente, registrarla con ID `T-NNN` o `F-NNN` en ambos documentos.
 
 ---
 
@@ -203,4 +205,4 @@ Al concluir, incluir propuestas en tres horizontes:
 
 ---
 
-**Última actualización:** 2026-03-23 | **Responsable:** AI Agent
+**Última actualización:** 2026-03-25 | **Responsable:** AI Agent

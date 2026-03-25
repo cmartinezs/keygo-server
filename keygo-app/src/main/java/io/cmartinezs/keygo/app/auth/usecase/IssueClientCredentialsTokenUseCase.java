@@ -24,6 +24,7 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -133,8 +134,9 @@ public class IssueClientCredentialsTokenUseCase {
     String issuer = issuerBaseUrl + "/api/v1/tenants/" + command.tenantSlug();
 
     // M2M (client_credentials) no tiene usuario final ni roles de membresía
-    var claims = tokenClaimsFactory.buildAccessTokenClaims(
-        issuer, command.clientId(), command.clientId(), scope, jti, now, expiresAt, null);
+    var claims = new LinkedHashMap<>(tokenClaimsFactory.buildAccessTokenClaims(
+        issuer, command.clientId(), command.clientId(), scope, jti, now, expiresAt, null));
+    claims.put("tenant_slug", command.tenantSlug());
     String accessToken = tokenSigner.signJwt(claims, signingKey);
 
     return new IssueClientCredentialsTokenResult(accessToken, "Bearer", ACCESS_TOKEN_TTL.toSeconds(), scope);

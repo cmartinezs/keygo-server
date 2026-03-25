@@ -6,7 +6,6 @@ keygo:
     issuer-base-url: "${KEYGO_ISSUER_BASE_URL:http://localhost:8080/keygo-server}"
   bootstrap:
     enabled: true
-    admin-key: "${KEYGO_ADMIN_KEY:changeMe}"
     api-path-prefix: "/api/"
     actuator-path-prefix: "/actuator/"
     service-info-path-prefix: "/service/info"
@@ -22,8 +21,6 @@ keygo:
     authorize-path-suffix: "/oauth2/authorize"
     login-path-suffix: "/account/login"
     token-path-suffix: "/oauth2/token"
-    admin-roles:
-      - ADMIN
   mail:
     from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
     app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"

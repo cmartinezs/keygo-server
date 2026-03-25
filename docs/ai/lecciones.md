@@ -26,6 +26,9 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-25 | [Bearer-only admin auth: `@PreAuthorize` + tenant match token/path](#2026-03-25-bearer-only-admin-auth-preauthorize--tenant-match-tokenpath) | Security / Authorization |
+| 2026-03-25 | [Claims map puede ser inmutable en tests: copiar antes de agregar `tenant_slug`](#2026-03-25-claims-map-puede-ser-inmutable-en-tests-copiar-antes-de-agregar-tenant_slug) | OAuth2 / Testing |
+| 2026-03-24 | [Endpoint `POST /roles`: evitar respuestas "exitosas" sin persistencia real](#2026-03-24-endpoint-post-roles-evitar-respuestas-exitosas-sin-persistencia-real) | API / Hexagonal / Persistencia |
 | 2026-03-24 | [Claim `roles` en JWT: agregar parámetro a ambas firmas de TokenClaimsFactoryPort](#2026-03-24-claim-roles-en-jwt) | OAuth2 / JWT / Arquitectura |
 | 2026-03-24 | [JWT admin en filtro: rutas OAuth2 públicas + Bearer con rol admin](#2026-03-24-jwt-admin-en-filtro-rutas-oauth2-públicas--bearer-con-rol-admin) | Security / Filter |
 | 2026-03-24 | [SigningKeyInitializer: auto-generar clave RSA en startup con @Profile](#2026-03-24-signingkeyinitializer-auto-generar-clave-rsa-en-startup) | Spring / Startup |
@@ -72,6 +75,28 @@
 ---
 
 ## Lecciones
+
+### [2026-03-25] Bearer-only admin auth: `@PreAuthorize` + tenant match token/path
+**Contexto:** Migración de seguridad para endpoints admin: remover `X-KEYGO-ADMIN` y usar solo `Authorization: Bearer`.
+**Problema:** Validar JWT en el filtro no es suficiente para autorización fina; sin control por endpoint ni tenant se puede habilitar acceso cruzado entre tenants para usuarios con rol administrativo.
+**Solución / Buena práctica:**
+1. Mantener autenticación central en filtro (`BootstrapAdminKeyFilter`) para validar firma/expiración y publicar authorities desde claim `roles`.
+2. Aplicar `@PreAuthorize` en cada controller admin para declarar explícitamente el rol requerido.
+3. Usar evaluador SpEL (`tenantAuthorizationEvaluator`) para comparar `tenantSlug` del path con claim `tenant_slug` (fallback a `iss`) en tokens de `ADMIN_TENANT`.
+4. Reservar bypass global por rol solo para `ADMIN` plataforma.
+**Archivos clave:** `keygo-run/src/main/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilter.java`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/security/SecurityConfig.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/security/TenantAuthorizationEvaluator.java`
+
+### [2026-03-25] Claims map puede ser inmutable en tests: copiar antes de agregar `tenant_slug`
+**Contexto:** Al agregar claim `tenant_slug` en emisión de access tokens (`IssueTokensUseCase` y `RotateRefreshTokenUseCase`), algunos tests empezaron a fallar con `UnsupportedOperationException`.
+**Problema:** En tests se mockeaba `TokenClaimsFactoryPort` con `Map.of(...)` (mapas inmutables). Al hacer `claims.put("tenant_slug", ...)` sobre ese mapa, la ejecución falla.
+**Solución / Buena práctica:** Siempre copiar el resultado del factory a un mapa mutable (`new LinkedHashMap<>(...)`) antes de enriquecer claims adicionales en el caso de uso.
+**Archivos clave:** `keygo-app/src/main/java/io/cmartinezs/keygo/app/auth/usecase/IssueTokensUseCase.java`, `keygo-app/src/main/java/io/cmartinezs/keygo/app/auth/usecase/RotateRefreshTokenUseCase.java`, `keygo-app/src/main/java/io/cmartinezs/keygo/app/auth/usecase/IssueClientCredentialsTokenUseCase.java`
+
+### [2026-03-24] Endpoint `POST /roles`: evitar respuestas "exitosas" sin persistencia real
+**Contexto:** Al preparar bootstrap de tenants/apps/usuarios para `keygo-ui`, se detectó que `POST /api/v1/tenants/{tenantSlug}/apps/{clientAppId}/roles` devolvía `201 ROLE_CREATED`, pero el rol no se guardaba en DB.
+**Problema:** El controller construía el objeto de dominio en memoria y respondía éxito sin pasar por un use case ni por `AppRoleRepositoryPort.save()`. Esto rompe el contrato funcional y provoca fallos encadenados en memberships/scripts.
+**Solución / Buena práctica:** Mover la creación a `CreateAppRoleUseCase` en `keygo-app`, usando command + validaciones (tenant activo, app perteneciente al tenant, código no duplicado) y persistencia vía puerto de salida. El controller debe orquestar request/response y nunca simular persistencia.
+**Archivos clave:** `keygo-app/src/main/java/io/cmartinezs/keygo/app/membership/usecase/CreateAppRoleUseCase.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/membership/controller/TenantAppRoleController.java`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/ApplicationConfig.java`
 
 ### [2026-03-24] Claim `roles` en JWT para que el frontend `keygo-ui` lea los roles directamente desde el JWT sin llamadas adicionales a la API.
 **Problema:** El claim `roles` debe propagarse por toda la cadena de emisión de tokens: `MembershipRepositoryPort` → use case → `TokenClaimsFactoryPort` → `StandardTokenClaimsFactory`. Al agregar un parámetro a la interfaz, **todos** los callers deben actualizarse: `IssueTokensUseCase`, `RotateRefreshTokenUseCase`, `AuthorizationController` y también `IssueClientCredentialsTokenUseCase` (que pasa `null` porque M2M no tiene usuario ni membresía).

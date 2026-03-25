@@ -22,6 +22,32 @@
 
 ## Registro de cambios
 
+### [2026-03-25] Seguridad admin Bearer-only + RBAC por endpoint
+
+**Motivo:** El backend deja de aceptar `X-KEYGO-ADMIN` y estandariza seguridad de endpoints admin con JWT Bearer + autorización explícita por endpoint.
+
+**Cambios aplicados:**
+- `keygo-run`: `spring-boot-starter-security` + `SecurityConfig` con `@EnableMethodSecurity` y `SecurityFilterChain` stateless.
+- `BootstrapAdminKeyFilter`: autenticación **solo** por `Authorization: Bearer`, sin fallback a admin key; pobla `SecurityContext` con authorities `ROLE_*` desde claim `roles`.
+- `keygo-api`: `@PreAuthorize` en controllers admin (`PlatformTenantController`, `TenantClientAppController`, `TenantUserController`, `TenantMembershipController`, `TenantAppRoleController`).
+- Nuevo evaluador `tenantAuthorizationEvaluator`: valida tenant del token (`tenant_slug` o fallback `iss`) contra `tenantSlug` en path para `ADMIN_TENANT`.
+- `OpenApiConfig`: esquema de seguridad migrado de `AdminKeyAuth` a `BearerAuth`.
+- `keygo-app`: emisión de claim `tenant_slug` en access tokens (auth code, refresh rotation y client_credentials).
+
+**Resultado:** Endpoints admin alineados a Bearer JWT, con autorización por rol en cada endpoint y control de aislamiento por tenant en capa de autorización.
+
+### [2026-03-24] Refuerzo del punto 6 — Propuestas de mejoras futuras + trazabilidad cruzada
+
+**Motivo:** Alinear la gobernanza documental para que el ciclo de "propuestas futuras" quede explícito y consistente entre documentos AI y roadmap canónico.
+
+**Cambios aplicados:**
+- `AI_CONTEXT.md`: sección `### Propuestas de mejoras futuras` corregida para registrar siempre en `docs/ai/propuestas.md` + `ROADMAP.md` (corto/mediano/largo) y regla práctica de alta con IDs `T-NNN`/`F-NNN`.
+- `AGENTS.md`: agregado `docs/ai/propuestas.md` en sub-documentos y nueva sección explícita `## Propuestas de mejoras futuras`.
+- `AI_CONTEXT.md`: corrección de link roto hacia lecciones (`AI_CONTEXT.lecciones.md` → `docs/ai/lecciones.md`).
+- `docs/ai/propuestas.md` + `ROADMAP.md`: altas sincronizadas de propuestas recientes `T-049`, `T-050` y `F-040`.
+
+**Resultado:** El punto 6 queda referenciado explícitamente en `AI_CONTEXT.md`, `AGENTS.md` y `CLAUDE.md`, con propuestas nuevas ya trazadas en el resumen operativo (`docs/ai/propuestas.md`) y en el registro primario (`ROADMAP.md`).
+
 ### [2026-03-24] Fase 9b — Perfil de usuario OIDC extendido + endpoints self-service
 
 **Motivo:** Implementación completa del perfil de usuario OIDC extendido basado en la decisión de diseño:

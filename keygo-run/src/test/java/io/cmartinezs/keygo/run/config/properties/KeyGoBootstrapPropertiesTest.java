@@ -1,16 +1,7 @@
 package io.cmartinezs.keygo.run.config.properties;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,14 +15,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class KeyGoBootstrapPropertiesTest {
 
     private KeyGoBootstrapProperties properties;
-    private Validator validator;
 
     @BeforeEach
     void setUp() {
         properties = new KeyGoBootstrapProperties();
-        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
-            validator = factory.getValidator();
-        }
     }
 
     @Test
@@ -53,81 +40,15 @@ class KeyGoBootstrapPropertiesTest {
     }
 
     @Test
-    void setAdminKey_shouldSetAdminKeyCorrectly() {
-        // Given
-        String adminKey = "mySecretKey123";
-
-        // When
-        properties.setAdminKey(adminKey);
-
-        // Then
-        assertThat(properties.getAdminKey()).isEqualTo(adminKey);
-    }
-
-    @Test
-    void getAdminKey_shouldReturnNullWhenNotSet() {
-        // When / Then
-        assertThat(properties.getAdminKey()).isNull();
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"  ", "validKey123"})
-    void validation_shouldPassWhenEnabledIsFalse(String adminKey) {
-        // Given
-        properties.setEnabled(false);
-        properties.setAdminKey(adminKey);
-
-        // When
-        Set<ConstraintViolation<KeyGoBootstrapProperties>> violations = validator.validate(properties);
-
-        // Then
-        assertThat(violations).isEmpty();
-    }
-
-    @Test
-    void validation_shouldPassWhenEnabledIsTrueAndAdminKeyIsValid() {
-        // Given
-        properties.setEnabled(true);
-        properties.setAdminKey("validKey123");
-
-        // When
-        Set<ConstraintViolation<KeyGoBootstrapProperties>> violations = validator.validate(properties);
-
-        // Then
-        assertThat(violations).isEmpty();
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"   ", "  "})
-    void validation_shouldFailWhenEnabledIsTrueAndAdminKeyIsInvalid(String adminKey) {
-        // Given
-        properties.setEnabled(true);
-        properties.setAdminKey(adminKey);
-
-        // When
-        Set<ConstraintViolation<KeyGoBootstrapProperties>> violations = validator.validate(properties);
-
-        // Then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("adminKey must not be blank when bootstrap is enabled");
-    }
-
-    @Test
     void properties_shouldAllowModification() {
         // Given
         properties.setEnabled(false);
-        properties.setAdminKey("initialKey");
 
         // When
         properties.setEnabled(true);
-        properties.setAdminKey("updatedKey");
 
         // Then
         assertThat(properties.isEnabled()).isTrue();
-        assertThat(properties.getAdminKey()).isEqualTo("updatedKey");
     }
 
     @Test
@@ -166,25 +87,6 @@ class KeyGoBootstrapPropertiesTest {
         assertThat(properties.getServiceInfoPathPrefix()).isEqualTo(customServiceInfoPath);
     }
 
-    @Test
-    void adminRoles_shouldDefaultToAdminOnly() {
-        // When / Then
-        assertThat(properties.getAdminRoles())
-            .isNotNull()
-            .containsExactly("ADMIN");
-    }
-
-    @Test
-    void adminRoles_shouldBeConfigurable() {
-        // Given
-        java.util.List<String> roles = java.util.List.of("ADMIN", "SUPERADMIN");
-
-        // When
-        properties.setAdminRoles(roles);
-
-        // Then
-        assertThat(properties.getAdminRoles()).containsExactlyInAnyOrder("ADMIN", "SUPERADMIN");
-    }
 
     @Test
     void oauth2PublicSuffixes_shouldBeConfigurable() {

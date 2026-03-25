@@ -2,25 +2,15 @@
   "info": {
     "_postman_id": "col-keygo-server-v1",
     "name": "KeyGo Server API",
-    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar las carpetas en orden (Platform → Actuator → Tenants).\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints bajo `/api/**` requieren el header `X-KEYGO-ADMIN: {{adminKey}}`.\nEl valor por defecto de desarrollo es `changeMe`.\n\n> ⚠️ **Bug conocido:** `BootstrapAdminKeyFilter` actualmente usa `getRequestURI()` en lugar de `getServletPath()`,\n> por lo que el header no se valida en la versión actual. De todas formas se incluye para futura compatibilidad.",
+    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, etc.) no requieren autenticación.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
-    "type": "apikey",
-    "apikey": [
+    "type": "bearer",
+    "bearer": [
       {
-        "key": "key",
-        "value": "X-KEYGO-ADMIN",
-        "type": "string"
-      },
-      {
-        "key": "value",
-        "value": "{{adminKey}}",
-        "type": "string"
-      },
-      {
-        "key": "in",
-        "value": "header",
+        "key": "token",
+        "value": "{{accessToken}}",
         "type": "string"
       }
     ]
@@ -1376,6 +1366,80 @@
             "description": "Rota el client secret de una aplicación confidencial. El nuevo secret solo está disponible en esta respuesta."
           },
           "response": []
+        },
+        {
+          "name": "POST Create App Role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('BaseResponse tiene success y data', function () {",
+                  "    pm.expect(body).to.have.property('success');",
+                  "    pm.expect(body).to.have.property('data');",
+                  "});",
+                  "",
+                  "pm.test('success.code es ROLE_CREATED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'ROLE_CREATED');",
+                  "});",
+                  "",
+                  "pm.test('data contiene id, clientAppId y code', function () {",
+                  "    pm.expect(body.data).to.have.property('id');",
+                  "    pm.expect(body.data).to.have.property('clientAppId');",
+                  "    pm.expect(body.data).to.have.property('code', pm.environment.get('roleCode') || 'admin');",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('roleCode')) {",
+                  "  pm.environment.set('roleCode', 'admin');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{roleCode}}\",\n  \"displayName\": \"Administrator\",\n  \"description\": \"Rol admin para gestión de tenant\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/roles",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "roles"
+              ]
+            },
+            "description": "Crea un rol dentro de la app del tenant. Requiere `X-KEYGO-ADMIN` o Bearer JWT con rol admin."
+          },
+          "response": []
         }
       ]
     },
@@ -2044,8 +2108,9 @@
                 "value": "application/json"
               },
               {
-                "key": "X-KEYGO-ADMIN",
-                "value": "{{adminKey}}"
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "disabled": true
               }
             ],
             "body": {
@@ -2107,8 +2172,9 @@
                 "value": "application/json"
               },
               {
-                "key": "X-KEYGO-ADMIN",
-                "value": "{{adminKey}}"
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "disabled": true
               }
             ],
             "body": {

@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.run.config.properties;
 
-import jakarta.validation.constraints.AssertTrue;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -23,10 +22,6 @@ public class KeyGoBootstrapProperties {
   /* Whether bootstrap is enabled. Default is true.
    * Si el arranque está habilitado. Por defecto es true. */
   private boolean enabled = true;
-
-  /* Admin key for bootstrap operations.
-   * Clave de administrador para operaciones de arranque. */
-  private String adminKey;
 
   /* API path prefix that requires authentication.
    * Prefijo de ruta de API que requiere autenticación.
@@ -94,27 +89,6 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta token que es público (canje de código, protegido por PKCE). */
   private String tokenPathSuffix;
 
-  /* List of JWT role codes (case-sensitive) that grant admin access to protected API endpoints.
-   * Lista de códigos de rol JWT (sensibles a mayúsculas) que otorgan acceso admin a endpoints protegidos. */
-  private java.util.List<String> adminRoles = java.util.List.of("ADMIN");
-
-  /**
-   * Validates that adminKey is not blank when enabled is true.
-   * <p>Valida que adminKey no esté vacía cuando enabled es true.
-   * <p>This method is invoked by Jakarta Validation framework via reflection
-   * when the @AssertTrue annotation is processed during bean validation.
-   * <p>Este método es invocado por el framework Jakarta Validation mediante reflexión
-   * cuando se procesa la anotación @AssertTrue durante la validación del bean.
-   * @return true if validation passes
-   */
-  @AssertTrue(message = "adminKey must not be blank when bootstrap is enabled")
-  @SuppressWarnings("unused") // Invoked by Jakarta Validation framework
-  private boolean isAdminKeyValid() {
-    if (!enabled) {
-      return true;
-    }
-    return adminKey != null && !adminKey.isBlank();
-  }
 }
 
 
