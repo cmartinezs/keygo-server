@@ -703,6 +703,25 @@ Almacena códigos de verificación de email generados durante el auto-registro d
 
 ---
 
+## Seed base operativo — V14 (`V14__seed_initial_ui_tenants.sql`)
+
+> V14 no agrega tablas ni columnas nuevas; define un dataset base idempotente para arrancar desarrollo UI y pruebas funcionales.
+
+**Registros seed relevantes:**
+
+| Tabla | Seed aplicado |
+|---|---|
+| `tenants` | `keygo`, `demo` |
+| `client_apps` | `key-go-ui` (tenant `keygo`), `demo-ui` (tenant `demo`) |
+| `tenant_users` | 3 usuarios en `keygo` (`keygo_admin`, `keygo_tenant_admin`, `keygo_user`) y 2 en `demo` (`demo_admin`, `demo_user`) |
+| `app_roles` | `key-go-ui`: `admin`, `admin_tenant`, `user_tenant`; `demo-ui`: `demo_admin`, `demo_user` |
+| `memberships` | 1 membership activa por usuario hacia su app correspondiente |
+| `membership_roles` | Asignación rol↔membership para reflejar perfil admin/user por app |
+
+**Nota:** Este seed no usa `users`/`user_roles` legacy; se basa solo en el modelo multi-tenant vigente (`tenant_users`, `memberships`, `app_roles`).
+
+---
+
 ## Próximas migraciones
 
 | Migración | Descripción | Estado |
@@ -710,10 +729,12 @@ Almacena códigos de verificación de email generados durante el auto-registro d
 | `V10__rename_membership_tables_to_plural.sql` | Renombrar `app_role`, `membership`, `membership_role` → `app_roles`, `memberships`, `membership_roles` | ✅ Aplicada (2026-03-22) |
 | `V11__add_refresh_tokens_and_sessions.sql` | Tablas `sessions` + `refresh_tokens` para Fase 7 (refresh token flow, SHA-256 hash) | ✅ Aplicada (2026-03-22) |
 | `V12__add_email_verifications.sql` | Tabla `email_verifications` para flujo de auto-registro con verificación de email | ✅ Aplicada (2026-03-23) |
-| `V13__...` | Próxima migración — sin definir aún | ⏳ Planificada |
+| `V13__extend_tenant_user_profile.sql` | Extiende `tenant_users` con 6 campos OIDC de perfil canónico | ✅ Aplicada (2026-03-24) |
+| `V14__seed_initial_ui_tenants.sql` | Seed base para UI: tenants/apps/usuarios/roles/memberships (`keygo`, `demo`) | ✅ Aplicada (2026-03-25) |
+| `V15__...` | Próxima migración — sin definir aún | ⏳ Planificada |
 
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V13`.
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V15`.
 
 ---
 
-**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V12
+**Última actualización:** 2026-03-25 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V14

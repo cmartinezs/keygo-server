@@ -115,6 +115,79 @@ class UserTest {
   }
 
   @Test
+  void isPending_whenStatusIsPending_returnsTrue() {
+    // Given
+    User user =
+        User.builder()
+            .id(UserId.generate())
+            .tenantId(TenantId.of(UUID.randomUUID()))
+            .username(Username.of(VALID_USERNAME))
+            .email(EmailAddress.of(VALID_EMAIL))
+            .passwordHash(PasswordHash.of(VALID_HASH))
+            .status(UserStatus.PENDING)
+            .build();
+
+    // When / Then
+    assertThat(user.isPending()).isTrue();
+    assertThat(user.isActive()).isFalse();
+  }
+
+  @Test
+  void updateProfile_withAllValues_updatesAllFields() {
+    // Given
+    User user = buildActiveUser();
+
+    // When
+    user.updateProfile(
+        "Jane",
+        "Smith",
+        "+5215512345678",
+        "es-MX",
+        "America/Mexico_City",
+        "https://cdn.example.com/jane.png",
+        "1990-01-15",
+        "https://janesmith.dev");
+
+    // Then
+    assertThat(user.getFirstName()).isEqualTo("Jane");
+    assertThat(user.getLastName()).isEqualTo("Smith");
+    assertThat(user.getPhoneNumber()).isEqualTo("+5215512345678");
+    assertThat(user.getLocale()).isEqualTo("es-MX");
+    assertThat(user.getZoneinfo()).isEqualTo("America/Mexico_City");
+    assertThat(user.getProfilePictureUrl()).isEqualTo("https://cdn.example.com/jane.png");
+    assertThat(user.getBirthdate()).isEqualTo("1990-01-15");
+    assertThat(user.getWebsite()).isEqualTo("https://janesmith.dev");
+  }
+
+  @Test
+  void updateProfile_withNullValues_keepsPreviousFields() {
+    // Given
+    User user = buildActiveUser();
+    user.updateProfile(
+        "Jane",
+        "Smith",
+        "+5215512345678",
+        "es-MX",
+        "America/Mexico_City",
+        "https://cdn.example.com/jane.png",
+        "1990-01-15",
+        "https://janesmith.dev");
+
+    // When
+    user.updateProfile(null, null, null, null, null, null, null, null);
+
+    // Then
+    assertThat(user.getFirstName()).isEqualTo("Jane");
+    assertThat(user.getLastName()).isEqualTo("Smith");
+    assertThat(user.getPhoneNumber()).isEqualTo("+5215512345678");
+    assertThat(user.getLocale()).isEqualTo("es-MX");
+    assertThat(user.getZoneinfo()).isEqualTo("America/Mexico_City");
+    assertThat(user.getProfilePictureUrl()).isEqualTo("https://cdn.example.com/jane.png");
+    assertThat(user.getBirthdate()).isEqualTo("1990-01-15");
+    assertThat(user.getWebsite()).isEqualTo("https://janesmith.dev");
+  }
+
+  @Test
   void builderWithNullIdThrows() {
     // When / Then
     var builder = User.builder()
@@ -145,5 +218,68 @@ class UserTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tenantId");
   }
-}
 
+  @Test
+  void builderWithNullUsernameThrows() {
+    // Given / When / Then
+    var builder = User.builder()
+        .id(UserId.generate())
+        .tenantId(TenantId.of(UUID.randomUUID()))
+        .username(null)
+        .email(EmailAddress.of(VALID_EMAIL))
+        .passwordHash(PasswordHash.of(VALID_HASH))
+        .status(UserStatus.ACTIVE);
+
+    assertThatThrownBy(builder::build)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("username");
+  }
+
+  @Test
+  void builderWithNullEmailThrows() {
+    // Given / When / Then
+    var builder = User.builder()
+        .id(UserId.generate())
+        .tenantId(TenantId.of(UUID.randomUUID()))
+        .username(Username.of(VALID_USERNAME))
+        .email(null)
+        .passwordHash(PasswordHash.of(VALID_HASH))
+        .status(UserStatus.ACTIVE);
+
+    assertThatThrownBy(builder::build)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("email");
+  }
+
+  @Test
+  void builderWithNullPasswordHashThrows() {
+    // Given / When / Then
+    var builder = User.builder()
+        .id(UserId.generate())
+        .tenantId(TenantId.of(UUID.randomUUID()))
+        .username(Username.of(VALID_USERNAME))
+        .email(EmailAddress.of(VALID_EMAIL))
+        .passwordHash(null)
+        .status(UserStatus.ACTIVE);
+
+    assertThatThrownBy(builder::build)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("passwordHash");
+  }
+
+  @Test
+  void builderWithNullStatusThrows() {
+    // Given / When / Then
+    var builder = User.builder()
+        .id(UserId.generate())
+        .tenantId(TenantId.of(UUID.randomUUID()))
+        .username(Username.of(VALID_USERNAME))
+        .email(EmailAddress.of(VALID_EMAIL))
+        .passwordHash(PasswordHash.of(VALID_HASH))
+        .status(null);
+
+    assertThatThrownBy(builder::build)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("status");
+  }
+}

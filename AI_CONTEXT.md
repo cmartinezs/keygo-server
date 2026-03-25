@@ -188,6 +188,11 @@ Al concluir, incluir propuestas en tres horizontes:
 
 Regla práctica: describir la propuesta en la respuesta final (corto/mediano/largo), y si es relevante/recurrente, registrarla con ID `T-NNN` o `F-NNN` en ambos documentos.
 
+Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
+- `T-053`: verificación post-seed V14 por conteos esperados.
+- `T-054`: estrategia de `reference data` por ambiente fuera de migraciones estructurales.
+- `T-055`: bootstrap programático de tenants/apps/roles vía control-plane.
+
 ---
 
 ## Referencias rápidas

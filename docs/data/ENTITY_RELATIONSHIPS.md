@@ -712,5 +712,33 @@ stateDiagram-v2
 
 ---
 
-**Última actualización:** 2026-03-23 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V12, Fases 0–9)
+### Contexto 8: Seed base para UI (V14)
+
+```mermaid
+flowchart LR
+    T1["Tenant: keygo"] --> A1["App: key-go-ui"]
+    T2["Tenant: demo"] --> A2["App: demo-ui"]
+
+    U1["keygo_admin"] --> M1["membership ACTIVE"] --> A1
+    U2["keygo_tenant_admin"] --> M2["membership ACTIVE"] --> A1
+    U3["keygo_user"] --> M3["membership ACTIVE"] --> A1
+
+    U4["demo_admin"] --> M4["membership ACTIVE"] --> A2
+    U5["demo_user"] --> M5["membership ACTIVE"] --> A2
+
+    R1["admin"] --> M1
+    R2["admin_tenant"] --> M2
+    R3["user_tenant"] --> M3
+
+    R4["demo_admin"] --> M4
+    R5["demo_user"] --> M5
+```
+
+**Objetivo operativo:** permitir pruebas tempranas de UI con dos tenants y jerarquías de rol independientes por app.
+
+**Aclaración:** V14 es migración de seed, no de schema. No agrega nuevas entidades; solo registra datos iniciales idempotentes en tablas existentes.
+
+---
+
+**Última actualización:** 2026-03-25 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V14, Fases 0–9)
 

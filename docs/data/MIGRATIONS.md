@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-03-24  
+> **Última actualización:** 2026-03-25  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
-> **Próxima migración:** `V14__...`
+> **Próxima migración:** `V15__...`
 
 ---
 
@@ -288,11 +288,35 @@ Esto alinea los nombres de tabla con la convención del resto del schema.
 
 ---
 
+### V14 — `V14__seed_initial_ui_tenants.sql`
+
+**Tipo:** Seed de datos base para desarrollo de UI (sin cambios de schema).
+
+**Objetivo:** Poblar dos tenants operativos (`keygo`, `demo`) con apps, usuarios, roles y memberships mínimas para acelerar pruebas del frontend y flujos OAuth2.
+
+**Datos sembrados:**
+
+| Contexto | Registros |
+|---|---|
+| `tenants` | `keygo`, `demo` |
+| `client_apps` | `key-go-ui` (tenant `keygo`), `demo-ui` (tenant `demo`) |
+| `tenant_users` | 5 usuarios seed (3 en `keygo`, 2 en `demo`) |
+| `app_roles` | `key-go-ui`: `admin`, `admin_tenant`, `user_tenant`; `demo-ui`: `demo_admin`, `demo_user` |
+| `memberships` + `membership_roles` | Asignación 1:1 user→app con rol por defecto según perfil |
+
+**Decisión de diseño importante:** No se insertan datos en tablas legacy (`users`, `user_roles`) porque están en proceso de salida. El seed se concentra en el modelo tenant-scoped (`tenant_users`, `memberships`, `app_roles`).
+
+**Idempotencia aplicada:**
+- `ON CONFLICT` para claves naturales (`tenants.slug`, `client_apps.client_id`, `(tenant_id, username)`, `(client_app_id, code)`, `(user_id, client_app_id)`).
+- `WHERE NOT EXISTS` para tablas de relación (`client_redirect_uris`, `client_allowed_grants`, `client_allowed_scopes`, `membership_roles`).
+
+---
+
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V14)
-touch keygo-supabase/src/main/resources/db/migration/V14__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V15)
+touch keygo-supabase/src/main/resources/db/migration/V15__descripcion_del_cambio.sql
 
 # 2. Escribir el SQL de manera idempotente cuando sea posible
 # 3. Levantar DB local

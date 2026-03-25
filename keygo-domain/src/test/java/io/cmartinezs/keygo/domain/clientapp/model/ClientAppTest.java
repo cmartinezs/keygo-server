@@ -197,5 +197,91 @@ class ClientAppTest {
     assertThatThrownBy(builder::build)
         .isInstanceOf(IllegalArgumentException.class);
   }
-}
 
+  @Test
+  void updateInfo_withValidValues_shouldUpdateFields() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+
+    // When
+    app.updateInfo("Renamed App", "New description");
+
+    // Then
+    assertThat(app.getName()).isEqualTo("Renamed App");
+    assertThat(app.getDescription()).isEqualTo("New description");
+  }
+
+  @Test
+  void updateInfo_withBlankName_shouldThrow() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+
+    // When / Then
+    assertThatThrownBy(() -> app.updateInfo("  ", "desc"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("name");
+  }
+
+  @Test
+  void updateRedirectUris_withNull_shouldSetEmptySet() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+
+    // When
+    app.updateRedirectUris(null);
+
+    // Then
+    assertThat(app.getRedirectUris()).isEmpty();
+  }
+
+  @Test
+  void updateRedirectUris_withValues_shouldReplaceUris() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+    Set<RedirectUri> newUris = Set.of(RedirectUri.of("https://example.com/new-callback"));
+
+    // When
+    app.updateRedirectUris(newUris);
+
+    // Then
+    assertThat(app.getRedirectUris()).containsExactly(RedirectUri.of("https://example.com/new-callback"));
+  }
+
+  @Test
+  void updateAccessPolicy_withNull_shouldThrow() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+
+    // When / Then
+    assertThatThrownBy(() -> app.updateAccessPolicy(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("AccessPolicy");
+  }
+
+  @Test
+  void updateAccessPolicy_withValidPolicy_shouldUpdatePolicy() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+    AccessPolicy newPolicy =
+        new AccessPolicy(
+            Set.of(AllowedGrant.AUTHORIZATION_CODE, AllowedGrant.REFRESH_TOKEN),
+            Set.of(AllowedScope.of("openid")));
+
+    // When
+    app.updateAccessPolicy(newPolicy);
+
+    // Then
+    assertThat(app.getAccessPolicy()).isEqualTo(newPolicy);
+  }
+
+  @Test
+  void rotateSecret_withBlankSecret_shouldThrow() {
+    // Given
+    ClientApp app = buildConfidentialApp();
+
+    // When / Then
+    assertThatThrownBy(() -> app.rotateSecret("   "))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("cannot be null or blank");
+  }
+}

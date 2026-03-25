@@ -3,11 +3,13 @@ package io.cmartinezs.keygo.domain.auth.model;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.Getter;
 
 /**
  * Value object que representa el conjunto de scopes solicitados en la autorización.
  *
  * <p>Scopes estándar soportados:
+ *
  * <ul>
  *   <li>openid — OIDC base
  *   <li>profile — información de perfil del usuario
@@ -16,6 +18,7 @@ import java.util.Set;
  *
  * <p>Este modelo es extensible. Nuevos scopes pueden agregarse en el futuro.
  */
+@Getter
 public final class ScopeSet {
   private final Set<String> scopes;
 
@@ -86,15 +89,6 @@ public final class ScopeSet {
   }
 
   /**
-   * Obtiene el conjunto inmutable de scopes.
-   *
-   * @return Set de scopes
-   */
-  public Set<String> getScopes() {
-    return scopes;
-  }
-
-  /**
    * Retorna los scopes como cadena separada por espacios.
    *
    * @return cadena de scopes
@@ -130,4 +124,3 @@ public final class ScopeSet {
     return asString();
   }
 }
-

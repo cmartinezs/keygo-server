@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-25 | [Tests Maven por módulo en monorepo: usar `-am` para resolver dependencias de clases](#2026-03-25-tests-maven-por-módulo-en-monorepo-usar--am-para-resolver-dependencias-de-clases) | Build / Testing |
 | 2026-03-25 | [Bearer-only admin auth: `@PreAuthorize` + tenant match token/path](#2026-03-25-bearer-only-admin-auth-preauthorize--tenant-match-tokenpath) | Security / Authorization |
 | 2026-03-25 | [Claims map puede ser inmutable en tests: copiar antes de agregar `tenant_slug`](#2026-03-25-claims-map-puede-ser-inmutable-en-tests-copiar-antes-de-agregar-tenant_slug) | OAuth2 / Testing |
 | 2026-03-24 | [Endpoint `POST /roles`: evitar respuestas "exitosas" sin persistencia real](#2026-03-24-endpoint-post-roles-evitar-respuestas-exitosas-sin-persistencia-real) | API / Hexagonal / Persistencia |
@@ -75,6 +76,12 @@
 ---
 
 ## Lecciones
+
+### [2026-03-25] Tests Maven por módulo en monorepo: usar `-am` para resolver dependencias de clases
+**Contexto:** Validación de cambios de migración en `keygo-supabase` ejecutando tests del módulo de forma aislada.
+**Problema:** `./mvnw -pl keygo-supabase test` falló con `NoClassDefFoundError` de clases en `keygo-app` y `keygo-domain` durante tests del adapter, porque no se habían construido dependencias reactor necesarias en esa ejecución.
+**Solución / Buena práctica:** En monorepo Maven multi-módulo, para correr tests de un módulo que depende de artefactos locales, usar `-am` (`also-make`): `./mvnw -pl keygo-supabase -am test`. Esto compila módulos requeridos y evita errores de classpath.
+**Archivos clave:** `keygo-supabase/pom.xml`, `docs/ai/lecciones.md`
 
 ### [2026-03-25] Bearer-only admin auth: `@PreAuthorize` + tenant match token/path
 **Contexto:** Migración de seguridad para endpoints admin: remover `X-KEYGO-ADMIN` y usar solo `Authorization: Bearer`.

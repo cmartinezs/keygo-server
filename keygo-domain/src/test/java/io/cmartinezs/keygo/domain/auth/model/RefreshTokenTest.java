@@ -32,6 +32,30 @@ class RefreshTokenTest {
         NOW);
   }
 
+  private String nullString() {
+    return null;
+  }
+
+  private TenantId nullTenantId() {
+    return null;
+  }
+
+  private ClientAppId nullClientAppId() {
+    return null;
+  }
+
+  private UserId nullUserId() {
+    return null;
+  }
+
+  private SessionId nullSessionId() {
+    return null;
+  }
+
+  private Instant nullInstant() {
+    return null;
+  }
+
   @Test
   void issue_createsTokenInActiveStatus() {
     // Given / When
@@ -101,8 +125,21 @@ class RefreshTokenTest {
   @Test
   void revoke_whenAlreadyUsed_throwsException() {
     // Given
-    RefreshToken token = activeToken();
-    token.markAsUsed(NOW, RefreshTokenId.generate());
+    RefreshTokenId replacedBy = RefreshTokenId.generate();
+    RefreshToken token =
+        RefreshToken.reconstitute(
+            RefreshTokenId.generate(),
+            "somehash",
+            TENANT_ID,
+            CLIENT_APP_ID,
+            USER_ID,
+            SESSION_ID,
+            "openid profile",
+            RefreshTokenStatus.USED,
+            EXPIRES_FUTURE,
+            NOW,
+            NOW,
+            replacedBy);
 
     // When / Then
     assertThatThrownBy(token::revoke).isInstanceOf(InvalidRefreshTokenException.class);
@@ -113,7 +150,7 @@ class RefreshTokenTest {
     assertThatThrownBy(
             () ->
                 RefreshToken.issue(
-                    null,
+                    nullString(),
                     TENANT_ID,
                     CLIENT_APP_ID,
                     USER_ID,
@@ -122,5 +159,175 @@ class RefreshTokenTest {
                     EXPIRES_FUTURE,
                     NOW))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void issue_withBlankHash_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "   ",
+                    TENANT_ID,
+                    CLIENT_APP_ID,
+                    USER_ID,
+                    SESSION_ID,
+                    "openid",
+                    EXPIRES_FUTURE,
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("tokenHash");
+  }
+
+  @Test
+  void issue_withNullTenantId_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    nullTenantId(),
+                    CLIENT_APP_ID,
+                    USER_ID,
+                    SESSION_ID,
+                    "openid",
+                    EXPIRES_FUTURE,
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("TenantId");
+  }
+
+  @Test
+  void issue_withNullClientAppId_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    TENANT_ID,
+                    nullClientAppId(),
+                    USER_ID,
+                    SESSION_ID,
+                    "openid",
+                    EXPIRES_FUTURE,
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("ClientAppId");
+  }
+
+  @Test
+  void issue_withNullUserId_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    TENANT_ID,
+                    CLIENT_APP_ID,
+                    nullUserId(),
+                    SESSION_ID,
+                    "openid",
+                    EXPIRES_FUTURE,
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("UserId");
+  }
+
+  @Test
+  void issue_withNullSessionId_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    TENANT_ID,
+                    CLIENT_APP_ID,
+                    USER_ID,
+                    nullSessionId(),
+                    "openid",
+                    EXPIRES_FUTURE,
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("SessionId");
+  }
+
+  @Test
+  void issue_withNullScopes_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    TENANT_ID,
+                    CLIENT_APP_ID,
+                    USER_ID,
+                    SESSION_ID,
+                    nullString(),
+                    EXPIRES_FUTURE,
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Scopes");
+  }
+
+  @Test
+  void issue_withNullExpiresAt_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    TENANT_ID,
+                    CLIENT_APP_ID,
+                    USER_ID,
+                    SESSION_ID,
+                    "openid",
+                    nullInstant(),
+                    NOW))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("ExpiresAt");
+  }
+
+  @Test
+  void issue_withNullNow_throwsException() {
+    // Given / When / Then
+    assertThatThrownBy(
+            () ->
+                RefreshToken.issue(
+                    "somehash",
+                    TENANT_ID,
+                    CLIENT_APP_ID,
+                    USER_ID,
+                    SESSION_ID,
+                    "openid",
+                    EXPIRES_FUTURE,
+                    nullInstant()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Now");
+  }
+
+  @Test
+  void markAsUsed_whenRevoked_throwsException() {
+    // Given
+    RefreshToken token = activeToken();
+    RefreshTokenId replacedById = RefreshTokenId.generate();
+    token.revoke();
+
+    // When / Then
+    assertThatThrownBy(() -> token.markAsUsed(NOW, replacedById))
+        .isInstanceOf(InvalidRefreshTokenException.class)
+        .hasMessageContaining("not ACTIVE");
+  }
+
+  @Test
+  void revoke_whenAlreadyRevoked_isIdempotent() {
+    // Given
+    RefreshToken token = activeToken();
+
+    // When
+    token.revoke();
+    token.revoke();
+
+    // Then
+    assertThat(token.getStatus()).isEqualTo(RefreshTokenStatus.REVOKED);
   }
 }

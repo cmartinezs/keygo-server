@@ -71,4 +71,43 @@ class AccessPolicyTest {
     // When / Then
     assertThat(policy.allowsGrant(AllowedGrant.CLIENT_CREDENTIALS)).isFalse();
   }
+
+  @Test
+  void allowsScope_presentScope_shouldReturnTrue() {
+    // Given
+    AccessPolicy policy =
+        new AccessPolicy(
+            Set.of(AllowedGrant.AUTHORIZATION_CODE),
+            Set.of(AllowedScope.of("openid"), AllowedScope.of("profile")));
+
+    // When / Then
+    assertThat(policy.allowsScope(AllowedScope.of("openid"))).isTrue();
+  }
+
+  @Test
+  void allowsScope_absentScope_shouldReturnFalse() {
+    // Given
+    AccessPolicy policy =
+        new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of(AllowedScope.of("openid")));
+
+    // When / Then
+    assertThat(policy.allowsScope(AllowedScope.of("email"))).isFalse();
+  }
+
+  @Test
+  void equals_sameContent_shouldReturnTrue() {
+    // Given
+    AccessPolicy first =
+        new AccessPolicy(
+            Set.of(AllowedGrant.AUTHORIZATION_CODE),
+            Set.of(AllowedScope.of("openid"), AllowedScope.of("profile")));
+    AccessPolicy second =
+        new AccessPolicy(
+            Set.of(AllowedGrant.AUTHORIZATION_CODE),
+            Set.of(AllowedScope.of("profile"), AllowedScope.of("openid")));
+
+    // When / Then
+    assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
+    assertThat(first.toString()).contains("AccessPolicy");
+  }
 }

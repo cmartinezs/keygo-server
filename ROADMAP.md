@@ -42,6 +42,7 @@
 | T-030 | Agregar verificación de referencias Markdown rotas tras la reorganización de `docs/ai/` — script o step en CI que detecte links rotos en los docs de la carpeta `docs/ai/` y en los archivos raíz que apuntan a ella | `docs/ai/`, CI | La reorganización eliminó 5 archivos de la raíz; links rotos a rutas antiguas no se detectarían sin un check explícito |
 | T-049 | Agregar request Postman `GET /api/v1/tenants/{slug}/apps/{clientId}/roles` con `pm.test()` para status 200, envelope `BaseResponse` y validación de lista | `postman/` | Cierra cobertura funcional de roles en pruebas manuales; hoy solo está documentada la creación |
 | T-051 | Agregar suite de autorización por endpoint (`@PreAuthorize`) con matriz rol/tenant (ADMIN, ADMIN_TENANT tenant-match, ADMIN_TENANT tenant-mismatch, USER_TENANT) usando MockMvc + JWT de prueba | `keygo-api`, `keygo-run` | Evita regresiones de seguridad tras migrar a Bearer-only y documenta comportamiento esperado (401/403/200) por endpoint |
+| T-053 | Agregar script SQL de verificación post-seed para V14 (conteos esperados por tenant/app/roles/memberships) y validación rápida en local/CI | `keygo-supabase`, `scripts/` | Permite comprobar integridad del dataset semilla sin inspección manual y reduce errores al preparar entorno de UI |
 
 ---
 
@@ -69,6 +70,7 @@
 | T-045 | Implementar claim mappers por `ClientApp`: el admin configura qué campos de `membership_attributes` incluir como claims custom en `id_token` y `access_token` | `keygo-app`, `keygo-supabase` | Permite a cada app extender el token con atributos propios sin modificar el esquema global |
 | T-046 | Agregar scope `profile:write` explícito y validarlo en `PATCH /account/profile` contra los scopes del access token | `keygo-app`, `keygo-api` | Granularidad de permisos; sigue OAuth2 scope-based authorization; actualmente cualquier token válido puede modificar el perfil |
 | T-050 | Reemplazar la validación de pertenencia app→tenant en `CreateAppRoleUseCase` (hoy con `findAllByTenantId(...).stream().anyMatch(...)`) por lookup directo app+tenant (`findByIdAndTenantId`) en puertos/adapters | `keygo-app`, `keygo-supabase` | Reduce costo de consulta, evita escaneo en memoria y mejora legibilidad/consistencia de validaciones |
+| T-054 | Separar seeds funcionales del schema con estrategia de `reference data` por ambiente (dev/demo) y carga controlada fuera de migraciones estructurales | `keygo-supabase`, `keygo-run` | Evita acoplar datos operativos a Flyway estructural y facilita datasets distintos por entorno |
 
 ---
 
@@ -88,6 +90,7 @@
 | T-038 | Implementar lista negra de JTI (JWT ID) de access tokens revocados con TTL en Redis — permite invalidar access tokens antes de su expiración natural sin mantener estado en DB SQL | `keygo-infra`, `keygo-app` | El modelo actual requiere esperar expiración del access token tras revocar un refresh token; con lista negra de JTI + Redis la revocación es inmediata incluso para access tokens ya emitidos |
 | T-047 | Implementar SCIM 2.0 endpoint `/api/v1/tenants/{slug}/scim/v2/Users` para aprovisionamiento y sincronización de perfiles desde sistemas HR externos (Workday, BambooHR) | `keygo-api`, `keygo-app` | Estándar de aprovisionamiento de identidades para integraciones enterprise; requiere mapeo `tenant_users` ↔ SCIM User Schema |
 | T-048 | Soporte a esquemas de atributos personalizados por tenant — el admin define campos adicionales del perfil (análogo a Keycloak `declarativeUserProfile`); requiere tabla de metadatos de esquema y validación dinámica | `keygo-supabase`, `keygo-app`, `keygo-api` | Permite a cada tenant extender el perfil con campos de negocio propios sin migraciones de DB adicionales |
+| T-055 | Implementar bootstrap programático de tenants/apps/roles vía control-plane admin (sin dependencia de seeds SQL para producción) | `keygo-api`, `keygo-app`, `keygo-run` | Habilita inicialización controlada y auditable en despliegues reales, desacoplando provisión de datos de Flyway |
 
 ---
 
