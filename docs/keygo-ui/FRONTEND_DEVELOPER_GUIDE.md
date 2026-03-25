@@ -1,8 +1,8 @@
 # Manual del Desarrollador Frontend — `keygo-ui`
 
 > * **Audiencia:** Desarrolladores frontend que implementan la interfaz de usuario de KeyGo usando React. 
-> * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9 completadas, Fase 10 pendiente).
-> * **Fecha:** 2026-03-23
+> * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9b completadas, Fase 10 pendiente).
+> * **Fecha:** 2026-03-25
 > * **Estado:** Documento vivo — se actualiza conforme avanza el backend.
 
 ---
@@ -73,9 +73,9 @@ graph TB
 | Aspecto | Estado actual (backend) | Estado objetivo |
 |---|---|---|
 | Login | OAuth2/PKCE ✅ | OAuth2/PKCE ✅ |
-| Roles en JWT | Roles básicos en claim `roles` — ⏳ pendiente | Claims ricos: `roles`, `managed_tenant` ⏳ |
-| Protección endpoints admin | JWT Bearer (`roles` + tenant match) ✅ | JWT Bearer (`ADMIN` / `ADMIN_TENANT`) |
-| Validación de rol en backend | No implementada | `@PreAuthorize` / filtro por rol ⏳ |
+| Roles en JWT | Claim `roles` implementado en tokens de usuario ✅ | Mantener y endurecer validaciones por permiso |
+| Scope de tenant en seguridad admin | Claim `tenant_slug` en access token + fallback `iss` ✅ | Mantener contrato estable para UI + APIs admin |
+| Protección endpoints admin | JWT Bearer + `@PreAuthorize` (`ADMIN`/`ADMIN_TENANT` con tenant match) ✅ | Evolución a RBAC más granular (F-040) |
 
 > ✅ **Estado actual:** El backend valida Bearer JWT en endpoints admin y aplica autorización por
 > `@PreAuthorize` con validación de tenant (`tenant_slug` o `iss` vs `tenantSlug` en path).
@@ -199,11 +199,11 @@ raíz y la app. Esto se hace **una sola vez** al inicializar el entorno.
 ```mermaid
 graph LR
     T["Tenant: keygo<br/>slug: keygo<br/>status: ACTIVE"]
-    A["ClientApp: keygo-ui<br/>type: PUBLIC<br/>grants: auth_code + refresh_token"]
+    A["ClientApp: keygo-ui<br/>type: PUBLIC<br/>grants: authorization_code + refresh_token"]
     T --> A
 
     U1["admin@keygo.io<br/>rol: ADMIN"]
-    U2["ops@acme.io<br/>rol: ADMIN_TENANT<br/>managed_tenant: acme-corp"]
+    U2["ops@acme.io<br/>rol: ADMIN_TENANT<br/>tenant_slug en access_token: acme-corp"]
     U3["user@keygo.io<br/>rol: USER_TENANT"]
 
     A -->|Membership ACTIVE| U1
@@ -217,47 +217,46 @@ graph LR
 BASE="http://localhost:8080/keygo-server/api/v1"
 TOKEN="<admin_bearer_jwt>"
 
-# 1. Crear tenant raíz "keygo"
+# 1. Crear tenant raíz "keygo" (slug se deriva del nombre)
 curl -s -X POST "$BASE/tenants" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"slug":"keygo","name":"KeyGo Platform"}' | jq .
+  -d '{"name":"KeyGo Platform","ownerEmail":"admin@keygo.io"}' | jq .
 
 # 2. Crear la ClientApp keygo-ui (PUBLIC — SPA, sin client_secret)
 RESP=$(curl -s -X POST "$BASE/tenants/keygo/apps" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{
     "name": "KeyGo UI",
-    "clientType": "PUBLIC",
-    "allowedGrants": ["authorization_code","refresh_token"],
-    "allowedScopes": ["openid","profile","email"],
+    "description": "SPA oficial de KeyGo",
+    "type": "PUBLIC",
+    "grants": ["AUTHORIZATION_CODE","REFRESH_TOKEN"],
+    "scopes": ["openid","profile","email"],
     "redirectUris": ["http://localhost:5173/callback"]
   }')
-CLIENT_ID=$(echo $RESP | jq -r '.data.clientId')
+CLIENT_ID=$(echo "$RESP" | jq -r '.data.clientId')
 echo "CLIENT_ID: $CLIENT_ID"   # Usa este valor en VITE_CLIENT_ID
+
+# 2.1 Resolver UUID interno de la app (requerido por memberships/roles)
+APP_ID=$(curl -s -X GET "$BASE/tenants/keygo/apps" \
+  -H "Authorization: Bearer $TOKEN" | jq -r --arg cid "$CLIENT_ID" '.data[] | select(.clientId==$cid) | .id')
+echo "APP_ID: $APP_ID"
 
 # 3. Crear usuario administrador global
 USER_RESP=$(curl -s -X POST "$BASE/tenants/keygo/users" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"email":"admin@keygo.io","username":"admin","password":"Admin1234!","displayName":"KeyGo Admin"}')
-USER_ID=$(echo $USER_RESP | jq -r '.data.id')
+  -d '{"email":"admin@keygo.io","username":"admin","password":"Admin1234!","firstName":"KeyGo","lastName":"Admin"}')
+USER_ID=$(echo "$USER_RESP" | jq -r '.data.id')
 
-# 4. Crear membership del admin en keygo-ui
-curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/memberships" \
+# 4. Crear rol ADMIN en keygo-ui (usa APP_ID UUID)
+ROLE_RESP=$(curl -s -X POST "$BASE/tenants/keygo/apps/$APP_ID/roles" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d "{\"userId\":\"$USER_ID\"}" | jq .
+  -d '{"code":"ADMIN","displayName":"Administrador Global","description":"Rol de plataforma"}')
+ROLE_ID=$(echo "$ROLE_RESP" | jq -r '.data.id')
 
-# 5. Crear los tres roles en keygo-ui
-curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/roles" \
+# 5. Crear membership del admin en keygo-ui (ruta actual: /memberships)
+curl -s -X POST "$BASE/tenants/keygo/memberships" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"code":"ADMIN","name":"Administrador Global"}' | jq .
-
-curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/roles" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"code":"ADMIN_TENANT","name":"Administrador de Tenant"}' | jq .
-
-curl -s -X POST "$BASE/tenants/keygo/apps/$CLIENT_ID/roles" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"code":"USER_TENANT","name":"Usuario del Sistema"}' | jq .
+  -d "{\"userId\":\"$USER_ID\",\"clientAppId\":\"$APP_ID\",\"roleCodes\":[\"ADMIN\"]}" | jq .
 ```
 
 ### 4.3. Variables de entorno del frontend
@@ -274,7 +273,7 @@ VITE_REDIRECT_URI=http://localhost:5173/callback
 # MSW — mocks para endpoints pendientes (solo desarrollo)
 VITE_MOCK_ENABLED=true
 VITE_MOCK_ROLE=ADMIN          # ADMIN | ADMIN_TENANT | USER_TENANT
-VITE_MOCK_MANAGED_TENANT=acme-corp
+VITE_MOCK_TENANT_SLUG=acme-corp
 ```
 
 ---
@@ -318,18 +317,17 @@ export type AppRoleValue = typeof AppRole[keyof typeof AppRole];
 ```typescript
 // src/types/auth.ts
 export interface KeyGoJwtClaims {
-  sub:                 string;    // UUID del TenantUser
-  email:               string;
+  sub:                 string;    // UUID del TenantUser (o client_id en M2M)
+  email?:              string;
   name?:               string;
   preferred_username?: string;
-  iss:                 string;    // "http://localhost:8080/keygo-server"
-  aud:                 string;    // "keygo-ui"
+  iss:                 string;    // "http://localhost:8080/keygo-server/api/v1/tenants/{slug}"
+  aud:                 string;    // client_id (ej: "keygo-ui")
   iat:                 number;
   exp:                 number;
   scope:               string;
-  // ⏳ Pendientes de implementación en backend:
-  roles?:              string[];  // ["ADMIN"] | ["ADMIN_TENANT"] | ["USER_TENANT"]
-  managed_tenant?:     string;    // Solo ADMIN_TENANT — slug del tenant gestionado
+  roles?:              string[];  // ✅ Implementado para tokens de usuario
+  tenant_slug?:        string;    // ✅ Access token admin: scope de tenant para autorización
 }
 ```
 
@@ -618,24 +616,37 @@ export function useHasRole(...roles: AppRole[]): boolean {
 
 ```typescript
 // src/hooks/useManagedTenant.ts
+import { decodeJwt } from 'jose';
 import { useTokenStore } from '@/auth/tokenStore';
-import { decodeIdToken } from '@/auth/jwksVerify';
 import { TENANT } from '@/api/client';
 
 /**
- * Retorna el slug del tenant que gestiona el ADMIN_TENANT.
- * Lee el claim `managed_tenant` del id_token.
- * ⏳ Este claim es pendiente de implementación en backend.
+ * Retorna el slug de tenant efectivo para vistas ADMIN_TENANT.
+ * Prioridad: claim `tenant_slug` en access_token, luego parseo de `iss`, y fallback a TENANT.
  */
 export function useManagedTenant(): string {
-  const { idToken } = useTokenStore();
-  if (!idToken) return TENANT;
+  const { accessToken } = useTokenStore();
+  if (!accessToken) return TENANT;
+
   try {
-    const claims = decodeIdToken(idToken);
-    return (claims as Record<string, unknown>).managed_tenant as string ?? TENANT;
+    const claims = decodeJwt(accessToken) as Record<string, unknown>;
+    const explicit = claims.tenant_slug;
+    if (typeof explicit === 'string' && explicit.length > 0) return explicit;
+
+    const iss = claims.iss;
+    if (typeof iss === 'string') {
+      const marker = '/api/v1/tenants/';
+      const idx = iss.indexOf(marker);
+      if (idx >= 0) {
+        const tail = iss.slice(idx + marker.length);
+        return tail.split('/')[0] || TENANT;
+      }
+    }
   } catch {
-    return TENANT;
+    // Fallback seguro al tenant base configurado en frontend.
   }
+
+  return TENANT;
 }
 ```
 
@@ -718,8 +729,8 @@ export const router = createBrowserRouter([
           { path: 'apps/:clientId/edit',              element: <AppsPage action="edit" /> },
           { path: 'apps/:clientId/rotate-secret',     element: <AppsPage action="rotate" /> },
           { path: 'apps/:clientId/roles',             element: <AppsPage action="roles" /> },
-          { path: 'apps/:clientId/memberships',       element: <MembershipsPage /> },
-          { path: 'apps/:clientId/memberships/new',   element: <MembershipsPage action="create" /> },
+          { path: 'memberships',                      element: <MembershipsPage /> },
+          { path: 'memberships/new',                  element: <MembershipsPage action="create" /> },
           { path: 'users',                            element: <UsersPage /> },
           { path: 'users/new',                        element: <UsersPage action="create" /> },
           { path: 'users/:userId',                    element: <UsersPage action="detail" /> },
@@ -819,7 +830,7 @@ export function AdminDashboard() {
 ### 8.3. Crear tenant — `POST /api/v1/tenants` ✅
 
 ```typescript
-interface CreateTenantRequest { slug: string; name: string; }
+interface CreateTenantRequest { name: string; ownerEmail: string; }
 interface TenantData {
   id: string; slug: string; name: string;
   status: 'ACTIVE' | 'SUSPENDED' | 'PENDING'; createdAt: string;
@@ -829,7 +840,7 @@ const createTenant = (data: CreateTenantRequest) =>
   apiClient.post<BaseResponse<TenantData>>('/tenants', data).then(r => r.data);
 ```
 
-**Validación frontend:** `slug` → `/^[a-z0-9-]{3,63}$/`
+**Nota backend:** el `slug` se deriva automáticamente a partir de `name`.
 
 ---
 
@@ -856,8 +867,9 @@ const suspendTenant = (slug: string) =>
 
 ## 9. Vistas del rol `ADMIN_TENANT` — Administrador de Tenant
 
-El `ADMIN_TENANT` gestiona **su tenant**, cuyo slug proviene del claim `managed_tenant` del JWT
-(o el ADMIN puede elegir cualquier tenant navegando manualmente).
+El `ADMIN_TENANT` gestiona su tenant de alcance según el token de acceso:
+se prioriza `tenant_slug` y, como fallback, se deriva desde `iss`.
+(El rol `ADMIN` mantiene acceso global).
 
 ### 9.1. Contexto del tenant gestionado
 
@@ -955,18 +967,33 @@ export const resetPassword = (slug: string, userId: string, newPassword: string)
 
 ```typescript
 // src/api/memberships.ts
-export const listMemberships  = (slug: string, clientId: string) =>
-  apiClient.get(`/tenants/${slug}/apps/${clientId}/memberships`);
-export const createMembership = (slug: string, clientId: string, userId: string) =>
-  apiClient.post(`/tenants/${slug}/apps/${clientId}/memberships`, { userId });
-export const revokeMembership = (slug: string, clientId: string, membershipId: string) =>
-  apiClient.delete(`/tenants/${slug}/apps/${clientId}/memberships/${membershipId}`);
-export const createRole       = (slug: string, clientId: string, code: string, name: string) =>
-  apiClient.post(`/tenants/${slug}/apps/${clientId}/roles`, { code, name });
+export const listMembershipsByApp = (slug: string, clientAppId: string) =>
+  apiClient.get(`/tenants/${slug}/memberships`, { params: { clientAppId } });
+
+export const listMembershipsByUser = (slug: string, userId: string) =>
+  apiClient.get(`/tenants/${slug}/memberships`, { params: { userId } });
+
+export const createMembership = (slug: string, payload: {
+  userId: string;
+  clientAppId: string;
+  roleCodes: string[];
+}) => apiClient.post(`/tenants/${slug}/memberships`, payload);
+
+export const revokeMembership = (slug: string, membershipId: string) =>
+  apiClient.delete(`/tenants/${slug}/memberships/${membershipId}`);
+
+export const createRole = (slug: string, clientAppId: string, payload: {
+  code: string;
+  displayName?: string;
+  description?: string;
+}) => apiClient.post(`/tenants/${slug}/apps/${clientAppId}/roles`, payload);
+
+export const listRoles = (slug: string, clientAppId: string) =>
+  apiClient.get(`/tenants/${slug}/apps/${clientAppId}/roles`);
 ```
 
-**Disponibles ✅:** `GET/POST memberships` · `DELETE membership` · `POST roles`  
-**Pendientes ⏳:** `GET roles` · `PUT/DELETE roles/{id}` · `POST memberships/{id}/roles`
+**Disponibles ✅:** `GET/POST/DELETE memberships` · `POST/GET roles`  
+**Pendientes ⏳:** `PUT/DELETE roles/{id}` · `POST memberships/{id}/roles`
 
 ---
 
@@ -1155,7 +1182,7 @@ export function ProfilePage() {
 | `refresh_token` | Memoria (Zustand) o `sessionStorage` | Memoria es más seguro; `sessionStorage` sobrevive recarga |
 | `pkce_code_verifier` | `sessionStorage` — eliminar tras el canje | Solo vive segundos |
 | `oauth_state` | `sessionStorage` — eliminar tras callback | Anti-CSRF |
-| `VITE_ADMIN_KEY` | Variable de build (`.env.local`) | Nunca en código fuente |
+| `VITE_KEYGO_BASE` y `VITE_CLIENT_ID` | Variable de build (`.env.local`) | Evita hardcodear URLs/clientes por ambiente |
 
 ### 12.1. Silent refresh
 
@@ -1319,21 +1346,23 @@ export function BaseResponseHandler<T>({ response, isLoading, children }:
 | Ver usuario | GET | `/api/v1/tenants/{slug}/users/{userId}` | ✅ |
 | Editar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}` | ✅ |
 | Reset contraseña (admin) | POST | `/api/v1/tenants/{slug}/users/{userId}/reset-password` | ✅ |
-| Crear membership | POST | `/api/v1/tenants/{slug}/apps/{clientId}/memberships` | ✅ |
-| Listar memberships | GET | `/api/v1/tenants/{slug}/apps/{clientId}/memberships` | ✅ |
-| Revocar membership | DELETE | `/api/v1/tenants/{slug}/apps/{clientId}/memberships/{id}` | ✅ |
-| Crear rol | POST | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | ✅ |
-| Listar roles | GET | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | ✅ |
-| Editar rol | PUT | `/api/v1/tenants/{slug}/apps/{clientId}/roles/{roleId}` | ⏳ |
-| Eliminar rol | DELETE | `/api/v1/tenants/{slug}/apps/{clientId}/roles/{roleId}` | ⏳ |
-| Asignar roles a membership | POST | `/api/v1/tenants/{slug}/apps/{clientId}/memberships/{id}/roles` | ⏳ |
+| Validar credenciales de usuario | POST | `/api/v1/tenants/{slug}/users/validate-credentials` | ✅ |
+| Crear membership | POST | `/api/v1/tenants/{slug}/memberships` | ✅ |
+| Listar memberships por app | GET | `/api/v1/tenants/{slug}/memberships?clientAppId={uuid}` | ✅ |
+| Listar memberships por usuario | GET | `/api/v1/tenants/{slug}/memberships?userId={uuid}` | ✅ |
+| Revocar membership | DELETE | `/api/v1/tenants/{slug}/memberships/{membershipId}` | ✅ |
+| Crear rol | POST | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles` | ✅ |
+| Listar roles | GET | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles` | ✅ |
+| Editar rol | PUT | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles/{roleId}` | ⏳ |
+| Eliminar rol | DELETE | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles/{roleId}` | ⏳ |
+| Asignar roles a membership | POST | `/api/v1/tenants/{slug}/memberships/{id}/roles` | ⏳ |
 | Suspender usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/suspend` | ⏳ T-033 |
 | Activar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/activate` | ⏳ T-033 |
 
 **Detalle endpoint actualizado — Crear rol de app**
 
 - Método: `POST`
-- URL completa: `/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/roles`
+- URL completa: `/keygo-server/api/v1/tenants/{slug}/apps/{clientAppId}/roles`
 - Auth requerida: `Authorization: Bearer <jwt>` con rol admin (`ADMIN` o `ADMIN_TENANT` con tenant match)
 - Body ejemplo:
 
@@ -1378,12 +1407,12 @@ import type { KeyGoJwtClaims } from '@/types/auth';
 export function decodeIdToken(idToken: string): KeyGoJwtClaims {
   const real = decodeJwt(idToken) as KeyGoJwtClaims;
 
-  // ⏳ Mock de roles hasta que el backend los incluya en el JWT
+  // Fallback de desarrollo para tokens de fixture sin roles.
   if (import.meta.env.DEV && !real.roles) {
     return {
       ...real,
-      roles:          [import.meta.env.VITE_MOCK_ROLE ?? 'USER_TENANT'],
-      managed_tenant:  import.meta.env.VITE_MOCK_MANAGED_TENANT,
+      roles: [import.meta.env.VITE_MOCK_ROLE ?? 'USER_TENANT'],
+      tenant_slug: import.meta.env.VITE_MOCK_TENANT_SLUG,
     };
   }
   return real;
@@ -1525,7 +1554,7 @@ prepare().then(() =>
 | ☑ | Control | Implementación |
 |---|---|---|
 | ☑ | Rutas protegidas con `<RoleGuard />` | Redirige si el rol no es suficiente |
-| ☑ | `VITE_ADMIN_KEY` no commiteado | `.env.local` en `.gitignore` |
+| ☑ | Seguridad admin Bearer-only | No usar ni almacenar `X-KEYGO-ADMIN` / `VITE_ADMIN_KEY` |
 | ☑ | `clientSecret` mostrado una sola vez | `<SecretRevealModal />` con botón de copiar |
 | ☑ | No loguear tokens en consola | Nunca `console.log(accessToken)` |
 | ☑ | Rate limiting en formularios | Debounce 500ms + botón deshabilitado en submit |
@@ -1553,7 +1582,7 @@ curl -H "Authorization: Bearer <access_token>" \
 curl http://localhost:8080/keygo-server/api/v1/tenants/keygo/.well-known/openid-configuration | jq .
 
 # Swagger UI
-open http://localhost:8080/keygo-server/swagger-ui/index.html
+xdg-open http://localhost:8080/keygo-server/swagger-ui/index.html
 
 # Tests
 ./mvnw test && ./mvnw clean package
@@ -1579,6 +1608,6 @@ cd keygo-ui && pnpm install && pnpm dev   # http://localhost:5173
 
 ---
 
-*Manual generado por AI Agent — KeyGo Server 2026-03-23*
+*Manual generado por AI Agent — KeyGo Server 2026-03-25*
 *Actualizar cuando se implementen endpoints marcados ⏳ o cuando cambien la estructura de roles/claims.*
 

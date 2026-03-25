@@ -8,5 +8,5 @@
                               ░██
                         ░███████
 
-${key-go-server.info.title}:${key-go-server.info.version} powered by Spring Boot ${spring-boot.formatted-version}
+${keygo.info.title}:${keygo.info.version} powered by Spring Boot ${spring-boot.formatted-version}
 
