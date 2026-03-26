@@ -10,7 +10,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 SUPABASE_DIR="$PROJECT_ROOT/keygo-supabase"
-ENV_FILE="$SUPABASE_DIR/.env"
+ENV_FILE="$PROJECT_ROOT/.env"
 
 # Load active .env from keygo-supabase/
 load_env() {
@@ -24,7 +24,7 @@ load_env() {
         echo "✅ Ambiente cargado: ${env_name:-desconocido}  ($ENV_FILE)"
         return 0
     else
-        echo "⚠️  No se encontró .env en keygo-supabase/"
+        echo "⚠️  No se encontró .env en la raíz del proyecto ($PROJECT_ROOT/.env)"
         echo "   Ejecuta: ./scripts/switch-env.sh local"
         return 1
     fi

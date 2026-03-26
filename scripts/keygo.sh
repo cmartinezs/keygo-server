@@ -19,7 +19,7 @@ BLUE='\033[0;34m';  CYAN='\033[0;36m';  BOLD='\033[1m';  NC='\033[0m'
 
 # ── Funciones de apoyo ─────────────────────────────────────────────────────────
 _current_env() {
-    local env_file="$PROJECT_ROOT/keygo-supabase/.env"
+    local env_file="$PROJECT_ROOT/.env"
     if [ -f "$env_file" ]; then
         grep "^KEYGO_ENV=" "$env_file" 2>/dev/null | cut -d'=' -f2
     else
@@ -28,12 +28,12 @@ _current_env() {
 }
 
 _current_profiles() {
-    local env_file="$PROJECT_ROOT/keygo-supabase/.env"
+    local env_file="$PROJECT_ROOT/.env"
     [ -f "$env_file" ] && grep "^SPRING_PROFILES_ACTIVE=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "—"
 }
 
 _current_port() {
-    local env_file="$PROJECT_ROOT/keygo-supabase/.env"
+    local env_file="$PROJECT_ROOT/.env"
     [ -f "$env_file" ] && grep "^SERVER_PORT=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "8080"
 }
 

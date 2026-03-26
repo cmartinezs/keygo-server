@@ -37,10 +37,10 @@ keygo-common   ← shared utils                               [🚧 stub]
 ./scripts/keygo.sh <N>      # ejecución directa por número de opción (ej: 7 = migrate)
 
 # ── Ambiente ───────────────────────────────────────────────────────────────────
-./scripts/switch-env.sh local   # activar .env-local → keygo-supabase/.env
-./scripts/switch-env.sh desa    # activar .env-desa
-./scripts/switch-env.sh prod    # activar .env-prod
-./scripts/switch-env.sh list    # listar templates disponibles
+./scripts/switch-env.sh local   # activar .env-local → .env en raíz del proyecto
+./scripts/switch-env.sh desa    # activar .env-desa  → .env en raíz del proyecto
+./scripts/switch-env.sh prod    # activar .env-prod  → .env en raíz del proyecto
+./scripts/switch-env.sh list    # listar templates disponibles (en envs/)
 
 # ── Base de datos ──────────────────────────────────────────────────────────────
 ./scripts/db/start.sh       # iniciar Docker Compose (Postgres + PgAdmin)
@@ -284,10 +284,10 @@ Next migration must be `V16__...`. **Never reuse or edit existing migration file
 ## Enabling the database
 
 ```bash
-# Cambiar al ambiente local (copia template → keygo-supabase/.env)
+# Cambiar al ambiente local (copia template → .env en la raíz del proyecto)
 ./scripts/switch-env.sh local
 # Cargar variables en el shell actual
-set -a; source keygo-supabase/.env; set +a
+set -a; source .env; set +a
 
 # Iniciar / detener Postgres + PgAdmin via Docker
 ./scripts/db/start.sh    # o: ./scripts/keygo.sh 5

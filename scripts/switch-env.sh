@@ -4,13 +4,13 @@
 # Script para Cambiar de Ambiente
 # =========================================================
 # This script switches between different environment configurations
-# by copying the selected env file to keygo-supabase/.env
+# by copying the selected env file to the project root as .env
 #
 # Este script cambia entre diferentes configuraciones de ambiente
-# copiando el archivo seleccionado a keygo-supabase/.env
+# copiando el archivo seleccionado a la raíz del proyecto como .env
 #
-# Templates: scripts/envs/.env-{environment}
-# Active .env: keygo-supabase/.env  (used by DB scripts)
+# Templates: envs/.env-{environment}   (en la raíz del proyecto)
+# Active .env: .env                    (en la raíz del proyecto)
 # =========================================================
 
 set -e
@@ -24,9 +24,9 @@ NC='\033[0m' # No Color
 
 # Resolve directories
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
-ENVS_DIR="$SCRIPT_DIR/envs"
-SUPABASE_DIR="$PROJECT_DIR/keygo-supabase"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+ENVS_DIR="$PROJECT_ROOT/envs"
+ENV_TARGET="$PROJECT_ROOT/.env"
 
 echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║   KeyGo Environment Switcher               ║${NC}"
@@ -55,25 +55,25 @@ show_usage() {
 
 # Function to backup current .env if exists
 backup_env() {
-    if [ -f "$SUPABASE_DIR/.env" ]; then
+    if [ -f "$ENV_TARGET" ]; then
         TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-        BACKUP_FILE="$SUPABASE_DIR/.env.backup.$TIMESTAMP"
-        cp "$SUPABASE_DIR/.env" "$BACKUP_FILE"
-        echo -e "${YELLOW}ℹ️  Backed up current .env to keygo-supabase/.env.backup.$TIMESTAMP${NC}"
+        BACKUP_FILE="$PROJECT_ROOT/.env.backup.$TIMESTAMP"
+        cp "$ENV_TARGET" "$BACKUP_FILE"
+        echo -e "${YELLOW}ℹ️  Backed up current .env to .env.backup.$TIMESTAMP${NC}"
     fi
 }
 
 # Function to display current environment
 show_current_env() {
-    if [ -f "$SUPABASE_DIR/.env" ]; then
-        CURRENT_ENV=$(grep "^KEYGO_ENV=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
+    if [ -f "$ENV_TARGET" ]; then
+        CURRENT_ENV=$(grep "^KEYGO_ENV=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
         if [ -n "$CURRENT_ENV" ]; then
             echo -e "${GREEN}Current environment / Ambiente actual: ${YELLOW}$CURRENT_ENV${NC}"
         else
-            echo -e "${YELLOW}No environment detected in keygo-supabase/.env${NC}"
+            echo -e "${YELLOW}No environment detected in .env${NC}"
         fi
     else
-        echo -e "${YELLOW}No .env file found in keygo-supabase/ / No se encontró .env en keygo-supabase/${NC}"
+        echo -e "${YELLOW}No .env file found in project root / No se encontró .env en la raíz${NC}"
     fi
 }
 
@@ -88,7 +88,7 @@ switch_environment() {
         echo -e "${RED}   Looking for: $TEMPLATE_FILE${NC}"
         echo ""
         echo "Please create the file first using .env.example as template:"
-        echo "  cp $ENVS_DIR/.env.example $TEMPLATE_FILE"
+        echo "  cp $ENVS_DIR/.env.example $ENVS_DIR/.env-$ENV"
         echo ""
         exit 1
     fi
@@ -96,11 +96,11 @@ switch_environment() {
     # Backup current .env
     backup_env
 
-    # Copy environment template to keygo-supabase/.env
-    cp "$TEMPLATE_FILE" "$SUPABASE_DIR/.env"
+    # Copy environment template to project root .env
+    cp "$TEMPLATE_FILE" "$ENV_TARGET"
 
     echo -e "${GREEN}✅ Successfully switched to: ${YELLOW}$ENV${NC}"
-    echo -e "   Active .env: ${BLUE}keygo-supabase/.env${NC}"
+    echo -e "   Active .env: ${BLUE}$ENV_TARGET${NC}"
     echo ""
 
     # Display configuration summary
@@ -108,13 +108,13 @@ switch_environment() {
     echo "─────────────────────────────────────────────────"
 
     # Read and display key values (non-sensitive only)
-    if [ -f "$SUPABASE_DIR/.env" ]; then
-        ENV_NAME=$(grep "^KEYGO_ENV=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
-        PROFILES=$(grep "^SPRING_PROFILES_ACTIVE=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
-        DB_HOST=$(grep "^SUPABASE_DB_HOST=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
-        DB_PORT=$(grep "^SUPABASE_DB_PORT=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
-        DB_NAME=$(grep "^SUPABASE_DB_NAME=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
-        SERVER_PORT=$(grep "^SERVER_PORT=" "$SUPABASE_DIR/.env" 2>/dev/null | cut -d'=' -f2)
+    if [ -f "$ENV_TARGET" ]; then
+        ENV_NAME=$(grep "^KEYGO_ENV=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        PROFILES=$(grep "^SPRING_PROFILES_ACTIVE=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        DB_HOST=$(grep "^SUPABASE_DB_HOST=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        DB_PORT=$(grep "^SUPABASE_DB_PORT=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        DB_NAME=$(grep "^SUPABASE_DB_NAME=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        SERVER_PORT=$(grep "^SERVER_PORT=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
 
         echo -e "  Environment:      ${YELLOW}$ENV_NAME${NC}"
         echo -e "  Spring Profiles:  ${YELLOW}$PROFILES${NC}"
@@ -126,11 +126,10 @@ switch_environment() {
 
     echo ""
     echo -e "${GREEN}🔄 Next steps / Próximos pasos:${NC}"
-    echo "  1. Source the .env in your shell or let your IDE load it:"
-    echo "     set -a; source keygo-supabase/.env; set +a"
+    echo "  1. Source the .env in your shell:"
+    echo "     set -a; source .env; set +a"
     echo ""
     echo "  2. Restart your application or IDE to apply changes"
-    echo "     Reinicia tu aplicación o IDE para aplicar los cambios"
     echo ""
 
     if [ "$ENV" = "local" ]; then

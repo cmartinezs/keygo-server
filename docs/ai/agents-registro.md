@@ -22,6 +22,39 @@
 
 ## Registro de cambios
 
+### [2026-03-26] Refinación: `envs/` a raíz del proyecto, `.env` activo en raíz, `keygo-supabase/scripts/` vaciada
+
+**Motivo:** Los templates `.env-*` estaban en `scripts/envs/` (dentro de la carpeta de scripts) y el `.env` activo se generaba en `keygo-supabase/`. El usuario solicitó que los templates estuvieran en la raíz del proyecto y que el `.env` activo también se generara en la raíz, manteniendo `keygo-supabase/` limpia de archivos que no le pertenecen.
+
+**Cambios aplicados:**
+- **`scripts/envs/` → `envs/`** — carpeta de templates movida a la raíz del proyecto.
+- **`scripts/switch-env.sh`** — `ENVS_DIR` apunta a `$PROJECT_ROOT/envs`; el `.env` activo se copia a `$PROJECT_ROOT/.env` (antes era `keygo-supabase/.env`).
+- **`scripts/db/_load-env.sh`** — `ENV_FILE` apunta a `$PROJECT_ROOT/.env` (antes era `$SUPABASE_DIR/.env`).
+- **`scripts/keygo.sh`** — `_current_env()`, `_current_profiles()`, `_current_port()` leen `$PROJECT_ROOT/.env`.
+- **`keygo-supabase/scripts/`** — todos los archivos eliminados (stubs + `load-env.sh`). La carpeta queda vacía.
+- **`keygo-supabase/.gitignore`** — comentario actualizado indicando que el `.env` ya no vive aquí.
+- **`AGENTS.md`** — comandos actualizados: `source .env` en lugar de `source keygo-supabase/.env`.
+
+**Estructura final:**
+```
+keygo-server/              ← raíz del proyecto
+├── .env                   # ⚠️ activo, generado por switch-env.sh (ignorado en git)
+├── envs/                  # ← NUEVA UBICACIÓN de templates
+│   ├── .gitignore
+│   ├── .env.example       # ✅ committed
+│   ├── .env-local         # ⚠️ ignorado en git
+│   ├── .env-desa          # ⚠️ ignorado en git
+│   └── .env-prod          # ⚠️ ignorado en git
+├── scripts/
+│   ├── keygo.sh
+│   ├── switch-env.sh
+│   └── db/
+│       ├── _load-env.sh   # lee PROJECT_ROOT/.env
+│       └── *.sh
+└── keygo-supabase/
+    └── scripts/           # ← VACÍA
+```
+
 ### [2026-03-26] Reorganización de scripts y templates .env — `scripts/switch-env.sh` + `scripts/envs/`
 
 **Motivo:** El script `keygo-supabase/scripts/switch-env.sh` tenía un shebang defectuoso (`!/bin/bash` en lugar de `#!/bin/bash`), lo que causaba que `sh` lo ejecutara en lugar de `bash`. Esto generaba `Bad substitution` en `${BASH_SOURCE[0]}`, rutas incorrectas (`PROJECT_DIR` apuntaba dos niveles arriba del repo) y que `echo -e` no funcionara. Adicionalmente, el script y los templates `.env-*` estaban en `keygo-supabase/` siendo que configuran toda la aplicación (no solo la DB).
