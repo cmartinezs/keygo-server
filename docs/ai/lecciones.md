@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-26 | [Contraseñas de seed SQL deben documentarse siempre junto al hash BCrypt](#2026-03-26-contraseñas-de-seed-sql-deben-documentarse-junto-al-hash-bcrypt) | DB / Seed / Convenciones |
 | 2026-03-26 | [ADR-001: documentar decisiones de error handling como ADR (`docs/keygo-ui/ADR-001-error-handling-oauth2.md`)](#2026-03-26-adr-001-documentar-decisiones-de-error-handling-como-adr) | API / Error Handling / Docs |
 | 2026-03-26 | [Subclasificar `CLIENT_REQUEST` en `CLIENT_TECHNICAL` vs `USER_INPUT` mejora triage de UI y soporte](#2026-03-26-subclasificar-client_request-en-client_technical-vs-user_input-mejora-triage-de-ui-y-soporte) | API / Error Handling |
 | 2026-03-26 | [En Spring Framework 7, `HttpMessageNotReadableException` en tests requiere `HttpInputMessage`](#2026-03-26-en-spring-framework-7-httpmessagenotreadableexception-en-tests-requiere-httpinputmessage) | Testing / Spring |
@@ -88,6 +89,16 @@
 ---
 
 ## Lecciones
+
+### [2026-03-26] Contraseñas de seed SQL deben documentarse junto al hash BCrypt
+**Contexto:** Al revisar los usuarios de seed de V2 y V14 para pruebas del flujo OAuth2, se detectó que el hash BCrypt `$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy` no coincide con ninguna contraseña común y no estaba documentado en ningún lugar del repositorio.
+**Problema:** Un agente AI generó ese hash sin registrar el texto plano correspondiente, dejando los usuarios de seed inutilizables para pruebas hasta que se ejecute una migración correctiva.
+**Solución / Buena práctica:** Siempre que se inserte un `password_hash` en una migración Flyway de seed, documentar la contraseña en texto plano de forma explícita:
+1. Como comentario en el propio archivo SQL.
+2. En la tabla de credenciales de `AGENTS.md` (sección "Seed credentials").
+3. En `docs/data/MIGRATIONS.md` en la sección de esa migración.
+Se creó `V15__reset_seed_user_passwords.sql` para corregir el hash con contraseñas conocidas y verificadas mediante `BCryptPasswordEncoder`.
+**Archivos clave:** `keygo-supabase/src/main/resources/db/migration/V15__reset_seed_user_passwords.sql`, `docs/data/MIGRATIONS.md`, `AGENTS.md`
 
 ### [2026-03-26] ADR-001: documentar decisiones de error handling como ADR
 **Contexto:** Se completó la clasificación de errores con `ErrorData` (`origin`, `clientRequestCause`, `clientMessage`) y se actualizaron los docs de flujo OAuth2 y la guía de frontend.

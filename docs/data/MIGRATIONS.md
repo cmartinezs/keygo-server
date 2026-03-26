@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-03-25  
+> **Última actualización:** 2026-03-26  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
-> **Próxima migración:** `V15__...`
+> **Próxima migración:** `V16__...`
 
 ---
 
@@ -312,11 +312,32 @@ Esto alinea los nombres de tabla con la convención del resto del schema.
 
 ---
 
+### V15 — `V15__reset_seed_user_passwords.sql`
+
+**Tipo:** Corrección de datos seed (sin cambios de schema).
+
+**Objetivo:** Reemplazar el hash BCrypt de los usuarios seed de V2 y V14 cuya contraseña en texto plano no fue documentada, por hashes de contraseñas conocidas y verificadas.
+
+**Credenciales de desarrollo (solo local/dev):**
+
+| Tabla | Usuario | Email | Contraseña | Tenant | Rol |
+|---|---|---|---|---|---|
+| `users` (legacy) | `admin` | `admin@keygo.local` | `Admin1234!` | — | ADMIN legacy |
+| `tenant_users` | `keygo_admin` | `admin@keygo.local` | `Admin1234!` | `keygo` | `admin` |
+| `tenant_users` | `keygo_tenant_admin` | `tenant-admin@keygo.local` | `Admin1234!` | `keygo` | `admin_tenant` |
+| `tenant_users` | `keygo_user` | `user@keygo.local` | `Admin1234!` | `keygo` | `user_tenant` |
+| `tenant_users` | `demo_admin` | `admin@demo.local` | `DevAdmin1!` | `demo` | `demo_admin` |
+| `tenant_users` | `demo_user` | `user@demo.local` | `DevUser1!` | `demo` | `demo_user` |
+
+> ⚠️ **Nunca usar estas credenciales en producción.** Son exclusivamente para entornos de desarrollo local.
+
+---
+
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V15)
-touch keygo-supabase/src/main/resources/db/migration/V15__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V16)
+touch keygo-supabase/src/main/resources/db/migration/V16__descripcion_del_cambio.sql
 
 # 2. Escribir el SQL de manera idempotente cuando sea posible
 # 3. Levantar DB local

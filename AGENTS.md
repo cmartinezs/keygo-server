@@ -243,8 +243,20 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V11__add_refresh_tokens_and_sessions.sql` — sessions + refresh_tokens tables (SHA-256 hash, status checks, session FK)
 - `V12__add_email_verifications.sql` — email_verifications table (tenant_user_id FK, code VARCHAR(10), expires_at, used_at; latest row per user = active verification)
 - `V13__extend_tenant_user_profile.sql` — extends tenant_users with 6 OIDC profile fields: phone_number, locale, zoneinfo, profile_picture_url, birthdate, website
+- `V14__seed_initial_ui_tenants.sql` — seed base para UI: tenants `keygo`+`demo`, apps, usuarios, roles y memberships
+- `V15__reset_seed_user_passwords.sql` — corrige hashes BCrypt desconocidos de V2/V14; establece contraseñas conocidas para dev
 
-Next migration must be `V14__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V16__...`. **Never reuse or edit existing migration files.**
+
+**Seed credentials (dev/local ONLY — never use in production):**
+
+| Tabla | Usuario | Email | Contraseña | Tenant |
+|---|---|---|---|---|
+| `tenant_users` | `keygo_admin` | `admin@keygo.local` | `Admin1234!` | `keygo` |
+| `tenant_users` | `keygo_tenant_admin` | `tenant-admin@keygo.local` | `Admin1234!` | `keygo` |
+| `tenant_users` | `keygo_user` | `user@keygo.local` | `Admin1234!` | `keygo` |
+| `tenant_users` | `demo_admin` | `admin@demo.local` | `DevAdmin1!` | `demo` |
+| `tenant_users` | `demo_user` | `user@demo.local` | `DevUser1!` | `demo` |
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
