@@ -78,6 +78,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.PropertyNamingStrategies;
 
 /**
  * Application configuration for use cases and dependency injection
@@ -488,11 +489,14 @@ public class ApplicationConfig {
     @Bean
     JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer() {
         return builder -> builder
+            // Deserializa snake_case (OAuth2) y serializa también en snake_case — globalmente.
+            // Los DTOs con @JsonProperty explícito mantienen su nombre definido.
+            .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
 
             // Robustez ante cambios en payloads (típico en integraciones)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
-            // Interoperabilidad (opcional)
+            // Interoperabilidad: acepta variaciones de case además de snake_case
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
 
             // Payloads limpios

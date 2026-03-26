@@ -12,6 +12,10 @@ import jakarta.validation.constraints.NotBlank;
  *   <li>{@code client_credentials}: clientId, clientSecret</li>
  * </ul>
  *
+ * <p>El mapeo snake_case ↔ camelCase (p. ej. {@code grant_type} → {@code grantType}) es gestionado
+ * globalmente por {@code SnakeCaseAliasModule} en {@code ApplicationConfig}. No se requieren
+ * anotaciones {@code @JsonProperty} en este DTO.
+ *
  * @param grantType    tipo de grant (authorization_code | refresh_token | client_credentials)
  * @param clientId     client_id de la app
  * @param clientSecret client_secret en texto plano (solo en client_credentials grant)
@@ -36,5 +40,3 @@ public record TokenRequest(
     return grantType != null && !grantType.isBlank() ? grantType : "authorization_code";
   }
 }
-
-

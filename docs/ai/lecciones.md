@@ -38,6 +38,7 @@
 | 2026-03-26 | [CORS en Spring Boot 4: `CorsConfigurationSource` + `http.cors(...)` en `SecurityFilterChain`](#2026-03-26-cors-en-spring-boot-4-configurar-corsconfigurationsource--httpcors-en-securityfilterchain) | Security / CORS |
 | 2026-03-26 | [ClientApp CONFIDENTIAL en tests de adapter/mapper debe incluir `hashedSecret`](#2026-03-26-clientapp-confidential-en-tests-de-adaptermapper-debe-incluir-hashedsecret) | Testing / Dominio |
 | 2026-03-26 | [Missing query param en MockMvc standalone: sin handler específico cae en 500 (`OPERATION_FAILED`)](#2026-03-26-missing-query-param-en-mockmvc-standalone-sin-handler-específico-cae-en-500-operation_failed) | Testing / Error Handling |
+| 2026-03-26 | [`ACCEPT_CASE_INSENSITIVE_PROPERTIES` no convierte snake_case a camelCase — se requiere `@JsonProperty` en DTOs OAuth2](#2026-03-26-accept_case_insensitive_properties-no-convierte-snake_case-a-camelcase--se-requiere-jsonproperty-en-dtos-oauth2) | Jackson / Deserialización / OAuth2 |
 | 2026-03-26 | [OAuth2 authorize: para query params en snake_case usar `@RequestParam(name = ...)` en lugar de depender de `@ModelAttribute`](#2026-03-26-oauth2-authorize-para-query-params-en-snake_case-usar-requestparamname---en-lugar-de-depender-de-modelattribute) | API / Spring MVC / OAuth2 |
 | 2026-03-26 | [Vitest en ejemplos aislados: importar `describe/it/expect` explícitamente evita depender de globals](#2026-03-26-vitest-en-ejemplos-aislados-importar-describeitexpect-explícitamente-evita-depender-de-globals) | Frontend / Testing |
 | 2026-03-26 | [Hosted login compartido: la UI central no debe apropiarse del contexto OAuth2 del tenant origen](#2026-03-26-hosted-login-compartido-la-ui-central-no-debe-apropiarse-del-contexto-oauth2-del-tenant-origen) | OAuth2 / Frontend / Arquitectura |
@@ -709,3 +710,29 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 **Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/auth/controller/`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/OpenApiConfig.java`, `docs/api/OPENAPI.md`
 ---
 
+### [2026-03-26] `ACCEPT_CASE_INSENSITIVE_PROPERTIES` no convierte snake_case a camelCase — configurar `PropertyNamingStrategies.SNAKE_CASE` globalmente
+
+**Contexto:** El cliente `keygo-ui` enviaba el payload del paso 3 del flujo OAuth2 (canje de código) en formato JSON snake_case estándar (`grant_type`, `client_id`, `code_verifier`, `redirect_uri`), pero recibía HTTP 400 `INVALID_INPUT`.
+
+**Problema:**
+- `TokenRequest` (y `RevokeTokenRequest`) usan nombres de campo camelCase en Java (`grantType`, `clientId`, `codeVerifier`, `redirectUri`).
+- La configuración global de Jackson tenía solo `MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES = true`, que maneja diferencias de **case** (`ClientID` → `clientId`), pero **no convierte guiones bajos** (`grant_type` → `grantType`).
+- Al deserializar, todos los campos snake_case quedaban en `null`. El campo `clientId` con `@NotBlank` disparaba `MethodArgumentNotValidException` → `GlobalExceptionHandler.handleValidationException()` → HTTP 400 `INVALID_INPUT`.
+
+**Solución / Buena práctica:**
+- Configurar `PropertyNamingStrategies.SNAKE_CASE` globalmente en el `JsonMapperBuilderCustomizer` de `ApplicationConfig`:
+  ```java
+  .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+  ```
+- Esta única línea resuelve el problema para **todos** los DTOs de request del proyecto sin necesitar `@JsonProperty` en cada campo.
+- **Impacto en serialización (responses):** los campos multi-palabra sin `@JsonProperty` explícito se serializan como snake_case. Los DTOs de respuesta con `@JsonProperty` existente (como `TokenData`) no se ven afectados. Para campos que deben mantener un nombre específico, usar `@JsonProperty`.
+- **No crear** un `BeanDeserializerModifier` / `ValueDeserializerModifier` complejo — la estrategia global es suficiente.
+- **Test de regresión:** `TokenRequestJsonTest` (5 casos). El `setUp()` del test debe replicar la misma configuración del customizer (incluyendo `SNAKE_CASE`) sin importar clases de `keygo-run` (dependencia cruzada de módulos).
+
+**Archivos clave:**
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/ApplicationConfig.java` (customizer)
+- `keygo-api/src/main/java/io/cmartinezs/keygo/api/auth/request/TokenRequest.java`
+- `keygo-api/src/main/java/io/cmartinezs/keygo/api/auth/request/RevokeTokenRequest.java`
+- `keygo-api/src/test/java/io/cmartinezs/keygo/api/auth/request/TokenRequestJsonTest.java`
+
+---
