@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.api.error;
 
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +13,9 @@ import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +56,9 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
     assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(response.getBody().getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
     assertThat(response.getBody().getData().getClientMessage()).isNotBlank();
     assertThat(response.getBody().getData().getDetail()).isNull();
     assertThat(response.getBody().getFailure().getCode())
@@ -71,6 +78,9 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
     assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(response.getBody().getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.RESOURCE_NOT_FOUND.getCode());
   }
@@ -88,6 +98,9 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
     assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(response.getBody().getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.USER_INPUT);
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.INVALID_INPUT.getCode());
   }
@@ -105,8 +118,67 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
     assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.SERVER_PROCESSING);
+    assertThat(response.getBody().getData().getClientRequestCause()).isNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.OPERATION_FAILED.getCode());
+  }
+
+  @Test
+  void handleInvalidCredentialsException_shouldClassifyAsUserInput() {
+    // Given
+    InvalidCredentialsException exception = new InvalidCredentialsException();
+
+    // When
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleInvalidCredentialsException(exception);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(response.getBody().getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.USER_INPUT);
+  }
+
+  @Test
+  void handleMissingServletRequestParameterException_shouldClassifyAsClientTechnical() {
+    // Given
+    MissingServletRequestParameterException exception =
+        new MissingServletRequestParameterException("response_type", "String");
+
+    // When
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleMissingServletRequestParameterException(exception);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(response.getBody().getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
+  }
+
+  @Test
+  void handleHttpMessageNotReadableException_shouldClassifyAsClientTechnical() {
+    // Given
+    HttpMessageNotReadableException exception =
+        new HttpMessageNotReadableException(
+            "Malformed JSON",
+            new MockHttpInputMessage(new byte[0]));
+
+    // When
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleHttpMessageNotReadableException(exception);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(response.getBody().getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
   }
 
   @Test

@@ -26,6 +26,9 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-26 | [Subclasificar `CLIENT_REQUEST` en `CLIENT_TECHNICAL` vs `USER_INPUT` mejora triage de UI y soporte](#2026-03-26-subclasificar-client_request-en-client_technical-vs-user_input-mejora-triage-de-ui-y-soporte) | API / Error Handling |
+| 2026-03-26 | [En Spring Framework 7, `HttpMessageNotReadableException` en tests requiere `HttpInputMessage`](#2026-03-26-en-spring-framework-7-httpmessagenotreadableexception-en-tests-requiere-httpinputmessage) | Testing / Spring |
+| 2026-03-26 | [Clasificar errores por origen (`CLIENT_REQUEST`, `BUSINESS_RULE`, `SERVER_PROCESSING`) mejora diagnóstico frontend y soporte](#2026-03-26-clasificar-errores-por-origen-client_request-business_rule-server_processing-mejora-diagnóstico-frontend-y-soporte) | API / Error Handling |
 | 2026-03-26 | [Errores API con `BaseResponse.data`: detalle tecnico en `local/dev`, mensaje amigable en otros perfiles](#2026-03-26-errores-api-con-baseresponsedata-detalle-tecnico-en-localdev-mensaje-amigable-en-otros-perfiles) | API / Error Handling / Testing |
 | 2026-03-26 | [CORS en Spring Boot 4: `CorsConfigurationSource` + `http.cors(...)` en `SecurityFilterChain`](#2026-03-26-cors-en-spring-boot-4-configurar-corsconfigurationsource--httpcors-en-securityfilterchain) | Security / CORS |
 | 2026-03-26 | [ClientApp CONFIDENTIAL en tests de adapter/mapper debe incluir `hashedSecret`](#2026-03-26-clientapp-confidential-en-tests-de-adaptermapper-debe-incluir-hashedsecret) | Testing / Dominio |
@@ -84,6 +87,24 @@
 ---
 
 ## Lecciones
+
+### [2026-03-26] Subclasificar `CLIENT_REQUEST` en `CLIENT_TECHNICAL` vs `USER_INPUT` mejora triage de UI y soporte
+**Contexto:** Se necesitaba distinguir, dentro de errores de cliente, si la falla proviene de implementación UI/protocolo (cookies, payload, headers, sesión) o de datos capturados por el usuario.
+**Problema:** Con solo `origin=CLIENT_REQUEST`, frontend y soporte seguían sin poder decidir rápidamente quién debía corregir: equipo UI o experiencia/formulario del usuario.
+**Solución / Buena práctica:** Agregar `clientRequestCause` opcional en `ErrorData` con valores `CLIENT_TECHNICAL` y `USER_INPUT`, calculado en `ApiErrorDataFactory` usando `ResponseCode` y tipo de excepción (`InvalidCredentialsException`, `MethodArgumentNotValidException`, `MissingServletRequestParameterException`, `HttpMessageNotReadableException`).
+**Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ErrorData.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ApiErrorDataFactory.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/GlobalExceptionHandler.java`
+
+### [2026-03-26] En Spring Framework 7, `HttpMessageNotReadableException` en tests requiere `HttpInputMessage`
+**Contexto:** Se agregó cobertura para payload JSON malformado en `GlobalExceptionHandlerTest`.
+**Problema:** El test falló a compilación al usar `new HttpMessageNotReadableException("...")` porque en Spring Framework 7 no existe constructor de un solo parámetro.
+**Solución / Buena práctica:** Construir la excepción con `MockHttpInputMessage`, por ejemplo `new HttpMessageNotReadableException("Malformed JSON", new MockHttpInputMessage(new byte[0]))`.
+**Archivos clave:** `keygo-api/src/test/java/io/cmartinezs/keygo/api/error/GlobalExceptionHandlerTest.java`
+
+### [2026-03-26] Clasificar errores por origen (`CLIENT_REQUEST`, `BUSINESS_RULE`, `SERVER_PROCESSING`) mejora diagnóstico frontend y soporte
+**Contexto:** Se mejoró el contrato de errores para distinguir más claramente si la falla viene del request del cliente, de una regla de negocio o del procesamiento del servidor.
+**Problema:** Con solo `code` y `clientMessage` era difícil para frontend y soporte decidir rápidamente si debían corregir payload, ajustar flujo funcional o escalar una incidencia backend.
+**Solución / Buena práctica:** Agregar `origin` en `ErrorData` y calcularlo de forma centralizada en `ApiErrorDataFactory` a partir de `ResponseCode` para mantener consistencia entre `GlobalExceptionHandler` y `BootstrapAdminKeyFilter`.
+**Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ErrorData.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ApiErrorDataFactory.java`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilter.java`
 
 ### [2026-03-26] Errores API con `BaseResponse.data`: detalle tecnico en `local/dev`, mensaje amigable en otros perfiles
 **Contexto:** Se ajusto el manejo global de errores y el `BootstrapAdminKeyFilter` para que siempre respondan `BaseResponse` con `failure` + `data`.

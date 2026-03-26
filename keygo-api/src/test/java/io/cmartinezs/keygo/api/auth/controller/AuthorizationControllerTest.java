@@ -124,7 +124,7 @@ class AuthorizationControllerTest {
   }
 
   @Test
-  void givenMissingResponseType_whenAuthorize_thenReturns500() throws Exception {
+  void givenMissingResponseType_whenAuthorize_thenReturns400() throws Exception {
     // Given / When / Then
     mockMvc
         .perform(
@@ -134,9 +134,10 @@ class AuthorizationControllerTest {
                 .param("scope", "openid profile")
                 .param("code_challenge", "abc")
                 .param("code_challenge_method", "S256"))
-        .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.failure.code").value("OPERATION_FAILED"))
-        .andExpect(jsonPath("$.data.code").value("OPERATION_FAILED"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.failure.code").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.data.code").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.data.clientRequestCause").value("CLIENT_TECHNICAL"))
         .andExpect(jsonPath("$.data.clientMessage").isNotEmpty());
   }
 }

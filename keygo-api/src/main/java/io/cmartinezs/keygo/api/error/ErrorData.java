@@ -11,6 +11,8 @@ import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorData {
   private final String code;
+  private final ApiErrorOrigin origin;
+  private final ApiClientRequestCause clientRequestCause;
   private final String clientMessage;
   private final String detail;
   private final String exception;

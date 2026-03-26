@@ -36,6 +36,7 @@
 | T-053 | Script SQL de verificación post-seed V14 (conteos por tenant/app/roles/memberships) para validación rápida local/CI | 🔲 Pendiente |
 | T-061 | Externalizar lista de orígenes CORS por ambiente: documentar `KEYGO_CORS_ALLOWED_ORIGINS_0` en `.env.example` y `ENVIRONMENT_SETUP.md`; perfil `prod` con lista vacía (denegación por defecto) | 🔲 Pendiente |
 | T-062 | Agregar handler específico para `MissingServletRequestParameterException` y responder `400 INVALID_INPUT` (evitar `500 OPERATION_FAILED` en casos de parámetro faltante) | 🔲 Pendiente |
+| T-065 | Agregar `fieldErrors` (lista de campos inválidos) cuando `origin=CLIENT_REQUEST` y `clientRequestCause=USER_INPUT` | 🔲 Pendiente |
 | ~~T-052~~ | ~~Hardening seguridad admin Bearer-only (sin `X-KEYGO-ADMIN`, `@PreAuthorize` + tenant match)~~ | ✅ Completada 2026-03-25 |
 | ~~T-056~~ | ~~**Lanzamiento P0 — Hosted login seguro en `keygo-ui`:** contrato tipado `HostedLoginParams`, guard de runtime para query params obligatorios, ejemplo completo de login-handoff con parámetros firmados/validados y componente reutilizable `HostedLoginBoundary`~~ | ✅ Completada 2026-03-26 |
 
@@ -62,6 +63,7 @@
 | T-057 | **Lanzamiento P1 — Contrato formal de handoff multi-dominio:** definir y documentar el contrato entre app origen y `keygo-ui` central, incluyendo validación/firmado del contexto OAuth y ejemplos de `withCredentials`, CORS y cookies `SameSite=None; Secure` | 🔲 Pendiente |
 | T-058 | **Lanzamiento P1 — Patrón BFF para login central:** documentar un ejemplo de canje de `authorization_code` en backend (BFF) para reducir exposición de tokens en SPA pura y simplificar refresh/logout | 🔲 Pendiente |
 | T-063 | Incorporar `traceId/requestId` en `ErrorData` para trazabilidad entre logs y cliente | 🔲 Pendiente |
+| T-066 | Agregar `endpointHint`/`actionHint` para errores `CLIENT_TECHNICAL` (ej. `enviar credentials include`) | 🔲 Pendiente |
 
 ---
 
@@ -81,7 +83,7 @@
 | T-055 | Bootstrap programático de tenants/apps/roles vía control-plane admin (sin dependencia de seeds SQL en producción) | 🔲 Pendiente |
 | T-059 | **Post-lanzamiento P2 — Redirect OAuth2 clásico:** evolucionar el backend para entregar `authorization_code` mediante redirect HTTP `302` hacia `redirect_uri` en lugar de retornarlo en JSON, reduciendo lógica de orquestación frontend y mejorando interoperabilidad con terceros | 🔲 Pendiente |
 | T-060 | **Post-lanzamiento P3 — Gateway de federación / sesión compartida:** evaluar un patrón BFF/gateway para que el login central pueda administrar sesión entre múltiples UIs sin mezclarlo con el hosted login actual | 🔲 Pendiente |
-| T-064 | Estandarizar catálogo de errores por dominio (`auth`, `tenant`, `membership`) con internacionalización de `clientMessage` por locale | 🔲 Pendiente |
+| T-064 | Estandarizar catálogo i18n de errores por dominio (`auth`, `tenant`, `membership`) combinando `origin` + `clientRequestCause` para resolver `clientMessage` por locale | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
@@ -98,4 +100,4 @@
 
 ---
 
-**Última actualización:** 2026-03-26 (T-056 completada; se mantienen T-057, T-058, T-059, T-060 y F-041 activas) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-26 (nuevas propuestas T-065/T-066 y ajuste de alcance en T-064) | **Responsable:** AI Agent

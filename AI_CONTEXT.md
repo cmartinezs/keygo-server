@@ -196,7 +196,9 @@ Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
 - `T-058`: patrón BFF documentado para canje de `authorization_code` en backend y menor exposición de tokens en SPA.
 - `T-062`: handler dedicado para `MissingServletRequestParameterException` con respuesta `400 INVALID_INPUT`.
 - `T-063`: propagación de `traceId/requestId` en `ErrorData` para trazabilidad cliente-logs.
-- `T-064`: catálogo de errores por dominio con internacionalización de `clientMessage` por locale.
+- `T-064`: catálogo i18n por dominio combinando `origin` + `clientRequestCause` para `clientMessage` por locale.
+- `T-065`: `fieldErrors` en `ErrorData` para `USER_INPUT` con validaciones por campo.
+- `T-066`: `endpointHint/actionHint` para `CLIENT_TECHNICAL` con acciones sugeridas de integración.
 - `T-059`: evolución a redirect OAuth2 clásico (`302`) para simplificar frontend e interoperabilidad.
 - `F-041`: SSO multi-app con contrato explícito de sesión compartida, separado del hosted login actual.
 

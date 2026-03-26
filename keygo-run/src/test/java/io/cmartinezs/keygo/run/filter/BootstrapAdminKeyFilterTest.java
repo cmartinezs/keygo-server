@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.run.filter;
 
 import tools.jackson.databind.json.JsonMapper;
+import io.cmartinezs.keygo.api.error.ApiClientRequestCause;
+import io.cmartinezs.keygo.api.error.ApiErrorOrigin;
 import io.cmartinezs.keygo.api.error.ErrorData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
@@ -258,6 +260,9 @@ class BootstrapAdminKeyFilterTest {
     assertThat(payload.getFailure().getCode()).isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
     assertThat(payload.getData()).isNotNull();
     assertThat(payload.getData().getCode()).isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(payload.getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
     assertThat(payload.getData().getClientMessage()).isNotBlank();
     assertThat(payload.getData().getDetail()).isNull();
     assertThat(payload.getData().getException()).isNull();
@@ -286,6 +291,9 @@ class BootstrapAdminKeyFilterTest {
 
     BaseResponse<ErrorData> payload = responseCaptor.getValue();
     assertThat(payload.getData()).isNotNull();
+    assertThat(payload.getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(payload.getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
     assertThat(payload.getData().getDetail()).contains("Missing or invalid bearer token");
     assertThat(payload.getData().getException()).isEqualTo("BootstrapAdminKeyFilter");
   }
