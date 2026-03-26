@@ -304,6 +304,49 @@ export interface BaseResponse<T = void> {
   debug?: MessageResponse;
   throwable?: string;
 }
+
+// Clasificacion del origen del error (campo `data.origin` en respuestas de error)
+export type ErrorOrigin =
+  | 'CLIENT_REQUEST'    // Error causado por la solicitud del cliente
+  | 'BUSINESS_RULE'     // Regla de negocio que impide la operacion
+  | 'SERVER_PROCESSING'; // Error interno del servidor
+
+// Sub-clasificacion de errores de cliente (solo presente cuando origin === 'CLIENT_REQUEST')
+export type ClientRequestCause =
+  | 'USER_INPUT'        // Datos ingresados por el usuario (credenciales, campos de formulario)
+  | 'CLIENT_TECHNICAL'; // Problema de integracion tecnica (cookie faltante, parametro mal construido)
+
+/**
+ * Estructura del campo `data` en respuestas de error.
+ * BaseResponse<ErrorData> — envelope de todos los errores de la API.
+ *
+ * Guia de uso:
+ *  - origin === 'CLIENT_REQUEST' && clientRequestCause === 'USER_INPUT'
+ *      → mostrar clientMessage junto al formulario/campo
+ *  - origin === 'CLIENT_REQUEST' && clientRequestCause === 'CLIENT_TECHNICAL'
+ *      → revisar integracion tecnica; NO mostrar como culpa del usuario
+ *  - origin === 'BUSINESS_RULE'
+ *      → mostrar clientMessage; ofrecer accion alternativa si aplica
+ *  - origin === 'SERVER_PROCESSING'
+ *      → mostrar mensaje generico de reintento; loguear en monitoreo
+ */
+export interface ErrorData {
+  /** ResponseCode del error (mismo valor que failure.code) */
+  code: string;
+  /** Origen del error */
+  origin: ErrorOrigin;
+  /** Sub-causa de errores de cliente (ausente si origin != 'CLIENT_REQUEST') */
+  clientRequestCause?: ClientRequestCause;
+  /** Mensaje amigable en espanol listo para mostrar al usuario */
+  clientMessage: string;
+  /** Detalle tecnico del error — solo en perfiles dev/local */
+  detail?: string;
+  /** Nombre de la clase de excepcion — solo en perfiles dev/local */
+  exception?: string;
+}
+
+/** Alias tipado para respuestas de error de la API */
+export type ErrorResponse = BaseResponse<ErrorData>;
 ```
 
 ### 5.2. Roles — enum
@@ -436,35 +479,53 @@ export const generateState = () => crypto.randomUUID();
 import { useState, useEffect } from 'react';
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '@/auth/pkce';
 import { API_V1, TENANT, CLIENT_ID } from '@/api/client';
+import type { ErrorData } from '@/types/base';
+
+function resolveClientError(body: { failure?: { message?: string }; data?: ErrorData }): string {
+  // Preferir siempre el mensaje de negocio/UI provisto por ErrorData
+  return body.data?.clientMessage ?? body.failure?.message ?? 'No pudimos completar la solicitud.';
+}
+
+function isUserInputError(body: { data?: ErrorData }): boolean {
+  return body.data?.origin === 'CLIENT_REQUEST' && body.data?.clientRequestCause === 'USER_INPUT';
+}
 
 export function LoginPage() {
   const [clientName, setClientName] = useState('KeyGo');
-  const [error, setError]           = useState<string | null>(null);
-  const [loading, setLoading]       = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const redirectUri = import.meta.env.VITE_REDIRECT_URI;
 
   // Pasos 0 y 1 al montar
   useEffect(() => {
     (async () => {
-      const verifier  = generateCodeVerifier();
+      const verifier = generateCodeVerifier();
       const challenge = await generateCodeChallenge(verifier);
-      const state     = generateState();
+      const state = generateState();
       sessionStorage.setItem('pkce_code_verifier', verifier);
       sessionStorage.setItem('oauth_state', state);
 
       const params = new URLSearchParams({
-        client_id: CLIENT_ID, redirect_uri: redirectUri,
-        scope: 'openid profile email', response_type: 'code',
-        code_challenge: challenge, code_challenge_method: 'S256', state,
+        client_id: CLIENT_ID,
+        redirect_uri: redirectUri,
+        scope: 'openid profile email',
+        response_type: 'code',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        state,
       });
 
-      const res  = await fetch(
-        `${API_V1}/tenants/${TENANT}/oauth2/authorize?${params}`,
-        { credentials: 'include' }   // ← cookie JSESSIONID
-      );
+      const res = await fetch(`${API_V1}/tenants/${TENANT}/oauth2/authorize?${params}`, {
+        credentials: 'include', // cookie JSESSIONID
+      });
       const body = await res.json();
-      if (body.success) setClientName(body.data?.client_name ?? 'KeyGo');
-      else setError(body.failure?.message ?? 'Error al iniciar sesión');
+
+      if (body.success) {
+        setClientName(body.data?.client_name ?? 'KeyGo');
+        return;
+      }
+
+      setError(resolveClientError(body));
     })();
   }, []);
 
@@ -473,9 +534,11 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     const fd = new FormData(e.currentTarget);
     const res = await fetch(`${API_V1}/tenants/${TENANT}/account/login`, {
-      method: 'POST', credentials: 'include',
+      method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         emailOrUsername: fd.get('emailOrUsername'),
@@ -484,12 +547,26 @@ export function LoginPage() {
     });
     const body = await res.json();
     setLoading(false);
-    if (!res.ok || body.failure) { setError(body.failure?.message ?? 'Credenciales inválidas'); return; }
 
-    // El backend devuelve el code en JSON (no hace redirect 302 aún)
+    if (!res.ok || body.failure) {
+      const message = resolveClientError(body);
+
+      // USER_INPUT: mostrar inline en formulario
+      if (isUserInputError(body)) {
+        setError(message);
+        return;
+      }
+
+      // CLIENT_TECHNICAL / BUSINESS_RULE / SERVER_PROCESSING: mismo mensaje al usuario,
+      // pero conviene loguear la metadata para diagnóstico del equipo.
+      console.error('Login error metadata', body.data);
+      setError(message);
+      return;
+    }
+
     const { code } = body.data;
-    const state    = sessionStorage.getItem('oauth_state');
-    window.location.href = `${redirectUri}?code=${code}&state=${state}`;
+    const oauthState = sessionStorage.getItem('oauth_state');
+    window.location.href = `${redirectUri}?code=${code}&state=${oauthState}`;
   };
 
   return (
@@ -516,98 +593,11 @@ export function LoginPage() {
 }
 ```
 
-### 6.3.1. Variante hosted login — resolver contexto OAuth dinamico
-
-Cuando `keygo-ui` recibe el handoff desde otra SPA, `LoginPage` no debe asumir `TENANT=keygo` ni `CLIENT_ID=keygo-ui`.
-Debe leer el contexto del query string (o de un handoff firmado equivalente) y usarlo durante `/authorize` y `/account/login`.
-
-> ✅ **Referencia implementada en este repo:** ver `examples/hosted-login-handoff/`.
-> Ahí vive una implementación portable de `HostedLoginParams`, `HostedLoginBoundary`, parser runtime y tests.
-
-```typescript
-// src/auth/hostedLoginContext.ts
-import { CLIENT_ID, TENANT } from '@/api/client';
-
-export interface HostedLoginContext {
-  tenantSlug: string;
-  clientId: string;
-  redirectUri: string;
-  scope: string;
-}
-
-export function resolveHostedLoginContext(): HostedLoginContext {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    tenantSlug: params.get('tenantSlug') ?? TENANT,
-    clientId: params.get('client_id') ?? CLIENT_ID,
-    redirectUri: params.get('redirect_uri') ?? import.meta.env.VITE_REDIRECT_URI,
-    scope: params.get('scope') ?? 'openid profile email',
-  };
-}
-```
-
-### 6.3.2. Contrato mínimo recomendado: `HostedLoginParams`
-
-Para evitar llamar `/oauth2/authorize` con contexto incompleto o manipulado, `keygo-ui` debe tratar el handoff entrante como un contrato explícito.
-
-Campos obligatorios para modo hosted login:
-
-| Query param | Requerido | Regla |
-|---|---|---|
-| `tenantSlug` | Sí | slug kebab-case del tenant destino |
-| `client_id` | Sí | client app efectiva que recibirá tokens |
-| `redirect_uri` | Sí | URL absoluta registrada para esa app |
-| `scope` | Sí | string no vacío separado por espacios |
-| `response_type` | Sí | debe ser `code` |
-| `state` | Sí | anti-CSRF; no regenerarlo en `keygo-ui` |
-| `code_challenge` | Sí | PKCE base64url |
-| `code_challenge_method` | Sí | `S256` |
-
-Campos opcionales de presentación:
-
-- `client_name`
-- `app_display_name`
-- `handoff_version`
-
-Regla de oro: los opcionales pueden personalizar UI; los obligatorios determinan el flujo OAuth real y **no deben ser sustituidos por defaults silenciosos** en modo hosted login.
-
-### 6.3.3. Boundary recomendado antes de `/authorize`
-
-Antes de renderizar el formulario o iniciar `GET /oauth2/authorize`, envolver la ruta con un boundary que:
-
-1. lea `window.location.search`,
-2. valide el contrato runtime,
-3. renderice fallback si el handoff es inválido,
-4. exponga el contexto ya normalizado al resto del login.
-
-Ejemplo simplificado:
-
-```typescript
-import { HostedLoginBoundary, useHostedLoginParams } from '@/auth/HostedLoginBoundary';
-
-function HostedLoginPage() {
-  return (
-    <HostedLoginBoundary>
-      <HostedLoginScreen />
-    </HostedLoginBoundary>
-  );
-}
-
-function HostedLoginScreen() {
-  const params = useHostedLoginParams();
-  // aquí recién usar params.tenantSlug / params.clientId / params.redirectUri
-}
-```
-
-Si faltan parámetros obligatorios, el boundary debe bloquear el flujo antes de tocar `/oauth2/authorize`.
-
-En este modo, la responsabilidad recomendada queda asi:
-
-1. **App origen:** genera `code_verifier`, `code_challenge`, `state` y decide la `redirect_uri` final.
-2. **`keygo-ui` login central:** usa esos datos para llamar `/authorize`, mostrar el formulario y ejecutar `/account/login`.
-3. **App origen:** recibe `code` + `state` en su callback, valida `state` y canjea el `code` en `/oauth2/token`.
-
-> Si `keygo-ui` solo hospeda login para otra app, **no debe persistir `access_token` / `refresh_token` como sesion final propia**. Su rol termina al redirigir al callback correcto.
+Notas prácticas para `LoginPage`:
+- Si `data.origin=CLIENT_REQUEST` y `data.clientRequestCause=USER_INPUT`, el problema es de datos capturados por el usuario (ej. credenciales inválidas).
+- Si `data.origin=CLIENT_REQUEST` y `data.clientRequestCause=CLIENT_TECHNICAL`, el problema es de integración de la UI (ej. cookie de sesión, parámetros OAuth, endpoint equivocado).
+- Si `data.origin=BUSINESS_RULE`, la solicitud fue técnicamente correcta pero bloqueada por reglas del dominio (ej. email no verificado).
+- Si `data.origin=SERVER_PROCESSING`, mostrar mensaje genérico y recomendar reintento.
 
 ### 6.4. CallbackPage — Paso 3 + routing por rol
 
@@ -620,47 +610,70 @@ import { decodeIdToken } from '@/auth/jwksVerify';
 import { scheduleRefresh } from '@/auth/refresh';
 import { API_V1, TENANT, CLIENT_ID } from '@/api/client';
 import { AppRole } from '@/types/roles';
+import type { ErrorData } from '@/types/base';
+
+function loginErrorQuery(body: { data?: ErrorData; failure?: { code?: string } }): string {
+  const origin = body.data?.origin ?? 'UNKNOWN';
+  const cause = body.data?.clientRequestCause ?? 'N_A';
+  const code = body.data?.code ?? body.failure?.code ?? 'UNKNOWN';
+  return `code=${encodeURIComponent(code)}&origin=${encodeURIComponent(origin)}&cause=${encodeURIComponent(cause)}`;
+}
 
 export function CallbackPage() {
-  const navigate      = useNavigate();
+  const navigate = useNavigate();
   const { setTokens } = useTokenStore();
 
   useEffect(() => {
-    const params     = new URLSearchParams(window.location.search);
-    const code       = params.get('code');
-    const state      = params.get('state');
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
     const savedState = sessionStorage.getItem('oauth_state');
-    const verifier   = sessionStorage.getItem('pkce_code_verifier');
+    const verifier = sessionStorage.getItem('pkce_code_verifier');
 
     if (!code || state !== savedState || !verifier) {
-      navigate('/login?error=invalid_state'); return;
+      navigate('/login?error=invalid_state');
+      return;
     }
 
     (async () => {
-      const res  = await fetch(`${API_V1}/tenants/${TENANT}/oauth2/token`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`${API_V1}/tenants/${TENANT}/oauth2/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: CLIENT_ID, code, code_verifier: verifier,
+          client_id: CLIENT_ID,
+          code,
+          code_verifier: verifier,
           redirect_uri: import.meta.env.VITE_REDIRECT_URI,
         }),
       });
       const body = await res.json();
-      if (body.failure) { navigate(`/login?error=${encodeURIComponent(body.failure.message)}`); return; }
+
+      if (!res.ok || body.failure) {
+        // En token exchange, la app debe reiniciar el flujo completo.
+        const errorQuery = loginErrorQuery(body);
+        navigate(`/login?error=token_exchange_failed&${errorQuery}`);
+        return;
+      }
 
       const { access_token, id_token, refresh_token, expires_in } = body.data;
       const claims = decodeIdToken(id_token);
-      const roles  = (claims.roles as string[]) ?? [];
+      const roles = (claims.roles as string[]) ?? [];
 
-      setTokens({ accessToken: access_token, idToken: id_token, refreshToken: refresh_token, expiresIn: expires_in, roles });
+      setTokens({
+        accessToken: access_token,
+        idToken: id_token,
+        refreshToken: refresh_token,
+        expiresIn: expires_in,
+        roles,
+      });
       scheduleRefresh(TENANT, CLIENT_ID, expires_in);
 
       sessionStorage.removeItem('pkce_code_verifier');
       sessionStorage.removeItem('oauth_state');
 
-      // Redirigir según rol (mayor privilegio primero)
-      if (roles.includes(AppRole.ADMIN))             navigate('/admin/dashboard');
+      if (roles.includes(AppRole.ADMIN)) navigate('/admin/dashboard');
       else if (roles.includes(AppRole.ADMIN_TENANT)) navigate('/tenant-admin/dashboard');
-      else                                            navigate('/dashboard');
+      else navigate('/dashboard');
     })();
   }, []);
 
@@ -672,45 +685,9 @@ export function CallbackPage() {
 }
 ```
 
-### 6.5. Token Store (Zustand — en memoria)
-
-```typescript
-// src/auth/tokenStore.ts
-import { create } from 'zustand';
-import type { AppRoleValue } from '@/types/roles';
-
-interface TokenState {
-  accessToken:     string | null;
-  idToken:         string | null;
-  refreshToken:    string | null;
-  expiresAt:       number | null;
-  roles:           AppRoleValue[];
-  isAuthenticated: boolean;
-
-  setTokens: (t: {
-    accessToken: string; idToken: string;
-    refreshToken?: string; expiresIn: number; roles: string[];
-  }) => void;
-  clearTokens: () => void;
-  hasRole:     (role: AppRoleValue) => boolean;
-}
-
-export const useTokenStore = create<TokenState>((set, get) => ({
-  accessToken: null, idToken: null, refreshToken: null,
-  expiresAt: null, roles: [], isAuthenticated: false,
-
-  setTokens: ({ accessToken, idToken, refreshToken, expiresIn, roles }) =>
-    set({ accessToken, idToken, refreshToken: refreshToken ?? null,
-          expiresAt: Date.now() + expiresIn * 1000,
-          roles: roles as AppRoleValue[], isAuthenticated: true }),
-
-  clearTokens: () =>
-    set({ accessToken: null, idToken: null, refreshToken: null,
-          expiresAt: null, roles: [], isAuthenticated: false }),
-
-  hasRole: (role) => get().roles.includes(role),
-}));
-```
+Nota de UX para callback:
+- Si falla `/oauth2/token`, reiniciar el flujo desde login (`/authorize` → `/account/login` → `/oauth2/token`).
+- No intentar reutilizar un `authorization_code` previo: puede estar expirado o consumido.
 
 ---
 
@@ -1396,21 +1373,49 @@ apiClient.interceptors.response.use(
 );
 ```
 
-> El backend ya valida Bearer JWT en endpoints admin. No se requiere `X-KEYGO-ADMIN`.
-
 ### 13.2. Manejo centralizado de `BaseResponse<T>`
 
 ```typescript
 // src/components/BaseResponseHandler.tsx
+import type { BaseResponse, ErrorData } from '@/types/base';
+
+function formatUiError(errorData?: ErrorData, fallback?: string): string {
+  if (!errorData) return fallback ?? 'No pudimos completar la solicitud.';
+
+  // Mensaje canónico para UI, provisto por backend
+  return errorData.clientMessage;
+}
+
 export function BaseResponseHandler<T>({ response, isLoading, children }:
-  { response?: BaseResponse<T>; isLoading: boolean; children: (d: T) => React.ReactNode }) {
-  if (isLoading)         return <div className="animate-pulse">Cargando...</div>;
-  if (!response)         return null;
-  if (response.failure)  return <div className="alert-error">{response.failure.code}: {response.failure.message}</div>;
-  if (!response.data)    return null;
-  return <>{children(response.data)}</>;
+  { response?: BaseResponse<T | ErrorData>; isLoading: boolean; children: (d: T) => React.ReactNode }) {
+  if (isLoading) return <div className="animate-pulse">Cargando...</div>;
+  if (!response) return null;
+
+  if (response.failure) {
+    const errorData = response.data as ErrorData | undefined;
+    const uiMessage = formatUiError(errorData, response.failure.message);
+
+    return (
+      <div className="alert-error">
+        <p>{uiMessage}</p>
+        {/* Ayuda al equipo dev sin exponer detalles técnicos en producción */}
+        {errorData?.origin === 'CLIENT_REQUEST' && errorData?.clientRequestCause === 'CLIENT_TECHNICAL' && (
+          <p className="text-xs opacity-80">Error de integración del cliente. Revisa sesión/cookies/parámetros.</p>
+        )}
+      </div>
+    );
+  }
+
+  if (!response.data) return null;
+  return <>{children(response.data as T)}</>;
 }
 ```
+
+Reglas rápidas de interpretación en frontend:
+- `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → error del dato ingresado por el usuario.
+- `origin=CLIENT_REQUEST` + `clientRequestCause=CLIENT_TECHNICAL` → error técnico de integración UI/API.
+- `origin=BUSINESS_RULE` → regla de negocio bloquea operación válida.
+- `origin=SERVER_PROCESSING` → falla interna del servidor.
 
 ---
 
@@ -1477,82 +1482,62 @@ Respuesta esperada en cada etapa:
 - `success.code` esperado: `AUTHORIZATION_INITIATED` -> `LOGIN_SUCCESSFUL` -> `TOKEN_ISSUED`.
 - En `GET /oauth2/authorize`, usar nombres OAuth2 en query params (`response_type`, no `responseType`).
 
-Controles frontend obligatorios para este patron:
-- Validar `state` en callback (anti-CSRF).
-- Conservar `code_verifier` hasta el canje de token.
-- Reenviar cookies entre `/authorize` y `/account/login` (`withCredentials` cuando aplique).
-- No persistir `access_token` ni `refresh_token` en `keygo-ui` si la sesion final pertenece a otra app.
-- Si hay dominios distintos entre UI central y API, usar HTTPS + CORS estricto + cookies cross-site compatibles (`SameSite=None; Secure`).
+#### Respuestas OK/NOK por etapa (contrato mínimo para frontend)
 
-### 14.2. Control de plataforma — rol `ADMIN`
-
-| Caso de uso | Método | Endpoint | Estado |
+| Etapa | OK (`success.code`) | NOK (`failure.code`) más comunes | Campos `ErrorData` a inspeccionar |
 |---|---|---|---|
-| Info del servicio | GET | `/api/v1/service/info` | ✅ |
-| Crear tenant | POST | `/api/v1/tenants` | ✅ |
-| Ver tenant | GET | `/api/v1/tenants/{slug}` | ✅ |
-| Suspender tenant | PUT | `/api/v1/tenants/{slug}/suspend` | ✅ |
-| Listar tenants | GET | `/api/v1/tenants` | ⏳ F-033 |
-| Reactivar tenant | PUT | `/api/v1/tenants/{slug}/activate` | ⏳ |
-| Auditoría global | GET | `/api/v1/platform/audit` | ⏳ F-034 |
+| `/oauth2/authorize` | `AUTHORIZATION_INITIATED` | `RESOURCE_NOT_FOUND`, `INVALID_INPUT`, `BUSINESS_RULE_VIOLATION` | `origin`, `clientRequestCause`, `clientMessage` |
+| `/account/login` | `LOGIN_SUCCESSFUL` | `AUTHENTICATION_REQUIRED`, `EMAIL_NOT_VERIFIED`, `BUSINESS_RULE_VIOLATION`, `INVALID_INPUT` | `origin`, `clientRequestCause`, `clientMessage` |
+| `/oauth2/token` | `TOKEN_ISSUED` | `INVALID_INPUT`, `INSUFFICIENT_PERMISSIONS`, `OPERATION_FAILED`, `AUTHENTICATION_REQUIRED` | `origin`, `clientRequestCause`, `clientMessage` |
 
-### 14.3. Gestión de tenant — rol `ADMIN` o `ADMIN_TENANT`
-
-| Caso de uso | Método | Endpoint | Estado |
-|---|---|---|---|
-| Crear app | POST | `/api/v1/tenants/{slug}/apps` | ✅ |
-| Listar apps | GET | `/api/v1/tenants/{slug}/apps` | ✅ |
-| Ver app | GET | `/api/v1/tenants/{slug}/apps/{clientId}` | ✅ |
-| Actualizar app | PUT | `/api/v1/tenants/{slug}/apps/{clientId}` | ✅ |
-| Rotar secret | POST | `/api/v1/tenants/{slug}/apps/{clientId}/rotate-secret` | ✅ |
-| Crear usuario | POST | `/api/v1/tenants/{slug}/users` | ✅ |
-| Listar usuarios | GET | `/api/v1/tenants/{slug}/users` | ✅ |
-| Ver usuario | GET | `/api/v1/tenants/{slug}/users/{userId}` | ✅ |
-| Editar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}` | ✅ |
-| Reset contraseña (admin) | POST | `/api/v1/tenants/{slug}/users/{userId}/reset-password` | ✅ |
-| Validar credenciales de usuario | POST | `/api/v1/tenants/{slug}/users/validate-credentials` | ✅ |
-| Crear membership | POST | `/api/v1/tenants/{slug}/memberships` | ✅ |
-| Listar memberships por app | GET | `/api/v1/tenants/{slug}/memberships?clientAppId={uuid}` | ✅ |
-| Listar memberships por usuario | GET | `/api/v1/tenants/{slug}/memberships?userId={uuid}` | ✅ |
-| Revocar membership | DELETE | `/api/v1/tenants/{slug}/memberships/{membershipId}` | ✅ |
-| Crear rol | POST | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles` | ✅ |
-| Listar roles | GET | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles` | ✅ |
-| Editar rol | PUT | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles/{roleId}` | ⏳ |
-| Eliminar rol | DELETE | `/api/v1/tenants/{slug}/apps/{clientAppId}/roles/{roleId}` | ⏳ |
-| Asignar roles a membership | POST | `/api/v1/tenants/{slug}/memberships/{id}/roles` | ⏳ |
-| Suspender usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/suspend` | ⏳ T-033 |
-| Activar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/activate` | ⏳ T-033 |
-
-**Detalle endpoint actualizado — Crear rol de app**
-
-- Método: `POST`
-- URL completa: `/keygo-server/api/v1/tenants/{slug}/apps/{clientAppId}/roles`
-- Auth requerida: `Authorization: Bearer <jwt>` con rol admin (`ADMIN` o `ADMIN_TENANT` con tenant match)
-- Body ejemplo:
+Ejemplo OK — `GET /oauth2/authorize`:
 
 ```json
 {
-  "code": "admin",
-  "displayName": "Administrator",
-  "description": "Rol admin para gestión del tenant"
+  "date": "2026-03-26T10:00:00.000Z",
+  "success": {
+    "code": "AUTHORIZATION_INITIATED",
+    "message": "Authorization flow initiated successfully"
+  },
+  "data": {
+    "client_id": "keygo-ui",
+    "client_name": "KeyGo UI",
+    "redirect_uri": "http://localhost:5173/callback"
+  }
 }
 ```
 
-- Respuesta (`BaseResponse<AppRoleData>`) ejemplo:
+Ejemplo NOK — `POST /account/login` por error de entrada de usuario:
 
 ```json
 {
-  "date": "2026-03-24T22:00:00",
-  "success": {
-    "code": "ROLE_CREATED",
-    "message": "Role created successfully"
+  "date": "2026-03-26T10:00:00.000Z",
+  "failure": {
+    "code": "AUTHENTICATION_REQUIRED",
+    "message": "Authentication is required"
   },
   "data": {
-    "id": "2c2e9f4a-88ca-4db1-bdf3-1b2d2acb7d9f",
-    "clientAppId": "f7f89f0d-a7d2-4fd3-b418-58ef6d95be1f",
-    "code": "admin",
-    "displayName": "Administrator",
-    "description": "Rol admin para gestión del tenant"
+    "code": "AUTHENTICATION_REQUIRED",
+    "origin": "CLIENT_REQUEST",
+    "clientRequestCause": "USER_INPUT",
+    "clientMessage": "No pudimos validar tu sesión. Inicia sesión nuevamente."
+  }
+}
+```
+
+Ejemplo NOK — `POST /oauth2/token` por falla de servidor:
+
+```json
+{
+  "date": "2026-03-26T10:00:00.000Z",
+  "failure": {
+    "code": "OPERATION_FAILED",
+    "message": "Operation failed"
+  },
+  "data": {
+    "code": "OPERATION_FAILED",
+    "origin": "SERVER_PROCESSING",
+    "clientMessage": "No pudimos completar la solicitud. Intenta de nuevo en unos minutos."
   }
 }
 ```
