@@ -26,6 +26,7 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-26 | [ADR-001: documentar decisiones de error handling como ADR (`docs/keygo-ui/ADR-001-error-handling-oauth2.md`)](#2026-03-26-adr-001-documentar-decisiones-de-error-handling-como-adr) | API / Error Handling / Docs |
 | 2026-03-26 | [Subclasificar `CLIENT_REQUEST` en `CLIENT_TECHNICAL` vs `USER_INPUT` mejora triage de UI y soporte](#2026-03-26-subclasificar-client_request-en-client_technical-vs-user_input-mejora-triage-de-ui-y-soporte) | API / Error Handling |
 | 2026-03-26 | [En Spring Framework 7, `HttpMessageNotReadableException` en tests requiere `HttpInputMessage`](#2026-03-26-en-spring-framework-7-httpmessagenotreadableexception-en-tests-requiere-httpinputmessage) | Testing / Spring |
 | 2026-03-26 | [Clasificar errores por origen (`CLIENT_REQUEST`, `BUSINESS_RULE`, `SERVER_PROCESSING`) mejora diagnóstico frontend y soporte](#2026-03-26-clasificar-errores-por-origen-client_request-business_rule-server_processing-mejora-diagnóstico-frontend-y-soporte) | API / Error Handling |
@@ -87,6 +88,12 @@
 ---
 
 ## Lecciones
+
+### [2026-03-26] ADR-001: documentar decisiones de error handling como ADR
+**Contexto:** Se completó la clasificación de errores con `ErrorData` (`origin`, `clientRequestCause`, `clientMessage`) y se actualizaron los docs de flujo OAuth2 y la guía de frontend.
+**Problema:** El estándar de manejo de errores quedaba documentado de forma dispersa entre `AUTH_FLOW.md`, `FRONTEND_DEVELOPER_GUIDE.md` y código Java, sin un documento canónico de decisión arquitectónica para onboarding de nuevos integradores o cambio de decisión futura.
+**Solución / Buena práctica:** Crear `docs/keygo-ui/ADR-001-error-handling-oauth2.md` como ADR de una página que consolide: contexto, decisión, alternativas descartadas, consecuencias, mapa de errores por etapa OAuth2, árbol de decisión (Mermaid), contrato JSON + tipos TypeScript, helper de referencia y propuestas de evolución (T-064/T-065/T-066).
+**Archivos clave:** `docs/keygo-ui/ADR-001-error-handling-oauth2.md`, `docs/api/AUTH_FLOW.md`, `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`
 
 ### [2026-03-26] Subclasificar `CLIENT_REQUEST` en `CLIENT_TECHNICAL` vs `USER_INPUT` mejora triage de UI y soporte
 **Contexto:** Se necesitaba distinguir, dentro de errores de cliente, si la falla proviene de implementación UI/protocolo (cookies, payload, headers, sesión) o de datos capturados por el usuario.
