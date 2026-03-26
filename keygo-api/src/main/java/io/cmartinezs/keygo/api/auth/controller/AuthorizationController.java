@@ -39,6 +39,12 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -68,6 +74,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}")
+@Tag(name = "OAuth2 / Authorization", description = "OAuth2 Authorization Code + PKCE flow, "
+    + "token exchange, refresh token rotation and client_credentials grant — all public endpoints (no X-KEYGO-ADMIN)")
 public class AuthorizationController {
 
   private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(30);
@@ -149,15 +157,29 @@ public class AuthorizationController {
    * @return respuesta con datos de la app cliente
    */
   @GetMapping("/oauth2/authorize")
+  @Operation(
+      summary = "Initiate OAuth2 authorization (PKCE)",
+      description = """
+          Starts the OAuth2 Authorization Code + PKCE flow. Validates that the tenant \
+          is active, the client app exists and the redirect URI is registered. Stores the \
+          authorization state in the HTTP session so that `POST /account/login` can retrieve it.
+
+          **Flow:** `GET /authorize` → `POST /account/login` → `POST /oauth2/token`""")
+  @ApiResponse(responseCode = "200", description = "Authorization initiated — client app metadata returned",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid or missing query parameters",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AuthorizationInitiatedData>> authorize(
-      @PathVariable String tenantSlug,
-      @RequestParam(name = "client_id") String clientId,
-      @RequestParam(name = "redirect_uri") String redirectUri,
-      @RequestParam(name = "scope") String scope,
-      @RequestParam(name = "response_type") String responseType,
-      @RequestParam(name = "state", required = false) String state,
-      @RequestParam(name = "code_challenge_method", required = false) String codeChallengeMethod,
-      @RequestParam(name = "code_challenge", required = false) String codeChallenge,
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "OAuth2 client_id", required = true) @RequestParam(name = "client_id") String clientId,
+      @Parameter(description = "Registered redirect URI", required = true) @RequestParam(name = "redirect_uri") String redirectUri,
+      @Parameter(description = "Requested scopes (space-separated)", example = "openid profile email", required = true) @RequestParam(name = "scope") String scope,
+      @Parameter(description = "Must be `code`", required = true) @RequestParam(name = "response_type") String responseType,
+      @Parameter(description = "Optional opaque value to maintain state") @RequestParam(name = "state", required = false) String state,
+      @Parameter(description = "PKCE method — must be `S256`") @RequestParam(name = "code_challenge_method", required = false) String codeChallengeMethod,
+      @Parameter(description = "PKCE code challenge (BASE64URL of SHA-256 of verifier)") @RequestParam(name = "code_challenge", required = false) String codeChallenge,
       HttpSession session) {
 
     var request =
@@ -221,8 +243,24 @@ public class AuthorizationController {
    * @return authorization code emitido
    */
   @PostMapping("/account/login")
+  @Operation(
+      summary = "Submit credentials and issue authorization code",
+      description = """
+          Authenticates the user within the tenant and issues a one-time authorization \
+          code. Requires an active authorization session established by `GET /oauth2/authorize`.
+
+          The returned `code` must be exchanged for tokens via `POST /oauth2/token` \
+          (`grant_type=authorization_code`) using the original PKCE `code_verifier`.""")
+  @ApiResponse(responseCode = "200", description = "Login successful — authorization code issued",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "No authorization state in session — call GET /oauth2/authorize first",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Invalid credentials",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<LoginData>> login(
-      @PathVariable String tenantSlug,
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Valid @RequestBody LoginRequest request,
       HttpSession session) {
 
@@ -275,8 +313,27 @@ public class AuthorizationController {
    * </ul>
    */
   @PostMapping("/oauth2/token")
+  @Operation(
+      summary = "Issue or rotate tokens (multi-grant)",
+      description = """
+          Multi-grant token endpoint. The `grant_type` field selects the behaviour:
+
+          | `grant_type` | Required fields | Returns |
+          |---|---|---|
+          | `authorization_code` | `client_id`, `code`, `redirect_uri`, `code_verifier` | `access_token` + `id_token` + `refresh_token` |
+          | `refresh_token` | `client_id`, `refresh_token` | new `access_token` + `id_token` + rotated `refresh_token` |
+          | `client_credentials` | `client_id`, `client_secret`, `scope` | `access_token` only (M2M) |""")
+  @ApiResponse(responseCode = "200", description = "Token(s) issued successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid request — missing required fields for the selected grant_type",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Invalid code, credentials or token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<TokenData>> token(
-      @PathVariable String tenantSlug, @Valid @RequestBody TokenRequest request) {
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Valid @RequestBody TokenRequest request) {
 
     String grantType = request.resolvedGrantType();
 

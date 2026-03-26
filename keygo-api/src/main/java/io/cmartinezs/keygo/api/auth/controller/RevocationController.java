@@ -6,6 +6,12 @@ import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.auth.command.RevokeTokenCommand;
 import io.cmartinezs.keygo.app.auth.usecase.RevokeTokenUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}")
+@Tag(name = "OAuth2 / Authorization", description = "OAuth2 Authorization Code + PKCE flow, "
+    + "token exchange, refresh token rotation and client_credentials grant — all public endpoints (no X-KEYGO-ADMIN)")
 public class RevocationController {
 
   private final RevokeTokenUseCase revokeTokenUseCase;
@@ -40,8 +48,17 @@ public class RevocationController {
    * @return 200 OK siempre (incluso si el token no existe)
    */
   @PostMapping("/oauth2/revoke")
+  @Operation(
+      summary = "Revoke a token (RFC 7009)",
+      description = "Revokes a refresh token per RFC 7009. The endpoint is **idempotent** — "
+          + "if the token does not exist or has already been revoked, 200 OK is returned anyway "
+          + "to prevent token existence enumeration. No authentication header required.")
+  @ApiResponse(responseCode = "200", description = "Token revoked (or silently ignored if unknown)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid request body",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<Void>> revoke(
-      @PathVariable String tenantSlug,
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Valid @RequestBody RevokeTokenRequest request) {
 
     revokeTokenUseCase.execute(

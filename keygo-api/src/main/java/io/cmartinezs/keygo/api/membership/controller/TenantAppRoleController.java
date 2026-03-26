@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientAppId}/roles")
 @SecurityRequirement(name = "BearerAuth")
-@Tag(name = "6-roles", description = "Application-scoped roles")
+@Tag(name = "App Roles", description = "Application-scoped roles — requires Bearer JWT")
 @PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantAppRoleController {
 

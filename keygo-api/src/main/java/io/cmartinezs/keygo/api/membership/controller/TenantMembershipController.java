@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/memberships")
 @SecurityRequirement(name = "BearerAuth")
-@Tag(name = "5-memberships", description = "User access to applications")
+@Tag(name = "Memberships", description = "User access to applications — requires Bearer JWT")
 @PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantMembershipController {
 

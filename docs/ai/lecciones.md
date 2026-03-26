@@ -26,6 +26,9 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-26 | [El agente nunca debe ejecutar comandos `git` directamente — usar listas de comandos sugeridos](#2026-03-26-el-agente-nunca-debe-ejecutar-comandos-git-directamente) | Agente / Reglas de trabajo |
+| 2026-03-26 | [Verificar estado de compilación pre-existente con `./mvnw clean` antes de atribuir errores a cambios propios](#2026-03-26-verificar-estado-de-compilación-pre-existente-con-mvnw-clean) | Build / Testing |
+| 2026-03-26 | [Documentar Swagger: 5 controllers de auth/OIDC sin anotaciones `@Tag`/`@Operation` y grupos desactualizados](#2026-03-26-documentar-swagger-controllers-sin-anotaciones-y-grupos-desactualizados) | API / Swagger / Docs |
 | 2026-03-26 | [Contraseñas de seed SQL deben documentarse siempre junto al hash BCrypt](#2026-03-26-contraseñas-de-seed-sql-deben-documentarse-junto-al-hash-bcrypt) | DB / Seed / Convenciones |
 | 2026-03-26 | [ADR-001: documentar decisiones de error handling como ADR (`docs/keygo-ui/ADR-001-error-handling-oauth2.md`)](#2026-03-26-adr-001-documentar-decisiones-de-error-handling-como-adr) | API / Error Handling / Docs |
 | 2026-03-26 | [Subclasificar `CLIENT_REQUEST` en `CLIENT_TECHNICAL` vs `USER_INPUT` mejora triage de UI y soporte](#2026-03-26-subclasificar-client_request-en-client_technical-vs-user_input-mejora-triage-de-ui-y-soporte) | API / Error Handling |
@@ -671,5 +674,38 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 6. Los tests unitarios de la config pueden hacerse sin Spring context: instanciar `SecurityConfig` directamente + `KeyGoCorsProperties` + `CorsConfigurationSource.getCorsConfiguration(request)`.
 **Archivos clave:** `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/security/SecurityConfig.java`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/properties/KeyGoCorsProperties.java`, `keygo-run/src/main/resources/application.yml`
 
+---
+
+### [2026-03-26] El agente nunca debe ejecutar comandos `git` directamente
+
+**Contexto:** Al verificar si errores de compilación en `keygo-api` eran pre-existentes o introducidos por cambios propios, se ejecutó `git stash` / `git stash pop` para comparar el estado antes y después.
+**Problema:** Las instrucciones del proyecto (`.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`) prohíben explícitamente que el agente ejecute cualquier comando `git` directamente — no porque cause daño necesariamente, sino porque las operaciones de control de versiones pertenecen al flujo del desarrollador humano, no al agente. Ejecutar `git stash` puede interferir con el estado de trabajo del usuario.
+**Solución / Buena práctica:** Para verificar si un error es pre-existente, utilizar únicamente `./mvnw clean test` o revisar el log de compilación anterior. Si se necesita comparar estados del repo, **listar los comandos sugeridos** para que el usuario los ejecute manualmente. Nunca invocar `git stash`, `git commit`, `git push`, `git merge`, `git rebase` ni ningún otro subcomando de git desde el agente.
+**Archivos clave:** `.github/copilot-instructions.md` §5, `CLAUDE.md` §Git, `AGENTS.md` §Git
+
+---
+
+### [2026-03-26] Verificar estado de compilación pre-existente con `./mvnw clean` antes de atribuir errores a cambios propios
+
+**Contexto:** Al ejecutar `./mvnw -pl keygo-api test` tras agregar anotaciones Swagger, aparecieron errores de compilación en `GlobalExceptionHandler` (clases no encontradas: `ScopeNotGrantedException`, `NoActiveSigningKeyException`, etc.). Se intentó erróneamente verificar con `git stash`.
+**Problema:** Maven puede usar clases compiladas previamente en `target/`. Si el proyecto tiene errores pre-existentes en archivos no tocados por el agente, `mvnw test` (sin `clean`) puede fallar por artefactos desactualizados. Atribuir esos errores a los cambios del agente lleva a buscar la causa en el lugar equivocado.
+**Solución / Buena práctica:** Antes de asumir que mis cambios introdujeron un error de compilación, ejecutar `./mvnw clean test -pl <módulo>` para asegurar compilación desde cero. Si el error persiste en `clean`, revisar si el archivo afectado fue modificado en esta sesión. Si no lo fue, el error es pre-existente y no debe bloquearse en él.
+
+---
+
+### [2026-03-26] Documentar Swagger: controllers sin anotaciones `@Tag`/`@Operation` y grupos desactualizados
+
+**Contexto:** Al revisar la coherencia entre `docs/api/OPENAPI.md` y el código de los controllers, se detectó que 5 controllers de auth/OIDC (implementados en fases 5-9) nunca recibieron anotaciones Swagger, y `docs/api/OPENAPI.md` quedó congelado en el estado de la fase 4 (2026-03-22).
+**Problema:**
+- `AuthorizationController`, `JwksController`, `OidcMetadataController`, `RevocationController`, `UserInfoController` — sin `@Tag`, sin `@Operation`, sin `@ApiResponse`.
+- `TenantMembershipController` y `TenantAppRoleController` con tags numéricos (`"5-memberships"`, `"6-roles"`) inconsistentes con el patrón del resto.
+- `OpenApiConfig.java` tenía 4 grupos; el grupo `2-tenants` capturaba sin filtrar auth, OIDC, memberships y account/profile.
+- `OPENAPI.md` documentaba el esquema de seguridad obsoleto `AdminKeyAuth`/`X-KEYGO-ADMIN` (cambiado a `BearerAuth`/Bearer JWT en fase 5), 21 endpoints en lugar de 33, y swagger-ui.path incorrecto.
+**Solución / Buena práctica:**
+- Al implementar un controller nuevo, agregar siempre `@Tag` (con nombre descriptivo sin prefijo numérico), `@Operation` y `@ApiResponse` en cada método en la misma sesión. No diferirlo.
+- Al agregar grupos en `OpenApiConfig`, usar `pathsToExclude` explícito en el grupo `2-tenants` para que no absorba los nuevos paths por defecto.
+- Los controllers de OIDC/JWKS que retornan `Map<String, Object>` (no `BaseResponse`) son correctos por diseño — documentarlo con `@Content(mediaType = "application/json")` sin `@Schema`.
+- Los tags de membership/roles se nombraron `"5-memberships"` y `"6-roles"` probablemente para ordenación en Swagger UI; la solución correcta es usar `tags-sorter: alpha` en springdoc y tags descriptivos puros.
+**Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/auth/controller/`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/OpenApiConfig.java`, `docs/api/OPENAPI.md`
 ---
 

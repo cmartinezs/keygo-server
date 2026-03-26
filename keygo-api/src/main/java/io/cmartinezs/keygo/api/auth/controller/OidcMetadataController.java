@@ -2,6 +2,11 @@ package io.cmartinezs.keygo.api.auth.controller;
 
 import io.cmartinezs.keygo.app.auth.result.OidcConfigurationResult;
 import io.cmartinezs.keygo.app.auth.usecase.GetOidcConfigurationUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Retorna JSON nativo (no {@code BaseResponse}) para garantizar interoperabilidad con
  * librerías OAuth2/OIDC de terceros que usan este documento para auto-configurarse.
  *
- * <p>Ruta pública: no requiere {@code X-KEYGO-ADMIN}.
+ * <p>Ruta pública: no requiere autenticación.
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}")
+@Tag(name = "OIDC Discovery", description = "Public OIDC discovery and JWKS endpoints — no authentication required. "
+    + "Returns raw JSON (not BaseResponse) for compatibility with third-party OAuth2/OIDC libraries.")
 public class OidcMetadataController {
 
   private final GetOidcConfigurationUseCase getOidcConfigurationUseCase;
@@ -37,8 +44,16 @@ public class OidcMetadataController {
    * @return JSON con todos los campos obligatorios de OIDC Discovery 1.0
    */
   @GetMapping("/.well-known/openid-configuration")
+  @Operation(
+      summary = "Get OIDC discovery document",
+      description = "Returns the OpenID Connect Discovery 1.0 document for the specified tenant. "
+          + "This document contains all endpoints (authorization, token, userinfo, jwks_uri) and "
+          + "supported capabilities required for automatic client configuration.")
+  @ApiResponse(responseCode = "200", description = "OIDC discovery document — raw JSON per OIDC Discovery 1.0 spec",
+      content = @Content(mediaType = "application/json"))
+  @ApiResponse(responseCode = "404", description = "Tenant not found")
   public ResponseEntity<Map<String, Object>> getOidcConfiguration(
-      @PathVariable String tenantSlug) {
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
     OidcConfigurationResult result = getOidcConfigurationUseCase.execute(tenantSlug);
     return ResponseEntity.ok(toMap(result));
   }

@@ -81,8 +81,8 @@ public class OpenApiConfig {
   }
 
   /**
-   * Grouped API for Tenant management endpoints.
-   * <p>Grupo de API para endpoints de gestión de tenants.
+   * Grouped API for Tenant management endpoints (CRUD only — no OAuth2/OIDC/auth paths).
+   * <p>Grupo de API para endpoints de gestión de tenants (solo CRUD — sin OAuth2/OIDC/auth).
    *
    * @return {@link GroupedOpenApi} bean for tenants group
    */
@@ -92,13 +92,21 @@ public class OpenApiConfig {
         .group("2-tenants")
         .displayName("🏢 Tenants")
         .pathsToMatch("/api/v1/tenants/**")
-        .pathsToExclude("/api/v1/tenants/*/apps/**", "/api/v1/tenants/*/users/**")
+        .pathsToExclude(
+            "/api/v1/tenants/*/apps/**",
+            "/api/v1/tenants/*/users/**",
+            "/api/v1/tenants/*/.well-known/**",
+            "/api/v1/tenants/*/oauth2/**",
+            "/api/v1/tenants/*/account/**",
+            "/api/v1/tenants/*/userinfo",
+            "/api/v1/tenants/*/memberships/**")
         .build();
   }
 
   /**
-   * Grouped API for Client Application management endpoints.
-   * <p>Grupo de API para endpoints de gestión de aplicaciones cliente.
+   * Grouped API for Client Application management endpoints
+   * (including registration and app roles — all under /apps/**).
+   * <p>Grupo de API para endpoints de aplicaciones cliente, registro y roles de app.
    *
    * @return {@link GroupedOpenApi} bean for client apps group
    */
@@ -112,8 +120,8 @@ public class OpenApiConfig {
   }
 
   /**
-   * Grouped API for User management endpoints.
-   * <p>Grupo de API para endpoints de gestión de usuarios.
+   * Grouped API for User management endpoints and self-service account profile.
+   * <p>Grupo de API para gestión de usuarios y perfil propio del usuario.
    *
    * @return {@link GroupedOpenApi} bean for users group
    */
@@ -122,7 +130,44 @@ public class OpenApiConfig {
     return GroupedOpenApi.builder()
         .group("4-users")
         .displayName("👤 Users")
-        .pathsToMatch("/api/v1/tenants/*/users/**")
+        .pathsToMatch(
+            "/api/v1/tenants/*/users/**",
+            "/api/v1/tenants/*/account/profile")
+        .build();
+  }
+
+  /**
+   * Grouped API for OAuth2 Authorization Code + PKCE flow, token exchange,
+   * refresh token rotation, client_credentials grant and token revocation (RFC 7009).
+   * <p>Grupo de API para el flujo OAuth2, intercambio de tokens y revocación.
+   *
+   * @return {@link GroupedOpenApi} bean for OAuth2 group
+   */
+  @Bean
+  public GroupedOpenApi oauth2Group() {
+    return GroupedOpenApi.builder()
+        .group("5-oauth2")
+        .displayName("🔐 OAuth2 / OIDC")
+        .pathsToMatch(
+            "/api/v1/tenants/*/oauth2/**",
+            "/api/v1/tenants/*/account/login",
+            "/api/v1/tenants/*/userinfo",
+            "/api/v1/tenants/*/.well-known/**")
+        .build();
+  }
+
+  /**
+   * Grouped API for Membership management (grant/revoke user access to applications).
+   * <p>Grupo de API para gestión de membresías.
+   *
+   * @return {@link GroupedOpenApi} bean for memberships group
+   */
+  @Bean
+  public GroupedOpenApi membershipsGroup() {
+    return GroupedOpenApi.builder()
+        .group("6-memberships")
+        .displayName("🔗 Memberships")
+        .pathsToMatch("/api/v1/tenants/*/memberships/**")
         .build();
   }
 }
