@@ -192,6 +192,10 @@ Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
 - `T-053`: verificación post-seed V14 por conteos esperados.
 - `T-054`: estrategia de `reference data` por ambiente fuera de migraciones estructurales.
 - `T-055`: bootstrap programático de tenants/apps/roles vía control-plane.
+- `T-056`: ✅ completada — referencia portable de hosted login seguro en `examples/hosted-login-handoff/` con `HostedLoginParams`, runtime guard y `HostedLoginBoundary`.
+- `T-058`: patrón BFF documentado para canje de `authorization_code` en backend y menor exposición de tokens en SPA.
+- `T-059`: evolución a redirect OAuth2 clásico (`302`) para simplificar frontend e interoperabilidad.
+- `F-041`: SSO multi-app con contrato explícito de sesión compartida, separado del hosted login actual.
 
 ---
 
@@ -210,4 +214,4 @@ Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
 
 ---
 
-**Última actualización:** 2026-03-25 | **Responsable:** AI Agent
+**Última actualización:** 2026-03-26 | **Responsable:** AI Agent

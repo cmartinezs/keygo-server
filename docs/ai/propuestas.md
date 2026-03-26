@@ -13,6 +13,8 @@
 
 ## Corto plazo
 
+> **Prioridad para lanzamiento de KeyGo:** endurecer primero el hosted login actual y eliminar ambigüedad en el handoff entre app origen y `keygo-ui` central.
+
 | ID | Propuesta | Estado |
 |---|---|---|
 | T-002 | Agregar mapper en `keygo-api/platform/` para descargar mapeo `ServiceInfoProvider → ServiceInfoData` al controller | 🔲 Pendiente |
@@ -33,10 +35,13 @@
 | T-051 | Suite de autorización por endpoint (`@PreAuthorize`) con matriz rol/tenant (ADMIN, ADMIN_TENANT match/mismatch, USER_TENANT) | 🔲 Pendiente |
 | T-053 | Script SQL de verificación post-seed V14 (conteos por tenant/app/roles/memberships) para validación rápida local/CI | 🔲 Pendiente |
 | ~~T-052~~ | ~~Hardening seguridad admin Bearer-only (sin `X-KEYGO-ADMIN`, `@PreAuthorize` + tenant match)~~ | ✅ Completada 2026-03-25 |
+| ~~T-056~~ | ~~**Lanzamiento P0 — Hosted login seguro en `keygo-ui`:** contrato tipado `HostedLoginParams`, guard de runtime para query params obligatorios, ejemplo completo de login-handoff con parámetros firmados/validados y componente reutilizable `HostedLoginBoundary`~~ | ✅ Completada 2026-03-26 |
 
 ---
 
 ## Mediano plazo
+
+> **Prioridad para lanzamiento de KeyGo:** dejar documentado el camino de endurecimiento multi-dominio y una opción BFF para equipos que no quieran exponer tokens en SPA pura.
 
 | ID | Propuesta | Estado |
 |---|---|---|
@@ -52,10 +57,14 @@
 | T-046 | Agregar scope `profile:write` explícito y validarlo en PATCH `/account/profile` contra los scopes del access token | 🔲 Pendiente |
 | T-050 | Reemplazar validación en `CreateAppRoleUseCase` basada en `findAllByTenantId(...).stream().anyMatch(...)` por lookup directo app+tenant (p. ej. `findByIdAndTenantId`) | 🔲 Pendiente |
 | T-054 | Separar seeds funcionales del schema con estrategia de `reference data` por ambiente (dev/demo) fuera de migraciones estructurales | 🔲 Pendiente |
+| T-057 | **Lanzamiento P1 — Contrato formal de handoff multi-dominio:** definir y documentar el contrato entre app origen y `keygo-ui` central, incluyendo validación/firmado del contexto OAuth y ejemplos de `withCredentials`, CORS y cookies `SameSite=None; Secure` | 🔲 Pendiente |
+| T-058 | **Lanzamiento P1 — Patrón BFF para login central:** documentar un ejemplo de canje de `authorization_code` en backend (BFF) para reducir exposición de tokens en SPA pura y simplificar refresh/logout | 🔲 Pendiente |
 
 ---
 
 ## Largo plazo
+
+> **Prioridad post-lanzamiento:** converger a interoperabilidad OAuth estándar y evaluar sesión compartida real entre múltiples UIs.
 
 | ID | Propuesta | Estado |
 |---|---|---|
@@ -67,6 +76,9 @@
 | T-047 | Implementar SCIM 2.0 endpoint `/api/v1/tenants/{slug}/scim/v2/Users` para aprovisionamiento de perfiles desde sistemas HR externos | 🔲 Pendiente |
 | T-048 | Soporte a esquemas de atributos personalizados por tenant — el admin define campos adicionales del perfil (análogo a Keycloak declarativeUserProfile) | 🔲 Pendiente |
 | T-055 | Bootstrap programático de tenants/apps/roles vía control-plane admin (sin dependencia de seeds SQL en producción) | 🔲 Pendiente |
+| T-059 | **Post-lanzamiento P2 — Redirect OAuth2 clásico:** evolucionar el backend para entregar `authorization_code` mediante redirect HTTP `302` hacia `redirect_uri` en lugar de retornarlo en JSON, reduciendo lógica de orquestación frontend y mejorando interoperabilidad con terceros | 🔲 Pendiente |
+| T-060 | **Post-lanzamiento P3 — Gateway de federación / sesión compartida:** evaluar un patrón BFF/gateway para que el login central pueda administrar sesión entre múltiples UIs sin mezclarlo con el hosted login actual | 🔲 Pendiente |
+| F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
 | ~~F-025~~ | ~~`client_credentials` grant M2M sin usuario final~~ | ✅ Completada 2026-03-23 (Fase 8) |
@@ -82,4 +94,4 @@
 
 ---
 
-**Última actualización:** 2026-03-25 (se agregan T-053, T-054 y T-055) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-26 (T-056 completada; se mantienen T-057, T-058, T-059, T-060 y F-041 activas) | **Responsable:** AI Agent

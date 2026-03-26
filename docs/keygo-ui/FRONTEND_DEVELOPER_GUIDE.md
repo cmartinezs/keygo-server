@@ -2,7 +2,7 @@
 
 > * **Audiencia:** Desarrolladores frontend que implementan la interfaz de usuario de KeyGo usando React. 
 > * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9b completadas, Fase 10 pendiente).
-> * **Fecha:** 2026-03-25
+> * **Fecha:** 2026-03-26
 > * **Estado:** Documento vivo — se actualiza conforme avanza el backend.
 
 ---
@@ -34,10 +34,13 @@
 
 ### 1.1. Una sola app, un solo login
 
-`keygo-ui` es **una única aplicación React** registrada como `ClientApp` en el tenant raíz `keygo`.
-Todos los usuarios —sin importar si son administradores globales, administradores de tenant o usuarios del sistema— se autentican a través del **mismo flujo OAuth2/PKCE** contra ese tenant.
+`keygo-ui` debe entenderse en **dos modos complementarios**:
 
-Lo que cambia según el usuario es su **rol dentro de la app `keygo-ui`**, determinado por los claims del JWT.
+1. **Modo plataforma:** `keygo-ui` como aplicación React registrada como `ClientApp` en el tenant raíz `keygo`.
+2. **Modo hosted login:** la misma UI de login reutilizada por otra SPA/app de otro tenant, pero usando el `tenantSlug` + `client_id` + `redirect_uri` de la app origen.
+
+En ambos casos se reutiliza el **mismo flujo OAuth2/PKCE** y la misma experiencia de login.
+Lo que cambia es **quién es el cliente OAuth final** que recibirá y almacenará los tokens.
 
 ```mermaid
 graph TB
@@ -59,6 +62,10 @@ graph TB
 
     L -->|"POST /oauth2/token<br/>(tenant: keygo)"| T
 ```
+
+> Este diagrama representa el **modo plataforma**. Si `keygo-ui` opera como login central para otra app,
+> la UI puede seguir siendo la misma, pero el `tenantSlug`, el `client_id`, la `redirect_uri` y el
+> almacenamiento final de tokens pertenecen a la **app origen**, no al tenant `keygo`.
 
 ### 1.2. Los tres roles
 
@@ -350,9 +357,23 @@ export const keygoUrl  = tenantUrl(TENANT);   // Atajo para tenant keygo
 
 ## 6. Flujo de autenticación OAuth2/PKCE — login único para todos los roles
 
-Todos los usuarios pasan por el mismo flujo de 3 pasos contra el tenant `keygo`.
+La mecánica OAuth2 es la misma en ambos escenarios, pero hay que distinguir el contexto:
 
-### 6.1. Diagrama del flujo
+| Escenario | ¿Quién recibe los tokens finales? | Tenant del flujo |
+|---|---|---|
+| **Modo plataforma** (`keygo-ui` como app SaaS principal) | `keygo-ui` | `keygo` |
+| **Modo hosted login** (`keygo-ui` como login central) | La app origen | El tenant de la app origen |
+
+Regla de oro frontend: **reutilizar la pantalla de login no implica reutilizar la `ClientApp keygo-ui` ni el tenant `keygo`**.
+
+### 6.0. Dos variantes del mismo flujo
+
+- **Variante A — plataforma:** el ejemplo clasico de esta guia. `keygo-ui` inicia `/authorize`, hace login, canjea `code` y conserva los tokens.
+- **Variante B — hosted login:** la app origen genera PKCE + `state`, navega al login central de `keygo-ui`, y luego ella misma canjea el `code` al volver a su callback.
+
+En ambos casos, el backend sigue siendo el mismo: `/oauth2/authorize` -> `/account/login` -> `/oauth2/token`.
+
+### 6.1. Diagrama del flujo base (modo plataforma, tenant `keygo`)
 
 ```mermaid
 sequenceDiagram
@@ -406,6 +427,9 @@ export const generateState = () => crypto.randomUUID();
 ```
 
 ### 6.3. LoginPage — Pasos 0, 1 y 2
+
+> El siguiente ejemplo corresponde al **modo plataforma** (tenant fijo `keygo`).
+> Si `keygo-ui` opera como hosted login central, el contexto OAuth debe resolverse dinamicamente y no desde constantes fijas.
 
 ```typescript
 // src/pages/login/LoginPage.tsx
@@ -491,6 +515,99 @@ export function LoginPage() {
   );
 }
 ```
+
+### 6.3.1. Variante hosted login — resolver contexto OAuth dinamico
+
+Cuando `keygo-ui` recibe el handoff desde otra SPA, `LoginPage` no debe asumir `TENANT=keygo` ni `CLIENT_ID=keygo-ui`.
+Debe leer el contexto del query string (o de un handoff firmado equivalente) y usarlo durante `/authorize` y `/account/login`.
+
+> ✅ **Referencia implementada en este repo:** ver `examples/hosted-login-handoff/`.
+> Ahí vive una implementación portable de `HostedLoginParams`, `HostedLoginBoundary`, parser runtime y tests.
+
+```typescript
+// src/auth/hostedLoginContext.ts
+import { CLIENT_ID, TENANT } from '@/api/client';
+
+export interface HostedLoginContext {
+  tenantSlug: string;
+  clientId: string;
+  redirectUri: string;
+  scope: string;
+}
+
+export function resolveHostedLoginContext(): HostedLoginContext {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    tenantSlug: params.get('tenantSlug') ?? TENANT,
+    clientId: params.get('client_id') ?? CLIENT_ID,
+    redirectUri: params.get('redirect_uri') ?? import.meta.env.VITE_REDIRECT_URI,
+    scope: params.get('scope') ?? 'openid profile email',
+  };
+}
+```
+
+### 6.3.2. Contrato mínimo recomendado: `HostedLoginParams`
+
+Para evitar llamar `/oauth2/authorize` con contexto incompleto o manipulado, `keygo-ui` debe tratar el handoff entrante como un contrato explícito.
+
+Campos obligatorios para modo hosted login:
+
+| Query param | Requerido | Regla |
+|---|---|---|
+| `tenantSlug` | Sí | slug kebab-case del tenant destino |
+| `client_id` | Sí | client app efectiva que recibirá tokens |
+| `redirect_uri` | Sí | URL absoluta registrada para esa app |
+| `scope` | Sí | string no vacío separado por espacios |
+| `response_type` | Sí | debe ser `code` |
+| `state` | Sí | anti-CSRF; no regenerarlo en `keygo-ui` |
+| `code_challenge` | Sí | PKCE base64url |
+| `code_challenge_method` | Sí | `S256` |
+
+Campos opcionales de presentación:
+
+- `client_name`
+- `app_display_name`
+- `handoff_version`
+
+Regla de oro: los opcionales pueden personalizar UI; los obligatorios determinan el flujo OAuth real y **no deben ser sustituidos por defaults silenciosos** en modo hosted login.
+
+### 6.3.3. Boundary recomendado antes de `/authorize`
+
+Antes de renderizar el formulario o iniciar `GET /oauth2/authorize`, envolver la ruta con un boundary que:
+
+1. lea `window.location.search`,
+2. valide el contrato runtime,
+3. renderice fallback si el handoff es inválido,
+4. exponga el contexto ya normalizado al resto del login.
+
+Ejemplo simplificado:
+
+```typescript
+import { HostedLoginBoundary, useHostedLoginParams } from '@/auth/HostedLoginBoundary';
+
+function HostedLoginPage() {
+  return (
+    <HostedLoginBoundary>
+      <HostedLoginScreen />
+    </HostedLoginBoundary>
+  );
+}
+
+function HostedLoginScreen() {
+  const params = useHostedLoginParams();
+  // aquí recién usar params.tenantSlug / params.clientId / params.redirectUri
+}
+```
+
+Si faltan parámetros obligatorios, el boundary debe bloquear el flujo antes de tocar `/oauth2/authorize`.
+
+En este modo, la responsabilidad recomendada queda asi:
+
+1. **App origen:** genera `code_verifier`, `code_challenge`, `state` y decide la `redirect_uri` final.
+2. **`keygo-ui` login central:** usa esos datos para llamar `/authorize`, mostrar el formulario y ejecutar `/account/login`.
+3. **App origen:** recibe `code` + `state` en su callback, valida `state` y canjea el `code` en `/oauth2/token`.
+
+> Si `keygo-ui` solo hospeda login para otra app, **no debe persistir `access_token` / `refresh_token` como sesion final propia**. Su rol termina al redirigir al callback correcto.
 
 ### 6.4. CallbackPage — Paso 3 + routing por rol
 
@@ -1184,6 +1301,8 @@ export function ProfilePage() {
 | `oauth_state` | `sessionStorage` — eliminar tras callback | Anti-CSRF |
 | `VITE_KEYGO_BASE` y `VITE_CLIENT_ID` | Variable de build (`.env.local`) | Evita hardcodear URLs/clientes por ambiente |
 
+> **Nota para hosted login central:** si `keygo-ui` solo presta la pantalla de login a otra app, no debe guardar los tokens finales de esa app. En ese patron, `keygo-ui` solo reenvia `code` + `state`; la app origen es quien hace el canje, almacena tokens, programa refresh y ejecuta logout.
+
 ### 12.1. Silent refresh
 
 ```typescript
@@ -1319,6 +1438,50 @@ export function BaseResponseHandler<T>({ response, isLoading, children }:
 | Cambiar contraseña | POST | `/api/v1/tenants/keygo/account/change-password` | ⏳ F-030 |
 | Mis sesiones | GET | `/api/v1/tenants/keygo/account/sessions` | ⏳ T-037 |
 | Cerrar sesión remota | DELETE | `/api/v1/tenants/keygo/account/sessions/{id}` | ⏳ T-037 |
+
+### 14.1.1. Patron recomendado: login central de `keygo-ui` para apps de otros tenants
+
+Cuando otra UI (por ejemplo, una SPA de tenant `acme-corp`) quiere reutilizar el login de `keygo-ui`, el flujo recomendado es **hosted login**:
+
+1. La app origen genera `state` + PKCE (`code_verifier`/`code_challenge`).
+2. Redirige al login central de `keygo-ui` enviando el contexto OAuth2.
+3. `keygo-ui` ejecuta `/oauth2/authorize` y luego `/account/login` para el `tenantSlug` recibido.
+4. `keygo-ui` redirige al callback de la app origen con `code` + `state`.
+5. La app origen canjea el code en `/oauth2/token` con `code_verifier`.
+
+**No son endpoints nuevos**: se reutilizan los mismos endpoints OAuth2/OIDC ya existentes, pero parametrizados por tenant/app.
+
+#### Que si se comparte
+
+- El formulario de login y sus validaciones UX.
+- La llamada `GET /oauth2/authorize` con el contexto recibido.
+- La llamada `POST /account/login` reutilizando la `JSESSIONID` del paso anterior.
+
+#### Que no se debe compartir ni "fijar" a `keygo`
+
+- El `tenantSlug` efectivo del flujo.
+- El `client_id` que recibira tokens.
+- La `redirect_uri` de callback.
+- El `code_verifier`, el `state` y el almacenamiento final de tokens.
+
+**Regla de implementacion:** si la app destino es `acme-storefront`, el token final debe salir para `tenantSlug=acme-corp` y `client_id=acme-storefront`, aunque la pantalla visual sea la de `keygo-ui`.
+
+| Etapa | Método | Endpoint (con `context-path`) | Auth requerida | Ejemplo minimo |
+|---|---|---|---|---|
+| Inicio de autorización | GET | `/keygo-server/api/v1/tenants/{tenantSlug}/oauth2/authorize` | Público (sin Bearer de borde) | `?client_id=...&redirect_uri=...&scope=openid%20profile&response_type=code&code_challenge=...&code_challenge_method=S256&state=...` |
+| Login credenciales | POST | `/keygo-server/api/v1/tenants/{tenantSlug}/account/login` | Público (usa sesión HTTP previa) | body `{ "emailOrUsername": "...", "password": "..." }` + cookie `JSESSIONID` |
+| Canje de código | POST | `/keygo-server/api/v1/tenants/{tenantSlug}/oauth2/token` | Público (valida grant interno) | body `{ "grant_type":"authorization_code", "client_id":"...", "code":"...", "code_verifier":"...", "redirect_uri":"..." }` |
+
+Respuesta esperada en cada etapa:
+- Envelope `BaseResponse<T>`.
+- `success.code` esperado: `AUTHORIZATION_INITIATED` -> `LOGIN_SUCCESSFUL` -> `TOKEN_ISSUED`.
+
+Controles frontend obligatorios para este patron:
+- Validar `state` en callback (anti-CSRF).
+- Conservar `code_verifier` hasta el canje de token.
+- Reenviar cookies entre `/authorize` y `/account/login` (`withCredentials` cuando aplique).
+- No persistir `access_token` ni `refresh_token` en `keygo-ui` si la sesion final pertenece a otra app.
+- Si hay dominios distintos entre UI central y API, usar HTTPS + CORS estricto + cookies cross-site compatibles (`SameSite=None; Secure`).
 
 ### 14.2. Control de plataforma — rol `ADMIN`
 

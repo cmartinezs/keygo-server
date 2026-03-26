@@ -26,6 +26,8 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-26 | [Vitest en ejemplos aislados: importar `describe/it/expect` explícitamente evita depender de globals](#2026-03-26-vitest-en-ejemplos-aislados-importar-describeitexpect-explícitamente-evita-depender-de-globals) | Frontend / Testing |
+| 2026-03-26 | [Hosted login compartido: la UI central no debe apropiarse del contexto OAuth2 del tenant origen](#2026-03-26-hosted-login-compartido-la-ui-central-no-debe-apropiarse-del-contexto-oauth2-del-tenant-origen) | OAuth2 / Frontend / Arquitectura |
 | 2026-03-25 | [Mermaid en Markdown: evitar signos de interrogación invertidos en nodos validados por parser](#2026-03-25-mermaid-en-markdown-evitar-signos-de-interrogación-invertidos-en-nodos-validados-por-parser) | Documentación / Tooling |
 | 2026-03-25 | [Tests Maven por módulo en monorepo: usar `-am` para resolver dependencias de clases](#2026-03-25-tests-maven-por-módulo-en-monorepo-usar--am-para-resolver-dependencias-de-clases) | Build / Testing |
 | 2026-03-25 | [Bearer-only admin auth: `@PreAuthorize` + tenant match token/path](#2026-03-25-bearer-only-admin-auth-preauthorize--tenant-match-tokenpath) | Security / Authorization |
@@ -77,6 +79,18 @@
 ---
 
 ## Lecciones
+
+### [2026-03-26] Vitest en ejemplos aislados: importar `describe/it/expect` explícitamente evita depender de globals
+**Contexto:** Validación del ejemplo `examples/hosted-login-handoff/` agregado para implementar `T-056`.
+**Problema:** Al ejecutar `vitest run`, ambos archivos de test fallaron con `ReferenceError: describe is not defined` porque el paquete de ejemplo no tenía habilitado `globals: true` y los tests asumían esa configuración implícita.
+**Solución / Buena práctica:** En ejemplos aislados o paquetes pequeños, importar `describe`, `it` y `expect` directamente desde `vitest` hace los tests más portables y evita depender de configuración global adicional.
+**Archivos clave:** `examples/hosted-login-handoff/tests/hostedLoginParams.test.ts`, `examples/hosted-login-handoff/tests/HostedLoginBoundary.test.tsx`
+
+### [2026-03-26] Hosted login compartido: la UI central no debe apropiarse del contexto OAuth2 del tenant origen
+**Contexto:** Actualización del flujo de autenticación y de la guía frontend para documentar cómo una app de otro tenant puede reutilizar el login visual de `keygo-ui`.
+**Problema:** Es fácil confundir "usar la misma pantalla de login" con "autenticar siempre contra el tenant `keygo`" o con hacer que la UI central canjee y almacene tokens de una app ajena.
+**Solución / Buena práctica:** En el patrón recomendado de hosted login, la UI central solo presta la experiencia visual y ejecuta `/oauth2/authorize` + `/account/login` con el contexto recibido. El `tenantSlug`, `client_id`, `redirect_uri`, `state`, `code_verifier` y el canje final en `/oauth2/token` deben seguir perteneciendo a la app origen.
+**Archivos clave:** `docs/api/AUTH_FLOW.md`, `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`
 
 ### [2026-03-25] Mermaid en Markdown: evitar signos de interrogación invertidos en nodos validados por parser
 **Contexto:** Validación de documentos AI tras registrar una inconsistencia documental de seguridad.

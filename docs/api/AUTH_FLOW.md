@@ -2,7 +2,7 @@
 
 > Guia de referencia del flujo OAuth2/OIDC implementado actualmente en KeyGo Server para clientes SPA, mobile y server-to-server.
 >
-> Fecha de actualizacion: **2026-03-25** | Estado: **Fases 5, 6, 7, 8 y 9b implementadas**
+> Fecha de actualizacion: **2026-03-26** | Estado: **Fases 5, 6, 7, 8 y 9b implementadas**
 
 ---
 
@@ -12,10 +12,11 @@
 2. [Prerrequisitos del sistema](#prerrequisitos-del-sistema)
 3. [Seguridad de endpoints (publico vs protegido)](#seguridad-de-endpoints-publico-vs-protegido)
 4. [Flujo principal: Authorization Code + PKCE](#flujo-principal-authorization-code--pkce)
-5. [Endpoint de tokens: grants soportados](#endpoint-de-tokens-grants-soportados)
-6. [Manejo de errores](#manejo-de-errores)
-7. [Checklist para clientes](#checklist-para-clientes)
-8. [Referencias cruzadas](#referencias-cruzadas)
+5. [Escenario recomendado: login central (KeyGo-UI) para multiples tenants](#escenario-recomendado-login-central-keygo-ui-para-multiples-tenants)
+6. [Endpoint de tokens: grants soportados](#endpoint-de-tokens-grants-soportados)
+7. [Manejo de errores](#manejo-de-errores)
+8. [Checklist para clientes](#checklist-para-clientes)
+9. [Referencias cruzadas](#referencias-cruzadas)
 
 ---
 
@@ -173,6 +174,103 @@ Esto explica por que, al leer el flujo, puede parecer ambiguo "quien interactua"
 - **el usuario** interactua con la interfaz visual;
 - **la SPA/Mobile** interactua con los endpoints OAuth2;
 - **KeyGo** solo responde a las llamadas del cliente y aplica validaciones/reglas.
+
+---
+
+## Escenario recomendado: login central (KeyGo-UI) para multiples tenants
+
+Este escenario aplica cuando una app frontend de otro tenant reutiliza la misma pantalla de login de `keygo-ui` (hosted login), pero mantiene su propio `tenantSlug` + `client_id`.
+
+Punto clave: **no son endpoints nuevos**. Es el mismo flujo Authorization Code + PKCE, cambiando el contexto por parametros.
+
+### Regla de oro: que se comparte y que no
+
+Lo que se comparte es la **UI de login** y la experiencia de captura de credenciales.
+Lo que **no** se comparte es el contexto OAuth2/OIDC de la app destino.
+
+| Se comparte | No se comparte |
+|---|---|
+| Pantalla de login, branding comun, validaciones visuales, UX de errores | `tenantSlug`, `client_id`, `redirect_uri`, `scope`, `state`, `code_verifier`, callback, almacenamiento de tokens |
+| Llamadas a `/oauth2/authorize` y `/account/login` usando el contexto recibido | La `ClientApp` final que recibira tokens |
+| Navegacion hacia el callback de la app origen con `code` + `state` | El canje final en `/oauth2/token` y la sesion de la app origen |
+
+**Regla practica:** reutilizar el login de `keygo-ui` **no** significa autenticar contra el tenant `keygo`, ni reutilizar la `ClientApp keygo-ui`, ni emitir tokens para la UI central.
+
+Los tokens finales siempre deben quedar asociados al **tenant/app origen** que inicio el flujo.
+
+### Parametros que deben viajar desde la app origen al login central
+
+- `tenantSlug` (tenant de la app que esta autenticando)
+- `client_id` (client app registrada en ese tenant)
+- `redirect_uri` (callback registrada para esa app)
+- `scope`
+- `response_type=code`
+- `state` (anti-CSRF)
+- `code_challenge` + `code_challenge_method=S256`
+
+Idealmente la app origen tambien envia metadatos de presentacion no sensibles, por ejemplo `client_name` o `app_display_name`, para que `keygo-ui` muestre una UX clara del tipo "Entrar a ACME Store" sin alterar el contrato OAuth2 real.
+
+### Secuencia recomendada (app externa -> KeyGo-UI -> KeyGo Server)
+
+1. La app origen detecta ruta protegida y genera `code_verifier`, `code_challenge` y `state`.
+2. La app origen redirige al login central de `keygo-ui`, enviando esos parametros.
+3. `keygo-ui` resuelve el contexto recibido y llama `GET /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/authorize` con `client_id`, `redirect_uri`, `scope`, `state`, `code_challenge`.
+4. `keygo-ui` muestra formulario y envia `POST /keygo-server/api/v1/tenants/{tenantSlug}/account/login` reutilizando la misma sesion (`JSESSIONID`) del paso anterior.
+5. `keygo-ui` recibe `data.code` y `data.redirect_uri` (JSON, no `302` automatico).
+6. `keygo-ui` **no guarda los tokens finales ni canjea el code en nombre de la SPA origen**; redirige manualmente al callback de la app origen: `redirect_uri?code=...&state=...`.
+7. La app origen, ya de vuelta en su propio contexto, valida `state`, recupera su `code_verifier` y canjea el code en `POST /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/token`.
+
+> Recomendacion para SPA: mantener el `code_verifier` y el `state` en la app origen. El login central solo debe actuar como **hosted login UI**, no como almacen principal de secretos transitorios ni como cliente final de los tokens.
+
+```mermaid
+sequenceDiagram
+    participant A as App origen (tenant B)
+    participant L as Login central (keygo-ui)
+    participant K as KeyGo Server
+
+    A->>A: Generar PKCE + state
+    A->>L: Navegar a /login-hub?tenantSlug=...&client_id=...&redirect_uri=...&state=...&code_challenge=...
+    L->>K: GET /tenants/{tenantSlug}/oauth2/authorize
+    K-->>L: AUTHORIZATION_INITIATED + JSESSIONID
+    L->>K: POST /tenants/{tenantSlug}/account/login (Cookie JSESSIONID)
+    K-->>L: LOGIN_SUCCESSFUL (data.code)
+    L->>L: No persiste access_token/refresh_token
+    L->>A: redirect_uri?code=...&state=...
+    A->>K: POST /tenants/{tenantSlug}/oauth2/token (code + code_verifier)
+    K-->>A: TOKEN_ISSUED
+```
+
+### Implicaciones arquitectonicas
+
+- El `issuer` y el `tenant_slug` de los tokens finales corresponden al **tenant de la app origen**, no a `keygo-ui`.
+- La app origen sigue siendo el **OAuth client** efectivo porque genera PKCE, conserva `state` y realiza el canje final.
+- `keygo-ui` funciona como un **adapter de presentacion** para el login hospedado: inicia la autorizacion, captura credenciales y devuelve el flujo al callback correcto.
+- Si en el futuro se quisiera que el login central canjee el code y entregue sesion ya autenticada a otra UI, eso seria **otro patron** (por ejemplo BFF / federation gateway) y requeriria un contrato distinto. No es el patron recomendado actual para SPA.
+
+### Ejemplo de URL hacia el login central
+
+```text
+https://login.keygo.dev/login?
+tenantSlug=acme-corp&
+client_id=acme-storefront&
+redirect_uri=https%3A%2F%2Fstore.acme.com%2Fauth%2Fcallback&
+scope=openid%20profile%20email&
+response_type=code&
+state=9d4f...&
+code_challenge=abc123...&
+code_challenge_method=S256
+```
+
+El login central puede usar esos parametros para personalizar la pantalla, pero nunca debe alterar `tenantSlug`, `client_id` ni `redirect_uri` antes de llamar a KeyGo Server.
+
+### Validaciones de seguridad que no se deben omitir
+
+- Mantener `state` intacto de extremo a extremo y validarlo en callback.
+- Usar PKCE `S256` siempre para clientes publicos (SPA/mobile).
+- Preservar cookie de sesion entre `/oauth2/authorize` y `/account/login`.
+- No canjear el `code` en la UI central si quien va a consumir los tokens es otra app SPA; el canje debe vivir en la app origen para no desalinear almacenamiento, refresh y logout.
+- Si login central y API viven en distinto dominio, habilitar CORS estricto + credenciales (`withCredentials`) y cookies compatibles con cross-site (`SameSite=None; Secure` en HTTPS).
+- No confiar en parametros del navegador sin validacion de backend: `tenantSlug`, `client_id` y `redirect_uri` deben pasar la validacion de `/oauth2/authorize`.
 
 ### Paso 0 — Generar PKCE
 
@@ -401,6 +499,6 @@ Ejemplo:
 
 ---
 
-**Ultima actualizacion:** 2026-03-25  
+**Ultima actualizacion:** 2026-03-26  
 **Responsable:** AI Agent  
 **Alcance:** Flujo OAuth2/OIDC alineado con backend actual (auth code + PKCE, refresh rotation, client credentials, JWKS/OIDC)

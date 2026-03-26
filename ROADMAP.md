@@ -23,6 +23,8 @@
 ### Corto plazo
 
 > Relacionadas con la base de código actual; bajo esfuerzo; bloquean calidad inmediata.
+>
+> **Enfoque de lanzamiento KeyGo (2026-03-26):** priorizar endurecimiento del hosted login y del handoff entre app origen y `keygo-ui` central antes de abordar SSO real o cambios profundos de protocolo.
 
 | ID | Propuesta | Módulo | Justificación |
 |---|---|---|---|
@@ -49,6 +51,8 @@
 ### Mediano plazo
 
 > Evoluciones naturales de la arquitectura actual; esfuerzo moderado; habilitan features reales.
+>
+> **Prioridad de pre-escalamiento:** formalizar el contrato multi-dominio y ofrecer una variante BFF para equipos con mayores requisitos de seguridad frontend.
 
 | ID | Propuesta | Módulo | Justificación |
 |---|---|---|---|
@@ -71,12 +75,16 @@
 | T-046 | Agregar scope `profile:write` explícito y validarlo en `PATCH /account/profile` contra los scopes del access token | `keygo-app`, `keygo-api` | Granularidad de permisos; sigue OAuth2 scope-based authorization; actualmente cualquier token válido puede modificar el perfil |
 | T-050 | Reemplazar la validación de pertenencia app→tenant en `CreateAppRoleUseCase` (hoy con `findAllByTenantId(...).stream().anyMatch(...)`) por lookup directo app+tenant (`findByIdAndTenantId`) en puertos/adapters | `keygo-app`, `keygo-supabase` | Reduce costo de consulta, evita escaneo en memoria y mejora legibilidad/consistencia de validaciones |
 | T-054 | Separar seeds funcionales del schema con estrategia de `reference data` por ambiente (dev/demo) y carga controlada fuera de migraciones estructurales | `keygo-supabase`, `keygo-run` | Evita acoplar datos operativos a Flyway estructural y facilita datasets distintos por entorno |
+| T-057 | Formalizar contrato de handoff multi-dominio entre app origen y `keygo-ui` central: definir payload/campos, estrategia de validación o firmado y ejemplos cross-site con `withCredentials`, CORS y cookies `SameSite=None; Secure` | `docs/keygo-ui/`, `docs/api/`, futuro `keygo-ui` | Evita manipulación de parámetros, documenta integraciones por dominio cruzado y estandariza la incorporación de nuevas UIs al login central |
+| T-058 | Documentar patrón BFF para login central: ejemplo de canje de `authorization_code` en backend para evitar exposición de tokens en SPA pura y simplificar refresh/logout | `docs/keygo-ui/`, `docs/api/`, futuro BFF de `keygo-ui` | Da una ruta intermedia de endurecimiento para clientes con restricciones de seguridad sin obligar todavía a SSO completo |
 
 ---
 
-### Mediano plazo
+### Largo plazo
 
 > Capacidades estratégicas del sistema; alto esfuerzo o dependencias externas.
+>
+> **Prioridad post-lanzamiento:** estandarizar el protocolo hacia redirect `302` y evaluar verdadera sesión compartida entre múltiples UIs como una capacidad diferenciada del hosted login actual.
 
 | ID | Propuesta | Módulo | Justificación |
 |---|---|---|---|
@@ -91,6 +99,8 @@
 | T-047 | Implementar SCIM 2.0 endpoint `/api/v1/tenants/{slug}/scim/v2/Users` para aprovisionamiento y sincronización de perfiles desde sistemas HR externos (Workday, BambooHR) | `keygo-api`, `keygo-app` | Estándar de aprovisionamiento de identidades para integraciones enterprise; requiere mapeo `tenant_users` ↔ SCIM User Schema |
 | T-048 | Soporte a esquemas de atributos personalizados por tenant — el admin define campos adicionales del perfil (análogo a Keycloak `declarativeUserProfile`); requiere tabla de metadatos de esquema y validación dinámica | `keygo-supabase`, `keygo-app`, `keygo-api` | Permite a cada tenant extender el perfil con campos de negocio propios sin migraciones de DB adicionales |
 | T-055 | Implementar bootstrap programático de tenants/apps/roles vía control-plane admin (sin dependencia de seeds SQL para producción) | `keygo-api`, `keygo-app`, `keygo-run` | Habilita inicialización controlada y auditable en despliegues reales, desacoplando provisión de datos de Flyway |
+| T-059 | Evolucionar a redirect OAuth2 clásico: el backend entrega `authorization_code` con redirect HTTP `302` hacia `redirect_uri` en vez de retornarlo en JSON | `keygo-api`, `keygo-app`, `keygo-run`, `keygo-ui` | Reduce lógica de orquestación en frontend, mejora interoperabilidad con terceros y acerca la implementación al comportamiento esperado por clientes OAuth estándar |
+| T-060 | Evaluar gateway de federación / sesión compartida para `keygo-ui` central: patrón BFF/gateway que administre sesión entre múltiples UIs sin confundirlo con el hosted login actual | `keygo-ui`, `keygo-api`, `keygo-run` | Separa claramente login hospedado de SSO real y prepara una evolución ordenada hacia ecosistemas con varias aplicaciones conectadas |
 
 ---
 
@@ -155,8 +165,9 @@
 | F-036 | E13-H3: Métricas básicas | P1 | Prometheus/Actuator: logins, tokens, errores |
 | F-037 | E12-H4/H5: Ver/cerrar sesiones activas | P2 | Self-service de sesiones para el usuario final |
 | F-038 | E13-H4: Alertas operativas | P2 | Umbral de errores de login, tasa de tokens fallidos |
-| F-039 | `keygo-ui` — Frontend React multi-portal | P1 | Monorepo Vite + React 19 + TypeScript con tres portales: Admin Global (`apps/admin-global`), Admin Tenant (`apps/tenant-admin`) y Usuario Final (`apps/user-portal`). Paquetes compartidos: `keygo-client` (Axios + interceptores), `keygo-auth` (PKCE + Zustand token store + silent refresh), `keygo-types` (DTOs de BaseResponse). Manual de implementación en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`. |
+| F-039 | `keygo-ui` — Frontend React unificado + hosted login | P1 | Aplicación React unificada (no tres portales separados) con Vite + React 19 + TypeScript, routing por rol (`ADMIN`, `ADMIN_TENANT`, `USER_TENANT`) y capacidad de operar como login central para otras UIs mediante hosted login. Paquetes compartidos esperados: cliente HTTP, utilidades PKCE/tokens y tipos `BaseResponse`. Manual de implementación en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`. |
 | F-040 | RBAC granular en control-plane admin | P1 | Autorizar endpoints `/api/**` de administración por permisos/acciones (p. ej. `tenant:create`, `user:suspend`) y no solo por rol global `ADMIN`; base para delegación segura por dominio |
+| F-041 | SSO multi-app para ecosistema KeyGo | P2 | Diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual; evaluar issuer común, sesión federada, logout coordinado y límites entre login central, BFF y aplicaciones consumidoras |
 
 ---
 
@@ -182,6 +193,7 @@
 
 | ID original | Propuesta | Completada | PR / Commit referencia |
 |---|---|---|---|
+| T-056 | **Hosted login seguro en `keygo-ui`** — implementación de referencia portable en `examples/hosted-login-handoff/` con contrato tipado `HostedLoginParams`, parser/guard runtime, componente reutilizable `HostedLoginBoundary`, ejemplo `createHostedLoginRedirectUrl()` y 7 tests `Vitest`; la guía frontend enlaza el contrato y el boundary mínimos del handoff | 2026-03-26 | `examples/hosted-login-handoff/package.json`; `examples/hosted-login-handoff/src/hostedLoginParams.ts`; `examples/hosted-login-handoff/src/HostedLoginBoundary.tsx`; `examples/hosted-login-handoff/src/exampleUsage.tsx`; `examples/hosted-login-handoff/tests/`; `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` |
 | T-041 | **Fase 9b — V13 + perfil OIDC extendido:** migración `V13__extend_tenant_user_profile.sql` agrega 6 campos OIDC a `tenant_users` (`phone_number`, `locale`, `zoneinfo`, `profile_picture_url`, `birthdate`, `website`); `User` domain extendido con `updateProfile()`; `TenantUserEntity` + `UserPersistenceMapper` actualizados; `UserInfoResult` ahora retorna claims extendidos; `UpdateUserCommand/Request` extendidos | 2026-03-24 | `V13__extend_tenant_user_profile.sql`; `User.java`; `TenantUserEntity.java`; `UserPersistenceMapper.java` |
 | T-042 | **Fase 9b — Endpoints self-service de perfil:** `GetUserProfileUseCase`, `UpdateUserProfileUseCase`, `AccountProfileController` (GET+PATCH `/account/profile`); `UserProfileData`, `UpdateUserProfileRequest`; sufijo `accountProfilePathSuffix` en filtro; 7 nuevos tests unitarios | 2026-03-24 | `AccountProfileController.java`; `GetUserProfileUseCase.java`; `UpdateUserProfileUseCase.java`; `UserProfileUseCaseTest.java` |
 | T-045 | **Claim `roles` en JWT** — agregar lista de roles del usuario al `access_token` e `id_token`; nuevo método `findRoleCodesByUserAndClientApp()` en `MembershipRepositoryPort`; consulta nativa JOIN en `MembershipJpaRepository`; `TokenClaimsFactoryPort` extendido con parámetro `List<String> roles` en ambas firmas; `StandardTokenClaimsFactory` emite claim solo si la lista es no-nula y no-vacía; `IssueTokensUseCase`, `RotateRefreshTokenUseCase` y `AuthorizationController` actualizados; M2M (`client_credentials`) pasa `null` (sin membresía de usuario) | 2026-03-24 | `MembershipRepositoryPort.java`; `MembershipJpaRepository.java`; `MembershipRepositoryAdapter.java`; `TokenClaimsFactoryPort.java`; `StandardTokenClaimsFactory.java`; `IssueTokensUseCase.java`; `RotateRefreshTokenUseCase.java`; `AuthorizationController.java`; `ApplicationConfig.java` |

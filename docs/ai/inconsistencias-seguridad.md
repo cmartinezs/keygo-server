@@ -4,11 +4,11 @@
 >
 > Registra **inconsistencias encontradas entre la documentación de seguridad/autenticación y el comportamiento real del backend**.
 >
-> Fecha de detección: **2026-03-25** | Revisión: flujo OAuth2/OIDC y filtro `BootstrapAdminKeyFilter`
+> Fecha de detección: **2026-03-26** | Revisión: flujo OAuth2/OIDC y filtro `BootstrapAdminKeyFilter`
 
 ---
 
-## Estado: 🔲 Pendiente de corrección documental
+## Estado: 🟡 Corrección parcial aplicada (1 corregida, 2 pendientes)
 
 Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien implemente clientes o revise la seguridad actual del sistema.
 
@@ -45,5 +45,19 @@ Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien imp
 
 ---
 
-**Última actualización:** 2026-03-25 | **Responsable:** AI Agent
+### 3. `FRONTEND_DEVELOPER_GUIDE.md` y `AUTH_FLOW.md` podían inducir a usar siempre el tenant `keygo` en logins compartidos
+
+| Campo | Documentado antes | Real / patrón correcto |
+|---|---|---|
+| Reutilizar login de `keygo-ui` | Podía interpretarse como autenticar siempre contra tenant `keygo` | La UI puede ser compartida, pero el flujo OAuth sigue perteneciendo al `tenantSlug` + `client_id` de la app origen |
+| Canje de tokens | Ambiguo; podía inferirse que la UI central almacenaba la sesión final | La app origen debe canjear `code` en `/oauth2/token` y conservar sus propios tokens |
+| Contexto OAuth2 | Mezcla entre "app visual" y "cliente OAuth final" | La UI central es solo hosted login; el cliente OAuth efectivo sigue siendo la app origen |
+
+**Impacto:** Una implementación frontend multi-tenant podía terminar solicitando tokens para el tenant equivocado o guardando tokens en una UI que no es la consumidora final.
+**Archivos afectados:** `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`, `docs/api/AUTH_FLOW.md`
+**Estado:** ✅ Corregida el 2026-03-26.
+
+---
+
+**Última actualización:** 2026-03-26 | **Responsable:** AI Agent
 
