@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.supabase.clientapp.mapper.ClientAppPersistenceMapper;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,7 @@ public class ClientAppRepositoryAdapter implements ClientAppRepositoryPort {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public Optional<ClientApp> findByClientIdAndTenantId(ClientId clientId, TenantId tenantId) {
     return jpaRepository
         .findByClientIdAndTenantId(clientId.value(), tenantId.value())
@@ -50,6 +52,7 @@ public class ClientAppRepositoryAdapter implements ClientAppRepositoryPort {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public List<ClientApp> findAllByTenantId(TenantId tenantId) {
     return jpaRepository
         .findAllByTenantId(tenantId.value())

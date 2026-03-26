@@ -138,15 +138,37 @@ public class AuthorizationController {
    * <p>Guarda el estado de autorización en sesión para que POST /account/login pueda recuperarlo.
    *
    * @param tenantSlug slug del tenant
-   * @param request parámetros de autorización
+   * @param clientId client_id OAuth2
+   * @param redirectUri redirect_uri OAuth2
+   * @param scope scope OAuth2
+   * @param responseType response_type OAuth2
+   * @param state state OAuth2 (opcional)
+   * @param codeChallengeMethod code_challenge_method PKCE (opcional)
+   * @param codeChallenge code_challenge PKCE (opcional)
    * @param session sesión HTTP
    * @return respuesta con datos de la app cliente
    */
   @GetMapping("/oauth2/authorize")
   public ResponseEntity<BaseResponse<AuthorizationInitiatedData>> authorize(
       @PathVariable String tenantSlug,
-      @Valid @ModelAttribute AuthorizationRequest request,
+      @RequestParam(name = "client_id") String clientId,
+      @RequestParam(name = "redirect_uri") String redirectUri,
+      @RequestParam(name = "scope") String scope,
+      @RequestParam(name = "response_type") String responseType,
+      @RequestParam(name = "state", required = false) String state,
+      @RequestParam(name = "code_challenge_method", required = false) String codeChallengeMethod,
+      @RequestParam(name = "code_challenge", required = false) String codeChallenge,
       HttpSession session) {
+
+    var request =
+        new AuthorizationRequest(
+            requireNonBlank(clientId, "client_id"),
+            requireNonBlank(redirectUri, "redirect_uri"),
+            requireNonBlank(scope, "scope"),
+            requireNonBlank(responseType, "response_type"),
+            state,
+            codeChallengeMethod,
+            codeChallenge);
 
     var command =
         new InitiateAuthorizationCommand(
@@ -485,5 +507,12 @@ public class AuthorizationController {
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 not available", e);
     }
+  }
+
+  private static String requireNonBlank(String value, String parameterName) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(parameterName + " is required");
+    }
+    return value;
   }
 }

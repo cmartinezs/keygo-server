@@ -26,6 +26,11 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-26 | [Errores API con `BaseResponse.data`: detalle tecnico en `local/dev`, mensaje amigable en otros perfiles](#2026-03-26-errores-api-con-baseresponsedata-detalle-tecnico-en-localdev-mensaje-amigable-en-otros-perfiles) | API / Error Handling / Testing |
+| 2026-03-26 | [CORS en Spring Boot 4: `CorsConfigurationSource` + `http.cors(...)` en `SecurityFilterChain`](#2026-03-26-cors-en-spring-boot-4-configurar-corsconfigurationsource--httpcors-en-securityfilterchain) | Security / CORS |
+| 2026-03-26 | [ClientApp CONFIDENTIAL en tests de adapter/mapper debe incluir `hashedSecret`](#2026-03-26-clientapp-confidential-en-tests-de-adaptermapper-debe-incluir-hashedsecret) | Testing / Dominio |
+| 2026-03-26 | [Missing query param en MockMvc standalone: sin handler específico cae en 500 (`OPERATION_FAILED`)](#2026-03-26-missing-query-param-en-mockmvc-standalone-sin-handler-específico-cae-en-500-operation_failed) | Testing / Error Handling |
+| 2026-03-26 | [OAuth2 authorize: para query params en snake_case usar `@RequestParam(name = ...)` en lugar de depender de `@ModelAttribute`](#2026-03-26-oauth2-authorize-para-query-params-en-snake_case-usar-requestparamname---en-lugar-de-depender-de-modelattribute) | API / Spring MVC / OAuth2 |
 | 2026-03-26 | [Vitest en ejemplos aislados: importar `describe/it/expect` explícitamente evita depender de globals](#2026-03-26-vitest-en-ejemplos-aislados-importar-describeitexpect-explícitamente-evita-depender-de-globals) | Frontend / Testing |
 | 2026-03-26 | [Hosted login compartido: la UI central no debe apropiarse del contexto OAuth2 del tenant origen](#2026-03-26-hosted-login-compartido-la-ui-central-no-debe-apropiarse-del-contexto-oauth2-del-tenant-origen) | OAuth2 / Frontend / Arquitectura |
 | 2026-03-25 | [Mermaid en Markdown: evitar signos de interrogación invertidos en nodos validados por parser](#2026-03-25-mermaid-en-markdown-evitar-signos-de-interrogación-invertidos-en-nodos-validados-por-parser) | Documentación / Tooling |
@@ -79,6 +84,30 @@
 ---
 
 ## Lecciones
+
+### [2026-03-26] Errores API con `BaseResponse.data`: detalle tecnico en `local/dev`, mensaje amigable en otros perfiles
+**Contexto:** Se ajusto el manejo global de errores y el `BootstrapAdminKeyFilter` para que siempre respondan `BaseResponse` con `failure` + `data`.
+**Problema:** Los errores devolvian solo `failure` (sin `data`), lo cual complicaba diagnostico en desarrollo y dejaba respuestas poco orientadas al cliente en produccion.
+**Solucion / Buena practica:** Centralizar la construccion de `data` de error con una factory (`ApiErrorDataFactory`) y conmutar por perfil (`local/dev`): en dev incluir `detail` y `exception`; en otros perfiles exponer solo `code` + `clientMessage` amigable. En tests con Mockito strict, usar `lenient()` para el stubbing por defecto que se sobreescribe en casos puntuales.
+**Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ApiErrorDataFactory.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/GlobalExceptionHandler.java`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilter.java`, `keygo-api/src/test/java/io/cmartinezs/keygo/api/error/GlobalExceptionHandlerTest.java`
+
+### [2026-03-26] ClientApp CONFIDENTIAL en tests de adapter/mapper debe incluir `hashedSecret`
+**Contexto:** Se agregó `ClientAppRepositoryAdapterTest` para validar el fix de lazy loading en búsqueda de client apps usadas por `/oauth2/authorize`.
+**Problema:** El test falló al mapear `ClientAppEntity` a dominio con `IllegalArgumentException: CONFIDENTIAL client apps must have a hashed secret` porque las entidades de prueba `CONFIDENTIAL` no incluían `hashedSecret`.
+**Solución / Buena práctica:** En tests de adapters/mappers que construyen `ClientAppEntity` de tipo `CONFIDENTIAL`, setear siempre `hashedSecret` para respetar invariantes del dominio al ejecutar `ClientApp.builder().build()`.
+**Archivos clave:** `keygo-supabase/src/test/java/io/cmartinezs/keygo/supabase/clientapp/adapter/ClientAppRepositoryAdapterTest.java`, `keygo-domain/src/main/java/io/cmartinezs/keygo/domain/clientapp/model/ClientApp.java`
+
+### [2026-03-26] Missing query param en MockMvc standalone: sin handler específico cae en 500 (`OPERATION_FAILED`)
+**Contexto:** Tests de `AuthorizationController` al migrar `/oauth2/authorize` a `@RequestParam` explícitos.
+**Problema:** El caso de `response_type` faltante lanzó `MissingServletRequestParameterException`; en el `GlobalExceptionHandler` actual no hay handler dedicado para esa excepción, por lo que entra al catch-all y responde `500 OPERATION_FAILED`.
+**Solución / Buena práctica:** En tests de controller standalone, al validar parámetros faltantes, alinear expectativas con el manejo real de excepciones configurado. Si se desea `400 INVALID_INPUT`, agregar un handler explícito para `MissingServletRequestParameterException`.
+**Archivos clave:** `keygo-api/src/test/java/io/cmartinezs/keygo/api/auth/controller/AuthorizationControllerTest.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/GlobalExceptionHandler.java`
+
+### [2026-03-26] OAuth2 authorize: para query params en snake_case usar `@RequestParam(name = ...)` en lugar de depender de `@ModelAttribute`
+**Contexto:** Corrección del endpoint `GET /api/v1/tenants/{tenantSlug}/oauth2/authorize` tras recibir error de validación con `response_type=code`.
+**Problema:** Con `@Valid @ModelAttribute AuthorizationRequest`, el parámetro RFC `response_type` no se enlazaba automáticamente al campo Java `responseType`; el backend terminaba evaluando `null` y lanzaba `response_type must be 'code' for this implementation`.
+**Solución / Buena práctica:** Para query params OAuth2/OIDC con naming estándar en snake_case, declarar `@RequestParam(name = "...")` explícitos en el controller y mapearlos al request interno. Configuración de Jackson no aplica en este binding porque no interviene en `@ModelAttribute` de query string.
+**Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/auth/controller/AuthorizationController.java`, `keygo-api/src/test/java/io/cmartinezs/keygo/api/auth/controller/AuthorizationControllerTest.java`
 
 ### [2026-03-26] Vitest en ejemplos aislados: importar `describe/it/expect` explícitamente evita depender de globals
 **Contexto:** Validación del ejemplo `examples/hosted-login-handoff/` agregado para implementar `T-056`.
@@ -590,3 +619,18 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 - `keygo-supabase/src/main/resources/db/migration/V11__add_refresh_tokens_and_sessions.sql`
 
 ---
+
+### [2026-03-26] CORS en Spring Boot 4: configurar `CorsConfigurationSource` + `http.cors(...)` en `SecurityFilterChain`
+**Contexto:** El frontend SPA (`http://localhost:5173`) bloqueaba todas las llamadas a `/api/v1/tenants/{slug}/oauth2/authorize` por error de CORS: `No 'Access-Control-Allow-Origin' header is present on the requested resource`.
+**Problema:** `SecurityConfig` no tenía ninguna configuración CORS. Spring Security bloqueaba los preflight `OPTIONS` antes de que llegaran al controller. Sin `http.cors(...)`, Spring Security 6 ignora completamente las políticas CORS del servidor.
+**Solución / Buena práctica:**
+1. Crear `@ConfigurationProperties("keygo.cors")` (`KeyGoCorsProperties`) con `allowedOrigins`, `allowedMethods`, `allowedHeaders`, `allowCredentials` y `maxAge`.
+2. Registrar un `@Bean CorsConfigurationSource` en `SecurityConfig` que aplique la config a `/**`.
+3. Habilitar con `http.cors(cors -> cors.configurationSource(corsConfigurationSource))` en el `SecurityFilterChain` — este es el único punto donde Spring Security aplica CORS antes de evaluar el filtro de autenticación.
+4. `allowCredentials: true` es indispensable cuando el frontend mantiene `JSESSIONID` entre `GET /oauth2/authorize` y `POST /account/login` (cookie cross-origin).
+5. `allowedHeaders: ["*"]` es válido con Spring — refleja los headers del preflight. No aplica la restricción del estándar para `allowCredentials` porque Spring hace el echo correcto.
+6. Los tests unitarios de la config pueden hacerse sin Spring context: instanciar `SecurityConfig` directamente + `KeyGoCorsProperties` + `CorsConfigurationSource.getCorsConfiguration(request)`.
+**Archivos clave:** `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/security/SecurityConfig.java`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/properties/KeyGoCorsProperties.java`, `keygo-run/src/main/resources/application.yml`
+
+---
+

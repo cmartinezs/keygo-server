@@ -4,12 +4,20 @@ import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for GlobalExceptionHandler
@@ -18,13 +26,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author cmartinezs
  * @version 1.0
  */
+@ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
+
+  @Mock private Environment environment;
 
   private GlobalExceptionHandler handler;
 
   @BeforeEach
   void setUp() {
-    handler = new GlobalExceptionHandler();
+    handler = new GlobalExceptionHandler(environment);
+    lenient().when(environment.acceptsProfiles(any(Profiles.class))).thenReturn(false);
   }
 
   @Test
@@ -33,12 +45,15 @@ class GlobalExceptionHandlerTest {
     UnauthorizedException exception = new UnauthorizedException("Unauthorized access");
 
     // When
-    ResponseEntity<BaseResponse<Void>> response = handler.handleUnauthorizedException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleUnauthorizedException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getClientMessage()).isNotBlank();
+    assertThat(response.getBody().getData().getDetail()).isNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
   }
@@ -49,12 +64,13 @@ class GlobalExceptionHandlerTest {
     NoResourceFoundException exception = new NoResourceFoundException(HttpMethod.GET, "/test", "test");
 
     // When
-    ResponseEntity<BaseResponse<Void>> response = handler.handleNoResourceFoundException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleNoResourceFoundException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.RESOURCE_NOT_FOUND.getCode());
   }
@@ -65,12 +81,13 @@ class GlobalExceptionHandlerTest {
     IllegalArgumentException exception = new IllegalArgumentException("Invalid argument");
 
     // When
-    ResponseEntity<BaseResponse<Void>> response = handler.handleIllegalArgumentException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleIllegalArgumentException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.INVALID_INPUT.getCode());
   }
@@ -81,14 +98,32 @@ class GlobalExceptionHandlerTest {
     Exception exception = new Exception("Generic error");
 
     // When
-    ResponseEntity<BaseResponse<Void>> response = handler.handleGenericException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleGenericException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.OPERATION_FAILED.getCode());
+  }
+
+  @Test
+  void handleGenericException_inLocalProfile_shouldIncludeTechnicalDetail() {
+    // Given
+    when(environment.acceptsProfiles(any(Profiles.class))).thenReturn(true);
+    Exception exception = new Exception("db timeout");
+
+    // When
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleGenericException(exception);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getDetail()).isEqualTo("db timeout");
+    assertThat(response.getBody().getData().getException()).isEqualTo("Exception");
   }
 
   @Test

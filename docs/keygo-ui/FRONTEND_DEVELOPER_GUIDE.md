@@ -1475,6 +1475,7 @@ Cuando otra UI (por ejemplo, una SPA de tenant `acme-corp`) quiere reutilizar el
 Respuesta esperada en cada etapa:
 - Envelope `BaseResponse<T>`.
 - `success.code` esperado: `AUTHORIZATION_INITIATED` -> `LOGIN_SUCCESSFUL` -> `TOKEN_ISSUED`.
+- En `GET /oauth2/authorize`, usar nombres OAuth2 en query params (`response_type`, no `responseType`).
 
 Controles frontend obligatorios para este patron:
 - Validar `state` en callback (anti-CSRF).

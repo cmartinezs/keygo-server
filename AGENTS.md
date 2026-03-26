@@ -157,6 +157,8 @@ All endpoints are served under `/keygo-server`. Local URLs:
 
 ✅ **Bug T-001 corregido (2026-03-21) — `BootstrapAdminKeyFilter`:** now uses `request.getServletPath()` (strips the context-path) instead of `request.getRequestURI()`. With `context-path=/keygo-server`, `getRequestURI()` returned `/keygo-server/api/...` which never matched the prefixes in `application.yml` (e.g. `/api/`), leaving all routes public. `getServletPath()` returns `/api/...` directly. Tests updated to use `setServletPath()` + 2 regression tests with simulated context-path.
 
+✅ **CORS habilitado (2026-03-26) — `SecurityConfig` + `KeyGoCorsProperties`:** `SecurityFilterChain` ahora aplica CORS antes de evaluar `BootstrapAdminKeyFilter`. Configurado vía `keygo.cors.*` en `application.yml` con default `allowedOrigins: [http://localhost:5173]`, `allowCredentials: true` (necesario para `JSESSIONID` entre `/authorize` y `/login`). Nueva clase `KeyGoCorsProperties` (`@ConfigurationProperties("keygo.cors")`); 7 tests unitarios en `CorsConfigTest`.
+
 ✅ **Bearer-only admin auth (2026-03-25) — `BootstrapAdminKeyFilter` + `@PreAuthorize`:** protected `/api/**` endpoints now require **only** `Authorization: Bearer <jwt>`. The filter validates signature/expiration and publishes authorities from claim `roles`; authorization is enforced per endpoint with `@PreAuthorize` (`ADMIN` global, `ADMIN_TENANT` scoped by tenant). Tenant scope is validated against `tenant_slug` claim (or `iss` fallback) vs `tenantSlug` in path.
 
 The filter has three path categories (see `KeyGoBootstrapProperties`):

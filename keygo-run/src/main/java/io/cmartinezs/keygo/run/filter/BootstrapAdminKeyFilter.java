@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.run.filter;
 import tools.jackson.databind.json.JsonMapper;
+import io.cmartinezs.keygo.api.error.ApiErrorDataFactory;
+import io.cmartinezs.keygo.api.error.ErrorData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
@@ -45,6 +47,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
   private static final String BEARER_PREFIX = "Bearer ";
   private final KeyGoBootstrapProperties bootstrapProperties;
   private final JsonMapper jsonMapper;
+  private final boolean includeTechnicalDetails;
   /**
    * Optional: available only when the 'supabase' profile is active.
    * Used to verify Bearer JWT tokens for admin access.
@@ -55,7 +58,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
   public BootstrapAdminKeyFilter(
       KeyGoBootstrapProperties bootstrapProperties,
       JsonMapper jsonMapper) {
-    this(bootstrapProperties, jsonMapper, null, null);
+    this(bootstrapProperties, jsonMapper, null, null, false);
   }
 
   public BootstrapAdminKeyFilter(
@@ -63,10 +66,20 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
       JsonMapper jsonMapper,
       AccessTokenVerifierPort accessTokenVerifier,
       SigningKeyRepositoryPort signingKeyRepository) {
+    this(bootstrapProperties, jsonMapper, accessTokenVerifier, signingKeyRepository, false);
+  }
+
+  public BootstrapAdminKeyFilter(
+      KeyGoBootstrapProperties bootstrapProperties,
+      JsonMapper jsonMapper,
+      AccessTokenVerifierPort accessTokenVerifier,
+      SigningKeyRepositoryPort signingKeyRepository,
+      boolean includeTechnicalDetails) {
     this.bootstrapProperties = bootstrapProperties;
     this.jsonMapper = jsonMapper;
     this.accessTokenVerifier = accessTokenVerifier;
     this.signingKeyRepository = signingKeyRepository;
+    this.includeTechnicalDetails = includeTechnicalDetails;
   }
 
   @Override
@@ -90,7 +103,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     if (requestPath.startsWith(bootstrapProperties.getApiPathPrefix())) {
       if (!authenticateBearer(request)) {
         log.warn("Invalid or missing authentication for path: {}", requestPath);
-        writeErrorResponse(response);
+        writeErrorResponse(response, "Missing or invalid bearer token for protected API path");
         return;
       }
       log.debug("Authentication validated successfully for path: {}", requestPath);
@@ -198,12 +211,17 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
   }
 
   // ─── Error response ───────────────────────────────────────────────────────
-  private void writeErrorResponse(HttpServletResponse response) throws IOException {
+  private void writeErrorResponse(HttpServletResponse response, String detail) throws IOException {
     response.setStatus(HttpStatus.UNAUTHORIZED.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     response.setCharacterEncoding("UTF-8");
-    BaseResponse<Void> errorResponse = BaseResponse.<Void>builder()
+    BaseResponse<ErrorData> errorResponse = BaseResponse.<ErrorData>builder()
         .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
+        .data(ApiErrorDataFactory.fromDetail(
+            ResponseCode.AUTHENTICATION_REQUIRED,
+            detail,
+            "BootstrapAdminKeyFilter",
+            includeTechnicalDetails))
         .build();
     jsonMapper.writeValue(response.getWriter(), errorResponse);
   }

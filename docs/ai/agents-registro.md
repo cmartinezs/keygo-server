@@ -22,6 +22,18 @@
 
 ## Registro de cambios
 
+### [2026-03-26] CORS habilitado — `SecurityFilterChain` + `CorsConfigurationSource`
+
+**Motivo:** Las llamadas XHR del frontend SPA (`http://localhost:5173`) a `GET /keygo-server/api/v1/tenants/{slug}/oauth2/authorize` eran bloqueadas por el navegador con `No 'Access-Control-Allow-Origin' header is present on the requested resource`.
+
+**Cambios aplicados:**
+- **Nuevo archivo:** `keygo-run/.../config/properties/KeyGoCorsProperties.java` — `@ConfigurationProperties("keygo.cors")` con `allowedOrigins`, `allowedMethods`, `allowedHeaders`, `allowCredentials` (default `true`), `maxAge` (default 3600).
+- **`application.yml`:** nueva sección `keygo.cors` con valores default para desarrollo local (`http://localhost:5173`).
+- **`SecurityConfig.java`:** nuevo `@Bean CorsConfigurationSource corsConfigurationSource(KeyGoCorsProperties)` + `http.cors(cors -> cors.configurationSource(corsConfigurationSource))` en `securityFilterChain`.
+- **Nuevo test:** `keygo-run/.../config/security/CorsConfigTest.java` — 7 tests unitarios sin Spring context (instancia directa de `SecurityConfig`) que verifican origen, métodos (incluye OPTIONS), credenciales, maxAge y cobertura de rutas.
+
+**Resultado:** Spring Security aplica CORS antes de evaluar el `BootstrapAdminKeyFilter`; el preflight `OPTIONS` y las llamadas reales reciben `Access-Control-Allow-Origin: http://localhost:5173` y `Access-Control-Allow-Credentials: true`.
+
 ### [2026-03-25] Seguridad admin Bearer-only + RBAC por endpoint
 
 **Motivo:** El backend deja de aceptar `X-KEYGO-ADMIN` y estandariza seguridad de endpoints admin con JWT Bearer + autorización explícita por endpoint.

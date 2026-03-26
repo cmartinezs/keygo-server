@@ -1749,7 +1749,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/authorize?client_id={{clientId}}&redirect_uri=http://localhost:3000/callback&scope=openid profile&code_challenge={{codeChallenge}}&code_challenge_method=S256&state={{state}}",
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/oauth2/authorize?client_id={{clientId}}&redirect_uri=http://localhost:3000/callback&scope=openid profile&response_type=code&code_challenge={{codeChallenge}}&code_challenge_method=S256&state={{state}}",
               "host": [
                 "{{fullBaseUrl}}"
               ],
@@ -1773,6 +1773,10 @@
                 {
                   "key": "scope",
                   "value": "openid profile"
+                },
+                {
+                  "key": "response_type",
+                  "value": "code"
                 },
                 {
                   "key": "code_challenge",

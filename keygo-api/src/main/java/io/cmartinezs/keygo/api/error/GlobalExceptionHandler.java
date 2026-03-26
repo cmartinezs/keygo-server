@@ -30,6 +30,8 @@ import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -49,6 +51,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  private final Environment environment;
+
+  public GlobalExceptionHandler(Environment environment) {
+    this.environment = environment;
+  }
+
   /**
    * Handles UnauthorizedException - returns 401 Unauthorized.
    * Maneja UnauthorizedException - retorna 401 Unauthorized.
@@ -57,14 +65,9 @@ public class GlobalExceptionHandler {
    * @return ResponseEntity with error details / ResponseEntity con detalles del error
    */
   @ExceptionHandler(UnauthorizedException.class)
-  public ResponseEntity<BaseResponse<Void>> handleUnauthorizedException(UnauthorizedException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleUnauthorizedException(UnauthorizedException ex) {
     log.error("Unauthorized access attempt: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
   }
 
   /**
@@ -75,14 +78,9 @@ public class GlobalExceptionHandler {
    * @return ResponseEntity with error details / ResponseEntity con detalles del error
    */
   @ExceptionHandler(NoResourceFoundException.class)
-  public ResponseEntity<BaseResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleNoResourceFoundException(NoResourceFoundException ex) {
     log.error("Resource not found: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
   /**
@@ -93,14 +91,9 @@ public class GlobalExceptionHandler {
    * @return ResponseEntity with error details / ResponseEntity con detalles del error
    */
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<BaseResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleIllegalArgumentException(IllegalArgumentException ex) {
     log.error("Invalid argument: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -108,14 +101,9 @@ public class GlobalExceptionHandler {
    * Maneja errores de validación @Valid - retorna 400 Bad Request.
    */
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<BaseResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleValidationException(MethodArgumentNotValidException ex) {
     log.error("Validation failed: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -123,14 +111,9 @@ public class GlobalExceptionHandler {
    * Maneja TenantNotFoundException - retorna 404 Not Found.
    */
   @ExceptionHandler(TenantNotFoundException.class)
-  public ResponseEntity<BaseResponse<Void>> handleTenantNotFoundException(TenantNotFoundException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleTenantNotFoundException(TenantNotFoundException ex) {
     log.error("Tenant not found: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
   /**
@@ -138,14 +121,9 @@ public class GlobalExceptionHandler {
    * Maneja TenantSuspendedException - retorna 403 Forbidden.
    */
   @ExceptionHandler(TenantSuspendedException.class)
-  public ResponseEntity<BaseResponse<Void>> handleTenantSuspendedException(TenantSuspendedException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleTenantSuspendedException(TenantSuspendedException ex) {
     log.error("Tenant suspended: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.BUSINESS_RULE_VIOLATION))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**
@@ -153,14 +131,9 @@ public class GlobalExceptionHandler {
    * Lanzada cuando el client_secret es incorrecto o el cliente es PUBLIC en un grant M2M.
    */
   @ExceptionHandler(ClientAuthenticationException.class)
-  public ResponseEntity<BaseResponse<Void>> handleClientAuthenticationException(ClientAuthenticationException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAuthenticationException(ClientAuthenticationException ex) {
     log.error("Client authentication failed: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
   }
 
   /**
@@ -168,14 +141,9 @@ public class GlobalExceptionHandler {
    * Maneja ClientAppNotFoundException - retorna 404 Not Found.
    */
   @ExceptionHandler(ClientAppNotFoundException.class)
-  public ResponseEntity<BaseResponse<Void>> handleClientAppNotFoundException(ClientAppNotFoundException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppNotFoundException(ClientAppNotFoundException ex) {
     log.error("Client app not found: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
   /**
@@ -183,14 +151,9 @@ public class GlobalExceptionHandler {
    * Maneja InvalidRedirectUriException - retorna 400 Bad Request.
    */
   @ExceptionHandler(InvalidRedirectUriException.class)
-  public ResponseEntity<BaseResponse<Void>> handleInvalidRedirectUriException(InvalidRedirectUriException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidRedirectUriException(InvalidRedirectUriException ex) {
     log.error("Invalid redirect URI: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -198,14 +161,9 @@ public class GlobalExceptionHandler {
    * Maneja UnsupportedGrantTypeException - retorna 400 Bad Request.
    */
   @ExceptionHandler(UnsupportedGrantTypeException.class)
-  public ResponseEntity<BaseResponse<Void>> handleUnsupportedGrantTypeException(UnsupportedGrantTypeException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleUnsupportedGrantTypeException(UnsupportedGrantTypeException ex) {
     log.error("Unsupported grant type: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -213,14 +171,9 @@ public class GlobalExceptionHandler {
    * Maneja UserNotFoundException - retorna 404 Not Found.
    */
   @ExceptionHandler(UserNotFoundException.class)
-  public ResponseEntity<BaseResponse<Void>> handleUserNotFoundException(UserNotFoundException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserNotFoundException(UserNotFoundException ex) {
     log.error("User not found: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
   /**
@@ -228,14 +181,9 @@ public class GlobalExceptionHandler {
    * Maneja UserSuspendedException - retorna 403 Forbidden.
    */
   @ExceptionHandler(UserSuspendedException.class)
-  public ResponseEntity<BaseResponse<Void>> handleUserSuspendedException(UserSuspendedException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserSuspendedException(UserSuspendedException ex) {
     log.error("User suspended: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.BUSINESS_RULE_VIOLATION))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**
@@ -243,14 +191,9 @@ public class GlobalExceptionHandler {
    * Maneja DuplicateUserException - retorna 409 Conflict.
    */
   @ExceptionHandler(DuplicateUserException.class)
-  public ResponseEntity<BaseResponse<Void>> handleDuplicateUserException(DuplicateUserException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateUserException(DuplicateUserException ex) {
     log.error("Duplicate user: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.DUPLICATE_RESOURCE))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
   }
 
   /**
@@ -258,14 +201,9 @@ public class GlobalExceptionHandler {
    * Maneja InvalidCredentialsException - retorna 401 Unauthorized.
    */
   @ExceptionHandler(InvalidCredentialsException.class)
-  public ResponseEntity<BaseResponse<Void>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
     log.error("Invalid credentials: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
   }
 
   /**
@@ -273,14 +211,9 @@ public class GlobalExceptionHandler {
    * Maneja MembershipNotFoundException - retorna 404 Not Found.
    */
   @ExceptionHandler(MembershipNotFoundException.class)
-  public ResponseEntity<BaseResponse<Void>> handleMembershipNotFoundException(MembershipNotFoundException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipNotFoundException(MembershipNotFoundException ex) {
     log.error("Membership not found: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.RESOURCE_NOT_FOUND))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
   /**
@@ -288,14 +221,9 @@ public class GlobalExceptionHandler {
    * Maneja MembershipInactiveException - retorna 403 Forbidden.
    */
   @ExceptionHandler(MembershipInactiveException.class)
-  public ResponseEntity<BaseResponse<Void>> handleMembershipInactiveException(MembershipInactiveException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipInactiveException(MembershipInactiveException ex) {
     log.error("Membership inactive: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.BUSINESS_RULE_VIOLATION))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**
@@ -303,14 +231,9 @@ public class GlobalExceptionHandler {
    * Maneja InvalidRoleAssignmentException - retorna 400 Bad Request.
    */
   @ExceptionHandler(InvalidRoleAssignmentException.class)
-  public ResponseEntity<BaseResponse<Void>> handleInvalidRoleAssignmentException(InvalidRoleAssignmentException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidRoleAssignmentException(InvalidRoleAssignmentException ex) {
     log.error("Invalid role assignment: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -318,14 +241,9 @@ public class GlobalExceptionHandler {
    * Maneja InvalidAuthorizationCodeException - retorna 400 Bad Request.
    */
   @ExceptionHandler(InvalidAuthorizationCodeException.class)
-  public ResponseEntity<BaseResponse<Void>> handleInvalidAuthorizationCodeException(InvalidAuthorizationCodeException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidAuthorizationCodeException(InvalidAuthorizationCodeException ex) {
     log.error("Invalid authorization code: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -333,14 +251,9 @@ public class GlobalExceptionHandler {
    * Maneja AuthorizationCodeExpiredException - retorna 400 Bad Request.
    */
   @ExceptionHandler(AuthorizationCodeExpiredException.class)
-  public ResponseEntity<BaseResponse<Void>> handleAuthorizationCodeExpiredException(AuthorizationCodeExpiredException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleAuthorizationCodeExpiredException(AuthorizationCodeExpiredException ex) {
     log.error("Authorization code expired: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -348,14 +261,9 @@ public class GlobalExceptionHandler {
    * Maneja InvalidPkceVerificationException - retorna 400 Bad Request.
    */
   @ExceptionHandler(InvalidPkceVerificationException.class)
-  public ResponseEntity<BaseResponse<Void>> handleInvalidPkceVerificationException(InvalidPkceVerificationException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPkceVerificationException(InvalidPkceVerificationException ex) {
     log.error("PKCE verification failed: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -363,14 +271,9 @@ public class GlobalExceptionHandler {
    * Maneja ScopeNotGrantedException - retorna 403 Forbidden.
    */
   @ExceptionHandler(ScopeNotGrantedException.class)
-  public ResponseEntity<BaseResponse<Void>> handleScopeNotGrantedException(ScopeNotGrantedException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleScopeNotGrantedException(ScopeNotGrantedException ex) {
     log.error("Scope not granted: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INSUFFICIENT_PERMISSIONS))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    return error(HttpStatus.FORBIDDEN, ResponseCode.INSUFFICIENT_PERMISSIONS, ex);
   }
 
   /**
@@ -378,42 +281,27 @@ public class GlobalExceptionHandler {
    * El servidor no puede emitir tokens porque no hay clave de firma activa.
    */
   @ExceptionHandler(NoActiveSigningKeyException.class)
-  public ResponseEntity<BaseResponse<Void>> handleNoActiveSigningKeyException(NoActiveSigningKeyException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleNoActiveSigningKeyException(NoActiveSigningKeyException ex) {
     log.error("No active signing key: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.OPERATION_FAILED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+    return error(HttpStatus.SERVICE_UNAVAILABLE, ResponseCode.OPERATION_FAILED, ex);
   }
 
   /**
    * Handles InvalidRefreshTokenException - returns 401 Unauthorized.
    */
   @ExceptionHandler(InvalidRefreshTokenException.class)
-  public ResponseEntity<BaseResponse<Void>> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex) {
     log.error("Invalid refresh token: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
   }
 
   /**
    * Handles RefreshTokenExpiredException - returns 401 Unauthorized.
    */
   @ExceptionHandler(RefreshTokenExpiredException.class)
-  public ResponseEntity<BaseResponse<Void>> handleRefreshTokenExpiredException(RefreshTokenExpiredException ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleRefreshTokenExpiredException(RefreshTokenExpiredException ex) {
     log.error("Refresh token expired: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
   }
 
   /**
@@ -422,15 +310,10 @@ public class GlobalExceptionHandler {
    * Maneja UserPendingVerificationException - retorna 403 Forbidden.
    */
   @ExceptionHandler(UserPendingVerificationException.class)
-  public ResponseEntity<BaseResponse<Void>> handleUserPendingVerificationException(
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserPendingVerificationException(
       UserPendingVerificationException ex) {
     log.warn("Login attempt by unverified user: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.EMAIL_NOT_VERIFIED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    return error(HttpStatus.FORBIDDEN, ResponseCode.EMAIL_NOT_VERIFIED, ex);
   }
 
   /**
@@ -439,15 +322,10 @@ public class GlobalExceptionHandler {
    * Maneja EmailVerificationExpiredException - retorna 422.
    */
   @ExceptionHandler(EmailVerificationExpiredException.class)
-  public ResponseEntity<BaseResponse<Void>> handleEmailVerificationExpiredException(
+  public ResponseEntity<BaseResponse<ErrorData>> handleEmailVerificationExpiredException(
       EmailVerificationExpiredException ex) {
     log.warn("Expired verification code used: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.EMAIL_VERIFICATION_EXPIRED))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(response);
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.EMAIL_VERIFICATION_EXPIRED, ex);
   }
 
   /**
@@ -456,15 +334,10 @@ public class GlobalExceptionHandler {
    * Maneja EmailVerificationInvalidException - retorna 400.
    */
   @ExceptionHandler(EmailVerificationInvalidException.class)
-  public ResponseEntity<BaseResponse<Void>> handleEmailVerificationInvalidException(
+  public ResponseEntity<BaseResponse<ErrorData>> handleEmailVerificationInvalidException(
       EmailVerificationInvalidException ex) {
     log.warn("Invalid verification code: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
@@ -473,15 +346,10 @@ public class GlobalExceptionHandler {
    * Maneja EmailVerificationStillActiveException - retorna 409.
    */
   @ExceptionHandler(EmailVerificationStillActiveException.class)
-  public ResponseEntity<BaseResponse<Void>> handleEmailVerificationStillActiveException(
+  public ResponseEntity<BaseResponse<ErrorData>> handleEmailVerificationStillActiveException(
       EmailVerificationStillActiveException ex) {
     log.warn("Resend blocked — code still active: {}", ex.getMessage());
-
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.EMAIL_VERIFICATION_STILL_ACTIVE))
-        .build();
-
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    return error(HttpStatus.CONFLICT, ResponseCode.EMAIL_VERIFICATION_STILL_ACTIVE, ex);
   }
 
   /**
@@ -492,14 +360,25 @@ public class GlobalExceptionHandler {
    * @return ResponseEntity with error details / ResponseEntity con detalles del error
    */
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<BaseResponse<Void>> handleGenericException(Exception ex) {
+  public ResponseEntity<BaseResponse<ErrorData>> handleGenericException(Exception ex) {
     log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
+  }
 
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
-        .failure(ResponseHelper.message(ResponseCode.OPERATION_FAILED))
+  private ResponseEntity<BaseResponse<ErrorData>> error(
+      HttpStatus status,
+      ResponseCode responseCode,
+      Throwable throwable) {
+    BaseResponse<ErrorData> response = BaseResponse.<ErrorData>builder()
+        .failure(ResponseHelper.message(responseCode))
+        .data(ApiErrorDataFactory.fromException(responseCode, throwable, includeTechnicalDetails()))
         .build();
 
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    return ResponseEntity.status(status).body(response);
+  }
+
+  private boolean includeTechnicalDetails() {
+    return environment.acceptsProfiles(Profiles.of("local", "dev"));
   }
 }
 

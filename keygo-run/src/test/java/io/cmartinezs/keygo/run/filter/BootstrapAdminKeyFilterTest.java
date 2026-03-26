@@ -1,6 +1,9 @@
 package io.cmartinezs.keygo.run.filter;
 
 import tools.jackson.databind.json.JsonMapper;
+import io.cmartinezs.keygo.api.error.ErrorData;
+import io.cmartinezs.keygo.api.shared.ResponseCode;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
@@ -234,6 +237,57 @@ class BootstrapAdminKeyFilterTest {
     verify(filterChain, never()).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(401);
     verify(jsonMapper).writeValue(any(Writer.class), any());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void doFilterInternal_shouldReturnFriendlyErrorDataWhenTechnicalModeDisabled()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    var responseCaptor = org.mockito.ArgumentCaptor.forClass(BaseResponse.class);
+    verify(jsonMapper).writeValue(any(Writer.class), responseCaptor.capture());
+
+    BaseResponse<ErrorData> payload = responseCaptor.getValue();
+    assertThat(payload.getFailure().getCode()).isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getData()).isNotNull();
+    assertThat(payload.getData().getCode()).isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getData().getClientMessage()).isNotBlank();
+    assertThat(payload.getData().getDetail()).isNull();
+    assertThat(payload.getData().getException()).isNull();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void doFilterInternal_shouldReturnTechnicalErrorDataWhenTechnicalModeEnabled()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    filter = new BootstrapAdminKeyFilter(
+        bootstrapProperties,
+        jsonMapper,
+        accessTokenVerifier,
+        signingKeyRepository,
+        true);
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    var responseCaptor = org.mockito.ArgumentCaptor.forClass(BaseResponse.class);
+    verify(jsonMapper).writeValue(any(Writer.class), responseCaptor.capture());
+
+    BaseResponse<ErrorData> payload = responseCaptor.getValue();
+    assertThat(payload.getData()).isNotNull();
+    assertThat(payload.getData().getDetail()).contains("Missing or invalid bearer token");
+    assertThat(payload.getData().getException()).isEqualTo("BootstrapAdminKeyFilter");
   }
 
   // ─── Non-API paths ─────────────────────────────────────────────────────────

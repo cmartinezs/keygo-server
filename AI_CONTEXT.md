@@ -194,6 +194,9 @@ Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
 - `T-055`: bootstrap programático de tenants/apps/roles vía control-plane.
 - `T-056`: ✅ completada — referencia portable de hosted login seguro en `examples/hosted-login-handoff/` con `HostedLoginParams`, runtime guard y `HostedLoginBoundary`.
 - `T-058`: patrón BFF documentado para canje de `authorization_code` en backend y menor exposición de tokens en SPA.
+- `T-062`: handler dedicado para `MissingServletRequestParameterException` con respuesta `400 INVALID_INPUT`.
+- `T-063`: propagación de `traceId/requestId` en `ErrorData` para trazabilidad cliente-logs.
+- `T-064`: catálogo de errores por dominio con internacionalización de `clientMessage` por locale.
 - `T-059`: evolución a redirect OAuth2 clásico (`302`) para simplificar frontend e interoperabilidad.
 - `F-041`: SSO multi-app con contrato explícito de sesión compartida, separado del hosted login actual.
 
