@@ -40,8 +40,10 @@
 | 2026-03-26 | [Missing query param en MockMvc standalone: sin handler específico cae en 500 (`OPERATION_FAILED`)](#2026-03-26-missing-query-param-en-mockmvc-standalone-sin-handler-específico-cae-en-500-operation_failed) | Testing / Error Handling |
 | 2026-03-26 | [`ACCEPT_CASE_INSENSITIVE_PROPERTIES` no convierte snake_case a camelCase — se requiere `@JsonProperty` en DTOs OAuth2](#2026-03-26-accept_case_insensitive_properties-no-convierte-snake_case-a-camelcase--se-requiere-jsonproperty-en-dtos-oauth2) | Jackson / Deserialización / OAuth2 |
 | 2026-03-26 | [OAuth2 authorize: para query params en snake_case usar `@RequestParam(name = ...)` en lugar de depender de `@ModelAttribute`](#2026-03-26-oauth2-authorize-para-query-params-en-snake_case-usar-requestparamname---en-lugar-de-depender-de-modelattribute) | API / Spring MVC / OAuth2 |
+| 2026-03-26 | [Shebang faltante en shell script causa ejecución con `sh` en lugar de `bash` → `Bad substitution` y rutas incorrectas](#2026-03-26-shebang-faltante-en-shell-script-causa-ejecución-con-sh-en-lugar-de-bash) | Scripts / Shell |
 | 2026-03-26 | [Vitest en ejemplos aislados: importar `describe/it/expect` explícitamente evita depender de globals](#2026-03-26-vitest-en-ejemplos-aislados-importar-describeitexpect-explícitamente-evita-depender-de-globals) | Frontend / Testing |
 | 2026-03-26 | [Hosted login compartido: la UI central no debe apropiarse del contexto OAuth2 del tenant origen](#2026-03-26-hosted-login-compartido-la-ui-central-no-debe-apropiarse-del-contexto-oauth2-del-tenant-origen) | OAuth2 / Frontend / Arquitectura |
+| 2026-03-26 | [Scripts dispersos en módulos: centralizar en `scripts/` + menú principal evita rutas rotas y mejora DX](#2026-03-26-scripts-dispersos-en-módulos-centralizar-en-scripts--menú-principal-evita-rutas-rotas-y-mejora-dx) | Scripts / Shell / DX |
 | 2026-03-25 | [Mermaid en Markdown: evitar signos de interrogación invertidos en nodos validados por parser](#2026-03-25-mermaid-en-markdown-evitar-signos-de-interrogación-invertidos-en-nodos-validados-por-parser) | Documentación / Tooling |
 | 2026-03-25 | [Tests Maven por módulo en monorepo: usar `-am` para resolver dependencias de clases](#2026-03-25-tests-maven-por-módulo-en-monorepo-usar--am-para-resolver-dependencias-de-clases) | Build / Testing |
 | 2026-03-25 | [Bearer-only admin auth: `@PreAuthorize` + tenant match token/path](#2026-03-25-bearer-only-admin-auth-preauthorize--tenant-match-tokenpath) | Security / Authorization |
@@ -736,3 +738,51 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 - `keygo-api/src/test/java/io/cmartinezs/keygo/api/auth/request/TokenRequestJsonTest.java`
 
 ---
+
+### [2026-03-26] Shebang faltante en shell script causa ejecución con `sh` en lugar de `bash`
+
+**Contexto:** El script `keygo-supabase/scripts/switch-env.sh` tenía `!/bin/bash` en la primera línea (faltaba el `#`). Al ejecutarse con `./keygo-supabase/scripts/switch-env.sh local` desde la raíz del proyecto, el sistema lo interpretaba con `sh` (shell POSIX) en lugar de `bash`.
+
+**Problema:** Tres síntomas encadenados:
+1. `sh` no reconoce `${BASH_SOURCE[0]}` → error `Bad substitution` en línea 23.
+2. La asignación `SCRIPT_DIR` falla silenciosamente, resultando en que `PROJECT_DIR` se calculaba tomando el CWD como referencia, apuntando **dos niveles arriba del repo** (`/home/user/Github/cmartinezs/`) en lugar del módulo correcto.
+3. `echo -e` con `sh` no interpreta el flag `-e`, imprimiéndolo literal en la salida.
+Los errores de `Bad substitution` no abortan el script en `sh` con `set -e` porque la falla ocurre dentro de una sustitución de comando en una asignación, resultando en comportamiento indefinido en lugar de exit.
+
+**Solución / Buena práctica:**
+- El shebang siempre debe ser `#!/bin/bash` (con el `#`). Sin él, el kernel no reconoce el intérprete y la mayoría de sistemas delegan a `sh`.
+- Verificar la primera línea de cualquier script antes de ejecutarlo: `head -1 script.sh | cat -A` (debe mostrar `#!/bin/bash$`).
+- Al diagnosticar "ruta incorrecta" en un script shell, verificar primero si `BASH_SOURCE` y `${BASH_SOURCE[0]}` son accesibles (solo disponibles en `bash`, no en `sh`).
+- Para validar sintaxis bash sin ejecutar: `bash -n script.sh`.
+- Reorganización aplicada: `switch-env.sh` movido a `scripts/` (raíz del proyecto, scripts generales); templates `.env-*` movidos a `scripts/envs/` (fuera de `keygo-supabase/`). El `.env` activo sigue en `keygo-supabase/.env` para compatibilidad con los scripts de DB.
+
+**Archivos clave:**
+- `scripts/switch-env.sh` (nuevo — shebang correcto, rutas correctas)
+- `scripts/envs/.env-local`, `.env-desa`, `.env-prod`, `.env.example` (templates centralizados)
+- `keygo-supabase/scripts/load-env.sh`, `migrate.sh`, `dev-start.sh` (hints actualizados)
+
+---
+
+### [2026-03-26] Scripts dispersos en módulos: centralizar en `scripts/` + menú principal evita rutas rotas y mejora DX
+
+**Contexto:** El proyecto tenía scripts de operación divididos en dos lugares: `scripts/` (raíz) y `keygo-supabase/scripts/`. Los de supabase eran específicos de DB pero configuraban también variables de la aplicación completa. No había punto de entrada unificado.
+
+**Problema:**
+- Los scripts de DB en `keygo-supabase/scripts/` tenían `PROJECT_DIR` apuntando a `keygo-supabase/`, lo que es correcto para Maven/Flyway pero confuso para el desarrollador que trabaja desde la raíz.
+- No había un "entry point" único; el desarrollador tenía que recordar qué script hacer desde qué directorio.
+- Los stubs de delegación (`exec "../../scripts/db/..."`) son la mejor estrategia de compatibilidad: los paths viejos siguen funcionando sin duplicar lógica.
+
+**Solución / Buena práctica:**
+- Centralizar **todos** los scripts en `scripts/` con subfolders temáticos: `scripts/db/`, `scripts/envs/`.
+- Crear un **menú principal** (`scripts/keygo.sh`) con modo interactivo y modo directo (`./scripts/keygo.sh <N>`). Esto es el punto de entrada único para cualquier operación.
+- Los scripts del módulo (`keygo-supabase/scripts/`) se convierten en **stubs de 2 líneas** que delegan con `exec` al centralizado: compatibilidad sin duplicación.
+- El helper interno se prefija con `_` (ej: `scripts/db/_load-env.sh`) y se usa con `source`, nunca ejecutado directamente.
+- En zsh, usar `bash << 'HEREDOC'` para scripts que usan `declare -A` (arrays asociativos), ya que zsh no soporta esa sintaxis de bash.
+
+**Archivos clave:**
+- `scripts/keygo.sh` — menú principal (20 opciones, 5 categorías)
+- `scripts/db/` — scripts centralizados de base de datos
+- `keygo-supabase/scripts/*.sh` — stubs de delegación con `exec`
+
+---
+

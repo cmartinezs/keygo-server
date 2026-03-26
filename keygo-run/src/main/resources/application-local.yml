@@ -1,0 +1,53 @@
+# =========================================================
+# Perfil LOCAL — H2 file-based (sin Docker, sin Supabase)
+# =========================================================
+# Activa con: SPRING_PROFILES_ACTIVE=local
+# URL consola H2: http://localhost:8080/keygo-server/h2-console
+#   JDBC URL: jdbc:h2:file:./db/keygo-local
+#   User: sa  /  Password: (vacío)
+# =========================================================
+
+spring:
+  datasource:
+    url: "jdbc:h2:file:./db/keygo-local;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;NON_KEYWORDS=VALUE"
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      # Hibernate genera/actualiza el DDL desde las entidades.
+      # Al ser file-based, el esquema persiste entre reinicios.
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+        show_sql: false
+        jdbc:
+          time_zone: UTC
+    show-sql: false
+    # Asegurar que Hibernate genera el DDL antes de que corra data-local.sql
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      # 'always' corre el script en cada arranque; los INSERTs son idempotentes
+      mode: always
+      data-locations: classpath:data-local.sql
+
+  flyway:
+    # Deshabilitado: las migraciones tienen PL/pgSQL incompatible con H2
+    enabled: false
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+
+# BootstrapAdminKeyFilter deshabilitado — sin token JWT requerido en local
+keygo:
+  bootstrap:
+    enabled: false

@@ -32,12 +32,33 @@ keygo-common   ← shared utils                               [🚧 stub]
 ./mvnw -pl keygo-api test              # single module
 ./mvnw spring-boot:run -pl keygo-run   # run locally
 
-# Utility/smoke-test scripts
-./scripts/quick-start.sh              # start DB + set env vars + run app
+# ── Menú principal (punto de entrada centralizado) ─────────────────────────────
+./scripts/keygo.sh          # menú interactivo (todas las operaciones)
+./scripts/keygo.sh <N>      # ejecución directa por número de opción (ej: 7 = migrate)
+
+# ── Ambiente ───────────────────────────────────────────────────────────────────
+./scripts/switch-env.sh local   # activar .env-local → keygo-supabase/.env
+./scripts/switch-env.sh desa    # activar .env-desa
+./scripts/switch-env.sh prod    # activar .env-prod
+./scripts/switch-env.sh list    # listar templates disponibles
+
+# ── Base de datos ──────────────────────────────────────────────────────────────
+./scripts/db/start.sh       # iniciar Docker Compose (Postgres + PgAdmin)
+./scripts/db/stop.sh        # detener Docker Compose
+./scripts/db/migrate.sh     # ejecutar migraciones Flyway
+./scripts/db/info.sh        # ver estado de migraciones
+./scripts/db/validate.sh    # validar migraciones
+./scripts/db/repair.sh      # reparar metadatos Flyway
+./scripts/db/clean.sh       # ⚠️ limpiar schema completo (pide confirmación)
+./scripts/db/setup.sh       # setup inicial Supabase
+
+# ── App / tests ────────────────────────────────────────────────────────────────
+./scripts/quick-start.sh              # start DB + env vars + run app
 ./scripts/test-service-info.sh        # smoke-test GET /api/v1/service/info
 ./scripts/test-response-codes.sh      # smoke-test GET /api/v1/response-codes
+./scripts/setup-keygo-tenant.sh       # bootstrap tenant keygo + keygo-ui
 
-# Verificar actividad de retroalimentación del agente AI
+# ── Verificar actividad de retroalimentación del agente AI ─────────────────────
 ./scripts/check-ai-docs.sh            # umbral por defecto: 30 días
 ./scripts/check-ai-docs.sh --days 60  # umbral personalizado
 ./scripts/check-ai-docs.sh --quiet    # solo exit code (útil en CI)
@@ -263,12 +284,18 @@ Next migration must be `V16__...`. **Never reuse or edit existing migration file
 ## Enabling the database
 
 ```bash
-export SPRING_PROFILES_ACTIVE="supabase,local"
-export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
-export SUPABASE_USER="postgres"
-export SUPABASE_PASSWORD="postgres"
-cd keygo-supabase && ./scripts/dev-start.sh   # starts Postgres + PgAdmin via Docker
-cd keygo-supabase && ./scripts/dev-stop.sh    # stops Postgres + PgAdmin
+# Cambiar al ambiente local (copia template → keygo-supabase/.env)
+./scripts/switch-env.sh local
+# Cargar variables en el shell actual
+set -a; source keygo-supabase/.env; set +a
+
+# Iniciar / detener Postgres + PgAdmin via Docker
+./scripts/db/start.sh    # o: ./scripts/keygo.sh 5
+./scripts/db/stop.sh     # o: ./scripts/keygo.sh 6
+
+# Alternativamente, usar el menú principal
+./scripts/keygo.sh       # menú interactivo
+./scripts/keygo.sh 5     # iniciar DB directamente
 ```
 
 ## Testing conventions

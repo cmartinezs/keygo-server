@@ -72,23 +72,29 @@ export KEYGO_MAIL_APP_NAME=KeyGo
 ## 2. Estructura de archivos `.env` (keygo-supabase)
 
 ```
+scripts/
+├── switch-env.sh        # ✅ Script para cambiar entre ambientes
+└── envs/
+    ├── .env.example     # ✅ Template con todas las variables (committed)
+    ├── .env-local       # ⚠️ Config para Docker local (git ignored)
+    ├── .env-desa        # ⚠️ Config para desarrollo/staging (git ignored)
+    └── .env-prod        # ⚠️ Config para producción (git ignored)
+
 keygo-supabase/
-├── .env            # ⚠️ Ambiente activo (git ignored)
-├── .env.example    # ✅ Template con todas las variables (committed)
-├── .env-local      # ⚠️ Config para Docker local (git ignored)
-├── .env-desa       # ⚠️ Config para desarrollo/staging (git ignored)
-├── .env-prod       # ⚠️ Config para producción (git ignored)
-└── scripts/
-    └── switch-env.sh
+├── .env             # ⚠️ Ambiente activo generado por switch-env.sh (git ignored)
+└── .env.example     # ✅ Template de referencia del módulo supabase (committed)
 ```
+
+> Los templates `.env-*` viven en `scripts/envs/` (nivel de proyecto), no en `keygo-supabase/`.
+> El `.env` activo se copia a `keygo-supabase/.env` para que lo lean los scripts de DB y Flyway.
 
 ### Setup inicial
 
 ```bash
-cd keygo-supabase
-cp .env.example .env-local
-cp .env.example .env-desa
-cp .env.example .env-prod
+# Desde la raíz del proyecto
+cp scripts/envs/.env.example scripts/envs/.env-local
+cp scripts/envs/.env.example scripts/envs/.env-desa
+cp scripts/envs/.env.example scripts/envs/.env-prod
 
 # Editar cada archivo con los valores correctos
 # .env-local → apunta a Docker local (localhost:5432)
@@ -101,15 +107,14 @@ cp .env.example .env-prod
 ## 3. Cambiar entre ambientes
 
 ```bash
-cd keygo-supabase
-
-./scripts/switch-env.sh local   # activa .env-local
-./scripts/switch-env.sh desa    # activa .env-desa
-./scripts/switch-env.sh prod    # activa .env-prod
-./scripts/switch-env.sh list    # lista ambientes disponibles
+# Desde la raíz del proyecto
+./scripts/switch-env.sh local   # activa .env-local → copia a keygo-supabase/.env
+./scripts/switch-env.sh desa    # activa .env-desa  → copia a keygo-supabase/.env
+./scripts/switch-env.sh prod    # activa .env-prod  → copia a keygo-supabase/.env
+./scripts/switch-env.sh list    # lista ambientes disponibles en scripts/envs/
 ```
 
-El script copia el archivo elegido a `.env`, que es el que IntelliJ (EnvFile) y los scripts de Flyway leen.
+El script copia el template elegido a `keygo-supabase/.env`, que es el que IntelliJ (EnvFile) y los scripts de Flyway leen.
 
 ---
 

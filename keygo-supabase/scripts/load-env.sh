@@ -40,9 +40,9 @@ load_env() {
         echo "⚠️  Warning: .env file not found at: $ENV_FILE"
         echo "   Using system environment variables (if set)"
         echo ""
-        echo "💡 To create .env file, run:"
-        echo "   cd $PROJECT_DIR"
+        echo "💡 To create .env file, run (from project root):"
         echo "   ./scripts/switch-env.sh local   # or desa, prod"
+        echo "   Templates are in: scripts/envs/"
         echo ""
         return 1
     fi

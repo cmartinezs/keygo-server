@@ -22,6 +22,80 @@
 
 ## Registro de cambios
 
+### [2026-03-26] Reorganización de scripts y templates .env — `scripts/switch-env.sh` + `scripts/envs/`
+
+**Motivo:** El script `keygo-supabase/scripts/switch-env.sh` tenía un shebang defectuoso (`!/bin/bash` en lugar de `#!/bin/bash`), lo que causaba que `sh` lo ejecutara en lugar de `bash`. Esto generaba `Bad substitution` en `${BASH_SOURCE[0]}`, rutas incorrectas (`PROJECT_DIR` apuntaba dos niveles arriba del repo) y que `echo -e` no funcionara. Adicionalmente, el script y los templates `.env-*` estaban en `keygo-supabase/` siendo que configuran toda la aplicación (no solo la DB).
+
+**Cambios aplicados:**
+- **Nuevo:** `scripts/switch-env.sh` — reescrito con `#!/bin/bash`, `SCRIPT_DIR`/`PROJECT_DIR`/`ENVS_DIR` calculados correctamente; soporta `local`, `desa`, `prod`, `list`, `help`; copia el template a `keygo-supabase/.env`.
+- **Nueva carpeta:** `scripts/envs/` con templates `.env-local`, `.env-desa`, `.env-prod`, `.env.example` y `.gitignore` propio.
+- **Eliminado:** `keygo-supabase/scripts/switch-env.sh`.
+- **Eliminados de `keygo-supabase/`:** `.env-local`, `.env-desa`, `.env-prod` (los templates ahora viven en `scripts/envs/`).
+- **Actualizado:** hints en `load-env.sh`, `migrate.sh`, `dev-start.sh` para señalar el nuevo path.
+- **Actualizado:** `keygo-supabase/.gitignore` con comentario que aclara el nuevo origen de templates.
+- **Actualizado:** `docs/development/ENVIRONMENT_SETUP.md` con la nueva estructura de directorios.
+
+**Estructura resultante:**
+```
+scripts/
+├── switch-env.sh        # ✅ Script general (nuevo destino)
+└── envs/
+    ├── .gitignore
+    ├── .env.example     # ✅ committed
+    ├── .env-local       # ⚠️ git ignored
+    ├── .env-desa        # ⚠️ git ignored
+    └── .env-prod        # ⚠️ git ignored
+
+keygo-supabase/
+├── .env                 # ⚠️ activo, generado por switch-env.sh
+└── scripts/             # solo scripts de DB
+```
+
+### [2026-03-26] Centralización de scripts + menú principal `keygo.sh`
+
+**Motivo:** Los scripts de base de datos estaban dispersos en `keygo-supabase/scripts/` sin punto de entrada unificado. El usuario solicitó una carpeta centralizada y un menú principal interactivo para todas las operaciones del proyecto.
+
+**Cambios aplicados:**
+- **Nuevo:** `scripts/keygo.sh` — menú interactivo principal con 20 opciones en 5 categorías (Ambiente, BD, Aplicación, Tests, Setup). Soporta modo interactivo y modo directo (`./scripts/keygo.sh <N>`).
+- **Nueva carpeta:** `scripts/db/` con 8 scripts centralizados y un helper interno `_load-env.sh`:
+  - `start.sh` (← `dev-start.sh`), `stop.sh` (← `dev-stop.sh`), `migrate.sh`, `info.sh`, `validate.sh`, `repair.sh`, `clean.sh` (con confirmación), `setup.sh` (← `setup-supabase.sh`).
+- **Stubs de compatibilidad:** `keygo-supabase/scripts/{dev-start,dev-stop,migrate,clean,repair,validate,info,setup-supabase}.sh` — ahora delegan con `exec` al script centralizado en `scripts/db/`.
+- **Actualizado:** `AGENTS.md` — sección "Essential commands" y "Enabling the database" con rutas centralizadas.
+- **Actualizado:** `scripts/switch-env.sh` — tips de uso apuntan al menú `keygo.sh`.
+
+**Estructura de scripts resultante:**
+```
+scripts/
+├── keygo.sh              # 🎯 Menú principal (nuevo)
+├── switch-env.sh         # Cambio de ambiente
+├── quick-start.sh        # Quick start app
+├── setup-keygo-tenant.sh # Bootstrap tenant
+├── check-ai-docs.sh      # Verificador AI docs
+├── test-*.sh             # Smoke tests
+├── envs/                 # Templates .env-*
+└── db/                   # Scripts de base de datos
+    ├── _load-env.sh      # Helper interno (source)
+    ├── start.sh          # Docker Compose up
+    ├── stop.sh           # Docker Compose down
+    ├── migrate.sh        # Flyway migrate
+    ├── info.sh           # Flyway info
+    ├── validate.sh       # Flyway validate
+    ├── repair.sh         # Flyway repair
+    ├── clean.sh          # Flyway clean ⚠️
+    └── setup.sh          # Setup completo
+```
+
+**Opciones del menú `keygo.sh`:**
+
+| Nº | Acción | Categoría |
+|---|---|---|
+| 1–4 | Cambiar ambiente (local/desa/prod/list) | 🌐 Ambiente |
+| 5–6 | Iniciar/Detener DB Docker | 🗄️ BD |
+| 7–11 | Migrate/Info/Validate/Repair/Clean Flyway | 🗄️ BD |
+| 12–14 | Quick Start / Build / Run servidor | 🚀 App |
+| 15–18 | Smoke tests + AI docs + mvnw test | 🧪 Tests |
+| 19–20 | Setup tenant / Setup Supabase | ⚙️ Setup |
+
 ### [2026-03-26] CORS habilitado — `SecurityFilterChain` + `CorsConfigurationSource`
 
 **Motivo:** Las llamadas XHR del frontend SPA (`http://localhost:5173`) a `GET /keygo-server/api/v1/tenants/{slug}/oauth2/authorize` eran bloqueadas por el navegador con `No 'Access-Control-Allow-Origin' header is present on the requested resource`.
