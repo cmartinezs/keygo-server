@@ -37,6 +37,33 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
   List<MembershipEntity> findByClientAppId(UUID clientAppId);
 
   /**
+   * List all memberships for a user within a specific tenant.
+   * <p>Lista membresías de un usuario dentro de un tenant específico.
+   */
+  @Query("SELECT m FROM MembershipEntity m WHERE m.user.id = :userId AND m.user.tenant.slug = :tenantSlug")
+  List<MembershipEntity> findByUserIdAndTenantSlug(
+      @Param("userId") UUID userId,
+      @Param("tenantSlug") String tenantSlug);
+
+  /**
+   * List all memberships for a client app within a specific tenant.
+   * <p>Lista membresías de una app dentro de un tenant específico.
+   */
+  @Query("SELECT m FROM MembershipEntity m WHERE m.clientApp.id = :clientAppId AND m.clientApp.tenant.slug = :tenantSlug")
+  List<MembershipEntity> findByClientAppIdAndTenantSlug(
+      @Param("clientAppId") UUID clientAppId,
+      @Param("tenantSlug") String tenantSlug);
+
+  /**
+   * Find a membership by ID within a specific tenant (validated via user's tenant).
+   * <p>Busca una membresía por ID dentro de un tenant específico (validado por tenant del usuario).
+   */
+  @Query("SELECT m FROM MembershipEntity m WHERE m.id = :membershipId AND m.user.tenant.slug = :tenantSlug")
+  Optional<MembershipEntity> findByIdAndTenantSlug(
+      @Param("membershipId") UUID membershipId,
+      @Param("tenantSlug") String tenantSlug);
+
+  /**
    * Check if a membership exists.
    * <p>Verifica si una membresía existe.
    */

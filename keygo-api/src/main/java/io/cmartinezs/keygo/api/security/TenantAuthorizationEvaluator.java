@@ -17,7 +17,7 @@ public class TenantAuthorizationEvaluator {
       return false;
     }
 
-    if (hasRole(authentication, "ROLE_ADMIN")) {
+    if (hasAdminRole(authentication)) {
       return true;
     }
 
@@ -34,10 +34,10 @@ public class TenantAuthorizationEvaluator {
     return requestedTenantSlug.equalsIgnoreCase(tokenTenantSlug);
   }
 
-  private boolean hasRole(Authentication authentication, String requiredRole) {
+  private boolean hasAdminRole(Authentication authentication) {
     return authentication.getAuthorities().stream()
         .map(GrantedAuthority::getAuthority)
-        .anyMatch(requiredRole::equals);
+        .anyMatch("ROLE_ADMIN"::equals);
   }
 
   private String resolveTenantSlugFromPath() {

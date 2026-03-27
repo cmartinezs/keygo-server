@@ -102,13 +102,12 @@ public class TenantMembershipController {
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Filter by user ID") @RequestParam(name = "user_id", required = false) UUID userId,
       @Parameter(description = "Filter by client app ID") @RequestParam(name = "client_app_id", required = false) UUID clientAppId) {
-      @Parameter(description = "Filter by client app ID") @RequestParam(required = false) UUID clientAppId) {
 
     List<Membership> memberships;
     if (userId != null) {
-      memberships = listMembershipsUseCase.listByUserId(userId);
+      memberships = listMembershipsUseCase.listByUserId(userId, tenantSlug);
     } else if (clientAppId != null) {
-      memberships = listMembershipsUseCase.listByClientAppId(clientAppId);
+      memberships = listMembershipsUseCase.listByClientAppId(clientAppId, tenantSlug);
     } else {
       memberships = List.of();
     }
@@ -143,7 +142,7 @@ public class TenantMembershipController {
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Membership ID") @PathVariable UUID membershipId) {
 
-    revokeMembershipUseCase.execute(MembershipId.of(membershipId));
+    revokeMembershipUseCase.execute(MembershipId.of(membershipId), tenantSlug);
 
     BaseResponse<Void> response = BaseResponse.<Void>builder()
         .success(ResponseHelper.message(ResponseCode.MEMBERSHIP_REVOKED))

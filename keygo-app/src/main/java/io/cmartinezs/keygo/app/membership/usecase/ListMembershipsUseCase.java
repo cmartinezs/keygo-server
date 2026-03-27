@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Use case: list memberships for a given user or app.
- * <p>Caso de uso: listar membresías de un usuario o app.
+ * Use case: list memberships for a given user or app, scoped to a tenant.
+ * <p>Caso de uso: listar membresías de un usuario o app, acotadas a un tenant.
  * @author cmartinezs
  * @version 1.0
  */
@@ -20,23 +20,24 @@ public class ListMembershipsUseCase {
   }
 
   /**
-   * List memberships for a given user.
-   * <p>Lista membresías de un usuario.
+   * List memberships for a given user within a tenant.
+   * <p>Lista membresías de un usuario dentro de un tenant.
    * @param userId the user ID
+   * @param tenantSlug the tenant slug to scope the query
    * @return list of memberships
    */
-  public List<Membership> listByUserId(UUID userId) {
-    return membershipRepositoryPort.findByUserId(userId);
+  public List<Membership> listByUserId(UUID userId, String tenantSlug) {
+    return membershipRepositoryPort.findByUserIdAndTenantSlug(userId, tenantSlug);
   }
 
   /**
-   * List memberships for a given app.
-   * <p>Lista membresías de una app.
+   * List memberships for a given app within a tenant.
+   * <p>Lista membresías de una app dentro de un tenant.
    * @param clientAppId the client app ID
+   * @param tenantSlug the tenant slug to scope the query
    * @return list of memberships
    */
-  public List<Membership> listByClientAppId(UUID clientAppId) {
-    return membershipRepositoryPort.findByClientAppId(clientAppId);
+  public List<Membership> listByClientAppId(UUID clientAppId, String tenantSlug) {
+    return membershipRepositoryPort.findByClientAppIdAndTenantSlug(clientAppId, tenantSlug);
   }
 }
-

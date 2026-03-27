@@ -49,11 +49,33 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
   }
 
   @Override
+  public List<Membership> findByUserIdAndTenantSlug(UUID userId, String tenantSlug) {
+    return jpaRepository.findByUserIdAndTenantSlug(userId, tenantSlug)
+        .stream()
+        .map(MembershipPersistenceMapper::toDomain)
+        .toList();
+  }
+
+  @Override
   public List<Membership> findByClientAppId(UUID clientAppId) {
     return jpaRepository.findByClientAppId(clientAppId)
         .stream()
         .map(MembershipPersistenceMapper::toDomain)
         .toList();
+  }
+
+  @Override
+  public List<Membership> findByClientAppIdAndTenantSlug(UUID clientAppId, String tenantSlug) {
+    return jpaRepository.findByClientAppIdAndTenantSlug(clientAppId, tenantSlug)
+        .stream()
+        .map(MembershipPersistenceMapper::toDomain)
+        .toList();
+  }
+
+  @Override
+  public Optional<Membership> findByIdAndTenantSlug(MembershipId membershipId, String tenantSlug) {
+    return jpaRepository.findByIdAndTenantSlug(membershipId.value(), tenantSlug)
+        .map(MembershipPersistenceMapper::toDomain);
   }
 
   @Override

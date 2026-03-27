@@ -10,6 +10,30 @@
 
 ---
 
+### [2026-03-27] Métodos de use case sin scope de tenant permiten acceso cross-tenant
+
+**Contexto:** Revisión de `TenantMembershipController` y sus use cases `ListMembershipsUseCase` y `RevokeMembershipUseCase`.
+
+**Problema:** El controller recibía el `{tenantSlug}` del path pero no lo pasaba a los use cases:
+- `listMembershipsUseCase.listByUserId(userId)` y `listByClientAppId(clientAppId)` filtraban solo por ID, devolviendo membresías de cualquier tenant que posea ese usuario/app.
+- `revokeMembershipUseCase.execute(membershipId)` eliminaba la membresía sin verificar si pertenece al tenant del URL, permitiendo que un ADMIN_TENANT borre membresías de otro tenant si conoce el UUID.
+El `@PreAuthorize` con `hasTenantAccess()` solo protege la autenticación/autorización del JWT pero NO garantiza que los datos retornados/eliminados pertenezcan al tenant del path.
+
+**Solución / Buena práctica:**
+1. Agregar métodos tenant-scoped al `MembershipRepositoryPort`: `findByUserIdAndTenantSlug`, `findByClientAppIdAndTenantSlug`, `findByIdAndTenantSlug`.
+2. Implementarlos con JPQL usando navegación JPA: `m.user.tenant.slug` y `m.clientApp.tenant.slug`.
+3. Actualizar los use cases para recibir `tenantSlug` y usar siempre los métodos scoped.
+4. Regla general: cuando un controller tiene `{tenantSlug}` en el path, **todos** los use cases invocados desde ese controller deben recibir y usar el slug para acotar sus queries.
+5. El `@PreAuthorize` controla QUIÉN puede acceder; la validación de scope de datos (QUÉ tenant) es responsabilidad del use case/repositorio.
+
+**Archivos clave:**
+- `keygo-app/.../membership/port/MembershipRepositoryPort.java`
+- `keygo-app/.../membership/usecase/ListMembershipsUseCase.java`
+- `keygo-app/.../membership/usecase/RevokeMembershipUseCase.java`
+- `keygo-supabase/.../membership/repository/MembershipJpaRepository.java`
+- `keygo-supabase/.../membership/adapter/MembershipRepositoryAdapter.java`
+- `keygo-api/.../membership/controller/TenantMembershipController.java`
+
 ### [2026-03-27] Colección Postman corrompida por edición parcial del agente
 
 **Contexto:** Verificación de integridad de los archivos Postman (`KeyGo-Server.postman_collection.json` y `KeyGo-Server-Local.postman_environment.json`).

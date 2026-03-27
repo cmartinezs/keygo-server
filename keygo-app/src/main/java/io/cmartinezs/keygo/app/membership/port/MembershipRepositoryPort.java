@@ -42,12 +42,39 @@ public interface MembershipRepositoryPort {
   List<Membership> findByUserId(UUID userId);
 
   /**
+   * List all memberships for a given user scoped to a tenant.
+   * <p>Lista todas las membresías de un usuario dentro del tenant indicado.
+   * @param userId the user ID
+   * @param tenantSlug the tenant slug
+   * @return list of memberships
+   */
+  List<Membership> findByUserIdAndTenantSlug(UUID userId, String tenantSlug);
+
+  /**
    * List all memberships for a given client app.
    * <p>Lista todas las membresías de una app de cliente.
    * @param clientAppId the client app ID
    * @return list of memberships
    */
   List<Membership> findByClientAppId(UUID clientAppId);
+
+  /**
+   * List all memberships for a given client app scoped to a tenant.
+   * <p>Lista todas las membresías de una app de cliente dentro del tenant indicado.
+   * @param clientAppId the client app ID
+   * @param tenantSlug the tenant slug
+   * @return list of memberships
+   */
+  List<Membership> findByClientAppIdAndTenantSlug(UUID clientAppId, String tenantSlug);
+
+  /**
+   * Find a membership by ID scoped to a tenant.
+   * <p>Encuentra una membresía por ID dentro del tenant indicado.
+   * @param membershipId the membership ID
+   * @param tenantSlug the tenant slug
+   * @return the membership, or empty if not found or not belonging to the tenant
+   */
+  Optional<Membership> findByIdAndTenantSlug(MembershipId membershipId, String tenantSlug);
 
   /**
    * Check if a membership exists for the given user and client app.
