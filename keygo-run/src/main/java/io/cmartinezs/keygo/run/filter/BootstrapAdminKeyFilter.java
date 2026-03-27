@@ -91,8 +91,13 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     String requestPath = request.getServletPath();
     log.debug("BootstrapAdminKeyFilter processing request: {} (URI: {})", requestPath, request.getRequestURI());
     if (!bootstrapProperties.isEnabled()) {
-      log.debug("Bootstrap is disabled, allowing request without authentication");
-      filterChain.doFilter(request, response);
+      log.debug("Bootstrap is disabled — setting bypass authentication with ROLE_ADMIN");
+      setBypassAuthentication();
+      try {
+        filterChain.doFilter(request, response);
+      } finally {
+        SecurityContextHolder.clearContext();
+      }
       return;
     }
     if (isPublicPath(requestPath)) {
@@ -178,7 +183,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
       Collection<GrantedAuthority> authorities = roles.stream()
           .map(String::trim)
           .filter(role -> !role.isBlank())
-          .map(role -> "ROLE_" + role)
+          .map(role -> "ROLE_" + role.toUpperCase())
           .map(SimpleGrantedAuthority::new)
           .collect(Collectors.toSet());
 
@@ -195,6 +200,33 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
       log.warn("Bearer JWT validation failed for path {}: {}", request.getServletPath(), e.getMessage());
       return false;
     }
+  }
+
+  // ─── Bypass authentication (bootstrap disabled) ───────────────────────────
+
+  /**
+   * Sets an all-access authentication in the SecurityContext when bootstrap is disabled.
+   * Roles are read from {@code keygo.bootstrap.bypass-roles} (default: ADMIN, ADMIN_TENANT, USER).
+   * The {@code ROLE_} prefix is added automatically, mirroring JWT role normalization.
+   * The principal is a Map compatible with {@code TenantAuthorizationEvaluator}; ROLE_ADMIN
+   * triggers the short-circuit in {@code hasTenantAccess()} so tenant checks are bypassed too.
+   */
+  private void setBypassAuthentication() {
+    List<String> configuredRoles = bootstrapProperties.getBypassRoles();
+    Collection<GrantedAuthority> authorities = configuredRoles.stream()
+        .map(String::trim)
+        .filter(r -> !r.isBlank())
+        .map(r -> "ROLE_" + r.toUpperCase())
+        .map(SimpleGrantedAuthority::new)
+        .collect(Collectors.toList());
+
+    Map<String, Object> bypassPrincipal = Map.of(
+        "sub", "bypass",
+        "roles", configuredRoles
+    );
+    UsernamePasswordAuthenticationToken auth =
+        new UsernamePasswordAuthenticationToken(bypassPrincipal, "bypass", authorities);
+    SecurityContextHolder.getContext().setAuthentication(auth);
   }
 
   private List<String> extractRoles(Object rolesClaim) {

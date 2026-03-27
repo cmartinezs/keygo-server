@@ -916,8 +916,46 @@ export function AdminDashboard() {
 
 ### 8.2. Listar tenants ⏳ PENDIENTE BACKEND
 
-> **Endpoint esperado:** `GET /api/v1/tenants` — No implementado (**F-033**)
-> Usar mock de MSW durante el desarrollo (ver sección 15).
+```typescript
+interface TenantData {
+  id: string; slug: string; name: string;
+  ownerEmail: string; status: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
+}
+
+interface PagedData<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+interface ListTenantsParams {
+  status?: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
+  nameLike?: string;
+  page?: number;
+  size?: number;
+}
+
+const listTenants = (params?: ListTenantsParams) =>
+  apiClient
+    .get<BaseResponse<PagedData<TenantData>>>('/tenants', { params })
+    .then(r => r.data);
+```
+
+**Ejemplo de respuesta:**
+```json
+{
+  "success": { "code": "TENANT_LIST_RETRIEVED", "message": "Tenant list retrieved successfully" },
+  "data": {
+    "content": [
+      { "id": "...", "name": "Acme Corp", "slug": "acme-corp", "ownerEmail": "admin@acme.com", "status": "ACTIVE" }
+    ],
+    "page": 0, "size": 20, "totalElements": 1, "totalPages": 1, "last": true
+  }
+}
+```
 
 ---
 

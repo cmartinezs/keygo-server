@@ -50,3 +50,9 @@ spring:
 keygo:
   bootstrap:
     enabled: false
+    # Roles concedidos automáticamente en modo bypass (sin prefijo ROLE_).
+    # Modificar para restringir el acceso en pruebas locales.
+    bypass-roles:
+      - ADMIN
+      - ADMIN_TENANT
+      - USER

@@ -6,6 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
+
 /**
  * Configuration properties for KeyGo bootstrap settings.
  * <p>Propiedades de configuración para ajustes de arranque de KeyGo.
@@ -22,6 +24,15 @@ public class KeyGoBootstrapProperties {
   /* Whether bootstrap is enabled. Default is true.
    * Si el arranque está habilitado. Por defecto es true. */
   private boolean enabled = true;
+
+  /**
+   * Roles granted in bypass mode (when {@code enabled=false}).
+   * Written without the {@code ROLE_} prefix — the filter adds it automatically.
+   * Configurable via {@code keygo.bootstrap.bypass-roles} in application YAML.
+   * <p>Roles otorgados en modo bypass (cuando {@code enabled=false}).
+   * Se escriben sin el prefijo {@code ROLE_} — el filtro lo agrega automáticamente.
+   */
+  private List<String> bypassRoles = List.of("ADMIN", "ADMIN_TENANT", "USER");
 
   /* API path prefix that requires authentication.
    * Prefijo de ruta de API que requiere autenticación.

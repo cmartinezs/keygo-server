@@ -10,9 +10,72 @@
 
 ---
 
+### [2026-03-27] `keygo.bootstrap.enabled=false` sin SecurityContext → `@PreAuthorize` falla con 403
+
+**Contexto:** Al ejecutar con perfil `local` (`application-local.yml` tiene `keygo.bootstrap.enabled: false`), el endpoint `GET /api/v1/tenants` devolvía 403 Access Denied incluso con un JWT Bearer válido.
+
+**Problema:** Cuando `bootstrapProperties.isEnabled()` es `false`, el filtro hacía `filterChain.doFilter()` directamente sin establecer ningún `SecurityContext`. La anotación `@PreAuthorize("hasRole('ADMIN')")` evaluaba contra un contexto vacío (sin `Authentication`) → lanzaba `AuthorizationDeniedException` → 403. El JWT del usuario nunca era leído en este escenario.
+
+**Solución / Buena práctica:**
+- Cuando bootstrap está desactivado (modo dev/test), el filtro debe establecer un **authentication de bypass** en el `SecurityContext` con `ROLE_ADMIN`, `ROLE_ADMIN_TENANT` y `ROLE_USER`.
+- El `TenantAuthorizationEvaluator` hace short-circuit al detectar `ROLE_ADMIN` (retorna `true` directamente), por lo que el principal del bypass (un `Map` compatible) es suficiente.
+- El `SecurityContextHolder.clearContext()` sigue invocándose en el bloque `finally` para no contaminar solicitudes posteriores.
+- Agregar test que valide con `doAnswer` que el contexto tiene la autenticación de bypass durante la ejecución de la cadena de filtros.
+
+**Archivos clave:**
+- `keygo-run/src/main/java/…/filter/BootstrapAdminKeyFilter.java` (método `setBypassAuthentication()`)
+- `keygo-run/src/main/resources/application-local.yml` (tiene `keygo.bootstrap.enabled: false`)
+
+---
+
+### [2026-03-27] JWT roles en minúsculas vs. `@PreAuthorize("hasRole('ADMIN')")` en mayúsculas — case mismatch
+
+**Contexto:** El endpoint `GET /api/v1/tenants` devolvía `Access Denied` para `keygo_admin` con un JWT válido que incluía `"roles": ["admin"]`.
+
+**Problema:** El `BootstrapAdminKeyFilter` construía las `GrantedAuthority` como `ROLE_admin` (preservando las minúsculas del claim JWT). La anotación `@PreAuthorize("hasRole('ADMIN')")` busca `ROLE_ADMIN` (mayúsculas). El mismatch causaba que la autorización fallara siempre para tokens generados por el sistema (que emite roles en minúsculas).
+
+**Solución / Buena práctica:**
+- Normalizar los roles a mayúsculas en el filtro al construir las authorities: `.map(role -> "ROLE_" + role.toUpperCase())`.
+- Esto asegura que el filtro siempre produce `ROLE_ADMIN`, `ROLE_ADMIN_TENANT`, etc., independientemente del case que tenga el JWT.
+- Los tests de `BootstrapAdminKeyFilterTest` ya mockeaban con `"ADMIN"` (uppercase), lo que los hacía pasar pero enmascaraba el bug con tokens reales.
+
+**Archivos clave:**
+- `keygo-run/src/main/java/…/filter/BootstrapAdminKeyFilter.java` (método `authenticateBearer`)
+
+---
+
+### [2026-03-27] `AuthorizationDeniedException` interceptada por `ExceptionTranslationFilter` antes del `@RestControllerAdvice`
+
+**Contexto:** Al fallar `@PreAuthorize`, la excepción `AuthorizationDeniedException` (que extiende `AccessDeniedException`) no era capturada por el handler específico en `GlobalExceptionHandler` sino que llegaba al handler genérico de `Exception`. El comportamiento real es que `ExceptionTranslationFilter` de Spring Security intercepta `AccessDeniedException` antes de que los resolvers de Spring MVC puedan actuar, llamando al `AccessDeniedHandler` por defecto que devuelve una respuesta 403 sin formato JSON.
+
+**Problema:** Sin un `AccessDeniedHandler` personalizado en `SecurityConfig`, las respuestas de autorización denegada eran respuestas HTTP 403 sin cuerpo JSON (o con el cuerpo por defecto de Spring Security), rompiendo el contrato de `BaseResponse<T>` del API.
+
+**Solución / Buena práctica:**
+- Configurar un `AccessDeniedHandler` custom en `SecurityConfig` que escriba un `BaseResponse<ErrorData>` con `ResponseCode.INSUFFICIENT_PERMISSIONS` y status 403.
+- El `@ExceptionHandler(AccessDeniedException.class)` en `GlobalExceptionHandler` es necesario como segunda línea de defensa para casos donde la excepción sí llega al DispatcherServlet (p.ej. cuando Spring MVC intercepta antes que `ExceptionTranslationFilter`).
+- Ambos mecanismos deben coexistir: `AccessDeniedHandler` en `SecurityConfig` + `@ExceptionHandler` en `GlobalExceptionHandler`.
+
+**Archivos clave:**
+- `keygo-run/src/main/java/…/config/security/SecurityConfig.java` (bean `keyGoAccessDeniedHandler`)
+- `keygo-api/src/main/java/…/error/GlobalExceptionHandler.java` (handler `handleAccessDeniedException`)
+
+---
+
+### [2026-03-27] `replace_string_in_file` en archivos de test puede dejar contenido duplicado fuera de la clase
+
+**Contexto:** Al ampliar `PlatformTenantControllerTest` reemplazando el bloque de `@Mock` + `@InjectMocks`, la tool reemplazó únicamente la cabecera de la clase pero dejó el cuerpo original del archivo intacto a continuación, resultando en métodos y código fuera de los corchetes de cierre de la clase.
+
+**Problema:** El compilador reportó `unnamed classes are a preview feature` y `class, interface, enum, or record expected` porque el contenido extra quedó como código suelto fuera de la clase. El `replace_string_in_file` emparejó correctamente el `oldString` pero no eliminó el bloque posterior al match.
+
+**Solución / Buena práctica:**
+- Al reemplazar la cabecera de una clase de test que ya tenía contenido, incluir en el `oldString` **todo el cuerpo** hasta la llave de cierre, o usar un `oldString` que abarque hasta el final del contenido que debe ser reemplazado.
+- Alternativamente, reescribir el archivo completo (cuando la tool lo permita) en lugar de hacer un reemplazo parcial de la cabecera.
+- Tras cualquier operación de edición de test, verificar con `./mvnw -pl <módulo> test-compile` antes de ejecutar tests completos.
+
+---
+
 ### [2026-03-27] `SigningKeyInitializer` debe incluir el perfil `local` — sin él no hay clave de firma en H2
 
-**Contexto:** El servidor se levantó con `SPRING_PROFILES_ACTIVE=local` (H2 file-based, sin Supabase). Cualquier intento de emitir un JWT fallaba con `No active signing key found`.
 
 **Problema:** `SigningKeyBootstrapService` tenía `@Profile("supabase")` → no corre en `local`. `data-local.sql` no incluye seed de `signing_keys`. Con perfil `local` el banco H2 arrancaba vacío de claves, y la primera llamada a `/oauth2/token` o similar explotaba con `IllegalStateException: No active signing key found`.
 

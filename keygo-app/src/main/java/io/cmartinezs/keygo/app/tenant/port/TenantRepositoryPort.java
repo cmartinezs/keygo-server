@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.tenant.port;
 
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 
@@ -36,5 +38,13 @@ public interface TenantRepositoryPort {
    * @return true if the slug is already taken
    */
   boolean existsBySlug(TenantSlug slug);
+
+  /**
+   * Find all tenants matching the given filter criteria, paginated.
+   * <p>Busca todos los tenants que coincidan con los criterios de filtro, paginado.
+   * @param filter the filter and pagination criteria / los criterios de filtro y paginación
+   * @return a paginated result with matching tenants / resultado paginado con los tenants que coinciden
+   */
+  PagedResult<Tenant> findAll(TenantFilter filter);
 }
 

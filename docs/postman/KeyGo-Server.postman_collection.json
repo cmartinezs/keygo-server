@@ -456,6 +456,97 @@
           ]
         },
         {
+          "name": "GET List Tenants",
+          "id": "req-list-tenants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants?page=0&size=20",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "Filtrar por estado (ACTIVE, SUSPENDED, PENDING). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "nameLike",
+                  "value": "",
+                  "description": "Búsqueda parcial en nombre del tenant (case-insensitive). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Número de página (base 0)."
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Tamaño de página (1-200)."
+                }
+              ]
+            },
+            "description": "Lista todos los tenants con paginación y filtros opcionales.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminJwt>`.\n\n**Query params:**\n- `status` (opcional): `ACTIVE`, `SUSPENDED`, `PENDING`\n- `nameLike` (opcional): búsqueda parcial en nombre (case-insensitive)\n- `page` (default 0): número de página (base 0)\n- `size` (default 20): tamaño de página (1–200)\n\n**ResponseCode esperado:** `TENANT_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('BaseResponse envelope — success present', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('success');",
+                  "  pm.expect(body.success.code).to.eql('TENANT_LIST_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data is PagedData with content array', () => {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data).to.have.property('content').that.is.an('array');",
+                  "  pm.expect(data).to.have.property('page');",
+                  "  pm.expect(data).to.have.property('size');",
+                  "  pm.expect(data).to.have.property('totalElements');",
+                  "  pm.expect(data).to.have.property('totalPages');",
+                  "  pm.expect(data).to.have.property('last');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Lista paginada de tenants",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-27T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_LIST_RETRIEVED\",\n    \"message\": \"Tenant list retrieved successfully\"\n  },\n  \"data\": {\n    \"content\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Acme Corp\",\n        \"slug\": \"acme-corp\",\n        \"ownerEmail\": \"admin@acme.com\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"page\": 0,\n    \"size\": 20,\n    \"totalElements\": 1,\n    \"totalPages\": 1,\n    \"last\": true\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
           "name": "GET Tenant by Slug",
           "id": "req-get-tenant",
           "request": {

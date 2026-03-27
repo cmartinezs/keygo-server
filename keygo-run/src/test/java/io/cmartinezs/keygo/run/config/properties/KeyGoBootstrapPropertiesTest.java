@@ -100,4 +100,33 @@ class KeyGoBootstrapPropertiesTest {
         assertThat(properties.getLoginPathSuffix()).isEqualTo("/account/login");
         assertThat(properties.getTokenPathSuffix()).isEqualTo("/oauth2/token");
     }
+
+    @Test
+    void bypassRoles_shouldDefaultToAdminAdminTenantUser() {
+        // Given — fresh instance (no explicit set)
+        // When / Then
+        assertThat(properties.getBypassRoles())
+            .containsExactlyInAnyOrder("ADMIN", "ADMIN_TENANT", "USER");
+    }
+
+    @Test
+    void bypassRoles_shouldBeConfigurable() {
+        // Given
+        var customRoles = java.util.List.of("ADMIN");
+
+        // When
+        properties.setBypassRoles(customRoles);
+
+        // Then
+        assertThat(properties.getBypassRoles()).containsExactly("ADMIN");
+    }
+
+    @Test
+    void bypassRoles_shouldSupportEmptyList() {
+        // Given
+        properties.setBypassRoles(java.util.List.of());
+
+        // When / Then
+        assertThat(properties.getBypassRoles()).isEmpty();
+    }
 }

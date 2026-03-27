@@ -22,6 +22,7 @@ public enum ResponseCode {
   // Tenant Operations
   TENANT_CREATED("TENANT_CREATED", "Tenant created successfully"),
   TENANT_RETRIEVED("TENANT_RETRIEVED", "Tenant retrieved successfully"),
+  TENANT_LIST_RETRIEVED("TENANT_LIST_RETRIEVED", "Tenant list retrieved successfully"),
   TENANT_SUSPENDED("TENANT_SUSPENDED", "Tenant suspended successfully"),
 
   // User Operations

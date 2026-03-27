@@ -33,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -372,6 +373,18 @@ public class GlobalExceptionHandler {
       EmailVerificationStillActiveException ex) {
     log.warn("Resend blocked — code still active: {}", ex.getMessage());
     return error(HttpStatus.CONFLICT, ResponseCode.EMAIL_VERIFICATION_STILL_ACTIVE, ex);
+  }
+
+  /**
+   * Handles AccessDeniedException (including AuthorizationDeniedException from @PreAuthorize).
+   * Returns 403 Forbidden with a structured BaseResponse.
+   * <p>Maneja AccessDeniedException (incluye AuthorizationDeniedException de @PreAuthorize).
+   * Retorna 403 Forbidden con un BaseResponse estructurado.
+   */
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleAccessDeniedException(AccessDeniedException ex) {
+    log.warn("Access denied: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.INSUFFICIENT_PERMISSIONS, ex);
   }
 
   /**

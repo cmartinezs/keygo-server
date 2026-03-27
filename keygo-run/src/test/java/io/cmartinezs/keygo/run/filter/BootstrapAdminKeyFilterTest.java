@@ -63,6 +63,7 @@ class BootstrapAdminKeyFilterTest {
   void doFilterInternal_shouldAllowRequestWhenBootstrapDisabled() throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
     request.setServletPath("/api/v1/test");
 
     // When
@@ -71,6 +72,67 @@ class BootstrapAdminKeyFilterTest {
     // Then
     verify(filterChain).doFilter(request, response);
     assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldSetBypassAuthenticationWhenBootstrapDisabled() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
+    request.setServletPath("/api/v1/tenants");
+
+    // Capture the SecurityContext state during filter execution
+    var capturedAuth = new java.util.concurrent.atomic.AtomicReference<org.springframework.security.core.Authentication>();
+    doAnswer(invocation -> {
+      capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
+      return null;
+    }).when(filterChain).doFilter(request, response);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    org.springframework.security.core.Authentication auth = capturedAuth.get();
+    assertThat(auth).isNotNull();
+    assertThat(auth.isAuthenticated()).isTrue();
+    assertThat(auth.getAuthorities()).extracting("authority")
+        .containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_ADMIN_TENANT", "ROLE_USER");
+  }
+
+  @Test
+  void doFilterInternal_shouldRespectConfiguredBypassRoles() throws ServletException, IOException {
+    // Given — only ADMIN configured (restricted bypass)
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN"));
+    request.setServletPath("/api/v1/tenants");
+
+    var capturedAuth = new java.util.concurrent.atomic.AtomicReference<org.springframework.security.core.Authentication>();
+    doAnswer(invocation -> {
+      capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
+      return null;
+    }).when(filterChain).doFilter(request, response);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    assertThat(capturedAuth.get().getAuthorities()).extracting("authority")
+        .containsExactly("ROLE_ADMIN")
+        .doesNotContain("ROLE_ADMIN_TENANT", "ROLE_USER");
+  }
+
+  @Test
+  void doFilterInternal_shouldClearSecurityContextAfterBypassRequest() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then — context must be cleared after the request
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
   }
 
   // ─── Public paths ──────────────────────────────────────────────────────────

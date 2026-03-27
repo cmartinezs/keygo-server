@@ -3,13 +3,18 @@ package io.cmartinezs.keygo.api.tenant.controller;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.tenant.request.CreateTenantRequest;
 import io.cmartinezs.keygo.api.tenant.response.TenantData;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.command.CreateTenantCommand;
+import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
+import io.cmartinezs.keygo.app.tenant.usecase.ListTenantsUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
+import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,6 +27,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST controller for platform-level tenant management operations.
@@ -40,14 +47,72 @@ public class PlatformTenantController {
   private final CreateTenantUseCase createTenantUseCase;
   private final GetTenantBySlugUseCase getTenantBySlugUseCase;
   private final SuspendTenantUseCase suspendTenantUseCase;
+  private final ListTenantsUseCase listTenantsUseCase;
 
   public PlatformTenantController(
       CreateTenantUseCase createTenantUseCase,
       GetTenantBySlugUseCase getTenantBySlugUseCase,
-      SuspendTenantUseCase suspendTenantUseCase) {
+      SuspendTenantUseCase suspendTenantUseCase,
+      ListTenantsUseCase listTenantsUseCase) {
     this.createTenantUseCase = createTenantUseCase;
     this.getTenantBySlugUseCase = getTenantBySlugUseCase;
     this.suspendTenantUseCase = suspendTenantUseCase;
+    this.listTenantsUseCase = listTenantsUseCase;
+  }
+
+  /**
+   * List all tenants with optional filtering and pagination.
+   * Listar todos los tenants con filtrado opcional y paginación.
+   *
+   * @param status   optional status filter (ACTIVE, SUSPENDED, PENDING)
+   * @param nameLike optional partial match on tenant name (case-insensitive)
+   * @param page     zero-based page number (default 0)
+   * @param size     page size 1–200 (default 20)
+   * @return 200 OK with paginated tenant list
+   */
+  @GetMapping
+  @Operation(
+      summary = "List all tenants",
+      description = "Returns a paginated list of all tenants. Supports optional filtering by "
+                    + "status and partial name match. Requires ADMIN role.")
+  @ApiResponse(responseCode = "200", description = "Tenant list retrieved successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid query parameters",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  public ResponseEntity<BaseResponse<PagedData<TenantData>>> listTenants(
+      @Parameter(description = "Filter by tenant status (ACTIVE, SUSPENDED, PENDING)")
+      @RequestParam(required = false) TenantStatus status,
+      @Parameter(description = "Partial match on tenant name (case-insensitive)")
+      @RequestParam(required = false) String nameLike,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size) {
+
+    TenantFilter filter = TenantFilter.of(status, nameLike, page, size);
+    PagedResult<Tenant> result = listTenantsUseCase.execute(filter);
+
+    List<TenantData> content = result.getContent().stream()
+        .map(this::toData)
+        .toList();
+
+    PagedData<TenantData> pagedData = PagedData.<TenantData>builder()
+        .content(content)
+        .page(result.getPage())
+        .size(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .last(result.isLast())
+        .build();
+
+    BaseResponse<PagedData<TenantData>> response = BaseResponse.<PagedData<TenantData>>builder()
+        .data(pagedData)
+        .success(ResponseHelper.message(ResponseCode.TENANT_LIST_RETRIEVED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
   /**

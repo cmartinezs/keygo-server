@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.supabase.tenant.repository;
 
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -13,7 +14,8 @@ import java.util.UUID;
  * @author cmartinezs
  * @version 1.0
  */
-public interface TenantJpaRepository extends JpaRepository<TenantEntity, UUID> {
+public interface TenantJpaRepository
+    extends JpaRepository<TenantEntity, UUID>, JpaSpecificationExecutor<TenantEntity> {
 
   /**
    * Find a tenant entity by its unique slug.

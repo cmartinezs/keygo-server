@@ -145,6 +145,7 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/service/info`
 - `http://localhost:8080/keygo-server/api/v1/response-codes`
 - `http://localhost:8080/keygo-server/api/v1/tenants` (POST — create)
+- `http://localhost:8080/keygo-server/api/v1/tenants` (GET — **ADMIN** — list all tenants, paginated, with filters `status`, `nameLike`, `page`, `size`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}` (GET — retrieve)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/suspend` (PUT — suspend)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps` (POST — create client app)
@@ -377,6 +378,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-27 | Endpoint `GET /api/v1/tenants` — listado paginado de tenants con filtros `status`/`nameLike`: `PagedResult<T>`, `TenantFilter`, `ListTenantsUseCase`, `PagedData<T>`, `TenantJpaRepository+JpaSpecificationExecutor`, `TENANT_LIST_RETRIEVED` |
 | 2026-03-23 | Corrección de documentación — Fase 9 marcada como ✅ COMPLETADA: tabla de fases corregida, ROADMAP actualizado (endpoints 21→24, tests 305+→320+, Postman 29→38), IMPLEMENTATION_PLAN.md actualizado con componentes reales |
 | 2026-03-23 | Registro con verificación email — `RegisterTenantUserUseCase`, `VerifyEmailUseCase`, `ResendVerificationEmailUseCase`, `EmailVerificationEntity` (V12), `SmtpEmailNotificationAdapter`, `RegistrationController` (3 endpoints públicos), 3 nuevos sufijos en filtro, `lecciones.md` actualizado |
 | 2026-03-23 | Fase 8 — Client Credentials grant (M2M): `IssueClientCredentialsTokenUseCase`, rama `client_credentials` en `POST /oauth2/token`, `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`, Postman request |

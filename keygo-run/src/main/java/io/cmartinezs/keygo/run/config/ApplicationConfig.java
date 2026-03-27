@@ -44,6 +44,7 @@ import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
+import io.cmartinezs.keygo.app.tenant.usecase.ListTenantsUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
@@ -112,6 +113,11 @@ public class ApplicationConfig {
   @Bean
   public SuspendTenantUseCase suspendTenantUseCase(TenantRepositoryPort tenantRepositoryPort) {
     return new SuspendTenantUseCase(tenantRepositoryPort);
+  }
+
+  @Bean
+  public ListTenantsUseCase listTenantsUseCase(TenantRepositoryPort tenantRepositoryPort) {
+    return new ListTenantsUseCase(tenantRepositoryPort);
   }
 
   @Bean

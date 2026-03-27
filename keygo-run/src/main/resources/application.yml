@@ -20,6 +20,7 @@ keygo:
     issuer-base-url: "${KEYGO_ISSUER_BASE_URL:http://localhost:8080/keygo-server}"
   bootstrap:
     enabled: true
+    bypass-roles: ${KEYGO_BOOTSTRAP_BYPASS_ROLES:ADMIN,ADMIN_TENANT,USER}
     api-path-prefix: "/api/"
     actuator-path-prefix: "/actuator/"
     service-info-path-prefix: "/service/info"
