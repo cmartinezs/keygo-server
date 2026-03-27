@@ -26,6 +26,9 @@
 
 | Fecha | Tema | Categoría |
 |---|---|---|
+| 2026-03-27 | [`data-local.sql` debe ser copia fiel de V14+V15 — mismos UUIDs, 2 tenants, 5 usuarios, hashes V15](#2026-03-27-data-localsql-debe-ser-copia-fiel-de-v14v15--mismos-uuids-2-tenants-5-usuarios-hashes-v15) | DB / Seed / H2 / Compatibilidad |
+| 2026-03-27 | [BD H2 file-based persiste entre reinicios: borrar `db/*.mv.db` al cambiar seed o esquema](#2026-03-27-bd-h2-file-based-persiste-entre-reinicios-borrar-dbmvdb-al-cambiar-seed-o-esquema) | H2 / Local / Ops |
+| 2026-03-26 | [`ON CONFLICT DO NOTHING` es sintaxis PostgreSQL — usar `INSERT ... SELECT ... WHERE NOT EXISTS` en H2](#2026-03-26-on-conflict-do-nothing-es-sintaxis-postgresql--usar-insert-select-where-not-exists-en-h2) | SQL / H2 / Compatibilidad |
 | 2026-03-26 | [El agente nunca debe ejecutar comandos `git` directamente — usar listas de comandos sugeridos](#2026-03-26-el-agente-nunca-debe-ejecutar-comandos-git-directamente) | Agente / Reglas de trabajo |
 | 2026-03-26 | [Verificar estado de compilación pre-existente con `./mvnw clean` antes de atribuir errores a cambios propios](#2026-03-26-verificar-estado-de-compilación-pre-existente-con-mvnw-clean) | Build / Testing |
 | 2026-03-26 | [Documentar Swagger: 5 controllers de auth/OIDC sin anotaciones `@Tag`/`@Operation` y grupos desactualizados](#2026-03-26-documentar-swagger-controllers-sin-anotaciones-y-grupos-desactualizados) | API / Swagger / Docs |
@@ -482,7 +485,7 @@ Al revisar una inconsistencia entre docs y código/DB, aplicar este criterio:
 **Contexto:** El proyecto carecía de colecciones Postman importables.
 **Problema:** Sin colecciones estándar, cada prueba requería configuración manual.
 **Solución / Buena práctica:** Crear archivos bajo `postman/` (schema v2.1.0). Puntos clave: (1) auth `apikey` a nivel de colección heredada; (2) `{{fullBaseUrl}}` compuesto por pre-request script global; (3) slug único con timestamp en pre-request de Create Tenant; (4) guardar `tenantSlug` en entorno post-request; (5) endpoints públicos overridean auth a `noauth`.
-**Archivos clave:** `postman/KeyGo-Server.postman_collection.json`, `postman/KeyGo-Server-Local.postman_environment.json`
+**Archivos clave:** `docs/postman/KeyGo-Server.postman_collection.json`, `docs/postman/KeyGo-Server-Local.postman_environment.json`
 
 ---
 
@@ -783,6 +786,48 @@ Los errores de `Bad substitution` no abortan el script en `sh` con `set -e` porq
 - `scripts/keygo.sh` — menú principal (20 opciones, 5 categorías)
 - `scripts/db/` — scripts centralizados de base de datos
 - `keygo-supabase/scripts/*.sh` — stubs de delegación con `exec`
+
+---
+
+### [2026-03-27] Scripts y Postman bajo `docs/` — corregir `PROJECT_ROOT` al mover scripts a subdirectorios más profundos
+
+**Contexto:** Los scripts de operación se movieron de `scripts/` (1 nivel desde raíz) a `docs/scripts/` (2 niveles desde raíz). La colección Postman se movió de `postman/` a `docs/postman/`.
+
+**Problema:** Todos los scripts que calculaban `PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"` dejaron de apuntar a la raíz del proyecto — en cambio apuntaban a `docs/`. Esto haría que `./mvnw`, `source .env` y demás operaciones fallaran silenciosamente o con "command not found".
+
+**Solución / Buena práctica:** Al mover scripts a un nivel adicional de profundidad, actualizar el cálculo de `PROJECT_ROOT`:
+```bash
+# ✅ Correcto para docs/scripts/ (2 niveles desde raíz)
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+
+# ❌ Incorrecto después del movimiento (apunta a docs/)
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+```
+Notar que `docs/scripts/db/_load-env.sh` ya tenía `../..` por estar un nivel más profundo — ese patrón es correcto.
+Adicionalmente, actualizar **todas las referencias** en docs de agentes (`AGENTS.md`, `CLAUDE.md`, `AI_CONTEXT.md`, `copilot-instructions.md`, `docs/ai/README.md`) para que los agentes AI usen las rutas correctas.
+
+**Archivos clave:**
+- `docs/scripts/keygo.sh`, `docs/scripts/switch-env.sh`, `docs/scripts/check-ai-docs.sh`, `docs/scripts/quick-start.sh`
+- `AGENTS.md`, `CLAUDE.md`, `AI_CONTEXT.md`, `.github/copilot-instructions.md`
+
+---
+
+### [2026-03-26] `ON CONFLICT DO NOTHING` es sintaxis PostgreSQL — usar `INSERT ... SELECT ... WHERE NOT EXISTS` en H2
+
+**Contexto:** El perfil `local` usa H2 file-based con `MODE=PostgreSQL`. El archivo `data-local.sql` se ejecuta al arranque para hacer seed idempotente.
+
+**Problema:** H2 2.x con `MODE=PostgreSQL` no soporta la sintaxis `INSERT INTO ... VALUES (...) ON CONFLICT (col) DO NOTHING`. Lanza `JdbcSQLSyntaxErrorException [42000-240]` en el primer statement del script.
+
+**Solución / Buena práctica:** Reemplazar todas las sentencias `ON CONFLICT ... DO NOTHING` por la forma ANSI SQL:
+```sql
+INSERT INTO tabla (col1, col2, ...)
+SELECT val1, val2, ...
+WHERE NOT EXISTS (SELECT 1 FROM tabla WHERE clave_unica = valor);
+```
+Esta sintaxis es compatible con H2 y con PostgreSQL. Para tablas de unión (PK compuesta), el `WHERE NOT EXISTS` compara ambas columnas de la clave.
+
+**Archivos clave:**
+- `keygo-run/src/main/resources/data-local.sql`
 
 ---
 

@@ -36,7 +36,7 @@ NC='\033[0m'
 # Configuración por defecto
 # ----------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 AI_LECCIONES="$REPO_ROOT/docs/ai/lecciones.md"
 AGENTS_REGISTRO="$REPO_ROOT/docs/ai/agents-registro.md"
 DAYS_THRESHOLD=30

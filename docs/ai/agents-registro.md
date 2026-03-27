@@ -22,6 +22,45 @@
 
 ## Registro de cambios
 
+### [2026-03-27] Reorganización: `scripts/` → `docs/scripts/`, `postman/` → `docs/postman/` + corrección de `data-local.sql`
+
+**Motivo:** Los scripts de operación y la colección Postman estaban en directorios raíz independientes (`scripts/`, `postman/`). Se reorganizaron bajo `docs/` para centralizar todos los artefactos de soporte/documentación en un solo lugar. Además se corrigió `data-local.sql` que usaba sintaxis `ON CONFLICT` incompatible con H2.
+
+**Cambios aplicados:**
+- **`scripts/` → `docs/scripts/`** — todos los scripts de operación movidos (git rename).
+- **`postman/` → `docs/postman/`** — colección Postman y environments movidos (git rename).
+- **`docs/scripts/keygo.sh`** — `PROJECT_ROOT` corregido a `$SCRIPT_DIR/../..` (antes `$SCRIPT_DIR/..`); comentarios de uso actualizados.
+- **`docs/scripts/switch-env.sh`** — `PROJECT_ROOT` corregido a `$SCRIPT_DIR/../..`.
+- **`docs/scripts/check-ai-docs.sh`** — `REPO_ROOT` corregido a `$SCRIPT_DIR/../..`.
+- **`docs/scripts/quick-start.sh`** — reescrito para usar `SCRIPT_DIR`/`PROJECT_ROOT` correctamente; referencias a scripts internos actualizadas con rutas absolutas.
+- **`keygo-run/src/main/resources/data-local.sql`** — reemplazado `INSERT ... ON CONFLICT DO NOTHING` por `INSERT ... SELECT ... WHERE NOT EXISTS` (compatible con H2 `MODE=PostgreSQL`); UUIDs sincronizados con V14+V15; 2 tenants, 5 usuarios, seed completo.
+- **`AGENTS.md`** — todas las referencias `./scripts/` → `./docs/scripts/` y `postman/` → `docs/postman/`.
+- **`CLAUDE.md`** — referencias Postman actualizadas.
+- **`AI_CONTEXT.md`** — referencias actualizadas.
+- **`.github/copilot-instructions.md`** — referencia Postman actualizada.
+- **`docs/ai/README.md`**, `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`, `docs/api/AUTH_FLOW.md`, `docs/development/TEST_STRATEGY.md`, `docs/ai/lecciones.md` — referencias Postman actualizadas.
+
+**Estructura final:**
+```
+keygo-server/
+├── docs/
+│   ├── postman/
+│   │   ├── KeyGo-Server.postman_collection.json
+│   │   └── KeyGo-Server-Local.postman_environment.json
+│   └── scripts/
+│       ├── keygo.sh            # menú principal
+│       ├── switch-env.sh       # cambio de ambiente
+│       ├── check-ai-docs.sh    # verificar docs AI
+│       ├── quick-start.sh      # arranque rápido
+│       ├── test-*.sh           # smoke tests
+│       ├── setup-*.sh          # setup de tenant
+│       └── db/
+│           ├── _load-env.sh
+│           ├── start.sh / stop.sh
+│           ├── migrate.sh / info.sh
+│           └── ...
+```
+
 ### [2026-03-26] Refinación: `envs/` a raíz del proyecto, `.env` activo en raíz, `keygo-supabase/scripts/` vaciada
 
 **Motivo:** Los templates `.env-*` estaban en `scripts/envs/` (dentro de la carpeta de scripts) y el `.env` activo se generaba en `keygo-supabase/`. El usuario solicitó que los templates estuvieran en la raíz del proyecto y que el `.env` activo también se generara en la raíz, manteniendo `keygo-supabase/` limpia de archivos que no le pertenecen.

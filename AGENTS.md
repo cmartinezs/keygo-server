@@ -33,35 +33,35 @@ keygo-common   ← shared utils                               [🚧 stub]
 ./mvnw spring-boot:run -pl keygo-run   # run locally
 
 # ── Menú principal (punto de entrada centralizado) ─────────────────────────────
-./scripts/keygo.sh          # menú interactivo (todas las operaciones)
-./scripts/keygo.sh <N>      # ejecución directa por número de opción (ej: 7 = migrate)
+./docs/scripts/keygo.sh          # menú interactivo (todas las operaciones)
+./docs/scripts/keygo.sh <N>      # ejecución directa por número de opción (ej: 7 = migrate)
 
 # ── Ambiente ───────────────────────────────────────────────────────────────────
-./scripts/switch-env.sh local   # activar .env-local → .env en raíz del proyecto
-./scripts/switch-env.sh desa    # activar .env-desa  → .env en raíz del proyecto
-./scripts/switch-env.sh prod    # activar .env-prod  → .env en raíz del proyecto
-./scripts/switch-env.sh list    # listar templates disponibles (en envs/)
+./docs/scripts/switch-env.sh local   # activar .env-local → .env en raíz del proyecto
+./docs/scripts/switch-env.sh desa    # activar .env-desa  → .env en raíz del proyecto
+./docs/scripts/switch-env.sh prod    # activar .env-prod  → .env en raíz del proyecto
+./docs/scripts/switch-env.sh list    # listar templates disponibles (en envs/)
 
 # ── Base de datos ──────────────────────────────────────────────────────────────
-./scripts/db/start.sh       # iniciar Docker Compose (Postgres + PgAdmin)
-./scripts/db/stop.sh        # detener Docker Compose
-./scripts/db/migrate.sh     # ejecutar migraciones Flyway
-./scripts/db/info.sh        # ver estado de migraciones
-./scripts/db/validate.sh    # validar migraciones
-./scripts/db/repair.sh      # reparar metadatos Flyway
-./scripts/db/clean.sh       # ⚠️ limpiar schema completo (pide confirmación)
-./scripts/db/setup.sh       # setup inicial Supabase
+./docs/scripts/db/start.sh       # iniciar Docker Compose (Postgres + PgAdmin)
+./docs/scripts/db/stop.sh        # detener Docker Compose
+./docs/scripts/db/migrate.sh     # ejecutar migraciones Flyway
+./docs/scripts/db/info.sh        # ver estado de migraciones
+./docs/scripts/db/validate.sh    # validar migraciones
+./docs/scripts/db/repair.sh      # reparar metadatos Flyway
+./docs/scripts/db/clean.sh       # ⚠️ limpiar schema completo (pide confirmación)
+./docs/scripts/db/setup.sh       # setup inicial Supabase
 
 # ── App / tests ────────────────────────────────────────────────────────────────
-./scripts/quick-start.sh              # start DB + env vars + run app
-./scripts/test-service-info.sh        # smoke-test GET /api/v1/service/info
-./scripts/test-response-codes.sh      # smoke-test GET /api/v1/response-codes
-./scripts/setup-keygo-tenant.sh       # bootstrap tenant keygo + keygo-ui
+./docs/scripts/quick-start.sh              # start DB + env vars + run app
+./docs/scripts/test-service-info.sh        # smoke-test GET /api/v1/service/info
+./docs/scripts/test-response-codes.sh      # smoke-test GET /api/v1/response-codes
+./docs/scripts/setup-keygo-tenant.sh       # bootstrap tenant keygo + keygo-ui
 
 # ── Verificar actividad de retroalimentación del agente AI ─────────────────────
-./scripts/check-ai-docs.sh            # umbral por defecto: 30 días
-./scripts/check-ai-docs.sh --days 60  # umbral personalizado
-./scripts/check-ai-docs.sh --quiet    # solo exit code (útil en CI)
+./docs/scripts/check-ai-docs.sh            # umbral por defecto: 30 días
+./docs/scripts/check-ai-docs.sh --days 60  # umbral personalizado
+./docs/scripts/check-ai-docs.sh --quiet    # solo exit code (útil en CI)
 # Exit: 0=OK  1=sin actividad reciente  2=sin entradas  3=archivo no encontrado
 ```
 
@@ -127,7 +127,7 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 4. **Wiring** — `@Bean` factory in `keygo-run/config/ApplicationConfig.java`
 5. **Controller** — `@RestController` in `keygo-api/<feature>/controller/`, path `/api/v1/<resource>/...`  
    Response DTOs go in `keygo-api/<feature>/response/`
-6. **Postman** — add or update the request in `postman/KeyGo-Server.postman_collection.json` **before closing the task**.  
+6. **Postman** — add or update the request in `docs/postman/KeyGo-Server.postman_collection.json` **before closing the task**.  
    Include: HTTP method, URL with env variables (`{{fullBaseUrl}}/api/v1/...`), required headers, example body (if applicable), and `pm.test()` scripts validating status code, `BaseResponse` structure and business fields.  
    This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
 7. **Frontend Guide** — update section §14 (endpoint inventory) in `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **before closing the task**.  
@@ -285,17 +285,17 @@ Next migration must be `V16__...`. **Never reuse or edit existing migration file
 
 ```bash
 # Cambiar al ambiente local (copia template → .env en la raíz del proyecto)
-./scripts/switch-env.sh local
+./docs/scripts/switch-env.sh local
 # Cargar variables en el shell actual
 set -a; source .env; set +a
 
 # Iniciar / detener Postgres + PgAdmin via Docker
-./scripts/db/start.sh    # o: ./scripts/keygo.sh 5
-./scripts/db/stop.sh     # o: ./scripts/keygo.sh 6
+./docs/scripts/db/start.sh    # o: ./docs/scripts/keygo.sh 5
+./docs/scripts/db/stop.sh     # o: ./docs/scripts/keygo.sh 6
 
 # Alternativamente, usar el menú principal
-./scripts/keygo.sh       # menú interactivo
-./scripts/keygo.sh 5     # iniciar DB directamente
+./docs/scripts/keygo.sh       # menú interactivo
+./docs/scripts/keygo.sh 5     # iniciar DB directamente
 ```
 
 ## Testing conventions

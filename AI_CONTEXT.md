@@ -50,7 +50,7 @@ Ver lista completa de endpoints en [`AGENTS.md`](AGENTS.md) § "context-path is 
 ## DB local (perfil supabase)
 
 ```bash
-cd keygo-supabase && ./scripts/dev-start.sh   # Levanta PostgreSQL 15 + PgAdmin
+./docs/scripts/db/start.sh   # Levanta PostgreSQL 15 + PgAdmin (desde raíz del proyecto)
 
 export SPRING_PROFILES_ACTIVE="supabase,local"
 export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
@@ -155,7 +155,7 @@ Al terminar **cualquier tarea**, evaluar los eventos de la siguiente tabla y act
 | Propuesta técnica o funcional nueva | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Agregar con ID T-NNN o F-NNN |
 | Propuesta completada | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Marcar ✅ + mover a historial |
 | Cambio en módulos, rutas o patrones quick-start | [`AGENTS.md`](AGENTS.md) + [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) | Actualizar sección + entrada registro |
-| Nuevo endpoint REST | `postman/KeyGo-Server.postman_collection.json` | Agregar request con `pm.test()` |
+| Nuevo endpoint REST | `docs/postman/KeyGo-Server.postman_collection.json` | Agregar request con `pm.test()` |
 | Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Diccionario de nuevas tablas |
 | Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
 | Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Sección "Próximas migraciones" |

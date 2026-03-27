@@ -2523,7 +2523,7 @@ cd keygo-ui && pnpm install && pnpm dev   # http://localhost:5173
 | Roadmap | `ROADMAP.md` | Propuestas T-NNN y F-NNN — features pendientes |
 | AGENTS.md | `AGENTS.md` | Inventario de endpoints y estado del backend |
 | Swagger UI | `http://localhost:8080/keygo-server/swagger-ui/index.html` | Exploración interactiva |
-| Colección Postman | `postman/KeyGo-Server.postman_collection.json` | Requests con scripts de test |
+| Colección Postman | `docs/postman/KeyGo-Server.postman_collection.json` | Requests con scripts de test |
 | Signing & JWKS | `docs/operations/SIGNING_AND_JWKS.md` | Configuración de claves RSA |
 
 ---

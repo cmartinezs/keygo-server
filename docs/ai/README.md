@@ -46,13 +46,13 @@ enlaces a los detalles en esta carpeta:
 
 ```bash
 # Verifica que los documentos AI tengan actividad reciente (umbral: 30 días)
-./scripts/check-ai-docs.sh
+./docs/scripts/check-ai-docs.sh
 
 # Cambiar umbral
-./scripts/check-ai-docs.sh --days 60
+./docs/scripts/check-ai-docs.sh --days 60
 
 # Solo exit code (útil en CI)
-./scripts/check-ai-docs.sh --quiet
+./docs/scripts/check-ai-docs.sh --quiet
 ```
 
 ---

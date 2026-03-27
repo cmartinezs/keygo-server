@@ -113,7 +113,7 @@ class MyIntegrationTest { ... }
 
 ## 5. Tests con Postman
 
-La colección `postman/KeyGo-Server.postman_collection.json` contiene requests con `pm.test()` para:
+La colección `docs/postman/KeyGo-Server.postman_collection.json` contiene requests con `pm.test()` para:
 - Smoke test del servidor (`GET /actuator/health`)
 - Endpoints de plataforma (`GET /api/v1/service/info`, `GET /api/v1/response-codes`)
 - Flujo completo de Tenant: crear → obtener → suspender
@@ -122,8 +122,8 @@ La colección `postman/KeyGo-Server.postman_collection.json` contiene requests c
 
 ```bash
 # Importar en Postman:
-# Collection: postman/KeyGo-Server.postman_collection.json
-# Environment: postman/KeyGo-Server-Local.postman_environment.json
+# Collection: docs/postman/KeyGo-Server.postman_collection.json
+# Environment: docs/postman/KeyGo-Server-Local.postman_environment.json
 ```
 
 **Variables del entorno Postman:**
@@ -219,5 +219,5 @@ request.setRequestURI("/keygo-server/api/v1/tenants");
 - [AssertJ](https://assertj.github.io/doc/)
 - [Mockito](https://site.mockito.org/)
 - [Testcontainers PostgreSQL](https://java.testcontainers.org/modules/databases/postgres/)
-- Colección Postman: `postman/KeyGo-Server.postman_collection.json`
+- Colección Postman: `docs/postman/KeyGo-Server.postman_collection.json`
 

@@ -6,12 +6,12 @@
 # del proyecto: ambiente, base de datos, app, tests y setup.
 #
 # Uso:
-#   ./scripts/keygo.sh          # menú interactivo
-#   ./scripts/keygo.sh <opción> # ejecución directa (ej: ./scripts/keygo.sh 7)
+#   ./docs/scripts/keygo.sh          # menú interactivo
+#   ./docs/scripts/keygo.sh <opción> # ejecución directa (ej: ./docs/scripts/keygo.sh 7)
 # =========================================================
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 
 # ── Colores ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m';   GREEN='\033[0;32m'; YELLOW='\033[1;33m'
