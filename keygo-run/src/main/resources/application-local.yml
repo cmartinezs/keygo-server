@@ -15,6 +15,7 @@ spring:
     driver-class-name: org.h2.Driver
 
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       # Hibernate genera/actualiza el DDL desde las entidades.
       # Al ser file-based, el esquema persiste entre reinicios.
@@ -44,8 +45,6 @@ spring:
     console:
       enabled: true
       path: /h2-console
-      settings:
-        web-allow-others: false
 
 # BootstrapAdminKeyFilter deshabilitado — sin token JWT requerido en local
 keygo:

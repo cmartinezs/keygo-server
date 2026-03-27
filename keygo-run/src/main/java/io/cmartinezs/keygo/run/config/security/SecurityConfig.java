@@ -1,25 +1,26 @@
 package io.cmartinezs.keygo.run.config.security;
 
-import tools.jackson.databind.json.JsonMapper;
 import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
-import io.cmartinezs.keygo.run.config.properties.KeyGoCorsProperties;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
+import io.cmartinezs.keygo.run.config.properties.KeyGoCorsProperties;
 import io.cmartinezs.keygo.run.filter.BootstrapAdminKeyFilter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
 @EnableMethodSecurity
@@ -68,6 +69,9 @@ public class SecurityConfig {
     http
         .cors(cors -> cors.configurationSource(corsConfigurationSource))
         .csrf(AbstractHttpConfigurer::disable)
+        .headers(headers -> headers
+            .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
+        )
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
         .addFilterBefore(bootstrapAdminKeyFilter, AnonymousAuthenticationFilter.class);
