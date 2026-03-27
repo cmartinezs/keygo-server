@@ -789,6 +789,22 @@ Los errores de `Bad substitution` no abortan el script en `sh` con `set -e` porq
 
 ---
 
+### [2026-03-27] Archivos SQL con ediciones parciales sucesivas generan corrupción difícil de detectar
+
+**Contexto:** `data-local.sql` fue modificado en dos sesiones distintas de agente. La primera sesión modificó parcialmente el archivo; la segunda sesión leyó el contenido y lo reportó como correcto, pero el archivo real en disco tenía contenido mezclado (UUIDs viejos `e0eebc99...` y nuevos `11111111...` en el mismo archivo, con statements SQL incompletos al inicio).
+
+**Problema:** El archivo empezaba en línea 1 con `WHERE membership_id = 'e0eebc99...'` — el cierre de un `WHERE NOT EXISTS` de una versión anterior que quedó huérfano. El parser de H2 lo interpretaba como un statement autónomo que comenzaba con `WHERE`, causando `JdbcSQLSyntaxErrorException [42000-240]`.
+
+**Solución / Buena práctica:**
+- Cuando un archivo de seed/datos tiene corrupción visible (UUIDs mezclados, statements incompletos al inicio), **reescribirlo completo** con `cat >` en lugar de intentar ediciones puntuales.
+- Siempre verificar con `head -5` que el archivo empieza correctamente y con `grep -c "patron_viejo"` que no quedan restos.
+- Para archivos SQL idempotentes, la estrategia `INSERT ... SELECT ... WHERE NOT EXISTS` es la correcta para H2; nunca usar `ON CONFLICT` ni `INSERT ... VALUES ... WHERE`.
+
+**Archivos clave:**
+- `keygo-run/src/main/resources/data-local.sql`
+
+---
+
 ### [2026-03-27] Scripts y Postman bajo `docs/` — corregir `PROJECT_ROOT` al mover scripts a subdirectorios más profundos
 
 **Contexto:** Los scripts de operación se movieron de `scripts/` (1 nivel desde raíz) a `docs/scripts/` (2 niveles desde raíz). La colección Postman se movió de `postman/` a `docs/postman/`.
