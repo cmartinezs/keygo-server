@@ -10,6 +10,26 @@
 
 ---
 
+### [2026-03-27] `SigningKeyInitializer` debe incluir el perfil `local` — sin él no hay clave de firma en H2
+
+**Contexto:** El servidor se levantó con `SPRING_PROFILES_ACTIVE=local` (H2 file-based, sin Supabase). Cualquier intento de emitir un JWT fallaba con `No active signing key found`.
+
+**Problema:** `SigningKeyBootstrapService` tenía `@Profile("supabase")` → no corre en `local`. `data-local.sql` no incluye seed de `signing_keys`. Con perfil `local` el banco H2 arrancaba vacío de claves, y la primera llamada a `/oauth2/token` o similar explotaba con `IllegalStateException: No active signing key found`.
+
+**Solución / Buena práctica:**
+- `SigningKeyInitializer` debe declarar `@Profile({"supabase", "local"})` para cubrir ambos perfiles.
+- Además, `SigningKeyBootstrapService` (en `keygo-run/config/auth/`) es redundante: hace exactamente lo mismo que `SigningKeyInitializer` pero solo para `supabase`. Con ambos activos en el mismo perfil, el segundo encuentra la clave del primero y hace no-op. Propuesta T-067: eliminarlo.
+- `data-local.sql` **no debe** incluir claves de firma hard-codeadas: el inicializador las genera al vuelo y las persiste en el banco H2 file-based. Esto es correcto.
+- Para producción, **nunca auto-generar** la clave privada RSA: ver T-028 (KMS externo).
+
+**Archivos clave:**
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/startup/SigningKeyInitializer.java` — `@Profile({"supabase", "local"})`
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/auth/SigningKeyBootstrapService.java` — candidato a eliminar (T-067)
+- `keygo-run/src/main/resources/application-local.yml` — perfil `local` con H2 file-based
+- `keygo-run/src/main/resources/data-local.sql` — sin seed de signing_keys (correcto)
+
+---
+
 ## Formato de entrada
 
 ```markdown

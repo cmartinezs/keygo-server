@@ -8,7 +8,7 @@
 
 ---
 
-## Estado: 🟡 Corrección parcial aplicada (1 corregida, 2 pendientes)
+## Estado: 🟡 Corrección parcial aplicada (1 corregida, 3 pendientes)
 
 Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien implemente clientes o revise la seguridad actual del sistema.
 
@@ -59,5 +59,24 @@ Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien imp
 
 ---
 
-**Última actualización:** 2026-03-26 | **Responsable:** AI Agent
+### 4. Dos inicializadores de signing key activos en el perfil `supabase` — duplicación redundante
+
+| Campo | `SigningKeyBootstrapService` | `SigningKeyInitializer` |
+|---|---|---|
+| Paquete | `keygo-run/config/auth/` | `keygo-run/startup/` |
+| Perfil | `@Profile("supabase")` | `@Profile({"supabase", "local"})` |
+| Mecanismo | `@EventListener(ApplicationReadyEvent)` | `ApplicationRunner` |
+| Estado | 🔴 Redundante / candidato a eliminar | ✅ Correcto — cubre ambos perfiles |
+
+**Impacto:** En el perfil `supabase`, ambas clases se instancian y ambas corren al startup. La segunda encuentra la clave generada por la primera y hace no-op. Es inofensivo pero confunde a quien mantiene el código y viola el principio de responsabilidad única en bootstrap.  
+**Causa real del bug:** Con perfil `local`, `SigningKeyBootstrapService` no corre (solo `supabase`), y `SigningKeyInitializer` tenía `@Profile("supabase")` — ambas fallaban en `local` → error `No active signing key found` al emitir cualquier JWT.  
+**Fix aplicado:** `SigningKeyInitializer` ahora declara `@Profile({"supabase", "local"})`.  
+**Acción pendiente:** Eliminar `SigningKeyBootstrapService` (ver T-067 en ROADMAP).  
+**Archivos afectados:**
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/config/auth/SigningKeyBootstrapService.java`
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/startup/SigningKeyInitializer.java`
+
+---
+
+**Última actualización:** 2026-03-27  **Responsable:** AI Agent
 

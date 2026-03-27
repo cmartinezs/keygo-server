@@ -20,9 +20,14 @@ import org.springframework.stereotype.Component;
 /**
  * Startup initializer that ensures at least one active RSA signing key exists.
  *
- * <p>Active only when the {@code supabase} profile is loaded. On first startup (empty DB),
- * generates an RSA-2048 key pair, formats it as PEM, and persists it via
- * {@link SigningKeyRepositoryPort}. On subsequent startups, this is a no-op.
+ * <p>Active when the {@code supabase} or {@code local} profile is loaded. On first startup
+ * (empty DB / empty H2 file), generates an RSA-2048 key pair, formats it as PEM, and persists
+ * it via {@link SigningKeyRepositoryPort}. On subsequent startups, this is a no-op.
+ *
+ * <p><b>Note:</b> {@code SigningKeyBootstrapService} (in {@code keygo-run/config/auth/}) covers
+ * the same responsibility but only for the {@code supabase} profile. Both can coexist safely
+ * (the second one finds the key and skips), but {@code SigningKeyBootstrapService} is a candidate
+ * for removal (see ROADMAP T-067).
  *
  * <p>The generated key:
  * <ul>
@@ -31,10 +36,14 @@ import org.springframework.stereotype.Component;
  *   <li>Status: ACTIVE</li>
  *   <li>kid: a random UUID string</li>
  * </ul>
+ *
+ * <p><b>Production note:</b> auto-generation stores the private key as PEM in the database.
+ * For production environments, use an external KMS (AWS KMS, Azure Key Vault, HashiCorp Vault)
+ * and never auto-generate signing keys at startup (see ROADMAP T-028).
  */
 @Slf4j
 @Component
-@Profile("supabase")
+@Profile({"supabase", "local"})
 @RequiredArgsConstructor
 public class SigningKeyInitializer implements ApplicationRunner {
 

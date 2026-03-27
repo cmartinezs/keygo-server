@@ -37,7 +37,7 @@ flowchart LR
 | Documento | Categoría | Inconsistencias | Estado |
 |---|---|---|---|
 | [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
-| [`inconsistencias-seguridad.md`](inconsistencias-seguridad.md) | Seguridad / autenticación / docs operativas | 3 | 🟡 1 corregida, 2 pendientes |
+ [`inconsistencias-seguridad.md`](inconsistencias-seguridad.md)  Seguridad / autenticacin / docs operativas  4  🟡 1 corregida, 3 pendientes 
 
 ---
 
@@ -46,8 +46,8 @@ flowchart LR
 | Categoría | Total | ✅ Corregidas | 🔲 Pendientes | 🔴 Críticas |
 |---|---|---|---|---|
 | Modelo de datos | 12 | 12 | 0 | 0 |
-| Seguridad / autenticación | 3 | 1 | 2 | 0 |
-| **Total** | **15** | **13** | **2** | **0** |
+ Seguridad / autenticacin  4  1  3  0 
+ **Total**  **16**  **13**  **3**  **0** 
 
 ---
 
