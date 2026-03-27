@@ -160,7 +160,7 @@ class PlatformTenantControllerTest {
   }
 
   @Test
-  @DisplayName("GET /tenants?nameLike=acme should pass nameLike filter to use case")
+  @DisplayName("GET /tenants?name_like=acme should pass nameLike filter to use case")
   void shouldFilterByNameLike() {
     // Given
     when(listTenantsUseCase.execute(any(TenantFilter.class)))

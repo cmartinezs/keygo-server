@@ -85,7 +85,7 @@ public class PlatformTenantController {
       @Parameter(description = "Filter by tenant status (ACTIVE, SUSPENDED, PENDING)")
       @RequestParam(required = false) TenantStatus status,
       @Parameter(description = "Partial match on tenant name (case-insensitive)")
-      @RequestParam(required = false) String nameLike,
+      @RequestParam(name = "name_like", required = false) String nameLike,
       @Parameter(description = "Zero-based page number", example = "0")
       @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size (1–200)", example = "20")

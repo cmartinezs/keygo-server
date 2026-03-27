@@ -100,7 +100,8 @@ public class TenantMembershipController {
   @ApiResponse(responseCode = "400", description = "Invalid query parameters")
   public ResponseEntity<BaseResponse<List<MembershipData>>> listMemberships(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Filter by user ID") @RequestParam(required = false) UUID userId,
+      @Parameter(description = "Filter by user ID") @RequestParam(name = "user_id", required = false) UUID userId,
+      @Parameter(description = "Filter by client app ID") @RequestParam(name = "client_app_id", required = false) UUID clientAppId) {
       @Parameter(description = "Filter by client app ID") @RequestParam(required = false) UUID clientAppId) {
 
     List<Membership> memberships;

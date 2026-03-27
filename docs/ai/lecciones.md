@@ -10,7 +10,47 @@
 
 ---
 
-### [2026-03-27] `keygo.bootstrap.enabled=false` sin SecurityContext → `@PreAuthorize` falla con 403
+### [2026-03-27] Colección Postman corrompida por edición parcial del agente
+
+**Contexto:** Verificación de integridad de los archivos Postman (`KeyGo-Server.postman_collection.json` y `KeyGo-Server-Local.postman_environment.json`).
+
+**Problema:** Se encontraron 4 errores que impedían importar la colección en Postman:
+1. **Línea 1 suelta**: un fragmento `"description": "..."` antes del `{` de apertura del objeto JSON raíz (resultado de una edición anterior mal aplicada).
+2. **Objeto `nameLike` malformado**: dentro del array `query` del request `GET List Tenants`, faltaba el `{` de apertura y había dos propiedades `"key"` duplicadas (`name_like` y `nameLike`).
+3. **Cierre de objeto `url` faltante**: el objeto `url` no tenía `}` después del array `query`.
+4. **`"description"` duplicado**: dos descripciones en el mismo objeto `request` (versión antigua con `name_like` y versión nueva con `nameLike`).
+
+Adicionalmente, el entorno carecía de 6 variables usadas por la colección (`accessToken`, `adminToken`, `codeChallenge`, `codeVerifier`, `state`, `roleCode`) y la colección tenía 2 bugs funcionales:
+- El script del paso "3. POST Token Exchange" no guardaba `accessToken` en el entorno.
+- El request "1. GET Authorize" no generaba automáticamente los parámetros PKCE.
+
+**Solución / Buena práctica:**
+- Siempre validar con `python3 -m json.tool <archivo>.json` después de editar colecciones Postman.
+- Al actualizar un request que ya existe, usar `replace_string_in_file` con suficiente contexto para evitar inserciones duplicadas o líneas sueltas.
+- Las variables `{{...}}` usadas en la colección deben estar declaradas como variable de entorno, variable de colección (`"variable"` en el raíz), o seteadas por scripts `pm.environment.set`/`pm.collectionVariables.set`.
+- Los scripts de token exchange deben siempre hacer `pm.environment.set('accessToken', ...)` al recibir un `access_token` exitoso.
+- Los pre-request scripts de endpoints PKCE deben generar `codeVerifier`, `codeChallenge` y `state` automáticamente.
+
+**Archivos clave:**
+- `docs/postman/KeyGo-Server.postman_collection.json`
+- `docs/postman/KeyGo-Server-Local.postman_environment.json`
+
+
+
+**Contexto:** Tarea de normalización de `@RequestParam` a snake_case. Se intentó actualizar dos secciones (§9.4 y §14.2.7) de `FRONTEND_DEVELOPER_GUIDE.md` en una sola llamada a `insert_edit_into_file` usando comentarios `...existing code...` como marcadores.
+
+**Problema:** El tool interpretó `...existing code...` entre §9.4 y §14.2.7 como "todo el contenido intermedio". Al aplicar el diff, eliminó el bloque §14.2.x completo (684 líneas) que existía entre §14.1.2 y §15. El archivo pasó de ~2572 a ~1888 líneas.
+
+**Solución / Buena práctica:**
+- Para archivos Markdown grandes con secciones similares/duplicadas (como §9 y §14), **NO** usar una sola llamada `insert_edit_into_file` para múltiples secciones distantes.
+- Usar `replace_string_in_file` con contexto muy específico (3-5 líneas únicas antes y después del cambio) para cada ocurrencia por separado.
+- Si hay múltiples ocurrencias del mismo texto, incluir contexto adicional (línea del heading de la sección) en el `oldString` para que sea único.
+- Verificar con `wc -l` antes y después de editar archivos Markdown grandes.
+
+**Archivos clave:** `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`
+
+---
+
 
 **Contexto:** Al ejecutar con perfil `local` (`application-local.yml` tiene `keygo.bootstrap.enabled: false`), el endpoint `GET /api/v1/tenants` devolvía 403 Access Denied incluso con un JWT Bearer válido.
 
