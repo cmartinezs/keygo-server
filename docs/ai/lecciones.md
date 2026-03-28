@@ -10,6 +10,26 @@
 
 ---
 
+### [2026-03-28] SpringDoc no hereda SNAKE_CASE de JsonMapperBuilderCustomizer (Spring Boot 4 / Jackson 3)
+
+**Contexto:** Swagger UI mostraba campos en camelCase (`clientId`, `redirectUris`, `createdAt`, `firstName`, etc.) cuando la API real los serializa en snake_case (`client_id`, `redirect_uris`, `created_at`, `first_name`).
+
+**Problema:** El bean `JsonMapperBuilderCustomizer` configura `PropertyNamingStrategies.SNAKE_CASE` en el runtime de Jackson 3, pero SpringDoc 3.0.1 genera los schemas OpenAPI por reflexión sobre los campos Java **independientemente** de ese customizer. Al no existir `spring.jackson.property-naming-strategy` en `application.yml`, `JacksonProperties` no tenía snake_case configurado, y SpringDoc mostraba los nombres Java originales (camelCase). Los campos con `@JsonProperty` explícito (como `TokenData`) no estaban afectados.
+
+**Solución / Buena práctica:**
+1. Agregar `spring.jackson.property-naming-strategy: SNAKE_CASE` en `application.yml` para que `JacksonProperties` lo reciba y SpringDoc lo pueda leer.
+2. Como refuerzo definitivo ante incompatibilidades entre Spring Boot 4 / Jackson 3 / SpringDoc 3.0.1, crear un `SnakeCaseModelConverter` que implemente `io.swagger.v3.core.converter.ModelConverter`, renombre los keys del schema de camelCase a snake_case post-resolución y se registre como `@Bean` en `OpenApiConfig` (SpringDoc lo autodescubre).
+3. La conversión es idempotente: un campo ya en snake_case (p.ej. `access_token` de `@JsonProperty`) no cambia.
+4. Al usar `-pl keygo-run test` sin `-am`, el build falla porque los módulos dependientes no están compilados. Usar siempre `./mvnw -pl keygo-run -am test` o `./mvnw test` completo.
+
+**Archivos clave:**
+- `keygo-run/src/main/resources/application.yml` — `spring.jackson.property-naming-strategy: SNAKE_CASE`
+- `keygo-run/src/main/java/.../config/SnakeCaseModelConverter.java` — converter personalizado
+- `keygo-run/src/main/java/.../config/OpenApiConfig.java` — bean `snakeCaseModelConverter()`
+- `keygo-run/src/test/java/.../config/SnakeCaseModelConverterTest.java` — 31 tests unitarios
+
+---
+
 ### [2026-03-28] Extender una interfaz de puerto rompe todas las anonymous classes en tests
 
 **Contexto:** Al agregar `getEnvironment()` y `getStatus()` a `ServiceInfoProvider` (puerto existente), el build falló en 3 archivos de test con "is not abstract and does not override abstract method".

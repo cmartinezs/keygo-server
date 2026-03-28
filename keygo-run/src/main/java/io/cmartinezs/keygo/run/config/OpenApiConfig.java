@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.run.config;
 
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
+import io.swagger.v3.core.converter.ModelConverter;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -169,6 +170,19 @@ public class OpenApiConfig {
         .displayName("🔗 Memberships")
         .pathsToMatch("/api/v1/tenants/*/memberships/**")
         .build();
+  }
+
+  /**
+   * Registers the {@link SnakeCaseModelConverter} so SpringDoc autodiscovers it
+   * and renames all camelCase schema properties to snake_case in the OpenAPI spec.
+   * This mirrors the global Jackson 3 {@code PropertyNamingStrategies.SNAKE_CASE}
+   * setting applied at runtime via {@code JsonMapperBuilderCustomizer}.
+   *
+   * @return the model converter bean
+   */
+  @Bean
+  public ModelConverter snakeCaseModelConverter() {
+    return new SnakeCaseModelConverter();
   }
 }
 
