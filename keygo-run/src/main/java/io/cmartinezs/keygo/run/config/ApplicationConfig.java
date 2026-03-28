@@ -297,8 +297,11 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public ListAppRolesUseCase listAppRolesUseCase(AppRoleRepositoryPort appRoleRepositoryPort) {
-    return new ListAppRolesUseCase(appRoleRepositoryPort);
+  public ListAppRolesUseCase listAppRolesUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort) {
+    return new ListAppRolesUseCase(tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
   }
 
   @Bean

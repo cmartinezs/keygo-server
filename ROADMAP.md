@@ -3,18 +3,18 @@
 > **Documento vivo.** Los agentes AI deben actualizar este archivo cuando generen nuevas propuestas
 > concretas al concluir tareas. Ver instrucciones de mantenimiento al final.
 
-## Estado actual del producto (2026-03-24)
+## Estado actual del producto (2026-03-28)
 
- Dimensión  Estado 
-------
- Arquitectura  Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` 
- Autenticación  **Fase 9b completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, client_credentials M2M, registro con verificación email, **perfil de usuario OIDC extendido (V13)** 
- Persistencia  Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, Session, RefreshToken, EmailVerification. V13: 6 campos OIDC extendidos en `tenant_users` 
- API pública  **26 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (3), Client Apps (5), Users & memberships (6), OAuth2 (5), OIDC (2), UserInfo (1), Revocation (1), Registro (3), **Account Profile (2: GET+PATCH)** 
- CI/CD  ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) 
- Tests  **338+ tests unitarios** — sin integración ni e2e 
- Postman  ✅ Colecciones en `postman/` — **40 requests** con scripts `pm.test()` y entorno local 
- Fase actual  **Fase 9b ✅ Completada** — próxima: Fase 10 (Control plane y soporte) |
+| Dimensión | Estado |
+|---|---|
+| Arquitectura | Hexagonal definida, módulos activos: `keygo-app`, `keygo-api`, `keygo-infra`, `keygo-run`, `keygo-supabase` |
+| Autenticación | **Fase 9b completada**: JWT RS256, JWKS, OIDC discovery, refresh token con rotación, revocación RFC 7009, userinfo OIDC §5.3, client_credentials M2M, registro con verificación email, **perfil de usuario OIDC extendido (V13)** |
+| Persistencia | Entidades JPA: User, Role, Permission, Tenant, ClientApp, Membership & AppRole, AuthorizationCode, SigningKey, Session, RefreshToken, EmailVerification. V13: 6 campos OIDC extendidos en `tenant_users` |
+| API pública | **27 endpoints**: `GET /service/info`, `GET /response-codes`, Tenants (**4**: POST crear, **GET listar paginado**, GET ver, PUT suspender), Client Apps (5), Users & memberships (6), OAuth2 (5), OIDC (2), UserInfo (1), Revocation (1), Registro (3), Account Profile (2: GET+PATCH) |
+| CI/CD | ✅ Pipeline activo en `.github/workflows/ci.yml` (test + package en push/PR a main/develop) |
+| Tests | **527+ tests unitarios** — sin integración ni e2e |
+| Postman | ✅ Colecciones en `docs/postman/` — **42 requests** con scripts `pm.test()` y entorno local |
+| Fase actual | **Fase 9b ✅ Completada** + `GET /api/v1/tenants` (listado paginado) — próxima: Fase 10 (Control plane y soporte) |
 
 ---
 

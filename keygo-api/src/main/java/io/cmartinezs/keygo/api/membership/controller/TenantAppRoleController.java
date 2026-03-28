@@ -96,7 +96,7 @@ public class TenantAppRoleController {
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Client app ID") @PathVariable UUID clientAppId) {
 
-    List<AppRole> roles = listAppRolesUseCase.execute(clientAppId);
+    List<AppRole> roles = listAppRolesUseCase.execute(tenantSlug, clientAppId);
 
     List<AppRoleData> data = roles.stream()
         .map(r -> AppRoleData.builder()

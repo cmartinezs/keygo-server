@@ -219,4 +219,4 @@ Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
 
 ---
 
-**Última actualización:** 2026-03-26 | **Responsable:** AI Agent
+**Última actualización:** 2026-03-28 | **Responsable:** AI Agent

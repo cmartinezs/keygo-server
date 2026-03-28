@@ -22,6 +22,63 @@
 
 ## Registro de cambios
 
+### [2026-03-28] Validación de cierre: corrección de pendientes del endpoint `GET /api/v1/tenants`
+
+**Motivo:** Al validar el estado de los últimos cambios se detectaron tres documentos no actualizados tras la implementación del endpoint de listado paginado de tenants.
+
+**Cambios aplicados:**
+- **`ROADMAP.md`** — "Estado actual del producto" actualizado: fecha 2026-03-24→2026-03-28; endpoints 26→27; tests 338+→527+; Postman 40→42 requests; ruta `postman/`→`docs/postman/`; descripción de Tenants ampliada con "GET listar paginado".
+- **`docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`** §8.2 — título cambiado de "⏳ PENDIENTE BACKEND" a "✅"; agregada nota de auth requerida (Bearer ADMIN); corregido nombre del param `nameLike`→`name_like` (snake_case, alineado con el endpoint real y §14.2.1).
+- **`docs/ai/agents-registro.md`** (este archivo) — agregada esta entrada.
+
+**Estado verificado:** 527 tests, BUILD SUCCESS, 42 requests Postman, endpoint `GET /api/v1/tenants` en producción con `ListTenantsUseCase` + `TenantRepositoryAdapter` + `JpaSpecificationExecutor`.
+
+---
+
+### [2026-03-27] Endpoint `GET /api/v1/tenants` — listado paginado de tenants
+
+**Motivo:** Completar la operación CRUD de gestión de tenants desde el control plane. Hasta este punto existía POST crear, GET por slug y PUT suspender; faltaba el listado paginado con filtros para la UI de administración.
+
+**Cambios aplicados:**
+
+**`keygo-app`:**
+- Nueva clase `TenantFilter` (`app/tenant/filter/`) — criterios: `status` (nullable), `nameLike` (nullable), `page` (default 0), `size` (default 20). Validación de `size` en [1, 200].
+- Nueva clase `PagedResult<T>` (`app/shared/`) — wrapper de resultado paginado: `content`, `page`, `size`, `totalElements`, `totalPages`, `last`.
+- Nuevo método en `TenantRepositoryPort`: `findAll(TenantFilter filter) → PagedResult<Tenant>`.
+- Nuevo caso de uso `ListTenantsUseCase` (`app/tenant/usecase/`) — delega directamente al puerto; sin lógica de filtrado propia.
+
+**`keygo-supabase`:**
+- `TenantJpaRepository` extendido con `JpaSpecificationExecutor<TenantEntity>`.
+- `TenantRepositoryAdapter.findAll()` — construye `Specification<TenantEntity>` con predicados opcionales (`status`, `name ILIKE`); `PageRequest` con `Sort.by(ASC, "name")`; mapea `Page<TenantEntity>` → `PagedResult<Tenant>`.
+
+**`keygo-api`:**
+- Nueva clase `PagedData<T>` (`api/shared/response/`) — DTO de respuesta paginada: `content`, `page`, `size`, `totalElements`, `totalPages`, `last`.
+- `PlatformTenantController` — nuevo `@GetMapping` `listTenants()`: acepta `?status`, `?name_like`, `?page`, `?size`; devuelve `BaseResponse<PagedData<TenantData>>` con `ResponseCode.TENANT_LIST_RETRIEVED` (HTTP 200).
+- Nuevo `ResponseCode`: `TENANT_LIST_RETRIEVED`.
+
+**`keygo-run`:**
+- `ApplicationConfig` — nuevo `@Bean ListTenantsUseCase listTenantsUseCase(TenantRepositoryPort)`.
+
+**Tests:**
+- `ListTenantsUseCaseTest` — 4 casos: lista completa, resultado vacío, delegación de filtro sin cambio, cálculo de `isLast`.
+- `PlatformTenantControllerTest` — ampliado con 3 casos: lista con tenant activo, página vacía, verificación de mapping de filtros.
+- `TenantRepositoryAdapterTest` — 4 casos de `findAll()`: sin filtros, con status, con nameLike, combinados.
+
+**Postman:**
+- Nuevo request `GET List Tenants` en carpeta `🏢 Tenants` con query params `status`, `name_like`, `page`, `size`; 5 `pm.test()`: status 200, `TENANT_LIST_RETRIEVED`, presencia de `data.content`, `data.totalElements`, `data.last`.
+
+**URLs nuevas:**
+- `GET /api/v1/tenants?status=ACTIVE&name_like=acme&page=0&size=20` — requiere `Authorization: Bearer <adminJwt>`
+
+**Lecciones detectadas durante la sesión (2026-03-27):**
+- JWT roles emitidos en minúsculas vs. `@PreAuthorize("hasRole('ADMIN')")` en mayúsculas → normalizar en filtro con `.toUpperCase()`.
+- `AuthorizationDeniedException` interceptada por `ExceptionTranslationFilter` antes del `@RestControllerAdvice` → agregar `AccessDeniedHandler` custom en `SecurityConfig`.
+- Con `keygo.bootstrap.enabled=false`, `@PreAuthorize` evalúa contexto vacío → el filtro debe establecer autenticación de bypass con `ROLE_ADMIN` cuando está desactivado.
+- Colección Postman se corrompió con edición parcial → siempre validar con `python3 -m json.tool`.
+- `replace_string_in_file` en archivos de test puede dejar contenido duplicado fuera de la clase → incluir el cuerpo completo o reescribir el archivo.
+
+---
+
 ### [2026-03-27] Reorganización: `scripts/` → `docs/scripts/`, `postman/` → `docs/postman/` + corrección de `data-local.sql`
 
 **Motivo:** Los scripts de operación y la colección Postman estaban en directorios raíz independientes (`scripts/`, `postman/`). Se reorganizaron bajo `docs/` para centralizar todos los artefactos de soporte/documentación en un solo lugar. Además se corrigió `data-local.sql` que usaba sintaxis `ON CONFLICT` incompatible con H2.

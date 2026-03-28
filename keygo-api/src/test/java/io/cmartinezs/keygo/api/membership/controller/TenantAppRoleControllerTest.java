@@ -53,7 +53,7 @@ class TenantAppRoleControllerTest {
   @Test
   void listAppRoles_shouldReturn200WithRoleList() {
     // Given
-    when(listAppRolesUseCase.execute(CLIENT_APP_ID)).thenReturn(List.of(appRole("admin"), appRole("user")));
+    when(listAppRolesUseCase.execute(TENANT_SLUG, CLIENT_APP_ID)).thenReturn(List.of(appRole("admin"), appRole("user")));
 
     // When
     var response = controller.listAppRoles(TENANT_SLUG, CLIENT_APP_ID);
