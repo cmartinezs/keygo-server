@@ -68,6 +68,16 @@ class GetServiceInfoUseCaseTest {
           public String getVersion() {
             return "1.0.0";
           }
+
+          @Override
+          public String getEnvironment() {
+            return "test";
+          }
+
+          @Override
+          public String getStatus() {
+            return "UP";
+          }
         };
 
     // When

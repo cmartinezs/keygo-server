@@ -121,6 +121,15 @@
                   "",
                   "pm.test('No hay campo failure en respuesta exitosa', function () {",
                   "    pm.expect(body).to.not.have.property('failure');",
+                  "});",
+                  "",
+                  "pm.test('data.environment existe', function () {",
+                  "    pm.expect(body.data).to.have.property('environment');",
+                  "    pm.expect(body.data.environment).to.be.a('string');",
+                  "});",
+                  "",
+                  "pm.test('data.status es UP', function () {",
+                  "    pm.expect(body.data).to.have.property('status', 'UP');",
                   "});"
                 ]
               }
@@ -223,6 +232,93 @@
                 }
               ],
               "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"RESPONSE_CODES_RETRIEVED\",\n    \"message\": \"Response codes catalog retrieved successfully\"\n  },\n  \"data\": {\n    \"successCodes\": [\n      { \"code\": \"SERVICE_INFO_RETRIEVED\", \"message\": \"Service information retrieved successfully\", \"type\": \"SUCCESS\" },\n      { \"code\": \"TENANT_CREATED\", \"message\": \"Tenant created successfully\", \"type\": \"SUCCESS\" }\n    ],\n    \"failureCodes\": [\n      { \"code\": \"RESOURCE_NOT_FOUND\", \"message\": \"Requested resource was not found\", \"type\": \"FAILURE\" },\n      { \"code\": \"AUTHENTICATION_REQUIRED\", \"message\": \"Authentication is required\", \"type\": \"FAILURE\" }\n    ]\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Platform Stats",
+          "id": "req-platform-stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "description": "JWT de admin"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/stats",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "stats"
+              ]
+            },
+            "description": "Devuelve estadísticas agregadas de la plataforma: contadores de tenants (por estado), usuarios (por estado), apps cliente y claves de firma activas.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminToken>`.\n\n**ResponseCode esperado:** `PLATFORM_STATS_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es PLATFORM_STATS_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'PLATFORM_STATS_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data.tenants tiene contadores', function () {",
+                  "    pm.expect(body.data).to.have.property('tenants');",
+                  "    pm.expect(body.data.tenants).to.have.property('total');",
+                  "    pm.expect(body.data.tenants).to.have.property('active');",
+                  "    pm.expect(body.data.tenants).to.have.property('suspended');",
+                  "    pm.expect(body.data.tenants).to.have.property('pending');",
+                  "});",
+                  "",
+                  "pm.test('data.users tiene contadores', function () {",
+                  "    pm.expect(body.data).to.have.property('users');",
+                  "    pm.expect(body.data.users).to.have.property('total');",
+                  "    pm.expect(body.data.users).to.have.property('active');",
+                  "    pm.expect(body.data.users).to.have.property('pending');",
+                  "    pm.expect(body.data.users).to.have.property('suspended');",
+                  "});",
+                  "",
+                  "pm.test('data.apps tiene total', function () {",
+                  "    pm.expect(body.data).to.have.property('apps');",
+                  "    pm.expect(body.data.apps).to.have.property('total');",
+                  "});",
+                  "",
+                  "pm.test('data.signingKeys tiene active', function () {",
+                  "    pm.expect(body.data).to.have.property('signingKeys');",
+                  "    pm.expect(body.data.signingKeys).to.have.property('active');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Platform Stats",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-28T12:00:00\",\n  \"success\": {\n    \"code\": \"PLATFORM_STATS_RETRIEVED\",\n    \"message\": \"Platform statistics retrieved successfully\"\n  },\n  \"data\": {\n    \"tenants\": {\n      \"total\": 10,\n      \"active\": 7,\n      \"suspended\": 2,\n      \"pending\": 1\n    },\n    \"users\": {\n      \"total\": 100,\n      \"active\": 80,\n      \"pending\": 15,\n      \"suspended\": 5\n    },\n    \"apps\": {\n      \"total\": 25\n    },\n    \"signingKeys\": {\n      \"active\": 2\n    }\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -775,6 +871,88 @@
             }
           ],
           "response": []
+        },
+        {
+          "name": "PUT Activate Tenant",
+          "id": "req-activate-tenant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/activate",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "activate"
+              ]
+            },
+            "description": "Reactiva un tenant suspendido o pendiente, permitiéndole procesar autenticaciones nuevamente.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminToken>`.\n\n**ResponseCode esperado:** `TENANT_ACTIVATED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const slug = pm.environment.get('tenantSlug');",
+                  "if (!slug) {",
+                  "    console.warn('⚠️ tenantSlug está vacío. Ejecuta primero POST Create Tenant.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es TENANT_ACTIVATED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'TENANT_ACTIVATED');",
+                  "});",
+                  "",
+                  "pm.test('data.status es ACTIVE', function () {",
+                  "    pm.expect(body.data.status).to.equal('ACTIVE');",
+                  "});",
+                  "",
+                  "pm.test('data.slug coincide con el slug activado', function () {",
+                  "    const expectedSlug = pm.environment.get('tenantSlug');",
+                  "    pm.expect(body.data.slug).to.equal(expectedSlug);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Tenant activado",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-03-28T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_ACTIVATED\",\n    \"message\": \"Tenant activated successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"ACTIVE\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },

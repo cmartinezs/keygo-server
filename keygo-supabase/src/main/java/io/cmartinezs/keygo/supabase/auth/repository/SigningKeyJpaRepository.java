@@ -26,5 +26,13 @@ public interface SigningKeyJpaRepository extends JpaRepository<SigningKeyEntity,
    * @return claves encontradas
    */
   List<SigningKeyEntity> findByStatusIn(List<String> statuses);
+
+  /**
+   * Cuenta las claves con el estado indicado.
+   *
+   * @param status estado (ACTIVE, RETIRED, REVOKED)
+   * @return número de claves
+   */
+  long countByStatus(String status);
 }
 

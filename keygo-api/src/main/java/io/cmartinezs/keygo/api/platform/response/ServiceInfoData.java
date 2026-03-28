@@ -16,5 +16,7 @@ public class ServiceInfoData {
   private String title;
   private String name;
   private String version;
+  private String environment;
+  private String status;
 }
 

@@ -49,6 +49,8 @@
 | T-049 | Agregar request Postman `GET /api/v1/tenants/{slug}/apps/{clientId}/roles` con `pm.test()` para status 200, envelope `BaseResponse` y validación de lista | `postman/` | Cierra cobertura funcional de roles en pruebas manuales; hoy solo está documentada la creación |
 | T-051 | Agregar suite de autorización por endpoint (`@PreAuthorize`) con matriz rol/tenant (ADMIN, ADMIN_TENANT tenant-match, ADMIN_TENANT tenant-mismatch, USER_TENANT) usando MockMvc + JWT de prueba | `keygo-api`, `keygo-run` | Evita regresiones de seguridad tras migrar a Bearer-only y documenta comportamiento esperado (401/403/200) por endpoint |
 | T-053 | Agregar script SQL de verificación post-seed para V14 (conteos esperados por tenant/app/roles/memberships) y validación rápida en local/CI | `keygo-supabase`, `scripts/` | Permite comprobar integridad del dataset semilla sin inspección manual y reduce errores al preparar entorno de UI |
+| T-068 | Agregar test unitario de `PlatformStatsController` (similar a `ServiceInfoControllerTest`): mockar `GetPlatformStatsUseCase`, verificar status 200, `ResponseCode.PLATFORM_STATS_RETRIEVED` y estructura anidada `tenants`/`users`/`apps`/`signingKeys` | `keygo-api` | El controller se creó sin test unitario en la misma sesión de implementación; cierra la cobertura del nuevo endpoint de estadísticas |
+| T-069 | Extender `ServiceInfoPropertiesTest` para cubrir `getEnvironment()` (devuelve `"default"` sin perfil activo, devuelve el nombre del perfil con perfil activo) y `getStatus()` (siempre `"UP"`) | `keygo-run` | Los nuevos métodos añadidos a `ServiceInfoProperties` no tienen tests explícitos; el test existente solo cubre `title`, `name` y `version` |
 
 ---
 
@@ -83,6 +85,8 @@
 | T-058 | Documentar patrón BFF para login central: ejemplo de canje de `authorization_code` en backend para evitar exposición de tokens en SPA pura y simplificar refresh/logout | `docs/keygo-ui/`, `docs/api/`, futuro BFF de `keygo-ui` | Da una ruta intermedia de endurecimiento para clientes con restricciones de seguridad sin obligar todavía a SSO completo |
 | T-063 | Incorporar `traceId`/`requestId` en `ErrorData` y propagarlo desde request a logs y respuestas de error (`GlobalExceptionHandler` + `BootstrapAdminKeyFilter`) | `keygo-api`, `keygo-run` | Mejora trazabilidad entre cliente y logs operativos, reduciendo tiempo de diagnóstico en incidentes |
 | T-066 | Agregar `endpointHint`/`actionHint` para errores `CLIENT_TECHNICAL` (ej. `withCredentials`, header faltante, query param requerido) | `keygo-api`, `keygo-run` | Acelera diagnóstico en UI y soporte al sugerir acción concreta para corregir integración técnica |
+| T-070 | Implementar `GET /api/v1/tenants/{slug}/stats` — estadísticas específicas del tenant: usuarios (total/activos/pendientes/suspendidos), apps (total), memberships (total/activas), sesiones activas | `keygo-api`, `keygo-app`, `keygo-supabase` | Habilita widgets del dashboard en el rol `ADMIN_TENANT` sin exponer datos globales; complementa `GET /api/v1/platform/stats` de nivel global |
+| T-071 | Agregar filtros de fecha `created_after` y `created_before` al endpoint `GET /api/v1/tenants` y al use case `ListTenantsUseCase` / `TenantFilter` | `keygo-api`, `keygo-app`, `keygo-supabase` | Permite al dashboard mostrar tenants creados recientemente (últimos N días) y soporta análisis de crecimiento temporal sin escanear todo el set |
 
 ---
 
@@ -108,6 +112,8 @@
 | T-059 | Evolucionar a redirect OAuth2 clásico: el backend entrega `authorization_code` con redirect HTTP `302` hacia `redirect_uri` en vez de retornarlo en JSON | `keygo-api`, `keygo-app`, `keygo-run`, `keygo-ui` | Reduce lógica de orquestación en frontend, mejora interoperabilidad con terceros y acerca la implementación al comportamiento esperado por clientes OAuth estándar |
 | T-060 | Evaluar gateway de federación / sesión compartida para `keygo-ui` central: patrón BFF/gateway que administre sesión entre múltiples UIs sin confundirlo con el hosted login actual | `keygo-ui`, `keygo-api`, `keygo-run` | Separa claramente login hospedado de SSO real y prepara una evolución ordenada hacia ecosistemas con varias aplicaciones conectadas |
 | T-064 | Estandarizar catálogo i18n de errores por dominio (`auth`, `tenant`, `membership`) combinando `origin` + `clientRequestCause` para resolver `clientMessage` por locale | `keygo-api`, `keygo-app` | Permite mensajes consistentes, accionables y localizables por tipo de error sin exponer detalles técnicos |
+| T-072 | Implementar dashboard de sesiones activas en el control-plane: `GET /api/v1/platform/sessions` (total/activas/expiradas), dependiente de T-037 (endpoints de gestión de sesiones) | `keygo-api`, `keygo-app`, `keygo-supabase` | Visibilidad operativa de sesiones activas en toda la plataforma; requiere que T-037 esté implementado primero |
+| T-073 | Integrar Micrometer con Prometheus para exportar métricas de plataforma en tiempo real: `keygo_tenants_total`, `keygo_users_total`, `keygo_sessions_active`, `keygo_tokens_issued_total` | `keygo-run`, `keygo-infra` | Complementa `GET /api/v1/platform/stats` (consulta bajo demanda) con métricas push en tiempo real exportables a Grafana/Alertmanager; necesario para observabilidad en producción |
 
 ---
 

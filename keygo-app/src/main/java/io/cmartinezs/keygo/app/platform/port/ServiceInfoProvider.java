@@ -26,5 +26,18 @@ public interface ServiceInfoProvider {
    * @return service version
    */
   String getVersion();
+
+  /**
+   * Get the active environment / profile name (e.g. "local", "desa", "prod", "default").
+   * @return active environment name
+   */
+  String getEnvironment();
+
+  /**
+   * Get service operational status.
+   * Implementations always return "UP" — the service cannot respond when DOWN.
+   * @return service status string
+   */
+  String getStatus();
 }
 

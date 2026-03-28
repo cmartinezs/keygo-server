@@ -10,6 +10,25 @@
 
 ---
 
+### [2026-03-28] Extender una interfaz de puerto rompe todas las anonymous classes en tests
+
+**Contexto:** Al agregar `getEnvironment()` y `getStatus()` a `ServiceInfoProvider` (puerto existente), el build falló en 3 archivos de test con "is not abstract and does not override abstract method".
+
+**Problema:** Los tests de `ServiceInfoControllerTest`, `GetServiceInfoUseCaseTest` y `ApplicationConfigTest` usaban anonymous classes para implementar `ServiceInfoProvider`. Al agregar métodos abstractos a la interfaz, todas esas classes dejan de compilar.
+
+**Solución / Buena práctica:**
+1. Después de extender cualquier interfaz de puerto, buscar con `grep -rn "new ServiceInfoProvider"` (o el nombre de la interfaz) todos los lugares donde se implementa inline.
+2. Actualizar todas las anonymous classes encontradas agregando los nuevos métodos antes de intentar compilar.
+3. Alternativa más robusta: usar Mockito (`@Mock`) en los tests en lugar de anonymous classes — los mocks no requieren implementar todos los métodos.
+4. Verificar con `./mvnw clean package -DskipTests` primero y luego `./mvnw test` para separar errores de compilación de fallos de lógica.
+
+**Archivos clave:**
+- `keygo-api/src/test/.../platform/controller/ServiceInfoControllerTest.java`
+- `keygo-app/src/test/.../platform/usecase/GetServiceInfoUseCaseTest.java`
+- `keygo-run/src/test/.../config/ApplicationConfigTest.java`
+
+---
+
 ### [2026-03-27] Métodos de use case sin scope de tenant permiten acceso cross-tenant
 
 **Contexto:** Revisión de `TenantMembershipController` y sus use cases `ListMembershipsUseCase` y `RevokeMembershipUseCase`.

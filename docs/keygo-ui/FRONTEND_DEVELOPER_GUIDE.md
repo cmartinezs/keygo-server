@@ -887,26 +887,67 @@ El `ADMIN` tiene acceso completo: puede gestionar cualquier tenant (accediendo a
 
 ```typescript
 // src/pages/admin/DashboardPage.tsx
+interface ServiceInfoData {
+  title:       string;  // "KeyGo Server"
+  name:        string;  // "keygo-server"
+  version:     string;  // "1.0-SNAPSHOT"
+  environment: string;  // "local" | "desa" | "prod" | "default"  ← NUEVO
+  status:      string;  // "UP"  ← NUEVO
+}
+
 export function AdminDashboard() {
-  const { data } = useQuery({
+  const { data: info } = useQuery({
     queryKey: ['service-info'],
     queryFn:  () => apiClient.get<BaseResponse<ServiceInfoData>>('/service/info')
       .then(r => r.data.data),
   });
+
+  const { data: stats } = useQuery({
+    queryKey: ['platform-stats'],
+    queryFn:  () => apiClient.get<BaseResponse<PlatformStatsData>>('/platform/stats')
+      .then(r => r.data.data),
+  });
+
   return (
     <div>
       <h1>Panel de Control — KeyGo Platform</h1>
       <StatGrid items={[
-        { label: 'Versión', value: data?.version },
-        { label: 'Entorno', value: data?.environment },
-        { label: 'Estado',  value: data?.status },
+        { label: 'Versión',  value: info?.version },
+        { label: 'Entorno',  value: info?.environment },
+        { label: 'Estado',   value: info?.status },
+      ]} />
+      <StatGrid items={[
+        { label: 'Tenants activos',    value: stats?.tenants.active },
+        { label: 'Usuarios totales',   value: stats?.users.total },
+        { label: 'Apps registradas',   value: stats?.apps.total },
+        { label: 'Claves de firma',    value: stats?.signingKeys.active },
       ]} />
     </div>
   );
 }
 ```
 
-**Endpoint:** `GET /api/v1/service/info` — ✅ Disponible
+**Endpoint:** `GET /api/v1/service/info` — ✅ Disponible  
+**Respuesta ampliada:** ahora incluye `environment` (perfil Spring activo) y `status` (`"UP"` siempre)
+
+---
+
+### 8.1b. Estadísticas de plataforma — `GET /platform/stats` ✅ NUEVO
+
+> **Auth requerida:** `Authorization: Bearer <jwt>` con rol `ADMIN`.
+
+```typescript
+interface PlatformStatsData {
+  tenants:     { total: number; active: number; suspended: number; pending: number };
+  users:       { total: number; active: number; pending: number; suspended: number };
+  apps:        { total: number };
+  signingKeys: { active: number };
+}
+```
+
+**Endpoint:** `GET /keygo-server/api/v1/platform/stats`  
+**Auth:** `Authorization: Bearer <adminToken>`  
+**ResponseCode:** `PLATFORM_STATS_RETRIEVED`
 
 ---
 
@@ -989,9 +1030,16 @@ const suspendTenant = (slug: string) =>
 
 ---
 
-### 8.5. Reactivar tenant ⏳ / Auditoría global ⏳
+### 8.5. Reactivar tenant ✅ / Auditoría global ⏳
 
-> `PUT /api/v1/tenants/{slug}/activate` — No implementado  
+```typescript
+// Reactivar tenant suspendido
+apiClient.put<BaseResponse<TenantData>>(`/tenants/${slug}/activate`);
+```
+
+**Endpoint:** `PUT /api/v1/tenants/{slug}/activate` — ✅ **Disponible** (implementado 2026-03-28)  
+**Auth:** `Authorization: Bearer <adminToken>` con rol `ADMIN`  
+**ResponseCode:** `TENANT_ACTIVATED`  
 > `GET /api/v1/platform/audit` — No implementado (**F-034**)
 
 ---
@@ -1679,6 +1727,25 @@ Reglas rápidas de interpretación en frontend:
 
 > Auth requerida: `Authorization: Bearer <jwt>` con rol `ADMIN` o `ADMIN_TENANT` (scope validado por `tenant_slug` en claims).
 
+#### 14.2.0. Plataforma global (solo `ADMIN`)
+
+| Caso de uso | Método | Endpoint | Auth | Estado |
+|---|---|---|---|---|
+| Info del servicio | GET | `/api/v1/service/info` | Público | ✅ |
+| Estadísticas de plataforma | GET | `/api/v1/platform/stats` | Bearer ADMIN | ✅ |
+
+**Respuesta de `/platform/stats`:**
+```json
+{
+  "tenants":    { "total": 10, "active": 7, "suspended": 2, "pending": 1 },
+  "users":      { "total": 100, "active": 80, "pending": 15, "suspended": 5 },
+  "apps":       { "total": 25 },
+  "signingKeys": { "active": 2 }
+}
+```
+
+---
+
 #### 14.2.1. Tenants (solo `ADMIN`)
 
 | Caso de uso | Método | Endpoint | Auth | Estado |
@@ -1687,7 +1754,7 @@ Reglas rápidas de interpretación en frontend:
 | Crear tenant | POST | `/api/v1/tenants` | Bearer ADMIN | ✅ |
 | Ver tenant | GET | `/api/v1/tenants/{slug}` | Bearer ADMIN | ✅ |
 | Suspender tenant | PUT | `/api/v1/tenants/{slug}/suspend` | Bearer ADMIN | ✅ |
-| Reactivar tenant | PUT | `/api/v1/tenants/{slug}/activate` | Bearer ADMIN | ⏳ F-034 |
+| Reactivar tenant | PUT | `/api/v1/tenants/{slug}/activate` | Bearer ADMIN | ✅ |
 
 **Query params de listado (todos snake_case):**
 

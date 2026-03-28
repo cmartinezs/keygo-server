@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.api.tenant.response.TenantData;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.command.CreateTenantCommand;
 import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
+import io.cmartinezs.keygo.app.tenant.usecase.ActivateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.ListTenantsUseCase;
@@ -47,16 +48,19 @@ public class PlatformTenantController {
   private final CreateTenantUseCase createTenantUseCase;
   private final GetTenantBySlugUseCase getTenantBySlugUseCase;
   private final SuspendTenantUseCase suspendTenantUseCase;
+  private final ActivateTenantUseCase activateTenantUseCase;
   private final ListTenantsUseCase listTenantsUseCase;
 
   public PlatformTenantController(
       CreateTenantUseCase createTenantUseCase,
       GetTenantBySlugUseCase getTenantBySlugUseCase,
       SuspendTenantUseCase suspendTenantUseCase,
+      ActivateTenantUseCase activateTenantUseCase,
       ListTenantsUseCase listTenantsUseCase) {
     this.createTenantUseCase = createTenantUseCase;
     this.getTenantBySlugUseCase = getTenantBySlugUseCase;
     this.suspendTenantUseCase = suspendTenantUseCase;
+    this.activateTenantUseCase = activateTenantUseCase;
     this.listTenantsUseCase = listTenantsUseCase;
   }
 
@@ -212,6 +216,36 @@ public class PlatformTenantController {
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Reactivate a previously suspended tenant.
+   * Reactivar un tenant previamente suspendido.
+   */
+  @PutMapping("/{slug}/activate")
+  @Operation(
+      summary = "Activate a tenant",
+      description = "Reactivates a suspended or pending tenant, allowing it to process authentication requests again.")
+  @ApiResponse(responseCode = "200", description = "Tenant activated successfully",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  public ResponseEntity<BaseResponse<TenantData>> activateTenant(
+      @Parameter(description = "Unique slug identifier of the tenant", example = "my-company")
+      @PathVariable String slug) {
+
+    Tenant tenant = activateTenantUseCase.execute(slug);
+
+    BaseResponse<TenantData> response = BaseResponse.<TenantData>builder()
+        .data(toData(tenant))
+        .success(ResponseHelper.message(ResponseCode.TENANT_ACTIVATED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  // ─── Mappers ──────────────────────────────────────────────────────────────
 
   private TenantData toData(Tenant tenant) {
     return TenantData.builder()

@@ -142,12 +142,14 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 ## context-path is always active
 
 All endpoints are served under `/keygo-server`. Local URLs:
-- `http://localhost:8080/keygo-server/api/v1/service/info`
+- `http://localhost:8080/keygo-server/api/v1/service/info` (GET — info del servicio: title, name, version, **environment**, **status**)
+- `http://localhost:8080/keygo-server/api/v1/platform/stats` (GET — **ADMIN** — estadísticas agregadas: tenants/users/apps/signingKeys por estado)
 - `http://localhost:8080/keygo-server/api/v1/response-codes`
 - `http://localhost:8080/keygo-server/api/v1/tenants` (POST — create)
 - `http://localhost:8080/keygo-server/api/v1/tenants` (GET — **ADMIN** — list all tenants, paginated, with filters `status`, `nameLike`, `page`, `size`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}` (GET — retrieve)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/suspend` (PUT — suspend)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/activate` (PUT — **activate** — reactiva tenant suspendido o pendiente)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps` (POST — create client app)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps` (GET — list client apps)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}` (GET — get client app)
@@ -378,6 +380,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-28 | Dashboard endpoints: `ServiceInfoData` extendido con `environment`+`status`; nuevo `GET /api/v1/platform/stats` (`PlatformStatsController`, `GetPlatformStatsUseCase`, `PlatformStatsAdapter`, `PlatformStatsPort`, `PlatformStatsResult`, `PlatformStatsData`); nuevo `PUT /api/v1/tenants/{slug}/activate` (`ActivateTenantUseCase`); 3 nuevos `ResponseCode`: `PLATFORM_STATS_RETRIEVED`, `TENANT_ACTIVATED` |
 | 2026-03-27 | Endpoint `GET /api/v1/tenants` — listado paginado de tenants con filtros `status`/`nameLike`: `PagedResult<T>`, `TenantFilter`, `ListTenantsUseCase`, `PagedData<T>`, `TenantJpaRepository+JpaSpecificationExecutor`, `TENANT_LIST_RETRIEVED` |
 | 2026-03-23 | Corrección de documentación — Fase 9 marcada como ✅ COMPLETADA: tabla de fases corregida, ROADMAP actualizado (endpoints 21→24, tests 305+→320+, Postman 29→38), IMPLEMENTATION_PLAN.md actualizado con componentes reales |
 | 2026-03-23 | Registro con verificación email — `RegisterTenantUserUseCase`, `VerifyEmailUseCase`, `ResendVerificationEmailUseCase`, `EmailVerificationEntity` (V12), `SmtpEmailNotificationAdapter`, `RegistrationController` (3 endpoints públicos), 3 nuevos sufijos en filtro, `lecciones.md` actualizado |

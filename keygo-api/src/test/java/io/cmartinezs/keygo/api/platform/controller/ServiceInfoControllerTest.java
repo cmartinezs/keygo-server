@@ -52,6 +52,16 @@ class ServiceInfoControllerTest {
             public String getVersion() {
                 return "1.0-SNAPSHOT";
             }
+
+            @Override
+            public String getEnvironment() {
+                return "test";
+            }
+
+            @Override
+            public String getStatus() {
+                return "UP";
+            }
         };
     }
 
@@ -71,6 +81,8 @@ class ServiceInfoControllerTest {
         assertThat(response.getBody().getData().getName()).isEqualTo("keygo-server");
         assertThat(response.getBody().getData().getVersion()).isEqualTo("1.0-SNAPSHOT");
         assertThat(response.getBody().getData().getTitle()).isEqualTo("KeyGo Server API");
+        assertThat(response.getBody().getData().getEnvironment()).isEqualTo("test");
+        assertThat(response.getBody().getData().getStatus()).isEqualTo("UP");
     }
 
     @Test

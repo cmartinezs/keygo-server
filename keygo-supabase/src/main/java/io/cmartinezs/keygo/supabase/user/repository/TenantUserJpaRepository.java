@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.user.repository;
 
+import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -52,5 +53,11 @@ public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity,
    * <p>Busca todos los usuarios de un tenant.
    */
   List<TenantUserEntity> findAllByTenantId(UUID tenantId);
+
+  /**
+   * Count users with the given status across all tenants.
+   * <p>Cuenta usuarios con el estado dado en todos los tenants.
+   */
+  long countByStatus(UserStatus status);
 }
 

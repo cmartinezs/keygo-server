@@ -39,9 +39,12 @@ import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
+import io.cmartinezs.keygo.app.platform.port.PlatformStatsPort;
 import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
+import io.cmartinezs.keygo.app.platform.usecase.GetPlatformStatsUseCase;
 import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.app.tenant.usecase.ActivateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.ListTenantsUseCase;
@@ -116,8 +119,18 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public ActivateTenantUseCase activateTenantUseCase(TenantRepositoryPort tenantRepositoryPort) {
+    return new ActivateTenantUseCase(tenantRepositoryPort);
+  }
+
+  @Bean
   public ListTenantsUseCase listTenantsUseCase(TenantRepositoryPort tenantRepositoryPort) {
     return new ListTenantsUseCase(tenantRepositoryPort);
+  }
+
+  @Bean
+  public GetPlatformStatsUseCase getPlatformStatsUseCase(PlatformStatsPort platformStatsPort) {
+    return new GetPlatformStatsUseCase(platformStatsPort);
   }
 
   @Bean

@@ -18,12 +18,14 @@ public enum ResponseCode {
   // Service / System Operations
   SERVICE_INFO_RETRIEVED("SERVICE_INFO_RETRIEVED", "Service information retrieved successfully"),
   RESPONSE_CODES_RETRIEVED("RESPONSE_CODES_RETRIEVED", "Response codes catalog retrieved successfully"),
+  PLATFORM_STATS_RETRIEVED("PLATFORM_STATS_RETRIEVED", "Platform statistics retrieved successfully"),
 
   // Tenant Operations
   TENANT_CREATED("TENANT_CREATED", "Tenant created successfully"),
   TENANT_RETRIEVED("TENANT_RETRIEVED", "Tenant retrieved successfully"),
   TENANT_LIST_RETRIEVED("TENANT_LIST_RETRIEVED", "Tenant list retrieved successfully"),
   TENANT_SUSPENDED("TENANT_SUSPENDED", "Tenant suspended successfully"),
+  TENANT_ACTIVATED("TENANT_ACTIVATED", "Tenant activated successfully"),
 
   // User Operations
   USER_CREATED("USER_CREATED", "User created successfully"),

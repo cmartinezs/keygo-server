@@ -62,6 +62,10 @@ class ApplicationConfigTest {
             public String getName() { return "name1"; }
             @Override
             public String getVersion() { return "1.0"; }
+            @Override
+            public String getEnvironment() { return "test"; }
+            @Override
+            public String getStatus() { return "UP"; }
         };
 
         ServiceInfoProvider provider2 = new ServiceInfoProvider() {
@@ -71,6 +75,10 @@ class ApplicationConfigTest {
             public String getName() { return "name2"; }
             @Override
             public String getVersion() { return "2.0"; }
+            @Override
+            public String getEnvironment() { return "test"; }
+            @Override
+            public String getStatus() { return "UP"; }
         };
 
         // When

@@ -57,6 +57,8 @@ public class ServiceInfoController {
         .title(info.getTitle())
         .name(info.getName())
         .version(info.getVersion())
+        .environment(info.getEnvironment())
+        .status(info.getStatus())
         .build();
 
     BaseResponse<ServiceInfoData> response = BaseResponse.<ServiceInfoData>builder()
