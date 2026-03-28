@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.api.auth.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+
 
 /**
  * Response: resultado del canje de authorization code o rotación de refresh token.
@@ -22,6 +24,9 @@ public record TokenData(
     @JsonProperty("token_type")           String tokenType,
     @JsonProperty("expires_in")           long expiresIn,
     @JsonProperty("scope")                String scope,
-    @JsonProperty("authorization_code_id") String authorizationCodeId) {}
+    @JsonProperty("authorization_code_id") String authorizationCodeId) {
 
-
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<TokenData> {
+  }
+}

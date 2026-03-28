@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.platform.response;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -29,6 +30,12 @@ public class PlatformDashboardData {
   private List<PendingActionItem> pendingActions;
   private List<ActivityItem> recentActivity;
   private List<QuickActionItem> quickActions;
+
+  // ── OpenAPI schema helpers ─────────────────────────────────────────────────
+
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<PlatformDashboardData> {
+  }
 
   // ── Nested DTOs ───────────────────────────────────────────────────────────
 
@@ -178,4 +185,3 @@ public class PlatformDashboardData {
     private String route;
   }
 }
-

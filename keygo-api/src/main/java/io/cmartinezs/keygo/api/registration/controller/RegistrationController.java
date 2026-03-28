@@ -66,7 +66,7 @@ public class RegistrationController {
       description = "Creates a new user with PENDING status and sends a 6-digit verification "
                     + "code to the provided email. The code is valid for 30 minutes.")
   @ApiResponse(responseCode = "201", description = "User registered — verification email sent",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = RegistrationData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid request body or duplicate email/username")
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found")
   public ResponseEntity<BaseResponse<RegistrationData>> register(

@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.clientapp.response;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -48,5 +49,12 @@ public class ClientAppData {
 
   /* Last update timestamp */
   private OffsetDateTime updatedAt;
-}
 
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<ClientAppData> {
+  }
+
+  /** Solo para referencia de schema OpenAPI (lista). */
+  public static final class ListResponse extends BaseResponse<List<ClientAppData>> {
+  }
+}

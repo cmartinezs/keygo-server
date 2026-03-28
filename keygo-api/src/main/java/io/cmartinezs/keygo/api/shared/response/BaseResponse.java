@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
@@ -21,10 +21,11 @@ import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 @Getter
 @SuperBuilder
 @RegisterReflectionForBinding
-@RequiredArgsConstructor
+@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BaseResponse<T> {
-  @Builder.Default private final LocalDateTime date = LocalDateTime.now();
+  @Builder.Default
+  private LocalDateTime date = LocalDateTime.now();
   private MessageResponse success;
   private MessageResponse failure;
   private T data;

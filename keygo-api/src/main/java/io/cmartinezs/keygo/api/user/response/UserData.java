@@ -1,7 +1,10 @@
 package io.cmartinezs.keygo.api.user.response;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
 
 /**
  * Response DTO for user data.
@@ -55,5 +58,12 @@ public class UserData {
 
   /* OIDC website — URL */
   private final String website;
-}
 
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<UserData> {
+  }
+
+  /** Solo para referencia de schema OpenAPI (lista). */
+  public static final class ListResponse extends BaseResponse<List<UserData>> {
+  }
+}

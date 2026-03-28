@@ -166,7 +166,7 @@ public class AuthorizationController {
 
           **Flow:** `GET /authorize` → `POST /account/login` → `POST /oauth2/token`""")
   @ApiResponse(responseCode = "200", description = "Authorization initiated — client app metadata returned",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = AuthorizationInitiatedData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid or missing query parameters",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
@@ -252,7 +252,7 @@ public class AuthorizationController {
           The returned `code` must be exchanged for tokens via `POST /oauth2/token` \
           (`grant_type=authorization_code`) using the original PKCE `code_verifier`.""")
   @ApiResponse(responseCode = "200", description = "Login successful — authorization code issued",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = LoginData.Response.class)))
   @ApiResponse(responseCode = "400", description = "No authorization state in session — call GET /oauth2/authorize first",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "401", description = "Invalid credentials",
@@ -324,7 +324,7 @@ public class AuthorizationController {
           | `refresh_token` | `client_id`, `refresh_token` | new `access_token` + `id_token` + rotated `refresh_token` |
           | `client_credentials` | `client_id`, `client_secret`, `scope` | `access_token` only (M2M) |""")
   @ApiResponse(responseCode = "200", description = "Token(s) issued successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = TokenData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid request — missing required fields for the selected grant_type",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "401", description = "Invalid code, credentials or token",

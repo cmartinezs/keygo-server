@@ -10,6 +10,62 @@
 
 ---
 
+### [2026-03-28] Patrón inner class `Response` en DTOs para visibilidad real del schema en Swagger
+
+**Contexto:** Los controllers devuelven `ResponseEntity<BaseResponse<T>>` y todos usaban `@Schema(implementation = BaseResponse.class)` en `@ApiResponse`, lo que hacía que Swagger UI solo mostrara la estructura de `BaseResponse` con `data: {}` — el frontend debía inferir la estructura del campo `data` sin ayuda de la documentación.
+
+**Problema:** springdoc-openapi no puede inferir el tipo genérico `T` desde `BaseResponse.class` en tiempo de documentación. Cuando se sobreescribe el schema con `@Schema(implementation = BaseResponse.class)`, la información de tipo se pierde completamente y `data` aparece como un objeto vacío.
+
+**Solución / Buena práctica:** Agregar una inner class estática `Response` (y `ListResponse`, `PagedResponse` según corresponda) en cada DTO de respuesta que extienda `BaseResponse<PropioDTOType>`:
+
+```java
+// En cada DTO (p. ej. TenantData.java):
+public static final class Response extends BaseResponse<TenantData> {
+    public Response() { super(LocalDateTime.now()); }
+}
+public static final class PagedResponse extends BaseResponse<PagedData<TenantData>> {
+    public PagedResponse() { super(LocalDateTime.now()); }
+}
+// En cada DTO para listas (p. ej. UserData.java):
+public static final class ListResponse extends BaseResponse<List<UserData>> {
+    public ListResponse() { super(LocalDateTime.now()); }
+}
+```
+
+Luego en el controller usar la inner class en el `@ApiResponse` del código 2xx:
+```java
+@ApiResponse(responseCode = "200",
+    content = @Content(schema = @Schema(implementation = TenantData.Response.class)))
+```
+
+springdoc lee la parametrización de la superclase (`BaseResponse<TenantData>`) vía reflexión y genera el campo `data` con el tipo correcto. Las clases 4xx/5xx se mantienen con `BaseResponse.class` ya que son `BaseResponse<Void>`.
+
+**Nota técnica:** El constructor de `BaseResponse` es `public BaseResponse(LocalDateTime date)` (generado por `@RequiredArgsConstructor` sobre el campo `final date`). Las inner classes deben llamar `super(LocalDateTime.now())`. No se instancian en runtime — solo se usan como referencia de schema.
+
+**Archivos clave:**
+- Todos los DTOs en `keygo-api/*/response/*Data.java` — agregar inner class `Response`
+- Todos los controllers en `keygo-api/*/controller/*Controller.java` — actualizar `@ApiResponse` 2xx
+
+---
+
+### [2026-03-28] Lombok debe declararse explícitamente en cada módulo que lo use
+
+**Contexto:** Al agregar `PlatformDashboardResult` y `PlatformStatsResult` al módulo `keygo-app` con anotaciones `@Getter` y `@Builder`, IntelliJ reportaba "symbol not found" y no podía arrancar la app desde el IDE, aunque `./mvnw compile` era exitoso.
+
+**Problema:** `keygo-app/pom.xml` no declaraba Lombok como dependencia. Maven compilaba de todas formas porque Lombok transitaba desde `keygo-domain` (scope `provided`) al classpath del reactor multi-módulo. Sin embargo, IntelliJ gestiona el procesamiento de anotaciones por módulo y creaba para `keygo-app` el perfil "Maven default annotation processors profile" (sin `processorPath` de Lombok), lo que impedía generar los métodos `get*()` y el builder, provocando el error de símbolo.
+
+**Solución / Buena práctica:**
+- Declarar `org.projectlombok:lombok` con `scope=provided` en **cada módulo** que use anotaciones Lombok, sin importar si ya está en un módulo del que se depende.
+- Configurar `maven-compiler-plugin` con `annotationProcessorPaths` en ese mismo módulo.
+- Mover el módulo al perfil de IntelliJ que incluye el `processorPath` de Lombok (`.idea/compiler.xml`).
+- Regla mnemotécnica: **"Si usas `@Getter`/`@Builder`/`@Setter` en un archivo, Lombok va en el `pom.xml` de ese módulo"**.
+
+**Archivos clave:**
+- `keygo-app/pom.xml` — agregar `lombok` + `maven-compiler-plugin` con APT
+- `.idea/compiler.xml` — mover `keygo-app` del perfil sin processorPath al perfil con Lombok
+
+---
+
 ### [2026-03-28] Usar GROUP BY en lugar de N queries por status en puertos de dashboard
 
 **Contexto:** Implementación del endpoint `GET /api/v1/admin/platform/dashboard` que consolida ~25 métricas de la plataforma en una sola respuesta.

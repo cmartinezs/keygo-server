@@ -73,7 +73,7 @@ public class PlatformDashboardController {
           + "security metrics, tenant/user/app/membership counts, rankings, "
           + "pending actions and recent activity. Requires ADMIN role.")
   @ApiResponse(responseCode = "200", description = "Platform dashboard retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = PlatformDashboardData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<PlatformDashboardData>> getDashboard() {

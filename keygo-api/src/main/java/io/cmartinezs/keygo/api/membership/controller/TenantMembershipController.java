@@ -57,7 +57,7 @@ public class TenantMembershipController {
       summary = "Create a membership",
       description = "Grant user access to an application with specified roles")
   @ApiResponse(responseCode = "201", description = "Membership created",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = MembershipData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid input")
   @ApiResponse(responseCode = "404", description = "User, app, or tenant not found")
   public ResponseEntity<BaseResponse<MembershipData>> createMembership(
@@ -96,7 +96,7 @@ public class TenantMembershipController {
       summary = "List memberships",
       description = "List all memberships for a user or app (query params determine filter)")
   @ApiResponse(responseCode = "200", description = "Memberships retrieved",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = MembershipData.ListResponse.class)))
   @ApiResponse(responseCode = "400", description = "Invalid query parameters")
   public ResponseEntity<BaseResponse<List<MembershipData>>> listMemberships(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
@@ -151,5 +151,3 @@ public class TenantMembershipController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
-
-

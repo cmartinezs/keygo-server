@@ -51,7 +51,7 @@ public class PlatformStatsController {
       description = "Returns aggregated counts of tenants (by status), users (by status), "
                     + "client apps and active signing keys. Requires ADMIN role.")
   @ApiResponse(responseCode = "200", description = "Platform statistics retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = PlatformStatsData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<PlatformStatsData>> getStats() {

@@ -49,7 +49,7 @@ public class ServiceInfoController {
   @ApiResponse(
       responseCode = "200",
       description = "Service information retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = ServiceInfoData.Response.class)))
   public ResponseEntity<BaseResponse<ServiceInfoData>> getServiceInfo() {
     ServiceInfoProvider info = getServiceInfoUseCase.execute();
 

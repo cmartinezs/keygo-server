@@ -1,7 +1,10 @@
 package io.cmartinezs.keygo.api.tenant.response;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import lombok.Builder;
 import lombok.Getter;
+
 
 /**
  * Response DTO representing a tenant in API responses.
@@ -19,5 +22,14 @@ public class TenantData {
   private final String slug;
   private final String ownerEmail;
   private final String status;
-}
 
+  // ── OpenAPI schema helpers ─────────────────────────────────────────────────
+
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<TenantData> {
+  }
+
+  /** Solo para referencia de schema OpenAPI (listado paginado). */
+  public static final class PagedResponse extends BaseResponse<PagedData<TenantData>> {
+  }
+}

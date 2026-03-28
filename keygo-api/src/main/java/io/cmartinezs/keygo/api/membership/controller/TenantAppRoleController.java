@@ -52,7 +52,7 @@ public class TenantAppRoleController {
       summary = "Create an app role",
       description = "Create a new role within a client application")
   @ApiResponse(responseCode = "201", description = "Role created",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = AppRoleData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid input or duplicate role code")
   @ApiResponse(responseCode = "404", description = "App or tenant not found")
   public ResponseEntity<BaseResponse<AppRoleData>> createAppRole(
@@ -90,7 +90,7 @@ public class TenantAppRoleController {
       summary = "List app roles",
       description = "List all roles defined for a client application")
   @ApiResponse(responseCode = "200", description = "Roles retrieved",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = AppRoleData.ListResponse.class)))
   @ApiResponse(responseCode = "404", description = "App or tenant not found")
   public ResponseEntity<BaseResponse<List<AppRoleData>>> listAppRoles(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
@@ -116,4 +116,3 @@ public class TenantAppRoleController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 }
-

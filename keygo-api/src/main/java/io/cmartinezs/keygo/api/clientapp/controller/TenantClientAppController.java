@@ -79,7 +79,7 @@ public class TenantClientAppController {
       description = "Registers a new OAuth2 client application under the specified tenant. "
                     + "Returns the `clientId` and a one-time visible `clientSecret` — store it securely.")
   @ApiResponse(responseCode = "201", description = "Client app created successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = ClientAppSecretData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid request body",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
@@ -124,7 +124,7 @@ public class TenantClientAppController {
       summary = "List client applications",
       description = "Returns all OAuth2 client applications registered under the specified tenant.")
   @ApiResponse(responseCode = "200", description = "Client apps retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = ClientAppData.ListResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant not found",
@@ -158,7 +158,7 @@ public class TenantClientAppController {
       summary = "Get client application",
       description = "Retrieves details of a specific OAuth2 client application by its `clientId`.")
   @ApiResponse(responseCode = "200", description = "Client app retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = ClientAppData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
@@ -190,7 +190,7 @@ public class TenantClientAppController {
       summary = "Update client application",
       description = "Updates name, description, redirect URIs, grants or scopes of an existing client app.")
   @ApiResponse(responseCode = "200", description = "Client app updated successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = ClientAppData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid request body",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
@@ -233,7 +233,7 @@ public class TenantClientAppController {
       description = "Generates a new `clientSecret` for a confidential client app, invalidating the previous one. "
                     + "The new secret is returned once — store it securely.")
   @ApiResponse(responseCode = "200", description = "Client secret rotated successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = ClientAppSecretData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "404", description = "Client app or tenant not found",

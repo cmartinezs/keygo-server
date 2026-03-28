@@ -1,5 +1,8 @@
 package io.cmartinezs.keygo.api.auth.response;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+
+
 /**
  * Response: Login exitoso + authorization code emitido.
  *
@@ -12,5 +15,9 @@ package io.cmartinezs.keygo.api.auth.response;
 public record LoginData(
     @com.fasterxml.jackson.annotation.JsonProperty("message") String message,
     @com.fasterxml.jackson.annotation.JsonProperty("code") String code,
-    @com.fasterxml.jackson.annotation.JsonProperty("redirect_uri") String redirectUri) {}
+    @com.fasterxml.jackson.annotation.JsonProperty("redirect_uri") String redirectUri) {
 
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<LoginData> {
+  }
+}

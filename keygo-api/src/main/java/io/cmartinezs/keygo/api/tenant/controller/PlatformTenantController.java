@@ -80,7 +80,7 @@ public class PlatformTenantController {
       description = "Returns a paginated list of all tenants. Supports optional filtering by "
                     + "status and partial name match. Requires ADMIN role.")
   @ApiResponse(responseCode = "200", description = "Tenant list retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = TenantData.PagedResponse.class)))
   @ApiResponse(responseCode = "400", description = "Invalid query parameters",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
@@ -132,7 +132,7 @@ public class PlatformTenantController {
       description = "Creates a new tenant with the given name and owner email. "
                     + "A URL-friendly slug is automatically generated from the name.")
   @ApiResponse(responseCode = "201", description = "Tenant created successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = TenantData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Invalid request body",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
@@ -163,7 +163,7 @@ public class PlatformTenantController {
       summary = "Get tenant by slug",
       description = "Retrieves tenant details by its unique slug identifier.")
   @ApiResponse(responseCode = "200", description = "Tenant retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = TenantData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant not found",
@@ -194,7 +194,7 @@ public class PlatformTenantController {
       summary = "Suspend a tenant",
       description = "Suspends an active tenant. A suspended tenant cannot be used for authentication.")
   @ApiResponse(responseCode = "200", description = "Tenant suspended successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = TenantData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "403", description = "Tenant is already suspended",
@@ -215,8 +215,6 @@ public class PlatformTenantController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────────────
-
   /**
    * Reactivate a previously suspended tenant.
    * Reactivar un tenant previamente suspendido.
@@ -226,7 +224,7 @@ public class PlatformTenantController {
       summary = "Activate a tenant",
       description = "Reactivates a suspended or pending tenant, allowing it to process authentication requests again.")
   @ApiResponse(responseCode = "200", description = "Tenant activated successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = TenantData.Response.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant not found",
