@@ -10,7 +10,70 @@
 
 ---
 
-### [2026-03-28] SpringDoc no hereda SNAKE_CASE de JsonMapperBuilderCustomizer (Spring Boot 4 / Jackson 3)
+### [2026-03-28] Usar GROUP BY en lugar de N queries por status en puertos de dashboard
+
+**Contexto:** Implementación del endpoint `GET /api/v1/admin/platform/dashboard` que consolida ~25 métricas de la plataforma en una sola respuesta.
+
+**Problema:** El diseño inicial del puerto tenía métodos como `long countTenantsByStatus(TenantStatus status)`, `long countSessionsByStatus(String status)`, etc. El use case llamaba a cada método 2–4 veces pasando distintos status. Ejemplo para sessions:
+```java
+// ❌ Antes: 3 queries separadas
+long activeSessions     = dashboardPort.countSessionsByStatus("ACTIVE");
+long expiredSessions    = dashboardPort.countSessionsByStatus("EXPIRED");
+long terminatedSessions = dashboardPort.countSessionsByStatus("TERMINATED");
+```
+En total, el dashboard ejecutaba ~25 queries individuales de `COUNT WHERE status = ?` por cada petición.
+
+**Solución / Buena práctica:**
+1. Cambiar la firma del puerto para devolver un `Map<K, Long>` (sin parámetro):
+   ```java
+   // ✅ Después: 1 query GROUP BY
+   Map<String, Long> countSessionsByStatus();
+   ```
+2. En el repositorio JPA, agregar un método con `@Query` JPQL de GROUP BY:
+   ```java
+   @Query("SELECT s.status, COUNT(s) FROM SessionEntity s GROUP BY s.status")
+   List<Object[]> countGroupByStatus();
+   ```
+3. En el adaptador, usar un helper genérico para convertir el `List<Object[]>` a `Map`:
+   ```java
+   @SuppressWarnings("unchecked")
+   private <K> Map<K, Long> toCountMap(List<Object[]> rows) {
+     return rows.stream().collect(Collectors.toMap(
+         row -> (K) row[0],
+         row -> ((Number) row[1]).longValue()));
+   }
+   // Para status tipo String (sessions, tokens, auth codes, signing keys):
+   private Map<String, Long> toStringCountMap(List<Object[]> rows) {
+     return rows.stream().collect(Collectors.toMap(
+         row -> row[0].toString(),
+         row -> ((Number) row[1]).longValue()));
+   }
+   ```
+4. En el use case, consumir el mapa con `getOrDefault(status, 0L)` para evitar NPE cuando algún status no tiene filas:
+   ```java
+   var sessionCounts      = dashboardPort.countSessionsByStatus();
+   long activeSessions    = sessionCounts.getOrDefault("ACTIVE", 0L);
+   long expiredSessions   = sessionCounts.getOrDefault("EXPIRED", 0L);
+   long terminatedSessions = sessionCounts.getOrDefault("TERMINATED", 0L);
+   ```
+5. Para status de tipo enum (JPA devuelve el enum directamente desde JPQL), el cast genérico `(K) row[0]` funciona y el compilador solo genera un `unchecked` warning — suprimir con `@SuppressWarnings("unchecked")` en el helper.
+6. Definir los literales de status como constantes privadas en el use case para evitar el warning de SonarQube de literales duplicados:
+   ```java
+   private static final String STATUS_ACTIVE = "ACTIVE";
+   ```
+7. En tests, reemplazar stubs individuales `when(port.countX(Status.Y)).thenReturn(n)` por stubs de mapa `when(port.countX()).thenReturn(Map.of(Status.Y, n, ...))`. Para estatus ausentes (count = 0), simplemente omitir la entrada del mapa — `getOrDefault` la maneja.
+
+**Resultado:** ~25 queries individuales → ~9 queries GROUP BY por petición al dashboard. El patrón aplica a cualquier caso donde el mismo método de conteo se llame N veces con distintos valores de un enum finito o conjunto cerrado de strings.
+
+**Archivos clave:**
+- `keygo-app/.../platform/port/PlatformDashboardPort.java` — firmas `Map<K,Long> countX()`
+- `keygo-supabase/.../platform/adapter/PlatformDashboardAdapter.java` — helpers + implementaciones
+- `keygo-supabase/.../auth/repository/SessionJpaRepository.java` — patrón JPQL GROUP BY
+- `keygo-app/.../platform/usecase/GetPlatformDashboardUseCase.java` — constantes + `getOrDefault`
+- `keygo-app/.../platform/usecase/GetPlatformDashboardUseCaseTest.java` — stubs con `Map.of`
+
+---
+
 
 **Contexto:** Swagger UI mostraba campos en camelCase (`clientId`, `redirectUris`, `createdAt`, `firstName`, etc.) cuando la API real los serializa en snake_case (`client_id`, `redirect_uris`, `created_at`, `first_name`).
 

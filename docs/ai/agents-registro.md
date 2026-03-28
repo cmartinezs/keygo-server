@@ -22,6 +22,74 @@
 
 ## Registro de cambios
 
+### [2026-03-28] Dashboard admin `GET /api/v1/admin/platform/dashboard` + refactorización GROUP BY
+
+**Motivo:** Implementar un endpoint de dashboard administrativo que devuelva en una sola llamada todas las métricas operacionales de la plataforma. Además, refactorizar los métodos de conteo por status para usar una sola query `GROUP BY` en lugar de N queries independientes.
+
+**Componentes creados:**
+
+| Módulo | Artefacto | Descripción |
+|---|---|---|
+| `keygo-app` | `PlatformDashboardPort` | Puerto de salida con 9 métodos `Map<K,Long> countX()` (GROUP BY) + métodos de conteo total, rankings y actividad |
+| `keygo-app` | `GetPlatformDashboardUseCase` | Caso de uso que orquesta todas las llamadas al puerto y construye `PlatformDashboardResult` |
+| `keygo-app` | `PlatformDashboardResult` | Resultado con ~40 campos: contadores, topología, rankings, alertas, acciones pendientes, quick actions |
+| `keygo-supabase` | `PlatformDashboardAdapter` | Implementación JPA con helpers `toCountMap()` / `toStringCountMap()` para convertir GROUP BY |
+| `keygo-api` | `PlatformDashboardController` | `GET /api/v1/admin/platform/dashboard` — `@PreAuthorize("hasRole('ADMIN')")` |
+| `keygo-api` | `PlatformDashboardData` | DTO completo con 12 sub-DTOs anidados (ServiceSummary, SecuritySummary, SecurityCounts, etc.) |
+| `keygo-api` | `ResponseCode.PLATFORM_DASHBOARD_RETRIEVED` | Nuevo código de respuesta |
+
+**Refactorización GROUP BY (reducción de queries):**
+
+| Antes | Después | Queries ahorradas |
+|---|---|---|
+| 3× `countTenantsByStatus(status)` | 1× `countTenantsByStatus() → Map` | 2 |
+| 3× `countUsersByStatus(status)` | 1× `countUsersByStatus() → Map` | 2 |
+| 3× `countAppsByStatus(status)` | 1× `countAppsByStatus() → Map` | 2 |
+| 2× `countAppsByType(type)` | 1× `countAppsByType() → Map` | 1 |
+| 3× `countMembershipsByStatus(status)` | 1× `countMembershipsByStatus() → Map` | 2 |
+| 3× `countSigningKeysByStatus(s)` | 1× `countSigningKeysByStatus() → Map` | 2 |
+| 3× `countSessionsByStatus(s)` | 1× `countSessionsByStatus() → Map` | 2 |
+| 4× `countRefreshTokensByStatus(s)` | 1× `countRefreshTokensByStatus() → Map` | 3 |
+| 4× `countAuthCodesByStatus(s)` | 1× `countAuthCodesByStatus() → Map` | 3 |
+
+**Total:** ~25 queries individuales → ~9 queries GROUP BY (ahorro de ~16 llamadas a DB por petición).
+
+**Repositorios actualizados con `countGroupByStatus()` JPQL:**
+- `TenantJpaRepository`, `TenantUserJpaRepository`, `ClientAppJpaRepository` (+`countGroupByType()`), `MembershipJpaRepository`, `SigningKeyJpaRepository`, `SessionJpaRepository`, `RefreshTokenJpaRepository`, `AuthorizationCodeJpaRepository`
+
+**Patrón de implementación en el adaptador:**
+```java
+// En PlatformDashboardAdapter — helper genérico
+@SuppressWarnings("unchecked")
+private <K> Map<K, Long> toCountMap(List<Object[]> rows) {
+  return rows.stream().collect(Collectors.toMap(
+      row -> (K) row[0],
+      row -> ((Number) row[1]).longValue()));
+}
+
+// Uso: una sola query GROUP BY
+@Override
+public Map<TenantStatus, Long> countTenantsByStatus() {
+  return toCountMap(tenantRepo.countGroupByStatus());
+}
+```
+
+**Patrón de consumo en el use case:**
+```java
+var tenantStatusCounts = dashboardPort.countTenantsByStatus();
+long activeTenants  = tenantStatusCounts.getOrDefault(TenantStatus.ACTIVE, 0L);
+long pendingTenants = tenantStatusCounts.getOrDefault(TenantStatus.PENDING, 0L);
+```
+
+**Documentos actualizados:**
+- `AGENTS.md` — endpoint `GET /api/v1/admin/platform/dashboard` agregado a la lista de URLs
+- `docs/ai/lecciones.md` — lección sobre el patrón GROUP BY
+- `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` — §14.2.0 con descripción completa de la respuesta
+- `docs/postman/KeyGo-Server.postman_collection.json` — request `GET Platform Dashboard` con `pm.test()`
+- `docs/ai/agents-registro.md` — esta entrada
+
+---
+
 ### [2026-03-28] Validación de cierre: corrección de pendientes del endpoint `GET /api/v1/tenants`
 
 **Motivo:** Al validar el estado de los últimos cambios se detectaron tres documentos no actualizados tras la implementación del endpoint de listado paginado de tenants.

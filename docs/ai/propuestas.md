@@ -20,9 +20,9 @@
 | T-002 | Agregar mapper en `keygo-api/platform/` para descargar mapeo `ServiceInfoProvider → ServiceInfoData` al controller | 🔲 Pendiente |
 | T-023 | Configurar lint/formato automático (Checkstyle / Spotless). Convención ya en `docs/development/CODE_STYLE.md` | 🔲 Pendiente |
 | ~~T-024~~ | ~~Implementar `TenantResolutionStrategy` por path variable `/{tenantSlug}/`~~ | ✅ Completada (Fases 5/6) |
+| T-026 | Mantener colecciones Postman actualizadas; crear environment `KeyGo-Server-Docker` | 🔲 Pendiente |
 | ~~T-027~~ | ~~Integrar Swagger / OpenAPI con SpringDoc 3.0.1~~ | ✅ Completada 2026-03-21 |
 | ~~T-027~~ | ~~Refresh token grant + revocación RFC 7009 + userinfo OIDC~~ | ✅ Completada 2026-03-22 (Fase 7) |
-| T-026 | Mantener colecciones Postman actualizadas; crear environment `KeyGo-Server-Docker` | 🔲 Pendiente |
 | T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) | 🔲 Pendiente |
 | T-030 | Agregar verificación de referencias Markdown rotas post-reorganización `docs/ai/` | 🔲 Pendiente |
 | T-033 | Endpoints `PUT /api/v1/tenants/{slug}/users/{userId}/suspend` y `/activate` | 🔲 Pendiente |
@@ -33,14 +33,16 @@
 | T-043 | Extender `GetUserInfoUseCase` para filtrar claims por scope solicitado (`profile`, `email`, `phone`) | 🔲 Pendiente |
 | T-049 | Agregar request Postman `GET /api/v1/tenants/{slug}/apps/{clientId}/roles` con `pm.test()` de status 200, estructura `BaseResponse` y validación de lista | 🔲 Pendiente |
 | T-051 | Suite de autorización por endpoint (`@PreAuthorize`) con matriz rol/tenant (ADMIN, ADMIN_TENANT match/mismatch, USER_TENANT) | 🔲 Pendiente |
+| ~~T-052~~ | ~~Hardening seguridad admin Bearer-only (sin `X-KEYGO-ADMIN`, `@PreAuthorize` + tenant match)~~ | ✅ Completada 2026-03-25 |
 | T-053 | Script SQL de verificación post-seed V14 (conteos por tenant/app/roles/memberships) para validación rápida local/CI | 🔲 Pendiente |
+| ~~T-056~~ | ~~**Lanzamiento P0 — Hosted login seguro en `keygo-ui`:** contrato tipado `HostedLoginParams`, guard de runtime para query params obligatorios, ejemplo completo de login-handoff con parámetros firmados/validados y componente reutilizable `HostedLoginBoundary`~~ | ✅ Completada 2026-03-26 |
 | T-061 | Externalizar lista de orígenes CORS por ambiente: documentar `KEYGO_CORS_ALLOWED_ORIGINS_0` en `.env.example` y `ENVIRONMENT_SETUP.md`; perfil `prod` con lista vacía (denegación por defecto) | 🔲 Pendiente |
 | T-062 | Agregar handler específico para `MissingServletRequestParameterException` y responder `400 INVALID_INPUT` (evitar `500 OPERATION_FAILED` en casos de parámetro faltante) | 🔲 Pendiente |
 | T-065 | Agregar `fieldErrors` (lista de campos inválidos) cuando `origin=CLIENT_REQUEST` y `clientRequestCause=USER_INPUT` | 🔲 Pendiente |
 | T-068 | Agregar test unitario de `PlatformStatsController`: mockar `GetPlatformStatsUseCase`, verificar status 200, `PLATFORM_STATS_RETRIEVED` y estructura anidada `tenants`/`users`/`apps`/`signingKeys` | 🔲 Pendiente |
 | T-069 | Extender `ServiceInfoPropertiesTest` para cubrir `getEnvironment()` (sin perfil → `"default"`; con perfil → nombre del perfil) y `getStatus()` (siempre `"UP"`) | 🔲 Pendiente |
-| ~~T-052~~ | ~~Hardening seguridad admin Bearer-only (sin `X-KEYGO-ADMIN`, `@PreAuthorize` + tenant match)~~ | ✅ Completada 2026-03-25 |
-| ~~T-056~~ | ~~**Lanzamiento P0 — Hosted login seguro en `keygo-ui`:** contrato tipado `HostedLoginParams`, guard de runtime para query params obligatorios, ejemplo completo de login-handoff con parámetros firmados/validados y componente reutilizable `HostedLoginBoundary`~~ | ✅ Completada 2026-03-26 |
+| T-074 | Agregar caché `@Cacheable` en `GetPlatformDashboardUseCase` con TTL 60 s (Spring Cache + Caffeine) — el use case realiza ~25 queries JPA por llamada | 🔲 Pendiente |
+| T-075 | `GET /api/v1/admin/tenants/{slug}/dashboard` — dashboard de métricas específicas del tenant para rol `ADMIN_TENANT` (usuarios/apps/memberships/sesiones/verificaciones acotados al slug) | 🔲 Pendiente |
 
 ---
 
@@ -68,6 +70,8 @@
 | T-066 | Agregar `endpointHint`/`actionHint` para errores `CLIENT_TECHNICAL` (ej. `enviar credentials include`) | 🔲 Pendiente |
 | T-070 | `GET /api/v1/tenants/{slug}/stats` — estadísticas del tenant: usuarios (por estado), apps (total), memberships (total/activas), sesiones activas; para rol `ADMIN_TENANT` | 🔲 Pendiente |
 | T-071 | Agregar filtros `created_after` y `created_before` al endpoint `GET /api/v1/tenants` y al use case `ListTenantsUseCase` / `TenantFilter` para análisis de crecimiento temporal | 🔲 Pendiente |
+| T-076 | Reemplazar `recentActivity` aproximada del dashboard (basada en `created_at`) por tabla de auditoría formal `audit_events` (`V16__add_audit_events.sql`) — habilita consultas eficientes y filtrables por tipo y tenant | 🔲 Pendiente |
+| T-077 | `GET /api/v1/admin/alerts` — feed de alertas activas paginado con filtros por `level` y `category`; desacopla alertas del dashboard principal | 🔲 Pendiente |
 
 ---
 
@@ -90,6 +94,8 @@
 | T-064 | Estandarizar catálogo i18n de errores por dominio (`auth`, `tenant`, `membership`) combinando `origin` + `clientRequestCause` para resolver `clientMessage` por locale | 🔲 Pendiente |
 | T-072 | Dashboard de sesiones activas: `GET /api/v1/platform/sessions` con totales por estado; dependiente de T-037 (endpoints de gestión de sesiones) | 🔲 Pendiente |
 | T-073 | Integrar Micrometer + Prometheus para exportar métricas en tiempo real: `keygo_tenants_total`, `keygo_users_total`, `keygo_sessions_active`, `keygo_tokens_issued_total`; complementa `/platform/stats` con push de métricas hacia Grafana | 🔲 Pendiente |
+| T-078 | WebSocket o SSE `GET /api/v1/admin/platform/dashboard/stream` — push de snapshots del dashboard cada 30 s sin polling; requiere Spring WebFlux o `SseEmitter` + scheduler; dependiente de T-074 (caché) | 🔲 Pendiente |
+| T-079 | `GET /api/v1/admin/platform/dashboard/histogram?days=30` — series de tiempo diarias de registros, sesiones y logins para gráficas de tendencia en el UI; primera aproximación con `GROUP BY DATE(created_at)`; mejora con T-076 (`audit_events`) | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
@@ -106,4 +112,4 @@
 
 ---
 
-**Última actualización:** 2026-03-28 (nuevas propuestas T-068/T-069 corto plazo; T-070/T-071 mediano plazo; T-072/T-073 largo plazo — generadas al implementar dashboard endpoints) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-28 (nuevas propuestas T-074/T-075 corto plazo; T-076/T-077 mediano plazo; T-078/T-079 largo plazo — generadas al concluir implementación del `GET /api/v1/admin/platform/dashboard`) | **Responsable:** AI Agent

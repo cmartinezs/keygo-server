@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * Repositorio JPA para {@link SigningKeyEntity}.
@@ -34,5 +35,13 @@ public interface SigningKeyJpaRepository extends JpaRepository<SigningKeyEntity,
    * @return número de claves
    */
   long countByStatus(String status);
+
+  /**
+   * Cuenta claves agrupadas por estado (query GROUP BY única para dashboard).
+   *
+   * @return lista de [status, count]
+   */
+  @Query("SELECT sk.status, COUNT(sk) FROM SigningKeyEntity sk GROUP BY sk.status")
+  List<Object[]> countGroupByStatus();
 }
 

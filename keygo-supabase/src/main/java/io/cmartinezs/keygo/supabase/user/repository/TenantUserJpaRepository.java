@@ -3,8 +3,10 @@ package io.cmartinezs.keygo.supabase.user.repository;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,5 +61,16 @@ public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity,
    * <p>Cuenta usuarios con el estado dado en todos los tenants.
    */
   long countByStatus(UserStatus status);
+
+  /** Count users grouped by status (single GROUP BY query for dashboard). */
+  @Query("SELECT u.status, COUNT(u) FROM TenantUserEntity u GROUP BY u.status")
+  List<Object[]> countGroupByStatus();
+
+  /** Count users created after the given cutoff (across all tenants). */
+  long countByCreatedAtAfter(OffsetDateTime cutoff);
+
+  /** Count users that have no membership in any app. */
+  @Query("SELECT COUNT(u) FROM TenantUserEntity u WHERE u.id NOT IN (SELECT m.user.id FROM MembershipEntity m)")
+  long countUsersWithoutMembership();
 }
 

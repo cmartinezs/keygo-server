@@ -19,6 +19,7 @@ public enum ResponseCode {
   SERVICE_INFO_RETRIEVED("SERVICE_INFO_RETRIEVED", "Service information retrieved successfully"),
   RESPONSE_CODES_RETRIEVED("RESPONSE_CODES_RETRIEVED", "Response codes catalog retrieved successfully"),
   PLATFORM_STATS_RETRIEVED("PLATFORM_STATS_RETRIEVED", "Platform statistics retrieved successfully"),
+  PLATFORM_DASHBOARD_RETRIEVED("PLATFORM_DASHBOARD_RETRIEVED", "Platform dashboard retrieved successfully"),
 
   // Tenant Operations
   TENANT_CREATED("TENANT_CREATED", "Tenant created successfully"),

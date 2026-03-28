@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.membership.repository;
 
+import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
 import io.cmartinezs.keygo.supabase.membership.entity.MembershipEntity;
 import java.util.List;
 import java.util.Optional;
@@ -82,5 +83,12 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
   List<String> findRoleCodesByUserIdAndClientAppId(
       @Param("userId") UUID userId,
       @Param("clientAppId") UUID clientAppId);
+
+  /** Count memberships with the given status. */
+  long countByStatus(MembershipStatus status);
+
+  /** Count memberships grouped by status (single GROUP BY query for dashboard). */
+  @Query("SELECT m.status, COUNT(m) FROM MembershipEntity m GROUP BY m.status")
+  List<Object[]> countGroupByStatus();
 }
 
