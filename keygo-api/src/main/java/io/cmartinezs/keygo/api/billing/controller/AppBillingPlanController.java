@@ -17,6 +17,13 @@ import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +41,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientId}")
+@Tag(name = "Billing — Catalog", description = "App plan catalog — public read, admin write")
 public class AppBillingPlanController {
 
   private final TenantRepositoryPort tenantRepo;
@@ -57,9 +65,17 @@ public class AppBillingPlanController {
 
   /** GET /billing/catalog — public catalog (optionally filtered by subscriberType) */
   @GetMapping("/billing/catalog")
+  @Operation(
+      summary = "Get public plan catalog",
+      description = "Returns all active public plans for a client app. Optional filter by subscriberType (TENANT | TENANT_USER). No auth required.")
+  @ApiResponse(responseCode = "200", description = "Catalog retrieved",
+      content = @Content(schema = @Schema(implementation = AppPlanData.ListResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<List<AppPlanData>>> getCatalog(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId,
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId,
+      @Parameter(description = "Filter by subscriber type (TENANT or TENANT_USER)")
       @RequestParam(required = false) SubscriberType subscriberType) {
 
     UUID appId = resolveClientAppId(tenantSlug, clientId);
@@ -74,10 +90,17 @@ public class AppBillingPlanController {
 
   /** GET /billing/catalog/{planCode} — public plan detail */
   @GetMapping("/billing/catalog/{planCode}")
+  @Operation(
+      summary = "Get public plan detail",
+      description = "Returns a single public plan with its active version and entitlements. No auth required.")
+  @ApiResponse(responseCode = "200", description = "Plan retrieved",
+      content = @Content(schema = @Schema(implementation = AppPlanData.Response.class)))
+  @ApiResponse(responseCode = "404", description = "Plan, tenant or client app not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppPlanData>> getPlanPublic(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId,
-      @PathVariable String planCode) {
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId,
+      @Parameter(description = "Plan code (e.g. STARTER)") @PathVariable String planCode) {
 
     UUID appId = resolveClientAppId(tenantSlug, clientId);
     AppPlanResult result = getPlanUseCase.execute(appId, planCode);
@@ -91,9 +114,21 @@ public class AppBillingPlanController {
 
   /** POST /billing/plans — create plan (ADMIN_TENANT) */
   @PostMapping("/billing/plans")
+  @SecurityRequirement(name = "BearerAuth")
+  @Operation(
+      summary = "Create a billing plan",
+      description = "Creates a new plan with its initial version and entitlements. Requires ADMIN_TENANT role.")
+  @ApiResponse(responseCode = "201", description = "Plan created",
+      content = @Content(schema = @Schema(implementation = AppPlanData.Response.class)))
+  @ApiResponse(responseCode = "400", description = "Duplicate plan code or invalid input",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppPlanData>> createPlan(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId,
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId,
       @RequestBody CreateAppPlanRequest request) {
 
     UUID appId = resolveClientAppId(tenantSlug, clientId);
@@ -139,5 +174,3 @@ public class AppBillingPlanController {
         .orElseThrow(() -> new ClientAppNotFoundException(clientId));
   }
 }
-
-

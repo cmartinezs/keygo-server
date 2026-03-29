@@ -1,10 +1,10 @@
 package io.cmartinezs.keygo.api.billing.controller;
 
-import io.cmartinezs.keygo.api.billing.response.AppSubscriptionData;
 import io.cmartinezs.keygo.api.billing.response.AppInvoiceData;
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.billing.response.AppSubscriptionData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
 import io.cmartinezs.keygo.app.billing.subscription.usecase.CancelAppSubscriptionUseCase;
 import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUseCase;
@@ -16,21 +16,32 @@ import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
- * REST controller for billing subscription and invoice endpoints.
- * All endpoints require Bearer ADMIN_TENANT.
+ * REST controller for subscription and invoice management within a client app.
+ * Requires Bearer token with ADMIN_TENANT role.
  *
  * @author cmartinezs
  * @version 1.0
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing")
+@Tag(name = "Billing — Subscription", description = "Subscription & invoice management — requires Bearer JWT with ADMIN_TENANT role")
+@SecurityRequirement(name = "BearerAuth")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class AppBillingSubscriptionController {
 
   private final TenantRepositoryPort tenantRepo;
@@ -52,11 +63,20 @@ public class AppBillingSubscriptionController {
     this.listInvoicesUseCase = listInvoicesUseCase;
   }
 
-  /** GET /billing/subscription — active subscription for this tenant toward the app */
+  /** GET /billing/subscription — active subscription */
   @GetMapping("/subscription")
+  @Operation(
+      summary = "Get active subscription",
+      description = "Returns the current active subscription for the client app. Requires ADMIN_TENANT role.")
+  @ApiResponse(responseCode = "200", description = "Subscription retrieved",
+      content = @Content(schema = @Schema(implementation = AppSubscriptionData.Response.class)))
+  @ApiResponse(responseCode = "404", description = "No active subscription found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> getSubscription(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
 
     UUID tenantId = resolveTenantId(tenantSlug);
     UUID appId = resolveClientAppId(tenantSlug, clientId);
@@ -68,11 +88,20 @@ public class AppBillingSubscriptionController {
         .build());
   }
 
-  /** POST /billing/subscription/cancel — mark subscription for cancellation at period end */
+  /** POST /billing/subscription/cancel — schedule cancellation at period end */
   @PostMapping("/subscription/cancel")
+  @Operation(
+      summary = "Cancel subscription at period end",
+      description = "Marks the active subscription for cancellation at the end of the current billing period. Requires ADMIN_TENANT role.")
+  @ApiResponse(responseCode = "200", description = "Cancellation scheduled",
+      content = @Content(schema = @Schema(implementation = AppSubscriptionData.Response.class)))
+  @ApiResponse(responseCode = "404", description = "No active subscription found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> cancelSubscription(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
 
     UUID tenantId = resolveTenantId(tenantSlug);
     UUID appId = resolveClientAppId(tenantSlug, clientId);
@@ -84,11 +113,20 @@ public class AppBillingSubscriptionController {
         .build());
   }
 
-  /** GET /billing/invoices — list invoices for this tenant's subscription */
+  /** GET /billing/invoices — list all invoices */
   @GetMapping("/invoices")
+  @Operation(
+      summary = "List invoices",
+      description = "Returns all invoices associated with the client app subscription. Requires ADMIN_TENANT role.")
+  @ApiResponse(responseCode = "200", description = "Invoices retrieved",
+      content = @Content(schema = @Schema(implementation = AppInvoiceData.ListResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<List<AppInvoiceData>>> listInvoices(
-      @PathVariable String tenantSlug,
-      @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
 
     UUID tenantId = resolveTenantId(tenantSlug);
     UUID appId = resolveClientAppId(tenantSlug, clientId);

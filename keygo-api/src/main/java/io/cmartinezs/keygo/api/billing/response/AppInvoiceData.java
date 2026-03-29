@@ -1,10 +1,12 @@
 package io.cmartinezs.keygo.api.billing.response;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.billing.invoice.model.Invoice;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -48,5 +50,10 @@ public record AppInvoiceData(
         i.getCreatedAt()
     );
   }
-}
 
+  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
+  public static final class Response extends BaseResponse<AppInvoiceData> {}
+
+  /** Solo para referencia de schema OpenAPI (lista). */
+  public static final class ListResponse extends BaseResponse<List<AppInvoiceData>> {}
+}

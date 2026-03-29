@@ -10,6 +10,15 @@
 
 ---
 
+### [2026-03-29] Imports duplicados al añadir anotaciones OpenAPI a controllers existentes
+
+**Contexto:** Al agregar anotaciones OpenAPI/Swagger (`@Tag`, `@Operation`, `@ApiResponse`, `@SecurityRequirement`) a `AppBillingSubscriptionController`, se insertaron nuevos imports (`AppSubscription`, `SubscriberType`) antes de los ya existentes, resultando en dos declaraciones idénticas.
+**Problema:** `javac` puede reportar error de compilación por imports duplicados; incluso si tolera la duplicidad, el código queda inconsistente y genera warnings. El build en ocasiones usa artefactos en caché local y no detecta el problema de inmediato.
+**Solución / Buena práctica:** Al agregar imports a un archivo existente, revisar primero el bloque completo de imports y verificar que el nuevo import no esté ya presente. Ordenar el bloque: `api.*` → `app.*` → `domain.*` → librerías externas → `java.*`. Ejecutar `./mvnw -pl keygo-api compile` justo después para detectar el error sin esperar al full build.
+**Archivos clave:** `keygo-api/src/.../api/billing/controller/AppBillingSubscriptionController.java`
+
+---
+
 ### [2026-03-28] `BaseResponse` está en sub-paquete `response`, no directamente en `shared`
 
 **Contexto:** Implementación del módulo de billing — controllers en `keygo-api`.
