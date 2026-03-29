@@ -121,8 +121,8 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
                 <configuration>
-                    <!-- Configuration via system properties or environment variables -->
-                    <!-- Use: mvn flyway:migrate -Dsupabase.url=... -Dsupabase.user=... -Dsupabase.password=... -->
+                    <!-- Credenciales leídas de variables de entorno exportadas por load_env() -->
+                    <!-- Uso: ./docs/scripts/db/migrate.sh  (o cualquier script db/*.sh)       -->
                     <url>${env.SUPABASE_URL}</url>
                     <user>${env.SUPABASE_USER}</user>
                     <password>${env.SUPABASE_PASSWORD}</password>
@@ -130,6 +130,8 @@
                         <schema>public</schema>
                         <schema>auth</schema>
                     </schemas>
+                    <!-- Flyway 10+ deshabilita clean por defecto; habilitarlo para scripts de dev -->
+                    <cleanDisabled>false</cleanDisabled>
                 </configuration>
             </plugin>
         </plugins>

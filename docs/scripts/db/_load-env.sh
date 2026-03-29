@@ -4,12 +4,11 @@
 # Helper interno — usar con "source", no ejecutar directamente
 # =========================================================
 # Usage: source "$(dirname "${BASH_SOURCE[0]}")/_load-env.sh"
-# Provides: PROJECT_ROOT, SUPABASE_DIR, ENV_FILE, load_env(), verify_db_vars()
+# Provides: PROJECT_ROOT, ENV_FILE, load_env(), verify_db_vars()
 # =========================================================
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
-SUPABASE_DIR="$PROJECT_ROOT/keygo-supabase"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
 ENV_FILE="$PROJECT_ROOT/.env"
 
 # Load active .env from keygo-supabase/

@@ -10,6 +10,27 @@
 
 ---
 
+### [2026-03-29] Scripts de DB usaban `mvn` en lugar de `./mvnw` y faltaba `-pl keygo-supabase`
+
+**Contexto:** Los scripts `migrate.sh`, `info.sh`, `validate.sh`, `repair.sh` y `clean.sh` en `docs/scripts/db/` usaban `mvn` (Maven sistema) y corrían desde `$PROJECT_ROOT` sin `-pl keygo-supabase`.
+
+**Problema:** Tres errores combinados:
+1. `mvn: command not found` — el proyecto solo garantiza el Maven wrapper (`./mvnw`), no Maven instalado en el sistema.
+2. Sin `-pl keygo-supabase` — Flyway se intentaba ejecutar en todos los módulos; solo `keygo-supabase` tiene el plugin configurado.
+3. Flyway 11+ tiene `cleanDisabled=true` por defecto — `flyway:clean` fallaba con "clean is not allowed as it has been disabled" sin `<cleanDisabled>false</cleanDisabled>` en el pom.
+
+**Solución / Buena práctica:**
+- Usar siempre `"$PROJECT_ROOT/mvnw"` en scripts de DB (garantiza el wrapper del repo).
+- Agregar `-pl keygo-supabase` para apuntar directamente al módulo con Flyway.
+- Agregar `--no-transfer-progress` para output más limpio.
+- Para Flyway 10+: agregar `<cleanDisabled>false</cleanDisabled>` en el bloque `<configuration>` del `flyway-maven-plugin` si se necesita `flyway:clean` en scripts de desarrollo.
+
+**Archivos clave:**
+- `docs/scripts/db/migrate.sh`, `info.sh`, `validate.sh`, `repair.sh`, `clean.sh`
+- `keygo-supabase/pom.xml` — sección `flyway-maven-plugin`
+
+---
+
 ### [2026-03-29] Reestructuración de migraciones Flyway: consolidar en archivos por dominio
 
 **Contexto:** El esquema original creció de forma acumulativa: V1–V26 donde V1-V9 eran el core, V10-V22 eran extensiones y parches, y V23-V26 eran correcciones de inconsistencias (columnas faltantes, renombrados). La historia era difícil de seguir y había redundancias (ej. V11 volvía a crear tablas que V8 ya creaba, V13/V22/V23/V24 aplicaban parches a tablas creadas en migraciones anteriores).

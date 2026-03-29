@@ -14,12 +14,10 @@ echo "   Ambiente: ${KEYGO_ENV:-desconocido}"
 echo "   DB:       ${SUPABASE_DB_HOST:-localhost}:${SUPABASE_DB_PORT:-5432}"
 echo ""
 
-cd "$SUPABASE_DIR"
-mvn clean compile flyway:migrate \
-    -Dsupabase.url="${SUPABASE_URL}" \
-    -Dsupabase.user="${SUPABASE_USER}" \
-    -Dsupabase.password="${SUPABASE_PASSWORD}"
+cd "$PROJECT_ROOT"
+"$PROJECT_ROOT/mvnw" flyway:migrate \
+    -pl keygo-supabase \
+    --no-transfer-progress
 
 echo ""
 echo "✅ Migraciones completadas"
-

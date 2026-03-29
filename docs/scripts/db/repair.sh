@@ -10,10 +10,8 @@ load_env || true
 verify_db_vars || exit 1
 
 echo "🔧 Reparando metadatos de Flyway..."
-cd "$SUPABASE_DIR"
-mvn flyway:repair \
-    -Dsupabase.url="${SUPABASE_URL}" \
-    -Dsupabase.user="${SUPABASE_USER:-postgres}" \
-    -Dsupabase.password="${SUPABASE_PASSWORD}"
+cd "$PROJECT_ROOT"
+"$PROJECT_ROOT/mvnw" flyway:repair \
+    -pl keygo-supabase \
+    --no-transfer-progress
 echo "✅ Reparación completada"
-

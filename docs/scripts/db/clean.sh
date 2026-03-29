@@ -22,10 +22,8 @@ fi
 
 echo ""
 echo "🧹 Limpiando schema..."
-cd "$SUPABASE_DIR"
-mvn flyway:clean \
-    -Dsupabase.url="${SUPABASE_URL}" \
-    -Dsupabase.user="${SUPABASE_USER:-postgres}" \
-    -Dsupabase.password="${SUPABASE_PASSWORD}"
+cd "$PROJECT_ROOT"
+"$PROJECT_ROOT/mvnw" flyway:clean \
+    -pl keygo-supabase \
+    --no-transfer-progress
 echo "✅ Limpieza completada — todos los objetos eliminados"
-
