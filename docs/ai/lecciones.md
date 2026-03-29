@@ -10,6 +10,32 @@
 
 ---
 
+### [2026-03-29] Seeds de migraciones usaban UUIDs hardcodeados para FKs, planes asignados al app incorrecto y app ficticia en el seed
+
+**Contexto:** Los scripts V15–V18 tenían UUIDs hardcodeados para referencias de claves foráneas (tenant_id, client_app_id, user_id, role_id, membership_id, app_plan_id, app_plan_version_id). Además, V16 creaba `keygo-platform` (que no debe existir en el seed) y V17/V18 asociaban los planes de billing a esa app en lugar de `keygo-ui`.
+
+**Problema:**
+1. **UUIDs hardcodeados en FK**: Si la referencia cambia (registro re-creado, reorg de IDs, etc.), el seed falla con error de FK o inserta datos inconsistentes. Además es ilegible: `'11111111-1111-1111-1111-333333333333'` no le dice nada a quien lee el SQL.
+2. **App incorrecta en planes**: El catálogo de planes debe estar en `keygo-ui` (app pública que usan los suscriptores) y no en `keygo-platform`. Esto afecta el endpoint `/billing/catalog` que filtra por `{clientId}`.
+3. **App innecesaria en seed**: `keygo-platform` no forma parte del seed base. El seed solo debe tener el tenant `keygo` con su app pública `keygo-ui`. Crear apps M2M adicionales en el seed introduce complejidad sin valor para desarrollo de UI.
+
+**Solución / Buena práctica:**
+- **Para FKs**: usar siempre subquery `SELECT id FROM <tabla_padre> WHERE <campo_semántico> = '<valor>'`. Campos preferidos: `tenants.slug`, `client_apps.client_id`, `tenant_users.username`, `app_roles.code`, `app_plans.code`.
+- **Para FKs compuestas** (ej: membership_roles): usar CTE o JOIN-based INSERT con datos semánticos (tenant_slug + username + app_client_id + role_code) en lugar de UUIDs cruzados.
+- **Para entitlements** con múltiples filas hacia la misma versión de plan: usar patrón CTE + SELECT FROM plan_version CROSS JOIN VALUES para evitar repetir la subquery en cada fila.
+- **Para versiones de plan**: ON CONFLICT con la clave única semántica `(app_plan_id, version)` en lugar de `(id)` para mayor claridad.
+- Los UUIDs estables **solo** corresponden a PKs (columna `id`) para garantizar estabilidad entre resets de DB. Nunca para columnas de FK.
+- **Seed mínimo**: el seed inicial debe tener exactamente lo necesario para desarrollo de UI — tenant `keygo` + app `keygo-ui` + usuarios + roles + memberships. No agregar apps adicionales (M2M, internas, etc.) en el seed base.
+- Las migraciones vacías (no-op) son válidas en Flyway para conservar la secuencia de versiones sin romper el historial; basta con dejar solo un comentario explicativo en el archivo `.sql`.
+
+**Archivos clave:**
+- `keygo-supabase/src/main/resources/db/migration/V15__seed_foundation.sql`
+- `keygo-supabase/src/main/resources/db/migration/V16__seed_billing_platform_app.sql` ← vaciado (no-op)
+- `keygo-supabase/src/main/resources/db/migration/V16__seed_billing_plans.sql`
+- `keygo-supabase/src/main/resources/db/migration/V17__seed_keygo_billing_plans_v2.sql`
+
+---
+
 ### [2026-03-29] Scripts de DB usaban `mvn` en lugar de `./mvnw` y faltaba `-pl keygo-supabase`
 
 **Contexto:** Los scripts `migrate.sh`, `info.sh`, `validate.sh`, `repair.sh` y `clean.sh` en `docs/scripts/db/` usaban `mvn` (Maven sistema) y corrían desde `$PROJECT_ROOT` sin `-pl keygo-supabase`.

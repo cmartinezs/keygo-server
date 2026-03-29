@@ -11,7 +11,6 @@ import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUs
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
@@ -83,7 +82,7 @@ public class AppBillingSubscriptionController {
     UUID tenantId = resolveTenantId(tenantSlug);
     UUID appId    = resolveAppIdGlobally(clientId);
 
-    AppSubscription sub = getSubscriptionUseCase.execute(appId, SubscriberType.TENANT, tenantId);
+    AppSubscription sub = getSubscriptionUseCase.executeForTenant(appId, tenantId);
     return ResponseEntity.ok(BaseResponse.<AppSubscriptionData>builder()
         .data(AppSubscriptionData.from(sub))
         .success(ResponseHelper.message(ResponseCode.APP_SUBSCRIPTION_RETRIEVED))
@@ -108,7 +107,7 @@ public class AppBillingSubscriptionController {
     UUID tenantId = resolveTenantId(tenantSlug);
     UUID appId    = resolveAppIdGlobally(clientId);
 
-    AppSubscription sub = cancelSubscriptionUseCase.execute(appId, SubscriberType.TENANT, tenantId);
+    AppSubscription sub = cancelSubscriptionUseCase.executeForTenant(appId, tenantId);
     return ResponseEntity.ok(BaseResponse.<AppSubscriptionData>builder()
         .data(AppSubscriptionData.from(sub))
         .success(ResponseHelper.message(ResponseCode.APP_SUBSCRIPTION_CANCELLED))
@@ -133,7 +132,7 @@ public class AppBillingSubscriptionController {
     UUID tenantId = resolveTenantId(tenantSlug);
     UUID appId    = resolveAppIdGlobally(clientId);
 
-    AppSubscription sub = getSubscriptionUseCase.execute(appId, SubscriberType.TENANT, tenantId);
+    AppSubscription sub = getSubscriptionUseCase.executeForTenant(appId, tenantId);
     List<AppInvoiceData> invoices = listInvoicesUseCase.execute(sub.getId())
         .stream().map(AppInvoiceData::from).toList();
 

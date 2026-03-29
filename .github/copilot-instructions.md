@@ -138,6 +138,17 @@ Al concluir cualquier tarea (feature, corrección, refactor, configuración, etc
 - Implementaciones concretas (repos, clients externos) van en `keygo-infra` o `keygo-supabase`.
 - **Al crear o modificar cualquier endpoint REST**, agregar o actualizar el request correspondiente en `docs/postman/KeyGo-Server.postman_collection.json` **antes de cerrar la tarea**. Incluir: método, URL con variables de entorno, headers necesarios, body de ejemplo (si aplica) y scripts `pm.test()` que validen status code y estructura `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
 - **Al crear o modificar cualquier endpoint REST**, actualizar también la sección §14 (inventario de endpoints) en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **antes de cerrar la tarea**. Incluir: método HTTP, URL completa con `context-path`, autenticación requerida (`X-KEYGO-ADMIN` / Bearer / público), parámetros o body de ejemplo y estructura de respuesta `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
+- **En scripts de seed de migraciones Flyway**, cuando una fila tenga claves foráneas, **nunca** hardcodear el UUID/ID directamente. Usar siempre una subquery `SELECT` sobre la tabla padre con `WHERE` en un campo único y legible a nivel humano (ej. `slug` en `tenants`, `client_id` en `client_apps`, `code` en `app_plans`/`app_roles`, `username`/`email` en `tenant_users`).
+
+  ```sql
+  -- ❌ Mal
+  INSERT INTO client_apps (tenant_id, name) VALUES ('550e8400-...', 'my-app');
+
+  -- ✅ Bien
+  INSERT INTO client_apps (tenant_id, name)
+  VALUES ((SELECT id FROM tenants WHERE slug = 'keygo'), 'my-app');
+  ```
+
 - Si necesitas DB:
   - Perfil `supabase` debe estar activo (`SPRING_PROFILES_ACTIVE`).
   - Variables requeridas: `SUPABASE_URL`, `SUPABASE_USER`, `SUPABASE_PASSWORD`.

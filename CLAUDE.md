@@ -126,6 +126,37 @@ Al concluir cualquier tarea, el agente **debe** incluir propuestas organizadas e
    ```
 7. **Al crear o modificar cualquier endpoint REST**, actualizar `docs/postman/KeyGo-Server.postman_collection.json` con el request correspondiente **antes de cerrar la tarea**. La actualización de Postman **no requiere orden explícita** del usuario — es parte del ciclo de trabajo estándar de un endpoint.
 8. **Al crear o modificar cualquier endpoint REST**, actualizar también la sección §14 (inventario de endpoints) en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **antes de cerrar la tarea**. Incluir: método HTTP, URL completa con `context-path`, autenticación requerida (`X-KEYGO-ADMIN` / Bearer / público), parámetros o body de ejemplo y estructura de respuesta `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
+9. **En scripts de seed de migraciones Flyway**, cuando una fila tenga claves foráneas, **nunca** hardcodear el UUID/ID directamente. En su lugar, usar una subquery `SELECT` sobre la tabla padre con `WHERE` en un campo único y legible a nivel humano (p. ej. `slug`, `code`, `client_id`, `username`, `email`).
+
+   ```sql
+   -- ❌ Mal: ID hardcodeado (frágil, ilegible)
+   INSERT INTO client_apps (tenant_id, name)
+   VALUES ('550e8400-e29b-41d4-a716-446655440000', 'my-app');
+
+   -- ✅ Bien: subquery por campo semántico
+   INSERT INTO client_apps (tenant_id, name)
+   VALUES ((SELECT id FROM tenants WHERE slug = 'keygo'), 'my-app');
+
+   -- ✅ Bien: subquery anidada en cadena
+   INSERT INTO memberships (tenant_user_id, client_app_id)
+   VALUES (
+     (SELECT tu.id FROM tenant_users tu
+      JOIN tenants t ON t.id = tu.tenant_id
+      WHERE t.slug = 'keygo' AND tu.username = 'keygo_admin'),
+     (SELECT id FROM client_apps WHERE client_id = 'keygo-ui')
+   );
+   ```
+
+   Campos de referencia preferidos por tabla:
+
+   | Tabla padre | Campo semántico preferido |
+   |---|---|
+   | `tenants` | `slug` |
+   | `client_apps` | `client_id` |
+   | `tenant_users` | `username` o `email` (combinado con `tenant_id` subquery) |
+   | `app_roles` | `code` (combinado con `client_app_id` subquery) |
+   | `app_plans` | `code` (combinado con `client_app_id` subquery) |
+   | `app_plan_versions` | `version_tag` (combinado con `plan_id` subquery) |
 
 ## Cómo trabajar al implementar una feature
 

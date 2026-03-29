@@ -27,7 +27,7 @@
 **Motivo:** Reemplazar el catálogo de V17 (FREE/STARTER/BUSINESS/ENTERPRISE en MXN) con la escalera comercialmente coherente definida en `docs/research/billing-plans-for-keygo.md`.
 
 **Cambios realizados:**
-- **Creado:** `V18__seed_keygo_billing_plans_v2.sql`
+- **Creado:** `V17__seed_keygo_billing_plans_v2.sql`
   - Depreca versiones v1.0 de V17 (cierra `effective_to = 2026-03-28`)
   - Desactiva plan STARTER (reemplazado por PERSONAL)
   - Actualiza descripciones de FREE, BUSINESS, ENTERPRISE
@@ -67,7 +67,7 @@
   - `V14__billing_support_tables.sql` — `payment_methods` + `tenant_billing_profiles`
   - `V15__seed_foundation.sql` — seed consolidado: tenants, apps, usuarios, roles, memberships (contraseñas correctas desde el inicio)
   - `V16__seed_billing_platform_app.sql` — seed: app `keygo-platform` + rol `billing_admin`
-  - `V17__seed_billing_plans.sql` — seed: FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
+  - `V16__seed_billing_plans.sql` — seed: FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
 
 **Impacto:**
 - Próxima migración: `V18__...`

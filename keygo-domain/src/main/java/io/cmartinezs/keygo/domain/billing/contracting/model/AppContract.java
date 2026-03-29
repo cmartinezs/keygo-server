@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.domain.billing.contracting.model;
 
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -21,7 +20,6 @@ public class AppContract {
   private final UUID clientAppId;
   private final UUID selectedPlanVersionId;
   private final String billingPeriod;
-  private final SubscriberType subscriberType;
   private ContractStatus status;
 
   // Contractor data (always present)
@@ -29,7 +27,7 @@ public class AppContract {
   private final String contractorFirstName;
   private final String contractorLastName;
 
-  // Company data (only when subscriberType = TENANT)
+  // Company data (for B2B onboarding)
   private final String companyName;
   private final String companySlug;
   private final String companyTaxId;
@@ -56,7 +54,6 @@ public class AppContract {
       UUID clientAppId,
       UUID selectedPlanVersionId,
       String billingPeriod,
-      SubscriberType subscriberType,
       ContractStatus status,
       String contractorEmail,
       String contractorFirstName,
@@ -76,7 +73,6 @@ public class AppContract {
       UUID subscriberTenantUserId) {
     if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (selectedPlanVersionId == null) throw new IllegalArgumentException("selectedPlanVersionId cannot be null");
-    if (subscriberType == null) throw new IllegalArgumentException("subscriberType cannot be null");
     if (contractorEmail == null || contractorEmail.isBlank()) throw new IllegalArgumentException("contractorEmail cannot be blank");
     if (contractorFirstName == null || contractorFirstName.isBlank()) throw new IllegalArgumentException("contractorFirstName cannot be blank");
     if (contractorLastName == null || contractorLastName.isBlank()) throw new IllegalArgumentException("contractorLastName cannot be blank");
@@ -87,7 +83,6 @@ public class AppContract {
     this.clientAppId = clientAppId;
     this.selectedPlanVersionId = selectedPlanVersionId;
     this.billingPeriod = billingPeriod;
-    this.subscriberType = subscriberType;
     this.status = status;
     this.contractorEmail = contractorEmail;
     this.contractorFirstName = contractorFirstName;
@@ -171,4 +166,3 @@ public class AppContract {
     this.updatedAt = activatedAt;
   }
 }
-

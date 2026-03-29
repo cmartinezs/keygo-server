@@ -4,8 +4,7 @@ import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepository
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.result.AppPlanResult;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
-
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanEntitlement;
 
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.UUID;
 
 /**
  * Use case: retrieve the public plan catalog for a ClientApp.
- * Optionally filtered by subscriber type.
  * @author cmartinezs
  * @version 1.0
  */
@@ -32,13 +30,10 @@ public class GetAppPlanCatalogUseCase {
     this.entitlementRepo = entitlementRepo;
   }
 
-  public List<AppPlanResult> execute(UUID clientAppId, SubscriberType subscriberType) {
-    var plans = subscriberType == null
-        ? planRepo.findPublicByClientAppId(clientAppId)
-        : planRepo.findPublicByClientAppIdAndSubscriberType(clientAppId, subscriberType);
-
-    return plans.stream()
-        .filter(p -> p.isActive())
+  public List<AppPlanResult> execute(UUID clientAppId) {
+    return planRepo.findPublicByClientAppId(clientAppId)
+        .stream()
+        .filter(AppPlan::isActive)
         .map(plan -> {
           var versions = versionRepo.findActiveByAppPlanId(plan.getId());
           List<AppPlanEntitlement> entitlements = versions.isEmpty()
@@ -49,6 +44,3 @@ public class GetAppPlanCatalogUseCase {
         .toList();
   }
 }
-
-
-

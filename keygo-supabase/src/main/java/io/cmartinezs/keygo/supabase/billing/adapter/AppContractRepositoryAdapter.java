@@ -75,7 +75,6 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .clientApp(clientAppRepo.getReferenceById(c.getClientAppId()))
         .selectedPlanVersion(versionRepo.getReferenceById(c.getSelectedPlanVersionId()))
         .billingPeriod(c.getBillingPeriod())
-        .subscriberType(c.getSubscriberType())
         .status(c.getStatus())
         .contractorEmail(c.getContractorEmail())
         .contractorFirstName(c.getContractorFirstName())

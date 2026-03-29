@@ -8,7 +8,6 @@ import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
@@ -50,10 +49,7 @@ public class CreateAppContractUseCase {
         .orElseThrow(() -> new IllegalArgumentException("Plan version not found: " + cmd.planVersionId()));
 
     // For B2B: validate companySlug is present and not already in use
-    if (SubscriberType.TENANT.equals(cmd.subscriberType())) {
-      if (cmd.companySlug() == null || cmd.companySlug().isBlank()) {
-        throw new IllegalArgumentException("companySlug es requerido para contratos de tipo TENANT");
-      }
+    if (cmd.companySlug() != null && !cmd.companySlug().isBlank()) {
       if (contractRepo.existsByClientAppIdAndCompanySlug(cmd.clientAppId(), cmd.companySlug())) {
         throw new IllegalArgumentException("El company_slug ya está en uso para esta app: " + cmd.companySlug());
       }
@@ -70,7 +66,6 @@ public class CreateAppContractUseCase {
         .clientAppId(cmd.clientAppId())
         .selectedPlanVersionId(cmd.planVersionId())
         .billingPeriod(cmd.billingPeriod() != null ? cmd.billingPeriod().name() : "MONTHLY")
-        .subscriberType(cmd.subscriberType())
         .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
         .contractorEmail(cmd.contractorEmail())
         .contractorFirstName(cmd.contractorFirstName())

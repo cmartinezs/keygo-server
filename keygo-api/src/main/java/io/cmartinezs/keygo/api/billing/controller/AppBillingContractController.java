@@ -90,7 +90,6 @@ public class AppBillingContractController {
         appId,
         UUID.fromString(request.planVersionId()),
         request.billingPeriod(),
-        request.subscriberType(),
         request.contractorEmail(),
         request.contractorFirstName(),
         request.contractorLastName(),

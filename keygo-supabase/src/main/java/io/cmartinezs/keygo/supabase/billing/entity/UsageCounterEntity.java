@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
@@ -37,10 +36,6 @@ public class UsageCounterEntity {
   @JoinColumn(name = "client_app_id", nullable = false)
   private ClientAppEntity clientApp;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "subscriber_type", nullable = false, length = 20)
-  private SubscriberType subscriberType;
-
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "subscriber_tenant_id")
   private TenantEntity subscriberTenant;
@@ -66,4 +61,3 @@ public class UsageCounterEntity {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 }
-

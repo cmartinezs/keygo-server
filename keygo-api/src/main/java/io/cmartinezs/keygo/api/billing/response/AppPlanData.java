@@ -7,7 +7,6 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.catalog.model.EnforcementMode;
 import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.catalog.model.PeriodType;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +22,6 @@ public record AppPlanData(
     String code,
     String name,
     String description,
-    SubscriberType subscriberType,
     String status,
     boolean isPublic,
     List<AppPlanVersionData> versions,
@@ -65,7 +63,6 @@ public record AppPlanData(
         plan.getCode(),
         plan.getName(),
         plan.getDescription(),
-        plan.getSubscriberType(),
         plan.getStatus().name(),
         plan.isPublic(),
         versions.stream().map(v -> new AppPlanVersionData(

@@ -26,7 +26,6 @@ public final class BillingPersistenceMapper {
         .code(e.getCode())
         .name(e.getName())
         .description(e.getDescription())
-        .subscriberType(e.getSubscriberType())
         .status(e.getStatus())
         .isPublic(e.isPublic())
         .build();
@@ -73,7 +72,6 @@ public final class BillingPersistenceMapper {
         .clientAppId(e.getClientApp().getId())
         .selectedPlanVersionId(e.getSelectedPlanVersion().getId())
         .billingPeriod(e.getBillingPeriod())
-        .subscriberType(e.getSubscriberType())
         .status(e.getStatus())
         .contractorEmail(e.getContractorEmail())
         .contractorFirstName(e.getContractorFirstName())
@@ -102,7 +100,6 @@ public final class BillingPersistenceMapper {
         .clientAppId(e.getClientApp().getId())
         .appPlanVersionId(e.getAppPlanVersion().getId())
         .contractId(e.getContract() != null ? e.getContract().getId() : null)
-        .subscriberType(e.getSubscriberType())
         .subscriberTenantId(e.getSubscriberTenant() != null ? e.getSubscriberTenant().getId() : null)
         .subscriberTenantUserId(e.getSubscriberTenantUser() != null ? e.getSubscriberTenantUser().getId() : null)
         .status(e.getStatus())

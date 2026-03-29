@@ -1,7 +1,7 @@
 -- =============================================================================
 -- V12: Billing Subscriptions — relación activa de facturación
 -- app_subscriptions  : suscripción activa entre un suscriptor y una versión
---   de plan de una ClientApp. subscriber_type discrimina TENANT vs TENANT_USER.
+--   de plan de una ClientApp.
 --   Exactamente uno de (subscriber_tenant_id, subscriber_tenant_user_id) es no-nulo.
 -- payment_transactions: registro de cada evento de pago (inicial, renovación, etc.)
 -- =============================================================================
@@ -16,7 +16,6 @@ CREATE TABLE app_subscriptions (
     contract_id               UUID         REFERENCES app_contracts(id)              ON DELETE SET NULL,
 
     -- Suscriptor polimórfico — exactamente uno debe ser no-nulo
-    subscriber_type           VARCHAR(20)  NOT NULL,
     subscriber_tenant_id      UUID         REFERENCES tenants(id)      ON DELETE RESTRICT,
     subscriber_tenant_user_id UUID         REFERENCES tenant_users(id) ON DELETE RESTRICT,
 
@@ -31,8 +30,7 @@ CREATE TABLE app_subscriptions (
     created_at                TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at                TIMESTAMPTZ  NOT NULL DEFAULT now(),
 
-    CONSTRAINT chk_app_subscriptions_subscriber_type CHECK (subscriber_type IN ('TENANT', 'TENANT_USER')),
-    CONSTRAINT chk_app_subscriptions_status          CHECK (status IN (
+    CONSTRAINT chk_app_subscriptions_status CHECK (status IN (
         'PENDING', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'CANCELLED', 'EXPIRED'
     )),
     -- Una suscripción activa por app por suscriptor B2B
@@ -57,8 +55,7 @@ CREATE TRIGGER app_subscriptions_updated_at
     BEFORE UPDATE ON app_subscriptions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-COMMENT ON TABLE  app_subscriptions IS 'Active billing relationship between a subscriber and a plan version of a ClientApp.';
-COMMENT ON COLUMN app_subscriptions.subscriber_type IS 'TENANT = B2B; TENANT_USER = B2C. Exactly one of subscriber_tenant_id / subscriber_tenant_user_id must be non-null.';
+COMMENT ON TABLE app_subscriptions IS 'Active billing relationship between a subscriber and a plan version of a ClientApp. Exactly one of subscriber_tenant_id / subscriber_tenant_user_id must be non-null.';
 
 -- ---------------------------------------------------------------------------
 -- payment_transactions

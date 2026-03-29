@@ -49,8 +49,8 @@ V{numero}__{descripcion_con_underscores}.sql
 | V14 | `V14__billing_support_tables.sql`           | Billing   | Tablas `payment_methods`, `tenant_billing_profiles` |
 | V15 | `V15__seed_foundation.sql`                  | Seed      | Tenants `keygo`+`demo`, apps, usuarios, roles, memberships (hashes correctos) |
 | V16 | `V16__seed_billing_platform_app.sql`        | Seed      | App `keygo-platform` + rol `billing_admin` |
-| V17 | `V17__seed_billing_plans.sql`               | Seed      | Planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements (MXN — DEPRECATED) |
-| V18 | `V18__seed_keygo_billing_plans_v2.sql`      | Seed      | Escalera corregida USD: Free/Personal/Team/Business/Flex/Enterprise + entitlements completos (`MAX_TENANTS`, `MAX_ADMINS`, tarifas Flex escalonadas) |
+| V17 | `V16__seed_billing_plans.sql`               | Seed      | Planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements (MXN — DEPRECATED) |
+| V18 | `V17__seed_keygo_billing_plans_v2.sql`      | Seed      | Escalera corregida USD: Free/Personal/Team/Business/Flex/Enterprise + entitlements completos (`MAX_TENANTS`, `MAX_ADMINS`, tarifas Flex escalonadas) |
 
 ---
 

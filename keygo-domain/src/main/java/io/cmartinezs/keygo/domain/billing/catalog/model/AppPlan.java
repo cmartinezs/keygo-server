@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.domain.billing.catalog.model;
 
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,7 +7,7 @@ import java.util.UUID;
 
 /**
  * Domain model for an app billing plan.
- * A plan is defined per ClientApp and has a subscriber type (TENANT or TENANT_USER).
+ * A plan is defined per ClientApp and offered to tenant subscribers.
  * @author cmartinezs
  * @version 1.0
  */
@@ -20,7 +19,6 @@ public class AppPlan {
   private final String code;
   private final String name;
   private final String description;
-  private final SubscriberType subscriberType;
   private AppPlanStatus status;
   private final boolean isPublic;
 
@@ -31,13 +29,11 @@ public class AppPlan {
       String code,
       String name,
       String description,
-      SubscriberType subscriberType,
       AppPlanStatus status,
       boolean isPublic) {
     if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (code == null || code.isBlank()) throw new IllegalArgumentException("code cannot be blank");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("name cannot be blank");
-    if (subscriberType == null) throw new IllegalArgumentException("subscriberType cannot be null");
     if (status == null) throw new IllegalArgumentException("status cannot be null");
 
     this.id = id;
@@ -45,7 +41,6 @@ public class AppPlan {
     this.code = code;
     this.name = name;
     this.description = description;
-    this.subscriberType = subscriberType;
     this.status = status;
     this.isPublic = isPublic;
   }
@@ -58,4 +53,3 @@ public class AppPlan {
     this.status = AppPlanStatus.INACTIVE;
   }
 }
-

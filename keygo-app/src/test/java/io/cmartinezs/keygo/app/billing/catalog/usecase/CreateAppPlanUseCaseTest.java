@@ -13,7 +13,6 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.catalog.model.EnforcementMode;
 import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.catalog.model.PeriodType;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +45,6 @@ class CreateAppPlanUseCaseTest {
         "STARTER",
         "Starter Plan",
         "Plan básico para startups",
-        SubscriberType.TENANT,
         true,
         "1.0",
         BillingPeriod.MONTHLY,
@@ -69,7 +67,6 @@ class CreateAppPlanUseCaseTest {
         .clientAppId(appId)
         .code(code)
         .name("Starter Plan")
-        .subscriberType(SubscriberType.TENANT)
         .status(AppPlanStatus.ACTIVE)
         .isPublic(true)
         .build();
@@ -123,7 +120,7 @@ class CreateAppPlanUseCaseTest {
     // Given
     UUID appId = UUID.randomUUID();
     CreateAppPlanCommand cmd = new CreateAppPlanCommand(
-        appId, "FREE", "Free Plan", null, SubscriberType.TENANT, true,
+        appId, "FREE", "Free Plan", null, true,
         "1.0", BillingPeriod.MONTHLY, BigDecimal.ZERO, "MXN",
         0, LocalDate.now(), List.of());
 
@@ -182,7 +179,7 @@ class CreateAppPlanUseCaseTest {
     verify(versionRepo).save(versionCaptor.capture());
 
     assertThat(planCaptor.getValue().getStatus()).isEqualTo(AppPlanStatus.ACTIVE);
-    assertThat(planCaptor.getValue().getSubscriberType()).isEqualTo(SubscriberType.TENANT);
+    assertThat(planCaptor.getValue().isPublic()).isTrue();
     assertThat(versionCaptor.getValue().getBillingPeriod()).isEqualTo(BillingPeriod.MONTHLY);
     assertThat(versionCaptor.getValue().getBasePrice()).isEqualByComparingTo("299.00");
   }
@@ -192,7 +189,7 @@ class CreateAppPlanUseCaseTest {
     // Given
     UUID appId = UUID.randomUUID();
     CreateAppPlanCommand cmd = new CreateAppPlanCommand(
-        appId, "BASIC", "Basic", null, SubscriberType.TENANT, true,
+        appId, "BASIC", "Basic", null, true,
         "1.0", BillingPeriod.MONTHLY, BigDecimal.ZERO,
         null, // null currency → should default to MXN
         0, LocalDate.now(), List.of());

@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
@@ -47,10 +46,6 @@ public class AppSubscriptionEntity {
   @JoinColumn(name = "contract_id")
   private AppContractEntity contract;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "subscriber_type", nullable = false, length = 20)
-  private SubscriberType subscriberType;
-
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "subscriber_tenant_id")
   private TenantEntity subscriberTenant;
@@ -92,4 +87,3 @@ public class AppSubscriptionEntity {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 }
-

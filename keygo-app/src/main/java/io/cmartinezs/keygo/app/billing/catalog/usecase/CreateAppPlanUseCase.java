@@ -45,7 +45,6 @@ public class CreateAppPlanUseCase {
         .code(cmd.code())
         .name(cmd.name())
         .description(cmd.description())
-        .subscriberType(cmd.subscriberType())
         .status(AppPlanStatus.ACTIVE)
         .isPublic(cmd.isPublic())
         .build();

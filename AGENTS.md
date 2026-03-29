@@ -281,12 +281,45 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V13__billing_invoices_and_usage.sql` — Tablas `invoices`, `usage_counters` (con `subscriber_type`)
 - `V14__billing_support_tables.sql` — Tablas `payment_methods`, `tenant_billing_profiles`
 - `V15__seed_foundation.sql` — Seed: tenants `keygo`+`demo`, apps, usuarios (contraseñas correctas), roles, memberships
-- `V16__seed_billing_platform_app.sql` — Seed: app `keygo-platform` + rol `billing_admin`
-- `V17__seed_billing_plans.sql` — Seed: planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
+- `V16__seed_billing_platform_app.sql` — **(no-op)** Migración intencionalmente vacía; `keygo-platform` fue eliminado del seed — el seed solo incluye el tenant `keygo` con la app pública `keygo-ui`
+- `V16__seed_billing_plans.sql` — Seed: planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
 
-- `V18__seed_keygo_billing_plans_v2.sql` — Escalera corregida: depreca versiones v1.0 de V17, desactiva STARTER, actualiza FREE/BUSINESS/ENTERPRISE (descripciones + USD), inserta PERSONAL/TEAM/FLEX con versiones y entitlements completos (incluye `MAX_TENANTS`, `MAX_ADMINS`, tarifas escalonadas Flex en centavos)
+- `V17__seed_keygo_billing_plans_v2.sql` — Escalera corregida: depreca versiones v1.0 de V17, desactiva STARTER, actualiza FREE/BUSINESS/ENTERPRISE (descripciones + USD), inserta PERSONAL/TEAM/FLEX con versiones y entitlements completos (incluye `MAX_TENANTS`, `MAX_ADMINS`, tarifas escalonadas Flex en centavos)
 
 Next migration must be `V19__...`. **Never reuse or edit existing migration files.**
+
+**Seed convention — foreign keys via subquery (mandatory):**  
+When a seed row references a parent table's PK, **never hardcode the UUID**. Always use a `SELECT` subquery with a `WHERE` on a unique, human-readable field:
+
+```sql
+-- ❌ Bad: hardcoded UUID (fragile, unreadable)
+INSERT INTO client_apps (tenant_id, name)
+VALUES ('550e8400-e29b-41d4-a716-446655440000', 'my-app');
+
+-- ✅ Good: subquery by semantic field
+INSERT INTO client_apps (tenant_id, name)
+VALUES ((SELECT id FROM tenants WHERE slug = 'keygo'), 'my-app');
+
+-- ✅ Good: chained subqueries
+INSERT INTO memberships (tenant_user_id, client_app_id)
+VALUES (
+  (SELECT tu.id FROM tenant_users tu
+   JOIN tenants t ON t.id = tu.tenant_id
+   WHERE t.slug = 'keygo' AND tu.username = 'keygo_admin'),
+  (SELECT id FROM client_apps WHERE client_id = 'keygo-ui')
+);
+```
+
+Preferred semantic fields by parent table:
+
+| Parent table | Preferred field |
+|---|---|
+| `tenants` | `slug` |
+| `client_apps` | `client_id` |
+| `tenant_users` | `username` or `email` (combined with `tenant_id` subquery) |
+| `app_roles` | `code` (combined with `client_app_id` subquery) |
+| `app_plans` | `code` (combined with `client_app_id` subquery) |
+| `app_plan_versions` | `version_tag` (combined with `plan_id` subquery) |
 
 **Seed credentials (dev/local ONLY — never use in production):**
 

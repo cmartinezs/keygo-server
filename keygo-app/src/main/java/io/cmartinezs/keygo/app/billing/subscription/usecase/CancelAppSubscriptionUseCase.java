@@ -2,7 +2,6 @@ package io.cmartinezs.keygo.app.billing.subscription.usecase;
 
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -20,22 +19,25 @@ public class CancelAppSubscriptionUseCase {
     this.subscriptionRepo = subscriptionRepo;
   }
 
-  public AppSubscription execute(UUID clientAppId, SubscriberType subscriberType, UUID subscriberId) {
-    AppSubscription sub = findSubscription(clientAppId, subscriberType, subscriberId);
+  /** Cancel by tenant (B2B). */
+  public AppSubscription executeForTenant(UUID clientAppId, UUID tenantId) {
+    AppSubscription sub = subscriptionRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, tenantId)
+        .orElseThrow(() -> new IllegalArgumentException("Subscription not found for tenant: " + tenantId));
+    return cancel(sub);
+  }
+
+  /** Cancel by user (B2C). */
+  public AppSubscription executeForUser(UUID clientAppId, UUID userId) {
+    AppSubscription sub = subscriptionRepo.findByClientAppIdAndSubscriberUserId(clientAppId, userId)
+        .orElseThrow(() -> new IllegalArgumentException("Subscription not found for user: " + userId));
+    return cancel(sub);
+  }
+
+  private AppSubscription cancel(AppSubscription sub) {
     if (!sub.isActive()) {
       throw new IllegalStateException("Subscription is not active, cannot cancel: " + sub.getStatus());
     }
     sub.markCancelAtPeriodEnd(OffsetDateTime.now());
     return subscriptionRepo.save(sub);
   }
-
-  private AppSubscription findSubscription(UUID clientAppId, SubscriberType type, UUID subscriberId) {
-    return switch (type) {
-      case TENANT -> subscriptionRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, subscriberId)
-          .orElseThrow(() -> new IllegalArgumentException("Subscription not found for tenant: " + subscriberId));
-      case TENANT_USER -> subscriptionRepo.findByClientAppIdAndSubscriberUserId(clientAppId, subscriberId)
-          .orElseThrow(() -> new IllegalArgumentException("Subscription not found for user: " + subscriberId));
-    };
-  }
 }
-

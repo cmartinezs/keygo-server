@@ -51,7 +51,6 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
         .id(sub.getId())
         .clientApp(clientAppRepo.getReferenceById(sub.getClientAppId()))
         .appPlanVersion(versionRepo.getReferenceById(sub.getAppPlanVersionId()))
-        .subscriberType(sub.getSubscriberType())
         .status(sub.getStatus())
         .currentPeriodStart(sub.getCurrentPeriodStart())
         .currentPeriodEnd(sub.getCurrentPeriodEnd())

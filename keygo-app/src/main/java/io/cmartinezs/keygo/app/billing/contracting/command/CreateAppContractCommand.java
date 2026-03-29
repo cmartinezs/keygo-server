@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.app.billing.contracting.command;
 
 import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.util.UUID;
 
@@ -12,14 +11,12 @@ public record CreateAppContractCommand(
     UUID clientAppId,
     UUID planVersionId,
     BillingPeriod billingPeriod,
-    SubscriberType subscriberType,
     String contractorEmail,
     String contractorFirstName,
     String contractorLastName,
-    // Only required for TENANT subscriber type
+    // Company fields (optional, for B2B onboarding)
     String companyName,
     String companySlug,
     String companyTaxId,
     String companyAddress
 ) {}
-

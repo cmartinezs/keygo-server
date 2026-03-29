@@ -3,7 +3,6 @@ package io.cmartinezs.keygo.supabase.billing.adapter;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanStatus;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.supabase.billing.entity.AppPlanEntity;
 import io.cmartinezs.keygo.supabase.billing.mapper.BillingPersistenceMapper;
 import io.cmartinezs.keygo.supabase.billing.repository.AppPlanJpaRepository;
@@ -38,12 +37,6 @@ public class AppPlanRepositoryAdapter implements AppPlanRepositoryPort {
   }
 
   @Override
-  public List<AppPlan> findPublicByClientAppIdAndSubscriberType(UUID clientAppId, SubscriberType type) {
-    return jpaRepo.findByClientAppIdAndSubscriberTypeAndIsPublicTrueAndStatus(clientAppId, type, AppPlanStatus.ACTIVE)
-        .stream().map(BillingPersistenceMapper::toDomain).toList();
-  }
-
-  @Override
   public List<AppPlan> findAllByClientAppId(UUID clientAppId) {
     return jpaRepo.findByClientAppId(clientAppId)
         .stream().map(BillingPersistenceMapper::toDomain).toList();
@@ -69,11 +62,9 @@ public class AppPlanRepositoryAdapter implements AppPlanRepositoryPort {
         .code(plan.getCode())
         .name(plan.getName())
         .description(plan.getDescription())
-        .subscriberType(plan.getSubscriberType())
         .status(plan.getStatus())
         .isPublic(plan.isPublic())
         .build();
     return BillingPersistenceMapper.toDomain(jpaRepo.save(entity));
   }
 }
-

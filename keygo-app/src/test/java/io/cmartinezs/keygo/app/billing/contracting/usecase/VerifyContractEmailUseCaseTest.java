@@ -3,7 +3,6 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,7 +31,6 @@ class VerifyContractEmailUseCaseTest {
         .clientAppId(UUID.randomUUID())
         .selectedPlanVersionId(UUID.randomUUID())
         .billingPeriod("MONTHLY")
-        .subscriberType(SubscriberType.TENANT)
         .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
         .contractorEmail("admin@acme.com")
         .contractorFirstName("John").contractorLastName("Doe")
@@ -108,7 +106,6 @@ class VerifyContractEmailUseCaseTest {
         .clientAppId(UUID.randomUUID())
         .selectedPlanVersionId(UUID.randomUUID())
         .billingPeriod("MONTHLY")
-        .subscriberType(SubscriberType.TENANT)
         .status(ContractStatus.PENDING_PAYMENT)
         .contractorEmail("admin@acme.com")
         .contractorFirstName("John").contractorLastName("Doe")

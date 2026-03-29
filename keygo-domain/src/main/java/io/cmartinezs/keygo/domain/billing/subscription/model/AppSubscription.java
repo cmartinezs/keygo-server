@@ -18,10 +18,9 @@ public class AppSubscription {
   private final UUID clientAppId;
   private final UUID appPlanVersionId;
   private final UUID contractId;
-  private final SubscriberType subscriberType;
-  /** Non-null only when subscriberType = TENANT. */
+  /** Non-null for B2B (tenant) subscribers. */
   private final UUID subscriberTenantId;
-  /** Non-null only when subscriberType = TENANT_USER. */
+  /** Non-null for B2C (individual) subscribers. */
   private final UUID subscriberTenantUserId;
   private SubscriptionStatus status;
   private final OffsetDateTime currentPeriodStart;
@@ -39,7 +38,6 @@ public class AppSubscription {
       UUID clientAppId,
       UUID appPlanVersionId,
       UUID contractId,
-      SubscriberType subscriberType,
       UUID subscriberTenantId,
       UUID subscriberTenantUserId,
       SubscriptionStatus status,
@@ -53,9 +51,10 @@ public class AppSubscription {
       OffsetDateTime updatedAt) {
     if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (appPlanVersionId == null) throw new IllegalArgumentException("appPlanVersionId cannot be null");
-    if (subscriberType == null) throw new IllegalArgumentException("subscriberType cannot be null");
     if (subscriberTenantId != null && subscriberTenantUserId != null)
       throw new IllegalArgumentException("Cannot set both subscriberTenantId and subscriberTenantUserId");
+    if (subscriberTenantId == null && subscriberTenantUserId == null)
+      throw new IllegalArgumentException("At least one of subscriberTenantId or subscriberTenantUserId must be set");
     if (status == null) throw new IllegalArgumentException("status cannot be null");
     if (currentPeriodStart == null) throw new IllegalArgumentException("currentPeriodStart cannot be null");
     if (currentPeriodEnd == null) throw new IllegalArgumentException("currentPeriodEnd cannot be null");
@@ -64,7 +63,6 @@ public class AppSubscription {
     this.clientAppId = clientAppId;
     this.appPlanVersionId = appPlanVersionId;
     this.contractId = contractId;
-    this.subscriberType = subscriberType;
     this.subscriberTenantId = subscriberTenantId;
     this.subscriberTenantUserId = subscriberTenantUserId;
     this.status = status;
@@ -99,4 +97,3 @@ public class AppSubscription {
     this.updatedAt = now;
   }
 }
-

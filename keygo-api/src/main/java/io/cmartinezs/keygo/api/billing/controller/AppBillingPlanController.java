@@ -12,7 +12,6 @@ import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanCatalogUseCase;
 import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
@@ -63,23 +62,21 @@ public class AppBillingPlanController {
     this.createPlanUseCase = createPlanUseCase;
   }
 
-  /** GET /billing/catalog — public catalog (optionally filtered by subscriberType) */
+  /** GET /billing/catalog — public catalog */
   @GetMapping("/billing/catalog")
   @Operation(
       summary = "Get public plan catalog",
-      description = "Returns all active public plans for a client app. Optional filter by subscriberType (TENANT | TENANT_USER). No auth required.")
+      description = "Returns all active public plans for a client app. No auth required.")
   @ApiResponse(responseCode = "200", description = "Catalog retrieved",
       content = @Content(schema = @Schema(implementation = AppPlanData.ListResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<List<AppPlanData>>> getCatalog(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId,
-      @Parameter(description = "Filter by subscriber type (TENANT or TENANT_USER)")
-      @RequestParam(required = false) SubscriberType subscriberType) {
+      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
 
     UUID appId = resolveClientAppId(tenantSlug, clientId);
-    List<AppPlanData> data = getCatalogUseCase.execute(appId, subscriberType)
+    List<AppPlanData> data = getCatalogUseCase.execute(appId)
         .stream().map(r -> AppPlanData.from(r.plan(), r.versions(), r.entitlements())).toList();
 
     return ResponseEntity.ok(BaseResponse.<List<AppPlanData>>builder()
@@ -138,7 +135,6 @@ public class AppBillingPlanController {
         request.code(),
         request.name(),
         request.description(),
-        request.subscriberType(),
         request.isPublic(),
         request.version(),
         request.billingPeriod(),

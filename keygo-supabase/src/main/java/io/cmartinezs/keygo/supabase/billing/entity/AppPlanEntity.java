@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanStatus;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,7 +22,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "app_plans",
-    indexes = @Index(name = "idx_app_plans_client_app_type", columnList = "client_app_id, subscriber_type, status"))
+    indexes = @Index(name = "idx_app_plans_client_app_status", columnList = "client_app_id, status"))
 public class AppPlanEntity {
 
   @Id
@@ -44,10 +43,6 @@ public class AppPlanEntity {
   private String description;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "subscriber_type", nullable = false, length = 20)
-  private SubscriberType subscriberType;
-
-  @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   @Builder.Default
   private AppPlanStatus status = AppPlanStatus.ACTIVE;
@@ -64,4 +59,3 @@ public class AppPlanEntity {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 }
-

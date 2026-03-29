@@ -4,7 +4,6 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.catalog.model.EnforcementMode;
 import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.catalog.model.PeriodType;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,7 +16,6 @@ public record CreateAppPlanRequest(
     String code,
     String name,
     String description,
-    SubscriberType subscriberType,
     boolean isPublic,
     String version,
     BillingPeriod billingPeriod,
@@ -36,4 +34,3 @@ public record CreateAppPlanRequest(
       boolean isEnabled
   ) {}
 }
-

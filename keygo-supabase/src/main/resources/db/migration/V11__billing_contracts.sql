@@ -4,9 +4,6 @@
 -- suscripción activa. Rastrea verificación de email y pago antes de
 -- activar la suscripción.
 --
--- subscriber_type = TENANT      → onboarding empresarial (crea nuevo Tenant al activar)
--- subscriber_type = TENANT_USER → alta individual (crea o resuelve TenantUser)
---
 -- El campo verification_code almacena el código de verificación de email
 -- del contrato (independiente del de registro de usuario en email_verifications).
 -- =============================================================================
@@ -16,10 +13,8 @@ CREATE TABLE app_contracts (
     selected_plan_version_id     UUID         NOT NULL REFERENCES app_plan_versions(id) ON DELETE RESTRICT,
 
     billing_period               VARCHAR(20)  NOT NULL,
-    subscriber_type              VARCHAR(20)  NOT NULL,
 
     -- Establecidos tras la activación (null hasta entonces).
-    -- Exactamente uno debe ser no-nulo en estado ACTIVATED.
     subscriber_tenant_id         UUID         REFERENCES tenants(id)      ON DELETE SET NULL,
     subscriber_tenant_user_id    UUID         REFERENCES tenant_users(id) ON DELETE SET NULL,
 
@@ -30,7 +25,7 @@ CREATE TABLE app_contracts (
     contractor_first_name        VARCHAR(100) NOT NULL,
     contractor_last_name         VARCHAR(100) NOT NULL,
 
-    -- Datos de empresa (requeridos cuando subscriber_type = TENANT)
+    -- Datos de empresa (para onboarding empresarial)
     company_name                 VARCHAR(200),
     company_slug                 VARCHAR(100) UNIQUE,
     company_tax_id               VARCHAR(100),
@@ -47,9 +42,8 @@ CREATE TABLE app_contracts (
     created_at                   TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at                   TIMESTAMPTZ  NOT NULL DEFAULT now(),
 
-    CONSTRAINT chk_app_contracts_billing_period  CHECK (billing_period   IN ('MONTHLY', 'YEARLY', 'ONE_TIME')),
-    CONSTRAINT chk_app_contracts_subscriber_type CHECK (subscriber_type  IN ('TENANT', 'TENANT_USER')),
-    CONSTRAINT chk_app_contracts_status          CHECK (status           IN (
+    CONSTRAINT chk_app_contracts_billing_period CHECK (billing_period IN ('MONTHLY', 'YEARLY', 'ONE_TIME')),
+    CONSTRAINT chk_app_contracts_status         CHECK (status         IN (
         'PENDING_EMAIL_VERIFICATION',
         'PENDING_PAYMENT',
         'READY_TO_ACTIVATE',
@@ -79,8 +73,6 @@ CREATE TRIGGER app_contracts_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE  app_contracts IS 'Billing onboarding/checkout flow per ClientApp. Creates subscription on activation.';
-COMMENT ON COLUMN app_contracts.subscriber_type IS 'TENANT = B2B (creates new Tenant on activate); TENANT_USER = B2C (creates/resolves TenantUser)';
-COMMENT ON COLUMN app_contracts.company_slug    IS 'Becomes the new Tenant slug on activation (subscriber_type=TENANT only)';
+COMMENT ON COLUMN app_contracts.company_slug    IS 'Becomes the new Tenant slug on activation';
 COMMENT ON COLUMN app_contracts.verification_code IS '6-digit numeric code for contract email verification (independent of user registration codes)';
 COMMENT ON COLUMN app_contracts.verification_code_expires_at IS 'Contract verification code TTL (30 minutes)';
-

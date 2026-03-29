@@ -2,7 +2,6 @@ package io.cmartinezs.keygo.api.billing.response;
 
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -15,7 +14,6 @@ public record AppContractData(
     UUID clientAppId,
     UUID selectedPlanVersionId,
     String billingPeriod,
-    SubscriberType subscriberType,
     String status,
     String contractorEmail,
     String contractorFirstName,
@@ -33,7 +31,6 @@ public record AppContractData(
         c.getClientAppId(),
         c.getSelectedPlanVersionId(),
         c.getBillingPeriod(),
-        c.getSubscriberType(),
         c.getStatus().name(),
         c.getContractorEmail(),
         c.getContractorFirstName(),

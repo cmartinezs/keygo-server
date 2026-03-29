@@ -16,7 +16,6 @@ import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.billing.invoice.model.Invoice;
 import io.cmartinezs.keygo.domain.billing.invoice.model.InvoiceStatus;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -97,7 +96,8 @@ public class ActivateAppContractUseCase {
     OffsetDateTime now = OffsetDateTime.now();
     AppSubscription subscription;
 
-    if (SubscriberType.TENANT.equals(contract.getSubscriberType())) {
+    // B2B branch: companySlug present → create new Tenant
+    if (contract.getCompanySlug() != null && !contract.getCompanySlug().isBlank()) {
       subscription = activateTenantBranch(contract, planVersion, now);
     } else {
       subscription = activateTenantUserBranch(contract, planVersion, now);
@@ -139,7 +139,7 @@ public class ActivateAppContractUseCase {
     adminUser = userRepo.save(adminUser);
 
     return createSubscription(contract, planVersion,
-        SubscriberType.TENANT, newTenant.getId().value(), null, now);
+        newTenant.getId().value(), null, now);
   }
 
   private AppSubscription activateTenantUserBranch(AppContract contract, AppPlanVersion planVersion, OffsetDateTime now) {
@@ -167,13 +167,12 @@ public class ActivateAppContractUseCase {
         });
 
     return createSubscription(contract, planVersion,
-        SubscriberType.TENANT_USER, null, tenantUser.getId().value(), now);
+        null, tenantUser.getId().value(), now);
   }
 
   private AppSubscription createSubscription(
       AppContract contract,
       AppPlanVersion planVersion,
-      SubscriberType subscriberType,
       UUID tenantId,
       UUID tenantUserId,
       OffsetDateTime now) {
@@ -184,7 +183,6 @@ public class ActivateAppContractUseCase {
         .clientAppId(contract.getClientAppId())
         .appPlanVersionId(planVersion.getId())
         .contractId(contract.getId())
-        .subscriberType(subscriberType)
         .subscriberTenantId(tenantId)
         .subscriberTenantUserId(tenantUserId)
         .status(SubscriptionStatus.ACTIVE)

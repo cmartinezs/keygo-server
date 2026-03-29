@@ -12,7 +12,6 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanStatus;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersionStatus;
 import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
@@ -87,7 +86,6 @@ class AppBillingPlanControllerTest {
         .clientAppId(appId)
         .code("STARTER")
         .name("Starter")
-        .subscriberType(SubscriberType.TENANT)
         .status(AppPlanStatus.ACTIVE)
         .isPublic(true)
         .build();
@@ -116,34 +114,16 @@ class AppBillingPlanControllerTest {
     ClientApp app = clientApp(t.getId());
     AppPlan p = plan(app.getId().value());
     stubResolver(t, app);
-    when(getCatalogUseCase.execute(any(), isNull()))
+    when(getCatalogUseCase.execute(any()))
         .thenReturn(List.of(new AppPlanResult(p, List.of(version(p.getId())), List.of())));
 
     // When
-    var response = controller.getCatalog(TENANT_SLUG, CLIENT_ID, null);
+    var response = controller.getCatalog(TENANT_SLUG, CLIENT_ID);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody().getData()).hasSize(1);
     assertThat(response.getBody().getData().get(0).code()).isEqualTo("STARTER");
-  }
-
-  @Test
-  void getCatalog_withTenantFilter_returnsFilteredPlans() {
-    // Given
-    Tenant t = tenant();
-    ClientApp app = clientApp(t.getId());
-    AppPlan p = plan(app.getId().value());
-    stubResolver(t, app);
-    when(getCatalogUseCase.execute(any(), eq(SubscriberType.TENANT)))
-        .thenReturn(List.of(new AppPlanResult(p, List.of(), List.of())));
-
-    // When
-    var response = controller.getCatalog(TENANT_SLUG, CLIENT_ID, SubscriberType.TENANT);
-
-    // Then
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody().getData()).hasSize(1);
   }
 
   @Test
@@ -187,7 +167,7 @@ class AppBillingPlanControllerTest {
     stubResolver(t, app);
 
     CreateAppPlanRequest request = new CreateAppPlanRequest(
-        "STARTER", "Starter Plan", null, SubscriberType.TENANT, true,
+        "STARTER", "Starter Plan", null, true,
         "1.0", BillingPeriod.MONTHLY, new BigDecimal("299"), "MXN",
         14, LocalDate.now(), List.of());
     when(createPlanUseCase.execute(any()))
@@ -207,7 +187,7 @@ class AppBillingPlanControllerTest {
     when(tenantRepo.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.empty());
 
     // When / Then
-    assertThatThrownBy(() -> controller.getCatalog(TENANT_SLUG, CLIENT_ID, null))
+    assertThatThrownBy(() -> controller.getCatalog(TENANT_SLUG, CLIENT_ID))
         .isInstanceOf(TenantNotFoundException.class);
   }
 
@@ -219,9 +199,8 @@ class AppBillingPlanControllerTest {
     when(clientAppRepo.findByClientIdAndTenantId(any(), any())).thenReturn(Optional.empty());
 
     // When / Then
-    assertThatThrownBy(() -> controller.getCatalog(TENANT_SLUG, CLIENT_ID, null))
+    assertThatThrownBy(() -> controller.getCatalog(TENANT_SLUG, CLIENT_ID))
         .isInstanceOf(ClientAppNotFoundException.class);
   }
 }
-
 

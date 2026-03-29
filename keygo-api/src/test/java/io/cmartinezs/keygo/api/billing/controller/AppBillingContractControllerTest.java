@@ -13,7 +13,6 @@ import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
@@ -79,7 +78,6 @@ class AppBillingContractControllerTest {
         .clientAppId(UUID.randomUUID())
         .selectedPlanVersionId(UUID.randomUUID())
         .billingPeriod("MONTHLY")
-        .subscriberType(SubscriberType.TENANT)
         .status(status)
         .contractorEmail("admin@acme.com")
         .contractorFirstName("John").contractorLastName("Doe")
@@ -104,7 +102,7 @@ class AppBillingContractControllerTest {
     when(createContractUseCase.execute(any())).thenReturn(new AppContractResult(c, null));
 
     CreateAppContractRequest request = new CreateAppContractRequest(
-        UUID.randomUUID().toString(), BillingPeriod.MONTHLY, SubscriberType.TENANT,
+        UUID.randomUUID().toString(), BillingPeriod.MONTHLY,
         "admin@acme.com", "John", "Doe", "ACME Corp", "acme", "RFC123", "Calle 1");
 
     // When

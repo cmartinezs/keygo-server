@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.domain.billing.catalog.model;
 
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -15,7 +14,6 @@ class AppPlanTest {
         .clientAppId(UUID.randomUUID())
         .code("STARTER")
         .name("Starter Plan")
-        .subscriberType(SubscriberType.TENANT)
         .status(status)
         .isPublic(isPublic)
         .build();
@@ -51,8 +49,7 @@ class AppPlanTest {
   @Test
   void builder_throwsException_whenClientAppIdIsNull() {
     assertThatThrownBy(() -> AppPlan.builder()
-        .code("X").name("X").subscriberType(SubscriberType.TENANT)
-        .status(AppPlanStatus.ACTIVE).isPublic(true).build())
+        .code("X").name("X").status(AppPlanStatus.ACTIVE).isPublic(true).build())
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("clientAppId");
   }
@@ -61,25 +58,24 @@ class AppPlanTest {
   void builder_throwsException_whenCodeIsBlank() {
     assertThatThrownBy(() -> AppPlan.builder()
         .clientAppId(UUID.randomUUID()).code("  ").name("X")
-        .subscriberType(SubscriberType.TENANT).status(AppPlanStatus.ACTIVE).isPublic(true).build())
+        .status(AppPlanStatus.ACTIVE).isPublic(true).build())
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("code");
   }
 
   @Test
-  void subscriberType_isTenantUser_forB2CPlans() {
+  void builder_buildsSuccessfully_withAllRequiredFields() {
     // Given / When
     AppPlan plan = AppPlan.builder()
         .id(UUID.randomUUID())
         .clientAppId(UUID.randomUUID())
-        .code("TEACHER_PRO")
-        .name("Teacher Pro")
-        .subscriberType(SubscriberType.TENANT_USER)
+        .code("TEAM")
+        .name("Team Plan")
         .status(AppPlanStatus.ACTIVE)
         .isPublic(true)
         .build();
     // Then
-    assertThat(plan.getSubscriberType()).isEqualTo(SubscriberType.TENANT_USER);
+    assertThat(plan.getCode()).isEqualTo("TEAM");
+    assertThat(plan.isActive()).isTrue();
   }
 }
-

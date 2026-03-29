@@ -6,7 +6,6 @@ import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUs
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
@@ -71,7 +70,6 @@ class AppBillingSubscriptionControllerTest {
         .id(UUID.randomUUID())
         .clientAppId(appId)
         .appPlanVersionId(UUID.randomUUID())
-        .subscriberType(SubscriberType.TENANT)
         .subscriberTenantId(tenantId)
         .status(SubscriptionStatus.ACTIVE)
         .currentPeriodStart(OffsetDateTime.now().minusDays(1))
@@ -93,7 +91,7 @@ class AppBillingSubscriptionControllerTest {
     ClientApp app = clientApp(t.getId());
     stubResolvers(t, app);
     AppSubscription sub = activeSubscription(app.getId().value(), t.getId().value());
-    when(getSubscriptionUseCase.execute(any(), eq(SubscriberType.TENANT), any())).thenReturn(sub);
+    when(getSubscriptionUseCase.executeForTenant(any(), any())).thenReturn(sub);
 
     // When
     var response = controller.getSubscription(TENANT_SLUG, CLIENT_ID);
@@ -113,7 +111,6 @@ class AppBillingSubscriptionControllerTest {
         .id(UUID.randomUUID())
         .clientAppId(app.getId().value())
         .appPlanVersionId(UUID.randomUUID())
-        .subscriberType(SubscriberType.TENANT)
         .subscriberTenantId(t.getId().value())
         .status(SubscriptionStatus.ACTIVE)
         .currentPeriodStart(OffsetDateTime.now().minusDays(1))
@@ -121,7 +118,7 @@ class AppBillingSubscriptionControllerTest {
         .cancelAtPeriodEnd(true)
         .autoRenew(false)
         .build();
-    when(cancelSubscriptionUseCase.execute(any(), eq(SubscriberType.TENANT), any())).thenReturn(sub);
+    when(cancelSubscriptionUseCase.executeForTenant(any(), any())).thenReturn(sub);
 
     // When
     var response = controller.cancelSubscription(TENANT_SLUG, CLIENT_ID);
@@ -138,7 +135,7 @@ class AppBillingSubscriptionControllerTest {
     ClientApp app = clientApp(t.getId());
     stubResolvers(t, app);
     AppSubscription sub = activeSubscription(app.getId().value(), t.getId().value());
-    when(getSubscriptionUseCase.execute(any(), any(), any())).thenReturn(sub);
+    when(getSubscriptionUseCase.executeForTenant(any(), any())).thenReturn(sub);
     when(listInvoicesUseCase.execute(sub.getId())).thenReturn(List.of());
 
     // When

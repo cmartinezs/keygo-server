@@ -8,11 +8,11 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanEntitlement;
 import io.cmartinezs.keygo.domain.billing.catalog.model.EnforcementMode;
 import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.billing.usage.model.EntitlementCheck;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -39,15 +39,24 @@ public class CheckAppEntitlementUseCase {
     this.usageRepo = usageRepo;
   }
 
-  public EntitlementCheck execute(UUID clientAppId, SubscriberType subscriberType, UUID subscriberId, String metricCode) {
-    // Find active subscription
-    var subscriptionOpt = switch (subscriberType) {
-      case TENANT -> subscriptionRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, subscriberId);
-      case TENANT_USER -> subscriptionRepo.findByClientAppIdAndSubscriberUserId(clientAppId, subscriberId);
-    };
+  /** Check entitlement for a B2B tenant subscriber. */
+  public EntitlementCheck executeForTenant(UUID clientAppId, UUID tenantId, String metricCode) {
+    Optional<AppSubscription> sub = subscriptionRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, tenantId);
+    Map<String, Long> usage = sub.map(s -> usageRepo.getCurrentUsageForTenant(clientAppId, tenantId))
+        .orElse(Map.of());
+    return check(sub, usage, metricCode);
+  }
 
+  /** Check entitlement for a B2C user subscriber. */
+  public EntitlementCheck executeForUser(UUID clientAppId, UUID userId, String metricCode) {
+    Optional<AppSubscription> sub = subscriptionRepo.findByClientAppIdAndSubscriberUserId(clientAppId, userId);
+    Map<String, Long> usage = sub.map(s -> usageRepo.getCurrentUsageForUser(clientAppId, userId))
+        .orElse(Map.of());
+    return check(sub, usage, metricCode);
+  }
+
+  private EntitlementCheck check(Optional<AppSubscription> subscriptionOpt, Map<String, Long> usage, String metricCode) {
     if (subscriptionOpt.isEmpty() || !subscriptionOpt.get().isActive()) {
-      // No active subscription → unlimited (backward compatible)
       return EntitlementCheck.unlimited(metricCode);
     }
 
@@ -60,12 +69,10 @@ public class CheckAppEntitlementUseCase {
         .orElse(null);
 
     if (entitlement == null) {
-      // No entitlement defined for this metric → unlimited
       return EntitlementCheck.unlimited(metricCode);
     }
 
     if (!entitlement.isEnabled()) {
-      // Feature is explicitly disabled
       return EntitlementCheck.builder()
           .metricCode(metricCode)
           .metricType(entitlement.getMetricType())
@@ -87,8 +94,6 @@ public class CheckAppEntitlementUseCase {
           .build();
     }
 
-    // QUOTA or RATE — check usage
-    Map<String, Long> usage = usageRepo.getCurrentUsage(clientAppId, subscriberType, subscriberId);
     long currentValue = usage.getOrDefault(metricCode, 0L);
     Long limitValue = entitlement.getLimitValue();
 
@@ -105,4 +110,3 @@ public class CheckAppEntitlementUseCase {
         .build();
   }
 }
-

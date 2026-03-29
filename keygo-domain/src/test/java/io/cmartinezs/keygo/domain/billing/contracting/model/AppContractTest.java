@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.domain.billing.contracting.model;
 
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -16,7 +15,6 @@ class AppContractTest {
         .clientAppId(UUID.randomUUID())
         .selectedPlanVersionId(UUID.randomUUID())
         .billingPeriod("MONTHLY")
-        .subscriberType(SubscriberType.TENANT)
         .status(status)
         .contractorEmail("admin@acme.com")
         .contractorFirstName("John")
@@ -87,7 +85,6 @@ class AppContractTest {
     assertThatThrownBy(() -> AppContract.builder()
         .clientAppId(UUID.randomUUID())
         .selectedPlanVersionId(UUID.randomUUID())
-        .subscriberType(SubscriberType.TENANT)
         .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
         .contractorEmail("")
         .contractorFirstName("John")
@@ -98,4 +95,3 @@ class AppContractTest {
         .hasMessageContaining("contractorEmail");
   }
 }
-

@@ -9,7 +9,6 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.EnforcementMode;
 import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.catalog.model.PeriodType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
 import io.cmartinezs.keygo.domain.billing.usage.model.EntitlementCheck;
 import org.junit.jupiter.api.Test;
@@ -39,13 +38,12 @@ class CheckAppEntitlementUseCaseTest {
   @InjectMocks
   CheckAppEntitlementUseCase useCase;
 
-  private AppSubscription activeSubscription(UUID appId, UUID planVersionId) {
+  private AppSubscription activeSubscription(UUID appId, UUID planVersionId, UUID tenantId) {
     return AppSubscription.builder()
         .id(UUID.randomUUID())
         .clientAppId(appId)
         .appPlanVersionId(planVersionId)
-        .subscriberType(SubscriberType.TENANT)
-        .subscriberTenantId(UUID.randomUUID())
+        .subscriberTenantId(tenantId)
         .status(SubscriptionStatus.ACTIVE)
         .currentPeriodStart(OffsetDateTime.now().minusDays(1))
         .currentPeriodEnd(OffsetDateTime.now().plusMonths(1))
@@ -74,7 +72,7 @@ class CheckAppEntitlementUseCaseTest {
     when(subscriptionRepo.findByClientAppIdAndSubscriberTenantId(appId, tenantId))
         .thenReturn(Optional.empty());
     // When
-    EntitlementCheck result = useCase.execute(appId, SubscriberType.TENANT, tenantId, "MAX_USERS");
+    EntitlementCheck result = useCase.executeForTenant(appId, tenantId, "MAX_USERS");
     // Then
     assertThat(result.isAllowed()).isTrue();
     assertThat(result.getLimitValue()).isNull();
@@ -86,15 +84,15 @@ class CheckAppEntitlementUseCaseTest {
     UUID appId = UUID.randomUUID();
     UUID planVersionId = UUID.randomUUID();
     UUID tenantId = UUID.randomUUID();
-    AppSubscription sub = activeSubscription(appId, planVersionId);
+    AppSubscription sub = activeSubscription(appId, planVersionId, tenantId);
     AppPlanEntitlement ent = quotaEntitlement(planVersionId, 10L, EnforcementMode.HARD);
 
     when(subscriptionRepo.findByClientAppIdAndSubscriberTenantId(any(), any()))
         .thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
-    when(usageRepo.getCurrentUsage(any(), any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
+    when(usageRepo.getCurrentUsageForTenant(any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
     // When
-    EntitlementCheck result = useCase.execute(appId, SubscriberType.TENANT, tenantId, "MAX_USERS");
+    EntitlementCheck result = useCase.executeForTenant(appId, tenantId, "MAX_USERS");
     // Then
     assertThat(result.isAllowed()).isTrue();
     assertThat(result.getCurrentValue()).isEqualTo(5L);
@@ -107,15 +105,15 @@ class CheckAppEntitlementUseCaseTest {
     UUID appId = UUID.randomUUID();
     UUID planVersionId = UUID.randomUUID();
     UUID tenantId = UUID.randomUUID();
-    AppSubscription sub = activeSubscription(appId, planVersionId);
+    AppSubscription sub = activeSubscription(appId, planVersionId, tenantId);
     AppPlanEntitlement ent = quotaEntitlement(planVersionId, 5L, EnforcementMode.HARD);
 
     when(subscriptionRepo.findByClientAppIdAndSubscriberTenantId(any(), any()))
         .thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
-    when(usageRepo.getCurrentUsage(any(), any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
+    when(usageRepo.getCurrentUsageForTenant(any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
     // When
-    EntitlementCheck result = useCase.execute(appId, SubscriberType.TENANT, tenantId, "MAX_USERS");
+    EntitlementCheck result = useCase.executeForTenant(appId, tenantId, "MAX_USERS");
     // Then
     assertThat(result.isAllowed()).isFalse();
   }
@@ -126,15 +124,15 @@ class CheckAppEntitlementUseCaseTest {
     UUID appId = UUID.randomUUID();
     UUID planVersionId = UUID.randomUUID();
     UUID tenantId = UUID.randomUUID();
-    AppSubscription sub = activeSubscription(appId, planVersionId);
+    AppSubscription sub = activeSubscription(appId, planVersionId, tenantId);
     AppPlanEntitlement ent = quotaEntitlement(planVersionId, 5L, EnforcementMode.SOFT);
 
     when(subscriptionRepo.findByClientAppIdAndSubscriberTenantId(any(), any()))
         .thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
-    when(usageRepo.getCurrentUsage(any(), any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
+    when(usageRepo.getCurrentUsageForTenant(any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
     // When
-    EntitlementCheck result = useCase.execute(appId, SubscriberType.TENANT, tenantId, "MAX_USERS");
+    EntitlementCheck result = useCase.executeForTenant(appId, tenantId, "MAX_USERS");
     // Then
     assertThat(result.isAllowed()).isTrue();
   }
@@ -145,7 +143,7 @@ class CheckAppEntitlementUseCaseTest {
     UUID appId = UUID.randomUUID();
     UUID planVersionId = UUID.randomUUID();
     UUID tenantId = UUID.randomUUID();
-    AppSubscription sub = activeSubscription(appId, planVersionId);
+    AppSubscription sub = activeSubscription(appId, planVersionId, tenantId);
     AppPlanEntitlement ent = AppPlanEntitlement.builder()
         .id(UUID.randomUUID())
         .appPlanVersionId(planVersionId)
@@ -160,7 +158,7 @@ class CheckAppEntitlementUseCaseTest {
         .thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
     // When
-    EntitlementCheck result = useCase.execute(appId, SubscriberType.TENANT, tenantId, "EXPORT_PDF");
+    EntitlementCheck result = useCase.executeForTenant(appId, tenantId, "EXPORT_PDF");
     // Then
     assertThat(result.isAllowed()).isFalse();
   }
@@ -171,13 +169,13 @@ class CheckAppEntitlementUseCaseTest {
     UUID appId = UUID.randomUUID();
     UUID planVersionId = UUID.randomUUID();
     UUID tenantId = UUID.randomUUID();
-    AppSubscription sub = activeSubscription(appId, planVersionId);
+    AppSubscription sub = activeSubscription(appId, planVersionId, tenantId);
 
     when(subscriptionRepo.findByClientAppIdAndSubscriberTenantId(any(), any()))
         .thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of());
     // When
-    EntitlementCheck result = useCase.execute(appId, SubscriberType.TENANT, tenantId, "UNKNOWN_METRIC");
+    EntitlementCheck result = useCase.executeForTenant(appId, tenantId, "UNKNOWN_METRIC");
     // Then
     assertThat(result.isAllowed()).isTrue();
     assertThat(result.getLimitValue()).isNull();

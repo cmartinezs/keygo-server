@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.app.billing.catalog.port;
 
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,10 +13,8 @@ import java.util.UUID;
  */
 public interface AppPlanRepositoryPort {
   List<AppPlan> findPublicByClientAppId(UUID clientAppId);
-  List<AppPlan> findPublicByClientAppIdAndSubscriberType(UUID clientAppId, SubscriberType type);
   List<AppPlan> findAllByClientAppId(UUID clientAppId);
   Optional<AppPlan> findByClientAppIdAndCode(UUID clientAppId, String code);
   boolean existsByClientAppIdAndCode(UUID clientAppId, String code);
   AppPlan save(AppPlan plan);
 }
-

@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.supabase.billing.adapter;
 
 import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
-import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.supabase.billing.repository.UsageCounterJpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -25,23 +24,30 @@ public class UsageCounterRepositoryAdapter implements UsageCounterRepositoryPort
   }
 
   @Override
-  public Map<String, Long> getCurrentUsage(UUID clientAppId, SubscriberType subscriberType, UUID subscriberId) {
+  public Map<String, Long> getCurrentUsageForTenant(UUID clientAppId, UUID tenantId) {
     OffsetDateTime now = OffsetDateTime.now();
-    var counters = SubscriberType.TENANT.equals(subscriberType)
-        ? jpaRepo.findByClientAppIdAndSubscriberTenantIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
-            clientAppId, subscriberId, now, now)
-        : jpaRepo.findByClientAppIdAndSubscriberTenantUserIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
-            clientAppId, subscriberId, now, now);
-
-    return counters.stream()
+    return jpaRepo.findByClientAppIdAndSubscriberTenantIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
+            clientAppId, tenantId, now, now)
+        .stream()
         .collect(Collectors.toMap(e -> e.getMetricCode(), e -> e.getUsedValue()));
   }
 
   @Override
-  public void increment(UUID clientAppId, SubscriberType subscriberType, UUID subscriberId, String metricCode, long delta) {
-    UUID tenantId = SubscriberType.TENANT.equals(subscriberType) ? subscriberId : null;
-    UUID userId   = SubscriberType.TENANT_USER.equals(subscriberType) ? subscriberId : null;
-    jpaRepo.incrementAtomic(clientAppId, metricCode, tenantId, userId, delta);
+  public Map<String, Long> getCurrentUsageForUser(UUID clientAppId, UUID userId) {
+    OffsetDateTime now = OffsetDateTime.now();
+    return jpaRepo.findByClientAppIdAndSubscriberTenantUserIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
+            clientAppId, userId, now, now)
+        .stream()
+        .collect(Collectors.toMap(e -> e.getMetricCode(), e -> e.getUsedValue()));
+  }
+
+  @Override
+  public void incrementForTenant(UUID clientAppId, UUID tenantId, String metricCode, long delta) {
+    jpaRepo.incrementAtomic(clientAppId, metricCode, tenantId, null, delta);
+  }
+
+  @Override
+  public void incrementForUser(UUID clientAppId, UUID userId, String metricCode, long delta) {
+    jpaRepo.incrementAtomic(clientAppId, metricCode, null, userId, delta);
   }
 }
-

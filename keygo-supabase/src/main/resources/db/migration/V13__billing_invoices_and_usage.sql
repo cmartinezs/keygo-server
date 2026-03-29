@@ -46,14 +46,12 @@ COMMENT ON COLUMN invoices.plan_name_snapshot       IS 'Plan name at invoice tim
 -- ---------------------------------------------------------------------------
 -- usage_counters
 -- Contadores atómicos por (app, suscriptor, métrica, período).
--- subscriber_type discrimina TENANT vs TENANT_USER.
 -- ---------------------------------------------------------------------------
 CREATE TABLE usage_counters (
     id                        UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     client_app_id             UUID         NOT NULL REFERENCES client_apps(id) ON DELETE CASCADE,
 
     -- Suscriptor polimórfico — exactamente uno debe ser no-nulo
-    subscriber_type           VARCHAR(20)  NOT NULL,
     subscriber_tenant_id      UUID         REFERENCES tenants(id)      ON DELETE CASCADE,
     subscriber_tenant_user_id UUID         REFERENCES tenant_users(id) ON DELETE CASCADE,
 
@@ -63,7 +61,6 @@ CREATE TABLE usage_counters (
     used_value                BIGINT       NOT NULL DEFAULT 0,
     updated_at                TIMESTAMPTZ  NOT NULL DEFAULT now(),
 
-    CONSTRAINT chk_usage_counters_subscriber_type CHECK (subscriber_type IN ('TENANT', 'TENANT_USER')),
     CONSTRAINT chk_usage_counters_single_subscriber CHECK (
         NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL)
     ),
@@ -76,7 +73,6 @@ CREATE TABLE usage_counters (
 CREATE INDEX idx_usage_counters_app_tenant ON usage_counters(client_app_id, subscriber_tenant_id);
 CREATE INDEX idx_usage_counters_app_user   ON usage_counters(client_app_id, subscriber_tenant_user_id);
 
-COMMENT ON TABLE  usage_counters IS 'Atomic usage counters per (app, subscriber, metric, period). Increment with UPDATE ... SET used_value = used_value + delta.';
-COMMENT ON COLUMN usage_counters.subscriber_type IS 'TENANT = B2B; TENANT_USER = B2C. Exactly one of subscriber_*_id must be non-null.';
+COMMENT ON TABLE usage_counters IS 'Atomic usage counters per (app, subscriber, metric, period). Increment with UPDATE ... SET used_value = used_value + delta. Exactly one of subscriber_*_id must be non-null.';
 COMMENT ON COLUMN usage_counters.metric_code     IS 'Business metric code (e.g. MAX_TENANT_USERS, EVALUACIONES_POR_MES). Must match app_plan_entitlements.metric_code.';
 
