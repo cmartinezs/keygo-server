@@ -43,6 +43,10 @@
 | T-069 | Extender `ServiceInfoPropertiesTest` para cubrir `getEnvironment()` (sin perfil → `"default"`; con perfil → nombre del perfil) y `getStatus()` (siempre `"UP"`) | 🔲 Pendiente |
 | T-074 | Agregar caché `@Cacheable` en `GetPlatformDashboardUseCase` con TTL 60 s (Spring Cache + Caffeine) — el use case realiza ~25 queries JPA por llamada | 🔲 Pendiente |
 | T-075 | `GET /api/v1/admin/tenants/{slug}/dashboard` — dashboard de métricas específicas del tenant para rol `ADMIN_TENANT` (usuarios/apps/memberships/sesiones/verificaciones acotados al slug) | 🔲 Pendiente |
+| ~~T-080~~ | ~~`V21__seed_billing_keygo_plans.sql` — planes FREE/STARTER/BUSINESS/ENTERPRISE para keygo-platform con entitlements reales~~ | ✅ Completada 2026-03-28 |
+| ~~T-081~~ | ~~Tests de controller billing (`AppBillingPlanControllerTest`, `AppBillingContractControllerTest`, `AppBillingSubscriptionControllerTest`) + `CreateAppPlanUseCaseTest`~~ | ✅ Completada 2026-03-28 |
+| T-082 | Tests de regresión en `BootstrapAdminKeyFilterTest` para sufijos `/billing/catalog` y `/billing/contracts` como rutas públicas | 🔲 Pendiente |
+| T-083 | Endpoint `GET /billing/invoices/{invoiceId}` — detalle de factura individual (requiere nueva ruta en `AppBillingSubscriptionController`) | 🔲 Pendiente |
 
 ---
 
@@ -72,6 +76,9 @@
 | T-071 | Agregar filtros `created_after` y `created_before` al endpoint `GET /api/v1/tenants` y al use case `ListTenantsUseCase` / `TenantFilter` para análisis de crecimiento temporal | 🔲 Pendiente |
 | T-076 | Reemplazar `recentActivity` aproximada del dashboard (basada en `created_at`) por tabla de auditoría formal `audit_events` (`V16__add_audit_events.sql`) — habilita consultas eficientes y filtrables por tipo y tenant | 🔲 Pendiente |
 | T-077 | `GET /api/v1/admin/alerts` — feed de alertas activas paginado con filtros por `level` y `category`; desacopla alertas del dashboard principal | 🔲 Pendiente |
+| T-084 | Integración con gateway de pago real (MercadoPago / Stripe) que reemplaza el endpoint `mock-approve-payment`; adapter configurable por `keygo.billing.payment-provider` | 🔲 Pendiente |
+| T-085 | Renovación automática de suscripciones via `@Scheduled` job: detectar suscripciones en `currentPeriodEnd < now()` + `autoRenew=true`, generar nueva factura, actualizar período | 🔲 Pendiente |
+| T-086 | Soporte Bearer TENANT_USER en `GET /billing/subscription`: resolver `subscriberId` desde JWT claim `sub` en lugar de asumir siempre TENANT | 🔲 Pendiente |
 
 ---
 
@@ -96,6 +103,10 @@
 | T-073 | Integrar Micrometer + Prometheus para exportar métricas en tiempo real: `keygo_tenants_total`, `keygo_users_total`, `keygo_sessions_active`, `keygo_tokens_issued_total`; complementa `/platform/stats` con push de métricas hacia Grafana | 🔲 Pendiente |
 | T-078 | WebSocket o SSE `GET /api/v1/admin/platform/dashboard/stream` — push de snapshots del dashboard cada 30 s sin polling; requiere Spring WebFlux o `SseEmitter` + scheduler; dependiente de T-074 (caché) | 🔲 Pendiente |
 | T-079 | `GET /api/v1/admin/platform/dashboard/histogram?days=30` — series de tiempo diarias de registros, sesiones y logins para gráficas de tendencia en el UI; primera aproximación con `GROUP BY DATE(created_at)`; mejora con T-076 (`audit_events`) | 🔲 Pendiente |
+| T-087 | Generación de PDF de facturas: `InvoicePdfPort` + adapter con iText/JasperReports; PDF almacenado en S3/Supabase Storage, URL en campo `pdf_url` de `invoices` | 🔲 Pendiente |
+| T-088 | Factura electrónica CFDI México: integración con PAC (Proveedor Autorizado de Certificación); emit XML CFDI 4.0 post-pago | 🔲 Pendiente |
+| T-089 | Billing multi-currency: almacenar tipo de cambio en tabla `exchange_rates` (V22), convertir `base_price` al momento de crear contrato; campo `exchange_rate_snapshot` en `invoices` | 🔲 Pendiente |
+| T-090 | Motor de dunning: tabla `dunning_events`, job que detecta facturas vencidas, reintenta cobro en D+1/D+3/D+7 con notificación email por evento; requiere gateway real (T-084) | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
@@ -112,4 +123,4 @@
 
 ---
 
-**Última actualización:** 2026-03-28 (nuevas propuestas T-074/T-075 corto plazo; T-076/T-077 mediano plazo; T-078/T-079 largo plazo — generadas al concluir implementación del `GET /api/v1/admin/platform/dashboard`) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-28 (T-080 y T-081 completadas; T-082/T-083 corto plazo; T-084/T-085/T-086 mediano plazo; T-087/T-088/T-089/T-090 largo plazo — generadas al implementar billing model + corto plazo seed + tests) | **Responsable:** AI Agent
