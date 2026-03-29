@@ -82,6 +82,8 @@ public final class BillingPersistenceMapper {
         .companySlug(e.getCompanySlug())
         .companyTaxId(e.getCompanyTaxId())
         .companyAddress(e.getCompanyAddress())
+        .verificationCode(e.getVerificationCode())
+        .verificationCodeExpiresAt(e.getVerificationCodeExpiresAt())
         .emailVerifiedAt(e.getEmailVerifiedAt())
         .paymentVerifiedAt(e.getPaymentVerifiedAt())
         .expiresAt(e.getExpiresAt())

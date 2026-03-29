@@ -172,13 +172,14 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog` (GET — **público** — catálogo de planes públicos, filtro opcional `?subscriberType=TENANT|TENANT_USER`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog/{planCode}` (GET — **público** — detalle de un plan público con entitlements)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/plans` (POST — **Bearer ADMIN_TENANT** — crear plan con versión inicial y entitlements)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` (POST — **público** — iniciar contrato de suscripción)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` (POST — **público** — iniciar contrato de suscripción; genera código de verificación y envía email)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}` (GET — **público** — estado del contrato)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/verify-email` (POST — **público** — verificar código de email → avanza a `PENDING_PAYMENT`; body: `{"code":"123456"}`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/mock-approve-payment` (POST — **público/dev** — simular pago, requiere `keygo.billing.mock-payment-enabled=true`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/activate` (POST — **público** — activar contrato → crea tenant/user + suscripción + factura)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription` (GET — **Bearer ADMIN_TENANT** — suscripción activa)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription/cancel` (POST — **Bearer ADMIN_TENANT** — marcar cancelación al fin del período)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/invoices` (GET — **Bearer ADMIN_TENANT** — lista de facturas)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription` (GET — **Bearer ADMIN_TENANT** — suscripción activa; `{subscriberSlug}`=tenant suscriptor, `{providerClientId}`=client_id global del proveedor)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription/cancel` (POST — **Bearer ADMIN_TENANT** — marcar cancelación al fin del período)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/invoices` (GET — **Bearer ADMIN_TENANT** — lista de facturas)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — rotate refresh_token grant)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — client_credentials grant, M2M, requiere `client_id` + `client_secret`)
@@ -280,8 +281,17 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V13__extend_tenant_user_profile.sql` — extends tenant_users with 6 OIDC profile fields: phone_number, locale, zoneinfo, profile_picture_url, birthdate, website
 - `V14__seed_initial_ui_tenants.sql` — seed base para UI: tenants `keygo`+`demo`, apps, usuarios, roles y memberships
 - `V15__reset_seed_user_passwords.sql` — corrige hashes BCrypt desconocidos de V2/V14; establece contraseñas conocidas para dev
+- `V16__add_billing_catalog.sql` — billing catalog: app_plans, app_plan_versions, app_plan_entitlements tables
+- `V17__add_billing_contracts.sql` — app_contracts table (contratación de suscripciones con estados y suscriptor polimórfico)
+- `V18__add_billing_subscriptions.sql` — app_subscriptions + payment_transactions tables
+- `V19` — (no encontrada; verificar si existe o fue omitida)
+- `V20__seed_billing_keygo_platform_app.sql` — seed: plataforma keygo como app de billing
+- `V21__seed_billing_keygo_plans.sql` — seed: planes iniciales para la plataforma keygo
+- `V22__add_contract_verification_code.sql` — adds `verification_code` + `verification_code_expires_at` columns to `app_contracts` for self-contained email verification during contract creation
+- `V23__add_subscriber_type_to_app_subscriptions.sql` — adds missing `subscriber_type VARCHAR(20) NOT NULL` column to `app_subscriptions` (discriminador `TENANT`/`TENANT_USER`); back-fills from polymorphic FKs
+- `V24__add_billing_invoices_and_usage_counters.sql` — adds missing `subscriber_type VARCHAR(20) NOT NULL` column to `usage_counters` (V19 creó la tabla sin ese discriminador); back-fills from polymorphic FKs. `invoices` ya tenía todas sus columnas en V19 — sin cambios.
 
-Next migration must be `V16__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V25__...`. **Never reuse or edit existing migration files.**
 
 **Seed credentials (dev/local ONLY — never use in production):**
 

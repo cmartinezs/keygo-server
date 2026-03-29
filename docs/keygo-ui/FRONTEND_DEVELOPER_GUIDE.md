@@ -2039,16 +2039,83 @@ Reglas rápidas de interpretación en frontend:
 
 ### 14.3.2. Flujo de contratación self-service (público)
 
+> `{slug}` y `{clientId}` en estos endpoints refieren al **PROVEEDOR** (quien ofrece los planes, p.ej. `keygo`/`keygo-platform`). El suscriptor es un nuevo entity creado durante la activación.
+
 | Caso de uso | Método | Endpoint | Auth | `ResponseCode` | Estado |
 |---|---|---|---|---|---|
 | Iniciar contrato | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` | Público | `APP_CONTRACT_CREATED` | ✅ |
 | Ver estado del contrato | GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}` | Público | `APP_CONTRACT_RETRIEVED` | ✅ |
+| **Verificar email** | **POST** | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/verify-email` | **Público** | `APP_CONTRACT_EMAIL_VERIFIED` | ✅ |
 | Simular pago aprobado (DEV) | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/mock-approve-payment` | Público (DEV) | `APP_CONTRACT_PAYMENT_APPROVED` | ✅ |
 | Activar contrato | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/activate` | Público | `APP_CONTRACT_ACTIVATED` | ✅ |
 
 > `mock-approve-payment` solo funciona cuando `keygo.billing.mock-payment-enabled=true`. En producción devuelve `404 RESOURCE_NOT_FOUND`.
 
+**Flujo UI paso a paso:**
+
+1. Usuario ve el catálogo → selecciona plan → obtiene `planVersionId`
+2. Llena formulario → `POST /billing/contracts` → servidor envía email con código de 6 dígitos
+3. Usuario ingresa código → `POST /billing/contracts/{contractId}/verify-email` → estado pasa a `PENDING_PAYMENT`
+4. Usuario paga → mock: `POST /billing/contracts/{contractId}/mock-approve-payment` → `READY_TO_ACTIVATE`
+5. `POST /billing/contracts/{contractId}/activate` → contrato `ACTIVATED`, suscripción creada
+
 **Body de `POST /billing/contracts` (B2B — `subscriberType=TENANT`):**
+
+```json
+{
+  "planVersionId": "uuid-de-la-version",
+  "billingPeriod": "MONTHLY",
+  "subscriberType": "TENANT",
+  "contractorEmail": "admin@acme.com",
+  "contractorFirstName": "Carlos",
+  "contractorLastName": "Martínez",
+  "companyName": "Acme Corp",
+  "companySlug": "acme-corp",
+  "companyTaxId": "RFC123456XYZ",
+  "companyAddress": "Av. Reforma 300, CDMX"
+}
+```
+
+**Body de `POST /billing/contracts` (B2C — `subscriberType=TENANT_USER`):**
+
+```json
+{
+  "planVersionId": "uuid-de-la-version",
+  "billingPeriod": "MONTHLY",
+  "subscriberType": "TENANT_USER",
+  "contractorEmail": "usuario@example.com",
+  "contractorFirstName": "Ana",
+  "contractorLastName": "López"
+}
+```
+
+**Body de `POST /billing/contracts/{contractId}/verify-email`:**
+
+```json
+{
+  "code": "123456"
+}
+```
+
+**Respuesta de `POST /billing/contracts/{contractId}/verify-email`** (`ResponseCode: APP_CONTRACT_EMAIL_VERIFIED`, HTTP 200):
+
+```json
+{
+  "date": "2026-03-29T10:05:00Z",
+  "success": { "code": "APP_CONTRACT_EMAIL_VERIFIED", "message": "Contract email verified successfully" },
+  "data": {
+    "id": "contract-uuid",
+    "status": "PENDING_PAYMENT",
+    "emailVerified": true,
+    "paymentVerified": false,
+    "expiresAt": "2026-03-30T10:00:00Z"
+  }
+}
+```
+
+> **Manejo de errores en verify-email:** `400 INVALID_INPUT` si el código es incorrecto o expiró. Mostrar mensaje "Código inválido o expirado" con opción de reiniciar el contrato.
+
+**Respuesta de `POST /billing/contracts`** (`ResponseCode: APP_CONTRACT_CREATED`, HTTP 201):
 
 ```json
 {
@@ -2119,12 +2186,17 @@ Reglas rápidas de interpretación en frontend:
 ### 14.3.3. Gestión de suscripción y facturas (Bearer ADMIN_TENANT)
 
 > Auth requerida: `Authorization: Bearer <jwt>` con rol `ADMIN` o `ADMIN_TENANT` (scope de tenant validado).
+>
+> ⚠️ **Semántica de path variables:** en estos endpoints, `{slug}` es el tenant del **SUSCRIPTOR** (ej. `acme-corp`), y `{clientId}` es el `client_id` global de la app del **PROVEEDOR** (ej. `keygo-platform`). El servidor resuelve el `client_id` de forma global (no filtra por el tenant del suscriptor).
 
 | Caso de uso | Método | Endpoint | Auth | `ResponseCode` | Estado |
 |---|---|---|---|---|---|
-| Ver suscripción activa | GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_RETRIEVED` | ✅ |
-| Cancelar al fin del período | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription/cancel` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_CANCELLED` | ✅ |
-| Listar facturas | GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/invoices` | Bearer ADMIN/ADMIN_TENANT | `APP_INVOICE_LIST_RETRIEVED` | ✅ |
+| Ver suscripción activa | GET | `/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_RETRIEVED` | ✅ |
+| Cancelar al fin del período | POST | `/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription/cancel` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_CANCELLED` | ✅ |
+| Listar facturas | GET | `/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/invoices` | Bearer ADMIN/ADMIN_TENANT | `APP_INVOICE_LIST_RETRIEVED` | ✅ |
+
+**Ejemplo concreto:** empresa `acme-corp` que contrató el plan de `keygo-platform`:
+- `GET /api/v1/tenants/acme-corp/apps/keygo-platform/billing/subscription` con Bearer JWT del admin de `acme-corp`
 
 **Respuesta de `GET /billing/subscription`:**
 

@@ -1,11 +1,11 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
-import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
+import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
@@ -18,6 +18,7 @@ import io.cmartinezs.keygo.domain.billing.invoice.model.InvoiceStatus;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriberType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
@@ -26,6 +27,7 @@ import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
+import io.cmartinezs.keygo.domain.user.model.Username;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,6 +50,7 @@ public class ActivateAppContractUseCase {
   private final UserRepositoryPort userRepo;
   private final MembershipRepositoryPort membershipRepo;
   private final AppRoleRepositoryPort appRoleRepo;
+  private final ClientAppRepositoryPort clientAppRepo;
 
   public ActivateAppContractUseCase(
       AppContractRepositoryPort contractRepo,
@@ -57,7 +60,8 @@ public class ActivateAppContractUseCase {
       TenantRepositoryPort tenantRepo,
       UserRepositoryPort userRepo,
       MembershipRepositoryPort membershipRepo,
-      AppRoleRepositoryPort appRoleRepo) {
+      AppRoleRepositoryPort appRoleRepo,
+      ClientAppRepositoryPort clientAppRepo) {
     this.contractRepo = contractRepo;
     this.versionRepo = versionRepo;
     this.subscriptionRepo = subscriptionRepo;
@@ -66,6 +70,7 @@ public class ActivateAppContractUseCase {
     this.userRepo = userRepo;
     this.membershipRepo = membershipRepo;
     this.appRoleRepo = appRoleRepo;
+    this.clientAppRepo = clientAppRepo;
   }
 
   public AppContractResult execute(UUID contractId) {
@@ -82,10 +87,6 @@ public class ActivateAppContractUseCase {
       throw new IllegalStateException("Contract is not ready to activate. Current status: " + contract.getStatus());
     }
 
-    if (!contract.isEmailVerified() && ContractStatus.PENDING_EMAIL_VERIFICATION.name().equals(
-        ContractStatus.PENDING_EMAIL_VERIFICATION.name())) {
-      // Only check if email was required (i.e., started as PENDING_EMAIL_VERIFICATION)
-    }
     if (!contract.isPaymentVerified()) {
       throw new IllegalStateException("Payment has not been verified for contract: " + contractId);
     }
@@ -142,12 +143,31 @@ public class ActivateAppContractUseCase {
   }
 
   private AppSubscription activateTenantUserBranch(AppContract contract, AppPlanVersion planVersion, OffsetDateTime now) {
-    // Look up or activate TenantUser
-    // Simplified: controller must resolve tenantId; here we find user by email in some tenant
-    // This is a known limitation; full implementation requires tenantId from context
-    // For MVP: subscription is created with a placeholder — actual user lookup happens in adapter
+    // Obtener el tenant del PROVEEDOR a partir del clientAppId almacenado en el contrato
+    var providerApp = clientAppRepo.findById(ClientAppId.of(contract.getClientAppId()))
+        .orElseThrow(() -> new IllegalStateException(
+            "ClientApp del proveedor no encontrada: " + contract.getClientAppId()));
+    TenantId providerTenantId = providerApp.getTenantId();
+
+    // Buscar si ya existe un TenantUser con ese email en el tenant del proveedor
+    EmailAddress email = EmailAddress.of(contract.getContractorEmail());
+    User tenantUser = userRepo.findByTenantIdAndEmail(providerTenantId, email)
+        .orElseGet(() -> {
+          // Crear nuevo TenantUser bajo el tenant del proveedor (B2C individual)
+          User newUser = User.builder()
+              .id(UserId.of(UUID.randomUUID()))
+              .tenantId(providerTenantId)
+              .email(email)
+              .username(Username.of(contract.getContractorEmail()))
+              .firstName(contract.getContractorFirstName())
+              .lastName(contract.getContractorLastName())
+              .status(UserStatus.ACTIVE)
+              .build();
+          return userRepo.save(newUser);
+        });
+
     return createSubscription(contract, planVersion,
-        SubscriberType.TENANT_USER, null, null, now);
+        SubscriberType.TENANT_USER, null, tenantUser.getId().value(), now);
   }
 
   private AppSubscription createSubscription(

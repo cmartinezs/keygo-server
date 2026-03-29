@@ -10,12 +10,65 @@
 
 ---
 
+### [2026-03-29] Tablas JPA de billing con columnas faltantes (invoices, usage_counters)
+
+**Contexto:** V19 creó las tablas `invoices` y `usage_counters`. Al comparar contra `InvoiceEntity` y `UsageCounterEntity`, `invoices` tenía todas sus columnas pero `usage_counters` omitió `subscriber_type`, definida como `NOT NULL` en la entidad.
+**Problema:** Hibernate falla al arrancar con `SchemaManagementException: Schema validation: missing column [subscriber_type] in table [usage_counters]`. La primera corrección propuesta añadía con `ALTER TABLE` TODAS las columnas de ambas tablas sin revisar primero cuáles ya existían — incorrecto e innecesario.
+**Solución / Buena práctica:** Antes de escribir la migración correctiva, leer el `CREATE TABLE` original (V19 en este caso) y compararlo columna por columna contra el JPA entity. Solo agregar con `ALTER TABLE ADD COLUMN IF NOT EXISTS` las columnas que realmente faltan. En este caso: únicamente `subscriber_type` en `usage_counters`, con el mismo patrón de V23 (nullable → back-fill → NOT NULL + CHECK).
+**Archivos clave:** `V19__add_billing_invoices_and_usage.sql`, `V24__add_billing_invoices_and_usage_counters.sql`, `UsageCounterEntity.java`
+
+---
+
+### [2026-03-29] Columna NOT NULL definida en entidad JPA pero ausente en migración Flyway (subscriber_type)
+
+**Contexto:** `AppSubscriptionEntity` define el campo `subscriberType` con `@Column(name = "subscriber_type", nullable = false, length = 20)`, pero la migración V18 que creó la tabla `app_subscriptions` no incluyó esa columna.
+**Problema:** Hibernate falla al arrancar con `SchemaManagementException: Schema validation: missing column [subscriber_type] in table [app_subscriptions]`. El error no se detectó en compilación porque JPA no valida el schema hasta conectarse a la DB en runtime.
+**Solución / Buena práctica:** Nunca modificar la migración original ya aplicada. Crear una nueva migración (`V23__add_subscriber_type_to_app_subscriptions.sql`) que: (1) añade la columna como nullable, (2) back-fill las filas existentes derivando el valor de las FKs polimórficas ya presentes, (3) agrega `NOT NULL` y `CHECK` constraint. Al implementar una entidad con columnas `NOT NULL`, verificar que la migración correspondiente incluya **todas** las columnas antes de aplicarla.
+**Archivos clave:** `keygo-supabase/src/main/resources/db/migration/V23__add_subscriber_type_to_app_subscriptions.sql`, `keygo-supabase/src/main/java/.../billing/entity/AppSubscriptionEntity.java`
+
+---
+
 ### [2026-03-29] Imports duplicados al añadir anotaciones OpenAPI a controllers existentes
 
 **Contexto:** Al agregar anotaciones OpenAPI/Swagger (`@Tag`, `@Operation`, `@ApiResponse`, `@SecurityRequirement`) a `AppBillingSubscriptionController`, se insertaron nuevos imports (`AppSubscription`, `SubscriberType`) antes de los ya existentes, resultando en dos declaraciones idénticas.
 **Problema:** `javac` puede reportar error de compilación por imports duplicados; incluso si tolera la duplicidad, el código queda inconsistente y genera warnings. El build en ocasiones usa artefactos en caché local y no detecta el problema de inmediato.
 **Solución / Buena práctica:** Al agregar imports a un archivo existente, revisar primero el bloque completo de imports y verificar que el nuevo import no esté ya presente. Ordenar el bloque: `api.*` → `app.*` → `domain.*` → librerías externas → `java.*`. Ejecutar `./mvnw -pl keygo-api compile` justo después para detectar el error sin esperar al full build.
 **Archivos clave:** `keygo-api/src/.../api/billing/controller/AppBillingSubscriptionController.java`
+
+---
+
+### [2026-03-29] Ports inyectados pero nunca usados en CreateAppContractUseCase
+
+**Contexto:** Al implementar la fase de billing (B-1→B-8), el `CreateAppContractUseCase` recibía en su constructor `UserRepositoryPort`, `PasswordHasherPort` y `EmailVerificationRepositoryPort`, pero ninguno era invocado en `execute()`. El email de verificación tampoco se enviaba.
+**Problema:** El código compilaba y los tests pasaban (el use case estaba mockeado), enmascarando que el flujo real nunca enviaría el email de verificación al contratante. Además, el port de `EmailVerificationRepositoryPort` no aplica para contratos (requiere `tenant_user_id` FK), por lo que usar ese flujo hubiera fallado en runtime.
+**Solución / Buena práctica:** Para el flujo de contratos, el código de verificación se almacena directamente en la tabla `app_contracts` (V22 migration), evitando la dependencia de una entidad que aún no existe (el TenantUser se crea en activación). El `CreateAppContractUseCase` ahora solo necesita `contractRepo`, `versionRepo`, `emailNotification`, `contractExpiryHours` y `verificationCodeExpiryMinutes`. Usar `SecureRandom` para generar el código numérico de 6 dígitos.
+**Archivos clave:** `keygo-app/src/.../billing/contracting/usecase/CreateAppContractUseCase.java`, `V22__add_contract_verification_code.sql`
+
+---
+
+### [2026-03-29] Stub sin implementar en ActivateAppContractUseCase rama B2C
+
+**Contexto:** `activateTenantUserBranch()` era un stub que retornaba `createSubscription(..., null, null, now)` — suscripción creada sin `subscriberTenantId` ni `subscriberTenantUserId`, lo que rompe la integridad del modelo.
+**Problema:** El test del use case estaba mockeado a nivel de `AppContractRepositoryPort`, por lo que los tests pasaban sin detectar que la rama B2C generaba datos inválidos.
+**Solución / Buena práctica:** Para B2C (TENANT_USER), obtener el `tenantId` del PROVEEDOR desde `clientAppRepo.findById(ClientAppId.of(contract.getClientAppId()))`, luego buscar o crear el `TenantUser` bajo ese tenant. Agregar `ClientAppRepositoryPort` al constructor del use case. El método `findById(ClientAppId)` fue añadido al port y su implementación en el adapter.
+**Archivos clave:** `keygo-app/src/.../billing/contracting/usecase/ActivateAppContractUseCase.java`, `keygo-app/src/.../clientapp/port/ClientAppRepositoryPort.java`
+
+---
+
+### [2026-03-29] AppBillingSubscriptionController resolvía appId bajo el tenant del suscriptor
+
+**Contexto:** `AppBillingSubscriptionController.getSubscription()` usaba `resolveClientAppId(tenantSlug, clientId)` que busca el `clientApp` BAJO el tenant del path. Para la gestión post-activación, `{tenantSlug}` es el tenant SUSCRIPTOR (p.ej. "acme-corp") pero la app (`keygo-platform`) pertenece al tenant PROVEEDOR ("keygo"). La búsqueda fallaba siempre.
+**Problema:** Error de diseño: el `{clientId}` en los endpoints de suscripción/facturas es el `client_id` globalmente único del PROVEEDOR. No pertenece al tenant suscriptor. `resolveClientAppId` (que filtra por tenantId) era el método incorrecto para este contexto.
+**Solución / Buena práctica:** Agregar `findByClientId(ClientId)` al `ClientAppRepositoryPort` (búsqueda global por client_id, sin filtro de tenant). Usar `resolveAppIdGlobally(clientId)` en el subscription controller. El `{tenantSlug}` en esos endpoints identifica al SUSCRIPTOR; el `{clientId}` identifica la app del PROVEEDOR (globalmente único por diseño OAuth2).
+**Archivos clave:** `keygo-api/src/.../billing/controller/AppBillingSubscriptionController.java`, `keygo-app/src/.../clientapp/port/ClientAppRepositoryPort.java`
+
+---
+
+### [2026-03-29] replace_string_in_file reemplaza en lugar de agregar cuando el oldString es el import a mantener
+
+**Contexto:** Al intentar agregar imports a un archivo de test, se usó el import existente como `oldString` y los nuevos imports como `newString`, lo que reemplazó (eliminó) el import original.
+**Problema:** El test dejó de compilar porque `CreateAppContractRequest` ya no estaba importado.
+**Solución / Buena práctica:** Al agregar imports, incluir TODOS los imports relevantes (tanto el existente como los nuevos) en el `newString`. Verificar siempre con `./mvnw -pl <módulo> compile` antes de ejecutar el full test suite.
 
 ---
 

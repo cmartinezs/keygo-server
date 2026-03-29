@@ -2,7 +2,7 @@
 
 > **Última actualización:** 2026-03-29  
 > Reemplaza `docs/keygo-supabase/MIGRATIONS.md` (que solo cubría V1–V3).  
-> **Próxima migración:** `V20__...`
+> **Próxima migración:** `V25__...`
 
 ---
 
@@ -548,15 +548,138 @@ Límites y feature flags por versión de plan.
 - `UNIQUE(client_app_id, subscriber_tenant_user_id, metric_code, period_start, period_end)` (B2C)
 - `CHECK(NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL))`
 
-**Índices:** `idx_usage_app_tenant`, `idx_usage_app_user`
+**Índices:** `idx_app_contracts_client_app`, `idx_app_contracts_status`, `idx_app_contracts_email`, `idx_app_contracts_sub_tenant`, `idx_app_contracts_sub_user`
+
+---
+
+### V20 — `V20__seed_billing_keygo_platform_app.sql`
+
+**Propósito:** Seed de la app `keygo-platform` bajo el tenant `keygo`. Es la app que ofrece el catálogo de planes comerciales de KeyGo.
+
+**Registros creados:**
+- `client_apps`: app `keygo-platform` (client_id globalmente único, tipo `CONFIDENTIAL`)
+- Linked a tenant `keygo`
+
+---
+
+### V21 — `V21__seed_billing_keygo_plans.sql`
+
+**Propósito:** Seed de los planes de suscripción de KeyGo para la app `keygo-platform`. Define el catálogo comercial base.
+
+**Planes creados (todos con `subscriber_type=TENANT`, `is_public=true`, moneda MXN):**
+
+| Plan | UUID plan | UUID version | Precio mensual | Entitlements clave |
+|---|---|---|---|---|
+| FREE | `22222222-...-100000000001` | `33333333-...-100000000001` | $0 | MAX_USERS=2, MAX_APPS=1, SSO=false |
+| STARTER | `22222222-...-100000000002` | `33333333-...-100000000002` | $299 | MAX_USERS=10, MAX_APPS=3, SSO=false |
+| BUSINESS | `22222222-...-100000000003` | `33333333-...-100000000003` | $899 | MAX_USERS=50, MAX_APPS=10, SSO=true |
+| ENTERPRISE | `22222222-...-100000000004` | `33333333-...-100000000004` | $2499 | MAX_USERS=ilimitado, MAX_APPS=ilimitado, SSO=true |
+
+---
+
+### V22 — `V22__add_contract_verification_code.sql`
+
+**Tablas modificadas:** `app_contracts`
+
+**Propósito:** Agrega soporte de verificación de email propio al flujo de contratos. El código se almacena directamente en la fila del contrato porque el suscriptor no existe aún como `TenantUser` al momento de la creación.
+
+**Decisión de diseño:** No se reutiliza la tabla `email_verifications` (que requiere `tenant_user_id` FK). El contrato maneja su propio ciclo de verificación.
+
+#### Columnas agregadas a `app_contracts`
+
+| Columna | Tipo | Nulable | Descripción |
+|---|---|---|---|
+| `verification_code` | VARCHAR(10) | SÍ | Código numérico de 6 dígitos generado con `SecureRandom` al crear el contrato |
+| `verification_code_expires_at` | TIMESTAMPTZ | SÍ | Expiración del código (configurable, `keygo.billing.verification-code-expiry-minutes`, default 30 min) |
+
+**Nuevo endpoint habilitado:** `POST /billing/contracts/{contractId}/verify-email` — body: `{"code":"123456"}`
+
+**Estados afectados:** `PENDING_EMAIL_VERIFICATION` → (código válido) → `PENDING_PAYMENT`
+
+---
+
+### V23 — `V23__add_subscriber_type_to_app_subscriptions.sql`
+
+**Tablas modificadas:** `app_subscriptions`
+
+**Propósito:** Corrige inconsistencia entre `AppSubscriptionEntity` y el schema de base de datos. La columna `subscriber_type` estaba definida como `NOT NULL` en la entidad JPA pero ausente en la migración V18, causando `SchemaManagementException` de Hibernate al arrancar.
+
+**Decisión de diseño:** La columna actúa como discriminador polimórfico junto a las FKs `subscriber_tenant_id` y `subscriber_tenant_user_id`. Se back-fill con lógica derivada de cuál FK no es nula.
+
+#### Columnas agregadas a `app_subscriptions`
+
+| Columna | Tipo | Nulable | Descripción |
+|---|---|---|---|
+| `subscriber_type` | VARCHAR(20) | NO | Discriminador del suscriptor: `TENANT` (B2B) o `TENANT_USER` (B2C). Derivado de la FK polimórfica. |
+
+**Check constraint:** `chk_app_subscriptions_subscriber_type CHECK (subscriber_type IN ('TENANT', 'TENANT_USER'))`
+
+---
+
+### V24 — `V24__add_billing_invoices_and_usage_counters.sql`
+
+**Tablas modificadas:** `usage_counters`
+
+**Propósito:** Agrega la columna `subscriber_type` faltante en `usage_counters`. La tabla fue creada por V19 con las FKs polimórficas (`subscriber_tenant_id`, `subscriber_tenant_user_id`) pero sin el discriminador de tipo, el cual sí está definido como `NOT NULL` en `UsageCounterEntity`. La tabla `invoices` ya tenía todas sus columnas en V19 — no requirió cambios.
+
+**Mismo patrón que V23** (columna `subscriber_type` en `app_subscriptions`).
+
+#### Columnas agregadas a `usage_counters`
+
+| Columna | Tipo | Nulable | Descripción |
+|---|---|---|---|
+| `subscriber_type` | VARCHAR(20) | NO | Discriminador del suscriptor: `TENANT` (B2B) o `TENANT_USER` (B2C). Derivado de la FK polimórfica. |
+
+**Check constraint:** `chk_usage_counters_subscriber_type CHECK (subscriber_type IN ('TENANT', 'TENANT_USER'))`
+
+#### Tabla `invoices`
+
+| Columna | Tipo | Nulable | Descripción |
+|---|---|---|---|
+| `id` | UUID | NO | PK auto-generada |
+| `subscription_id` | UUID | NO | FK → `app_subscriptions(id)` |
+| `invoice_number` | VARCHAR(50) | NO | Número único de factura |
+| `status` | VARCHAR(20) | NO | `DRAFT` / `ISSUED` / `PAID` / `VOID` / `OVERDUE` |
+| `issue_date` | DATE | NO | Fecha de emisión |
+| `due_date` | DATE | NO | Fecha de vencimiento |
+| `period_start` | DATE | NO | Inicio del período facturado |
+| `period_end` | DATE | NO | Fin del período facturado |
+| `currency` | VARCHAR(3) | NO | Moneda (default `MXN`) |
+| `subtotal` | NUMERIC(12,2) | NO | Subtotal antes de impuestos |
+| `tax_amount` | NUMERIC(12,2) | NO | Monto de impuestos (default 0) |
+| `total` | NUMERIC(12,2) | NO | Total a pagar |
+| `billing_name_snapshot` | VARCHAR(300) | SÍ | Nombre del suscriptor al momento de emitir |
+| `billing_tax_id_snapshot` | VARCHAR(100) | SÍ | RFC/Tax ID snapshot |
+| `billing_address_snapshot` | TEXT | SÍ | Dirección fiscal snapshot |
+| `plan_name_snapshot` | VARCHAR(100) | SÍ | Nombre del plan snapshot |
+| `plan_version_snapshot` | VARCHAR(20) | SÍ | Versión del plan snapshot |
+| `pdf_url` | TEXT | SÍ | URL del PDF de la factura (T-087) |
+| `created_at` | TIMESTAMPTZ | NO | Timestamp de creación |
+
+#### Tabla `usage_counters`
+
+| Columna | Tipo | Nulable | Descripción |
+|---|---|---|---|
+| `id` | UUID | NO | PK auto-generada |
+| `client_app_id` | UUID | NO | FK → `client_apps(id)` |
+| `subscriber_type` | VARCHAR(20) | NO | `TENANT` o `TENANT_USER` |
+| `subscriber_tenant_id` | UUID | SÍ | FK → `tenants(id)` (B2B) |
+| `subscriber_tenant_user_id` | UUID | SÍ | FK → `tenant_users(id)` (B2C) |
+| `metric_code` | VARCHAR(100) | NO | Código de la métrica (ej. `MAX_TENANT_USERS`) |
+| `period_start` | TIMESTAMPTZ | NO | Inicio del período de medición |
+| `period_end` | TIMESTAMPTZ | NO | Fin del período de medición |
+| `used_value` | BIGINT | NO | Contador acumulado en el período |
+| `updated_at` | TIMESTAMPTZ | NO | Última actualización del contador |
+
+**Constraints:** `chk_usage_counters_single_subscriber` (solo una FK de suscriptor no nula); índices únicos parciales por tenant y por user.
 
 ---
 
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V20)
-touch keygo-supabase/src/main/resources/db/migration/V20__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V25)
+touch keygo-supabase/src/main/resources/db/migration/V25__descripcion_del_cambio.sql
 
 # 2. Escribir el SQL de manera idempotente cuando sea posible
 # 3. Levantar DB local

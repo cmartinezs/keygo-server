@@ -2,7 +2,7 @@
 
 > Guía de referencia del flujo de billing implementado: catálogo de planes, contratación self-service, pago, activación, suscripción y facturación.
 >
-> Fecha de actualización: **2026-03-29** | Estado: **Fase Billing B-1→B-8 implementada**
+> Fecha de actualización: **2026-03-29** | Estado: **Fase Billing B-1→B-8 + correcciones post-revisión**
 
 ---
 
@@ -32,6 +32,7 @@ KeyGo Server implementa un flujo de billing **multi-tenant, multi-app y polimór
 | Catálogo de planes públicos (lectura) | ✅ Implementado |
 | Planes con versiones e entitlements | ✅ Implementado |
 | Contratos de suscripción self-service | ✅ Implementado |
+| Verificación de email del contratante (código 6 dígitos) | ✅ Implementado |
 | Pago simulado (mock, solo DEV) | ✅ Implementado |
 | Activación: crea tenant + usuario + suscripción + factura | ✅ Implementado |
 | Gestión de suscripción (ver, cancelar) | ✅ Implementado |
@@ -140,6 +141,7 @@ Con el filtro `BootstrapAdminKeyFilter` actual:
 | `GET /billing/catalog/{planCode}` | **Público** |
 | `POST /billing/contracts` | **Público** — el flujo de contratación es autoservicio |
 | `GET /billing/contracts/{contractId}` | **Público** — se consulta por UUID |
+| `POST /billing/contracts/{contractId}/verify-email` | **Público** — valida el código de 6 dígitos enviado al email del contratante |
 | `POST /billing/contracts/{contractId}/mock-approve-payment` | **Público (solo DEV)** — requiere `keygo.billing.mock-payment-enabled=true` |
 | `POST /billing/contracts/{contractId}/activate` | **Público** — el contrato debe estar en `READY_TO_ACTIVATE` |
 | `GET /billing/subscription` | **Bearer ADMIN o ADMIN_TENANT** |
@@ -148,6 +150,25 @@ Con el filtro `BootstrapAdminKeyFilter` actual:
 | `POST /billing/plans` | **Bearer ADMIN_TENANT** |
 
 > Los sufijos `/billing/catalog` y `/billing/contracts` están declarados como públicos en `KeyGoBootstrapProperties`.
+
+---
+
+## Semántica de `{slug}` y `{clientId}` en los endpoints de billing
+
+> ⚠️ Los endpoints de billing tienen DOS roles distintos para los path variables, dependiendo del contexto:
+
+| Grupo de endpoints | `{slug}` refiere a | `{clientId}` refiere a | Resolución |
+|---|---|---|---|
+| Catálogo y planes (`/billing/catalog`, `/billing/plans`) | **Tenant PROVEEDOR** (quien ofrece los planes) | App del **PROVEEDOR** | `findByClientIdAndTenantId` — requiere que ambos existan |
+| Contratos (`/billing/contracts`) | **Tenant PROVEEDOR** | App del **PROVEEDOR** | `findByClientIdAndTenantId` — el suscriptor aún no existe |
+| Suscripción e invoices (`/billing/subscription`, `/billing/invoices`) | **Tenant SUSCRIPTOR** (empresa que contrató el plan) | App del **PROVEEDOR** (su `client_id` es globalmente único) | `findByClientId` global — el proveedor no necesita coincidir con el slug |
+
+**Ejemplo concreto:**
+- Proveedor: tenant `keygo`, app `keygo-platform`
+- Suscriptor: tenant `acme-corp` (creado al activar el contrato)
+- Catálogo: `GET /api/v1/tenants/keygo/apps/keygo-platform/billing/catalog`
+- Iniciar contrato: `POST /api/v1/tenants/keygo/apps/keygo-platform/billing/contracts`
+- Ver suscripción (desde acme-corp): `GET /api/v1/tenants/acme-corp/apps/keygo-platform/billing/subscription`
 
 ---
 
@@ -184,13 +205,18 @@ sequenceDiagram
     U->>C: Llena nombre, email, empresa (si B2B), company_slug
     C->>K: POST /keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts
     K->>DB: Validar planVersionId, crear AppContract status=PENDING_EMAIL_VERIFICATION
+    K->>K: Generar código de verificación 6 dígitos (SecureRandom)
+    K->>DB: Guardar verification_code + verification_code_expires_at (configurable, default 30 min)
     K->>EMAIL: Enviar código de verificación a contractorEmail
-    K-->>C: 201 APP_CONTRACT_CREATED (contractId, status, expiresAt)
+    K-->>C: 201 APP_CONTRACT_CREATED (contractId, status=PENDING_EMAIL_VERIFICATION, expiresAt)
 
-    Note over U,C: Paso 4 — Email verification
-    U->>C: Copia código del email y lo ingresa en formulario
-    Note over C,K: (Ver: POST /apps/{clientId}/verify-email si se usa el flujo de registro)
-    Note over K: Contrato avanza → PENDING_PAYMENT
+    Note over U,C: Paso 4 — Email verification (endpoint dedicado de contratos)
+    U->>C: Copia código de 6 dígitos del email y lo ingresa en formulario
+    C->>K: POST /keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/verify-email
+    Note right of C: body: {"code": "123456"}
+    K->>DB: Verificar código + expiración
+    K->>DB: SET email_verified_at = NOW(), status = PENDING_PAYMENT
+    K-->>C: 200 APP_CONTRACT_EMAIL_VERIFIED (status=PENDING_PAYMENT)
 
     Note over C,K: Paso 5 — Pago (DEV: mock / PROD: PSP externo)
     C->>K: POST /billing/contracts/{contractId}/mock-approve-payment
@@ -210,7 +236,9 @@ sequenceDiagram
 
 ## Gestión post-activación
 
-Una vez activado el contrato, el tenant administrador puede gestionar su suscripción vía Bearer JWT con rol `ADMIN_TENANT`.
+Una vez activado el contrato, el tenant **suscriptor** puede gestionar su suscripción vía Bearer JWT con rol `ADMIN_TENANT`.
+
+> **Importante:** En los endpoints de gestión de suscripción, `{slug}` es el tenant del **SUSCRIPTOR** (el que contrató), y `{clientId}` es el `client_id` global de la app del **PROVEEDOR**. El `client_id` es globalmente único en OAuth2, por lo que se resuelve sin filtrar por tenant.
 
 ```mermaid
 sequenceDiagram
@@ -218,19 +246,21 @@ sequenceDiagram
     participant K as KeyGo Server
     participant DB as Base de datos
 
-    Note over C,K: Ver suscripción activa
-    C->>K: GET /keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription
-    Note right of C: Authorization: Bearer <jwt> (ADMIN_TENANT)
+    Note over C,K: Ver suscripción activa (acme-corp = suscriptor, keygo-platform = app del proveedor)
+    C->>K: GET /keygo-server/api/v1/tenants/acme-corp/apps/keygo-platform/billing/subscription
+    Note right of C: Authorization: Bearer <jwt> (ADMIN_TENANT de acme-corp)
+    K->>DB: resolveTenantId("acme-corp") → tenantId del suscriptor
+    K->>DB: resolveAppIdGlobally("keygo-platform") → appId del proveedor (búsqueda global por clientId)
     K->>DB: findByClientAppIdAndSubscriberTenantId(appId, tenantId)
     K-->>C: 200 APP_SUBSCRIPTION_RETRIEVED
 
     Note over C,K: Listar facturas
-    C->>K: GET /keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/invoices
+    C->>K: GET /keygo-server/api/v1/tenants/acme-corp/apps/keygo-platform/billing/invoices
     K->>DB: findAllBySubscriptionId(subscriptionId)
     K-->>C: 200 APP_INVOICE_LIST_RETRIEVED
 
     Note over C,K: Cancelar suscripción al fin del período
-    C->>K: POST /keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription/cancel
+    C->>K: POST /keygo-server/api/v1/tenants/acme-corp/apps/keygo-platform/billing/subscription/cancel
     K->>DB: SET cancel_at_period_end=true, cancelled_at=NOW()
     K-->>C: 200 APP_SUBSCRIPTION_CANCELLED (cancelAtPeriodEnd=true)
 ```
@@ -261,20 +291,52 @@ sequenceDiagram
 
 | Método | Endpoint (sin context-path) | Auth | `ResponseCode` OK | Descripción |
 |---|---|---|---|---|
-| GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog` | Público | `APP_PLAN_CATALOG_RETRIEVED` | Catálogo público de planes |
+| GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog` | Público | `APP_PLAN_CATALOG_RETRIEVED` | Catálogo público de planes (`{slug}/{clientId}` = PROVEEDOR) |
 | GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog/{planCode}` | Público | `APP_PLAN_RETRIEVED` | Detalle de un plan público |
 | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/plans` | Bearer ADMIN_TENANT | `APP_PLAN_CREATED` | Crear plan + versión + entitlements |
-| POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` | Público | `APP_CONTRACT_CREATED` | Iniciar contrato de suscripción |
+| POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` | Público | `APP_CONTRACT_CREATED` | Iniciar contrato (`{slug}/{clientId}` = PROVEEDOR); envía email con código |
 | GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}` | Público | `APP_CONTRACT_RETRIEVED` | Estado del contrato |
+| POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/verify-email` | Público | `APP_CONTRACT_EMAIL_VERIFIED` | Verificar código de email → avanza a `PENDING_PAYMENT` |
 | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/mock-approve-payment` | Público (DEV) | `APP_CONTRACT_PAYMENT_APPROVED` | Simular pago aprobado |
 | POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/activate` | Público | `APP_CONTRACT_ACTIVATED` | Activar contrato → crea entidades + suscripción + factura |
-| GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_RETRIEVED` | Suscripción activa |
-| POST | `/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription/cancel` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_CANCELLED` | Marcar cancelación al fin del período |
-| GET | `/api/v1/tenants/{slug}/apps/{clientId}/billing/invoices` | Bearer ADMIN/ADMIN_TENANT | `APP_INVOICE_LIST_RETRIEVED` | Lista de facturas |
+| GET | `/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_RETRIEVED` | Suscripción activa (`{subscriberSlug}` = SUSCRIPTOR, `{providerClientId}` = PROVEEDOR global) |
+| POST | `/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription/cancel` | Bearer ADMIN/ADMIN_TENANT | `APP_SUBSCRIPTION_CANCELLED` | Marcar cancelación al fin del período |
+| GET | `/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/invoices` | Bearer ADMIN/ADMIN_TENANT | `APP_INVOICE_LIST_RETRIEVED` | Lista de facturas |
 
 ---
 
 ## Cuerpos de request y respuesta
+
+### POST `/billing/contracts/{contractId}/verify-email` — request
+
+```json
+{
+  "code": "123456"
+}
+```
+
+### POST `/billing/contracts/{contractId}/verify-email` — respuesta exitosa
+
+```json
+{
+  "date": "2026-03-29T10:05:00Z",
+  "success": {
+    "code": "APP_CONTRACT_EMAIL_VERIFIED",
+    "message": "Contract email verified successfully"
+  },
+  "data": {
+    "id": "contract-uuid",
+    "status": "PENDING_PAYMENT",
+    "emailVerified": true,
+    "paymentVerified": false,
+    "expiresAt": "2026-03-30T10:00:00Z"
+  }
+}
+```
+
+> **Errores posibles:** `400 INVALID_INPUT` si el código es incorrecto o expiró.
+
+---
 
 ### POST `/billing/contracts` — request
 

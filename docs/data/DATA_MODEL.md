@@ -778,14 +778,14 @@ Límites y feature flags por versión de plan. Definen qué puede hacer el suscr
 
 ---
 
-### Tabla: `app_contracts` — V17
+### Tabla: `app_contracts` — V17, V22
 
 Representa el proceso de onboarding/checkout previo a una suscripción. Registra el progreso de verificación de email, pago y activación.
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del contrato |
-| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | NO | App a la que pertenece el contrato |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | NO | App del **PROVEEDOR** a la que pertenece el contrato |
 | `selected_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE RESTRICT | NO | Versión del plan seleccionada |
 | `billing_period` | VARCHAR(20) | — | NO | Período elegido: `MONTHLY`, `YEARLY`, `ONE_TIME` |
 | `subscriber_type` | VARCHAR(20) | — | NO | Tipo: `TENANT` (B2B) o `TENANT_USER` (B2C) |
@@ -799,9 +799,11 @@ Representa el proceso de onboarding/checkout previo a una suscripción. Registra
 | `company_slug` | VARCHAR(100) | UNIQUE | SÍ | Slug de empresa → se convierte en `tenant.slug` al activar |
 | `company_tax_id` | VARCHAR(100) | — | SÍ | RFC / Tax ID (solo B2B) |
 | `company_address` | TEXT | — | SÍ | Dirección fiscal (solo B2B) |
+| `verification_code` | VARCHAR(10) | — | SÍ | Código numérico de 6 dígitos enviado a `contractor_email` _(V22)_ |
+| `verification_code_expires_at` | TIMESTAMPTZ | — | SÍ | Expiración del código (configurable, default 30 min) _(V22)_ |
 | `email_verified_at` | TIMESTAMPTZ | — | SÍ | Timestamp de verificación de email |
 | `payment_verified_at` | TIMESTAMPTZ | — | SÍ | Timestamp de confirmación de pago |
-| `expires_at` | TIMESTAMPTZ | — | NO | TTL del contrato (configurable, default 24h) |
+| `expires_at` | TIMESTAMPTZ | — | NO | TTL del contrato (configurable, default 48h) |
 | `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
 | `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
 
@@ -810,6 +812,8 @@ Representa el proceso de onboarding/checkout previo a una suscripción. Registra
 - `CHECK(NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL))` — solo un suscriptor
 
 **Estados válidos:** `PENDING_EMAIL_VERIFICATION` → `PENDING_PAYMENT` → `READY_TO_ACTIVATE` → `ACTIVATED` | `CANCELLED` | `EXPIRED` | `FAILED`
+
+**Regla de negocio V22 — verificación de email de contratos:** El `verification_code` es independiente del flujo `email_verifications` (que requiere un `tenant_user_id` existente). Los contratos usan su propio código almacenado directamente en la fila, porque el suscriptor aún no existe como `TenantUser` en el momento de la creación del contrato. El código expira según `verification_code_expires_at`; si expira, debe iniciarse un nuevo contrato.
 
 ---
 
@@ -944,10 +948,12 @@ Contadores atómicos de uso por suscriptor, métrica y período. Los incrementos
 | `V17__add_billing_contracts.sql` | Tabla `app_contracts` — flujo self-service de contratación con verificación de email y pago | ✅ Aplicada (2026-03-28) |
 | `V18__add_billing_subscriptions.sql` | Tablas `app_subscriptions`, `payment_transactions` — suscripciones activas y transacciones | ✅ Aplicada (2026-03-28) |
 | `V19__add_billing_invoices_and_usage.sql` | Tablas `invoices`, `usage_counters` — facturas históricas y contadores de uso atómicos | ✅ Aplicada (2026-03-28) |
-| `V20__...` | Próxima migración — sin definir aún | ⏳ Planificada |
+| `V20__seed_billing_keygo_platform_app.sql` | Seed de app `keygo-platform` en tenant `keygo` para el catálogo de planes | ✅ Aplicada (2026-03-28) |
+| `V21__seed_billing_keygo_plans.sql` | Seed de planes FREE/STARTER/BUSINESS/ENTERPRISE para `keygo-platform` | ✅ Aplicada (2026-03-28) |
+| `V22__add_contract_verification_code.sql` | Columnas `verification_code` y `verification_code_expires_at` en `app_contracts` | ✅ Aplicada (2026-03-29) |
 
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V20`.
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V23`.
 
 ---
 
-**Última actualización:** 2026-03-29 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V19
+**Última actualización:** 2026-03-29 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V22

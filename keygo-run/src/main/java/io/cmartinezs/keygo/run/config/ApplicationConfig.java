@@ -77,6 +77,7 @@ import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUs
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
 import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
 import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
@@ -568,15 +569,17 @@ public class ApplicationConfig {
   public CreateAppContractUseCase createAppContractUseCase(
       AppContractRepositoryPort contractRepo,
       AppPlanVersionRepositoryPort versionRepo,
-      UserRepositoryPort userRepo,
-      PasswordHasherPort passwordHasherPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
       EmailNotificationPort emailNotificationPort,
       KeyGoBillingProperties billingProperties) {
     return new CreateAppContractUseCase(
-        contractRepo, versionRepo, userRepo, passwordHasherPort,
-        emailVerificationRepositoryPort, emailNotificationPort,
-        billingProperties.getContractExpiryHours());
+        contractRepo, versionRepo, emailNotificationPort,
+        billingProperties.getContractExpiryHours(),
+        billingProperties.getVerificationCodeExpiryMinutes());
+  }
+
+  @Bean
+  public VerifyContractEmailUseCase verifyContractEmailUseCase(AppContractRepositoryPort contractRepo) {
+    return new VerifyContractEmailUseCase(contractRepo);
   }
 
   @Bean
@@ -600,10 +603,12 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepo,
       MembershipRepositoryPort membershipRepositoryPort,
-      AppRoleRepositoryPort appRoleRepositoryPort) {
+      AppRoleRepositoryPort appRoleRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort) {
     return new ActivateAppContractUseCase(
         contractRepo, versionRepo, subscriptionRepo, invoiceRepo,
-        tenantRepositoryPort, userRepo, membershipRepositoryPort, appRoleRepositoryPort);
+        tenantRepositoryPort, userRepo, membershipRepositoryPort, appRoleRepositoryPort,
+        clientAppRepositoryPort);
   }
 
   // ─── Billing: Suscripción ─────────────────────────────────────────────────

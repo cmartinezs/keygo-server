@@ -24,6 +24,9 @@ public class KeyGoBillingProperties {
   /** TTL in hours before a contract expires if not activated. */
   private int contractExpiryHours = 48;
 
+  /** TTL in minutes for the email verification code sent at contract creation. */
+  private int verificationCodeExpiryMinutes = 30;
+
   /** Default currency for new plans. */
   private String defaultCurrency = "MXN";
 }

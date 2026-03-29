@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.supabase.clientapp.adapter;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -64,5 +65,17 @@ public class ClientAppRepositoryAdapter implements ClientAppRepositoryPort {
   @Override
   public boolean existsByClientId(ClientId clientId) {
     return jpaRepository.existsByClientId(clientId.value());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public java.util.Optional<ClientApp> findById(ClientAppId id) {
+    return jpaRepository.findById(id.value()).map(mapper::toDomain);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public java.util.Optional<ClientApp> findByClientId(ClientId clientId) {
+    return jpaRepository.findByClientId(clientId.value()).map(mapper::toDomain);
   }
 }

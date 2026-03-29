@@ -81,8 +81,9 @@ class AppBillingSubscriptionControllerTest {
   }
 
   private void stubResolvers(Tenant t, ClientApp app) {
+    // {tenantSlug} → suscriptor; {clientId} → proveedor (global, no bajo el tenant del suscriptor)
     when(tenantRepo.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(t));
-    when(clientAppRepo.findByClientIdAndTenantId(eq(ClientId.of(CLIENT_ID)), any())).thenReturn(Optional.of(app));
+    when(clientAppRepo.findByClientId(ClientId.of(CLIENT_ID))).thenReturn(Optional.of(app));
   }
 
   @Test

@@ -35,6 +35,10 @@ public class AppContract {
   private final String companyTaxId;
   private final String companyAddress;
 
+  // Email verification (contrato propio, antes de que exista un TenantUser)
+  private String verificationCode;
+  private OffsetDateTime verificationCodeExpiresAt;
+
   // Traceability
   private OffsetDateTime emailVerifiedAt;
   private OffsetDateTime paymentVerifiedAt;
@@ -61,6 +65,8 @@ public class AppContract {
       String companySlug,
       String companyTaxId,
       String companyAddress,
+      String verificationCode,
+      OffsetDateTime verificationCodeExpiresAt,
       OffsetDateTime emailVerifiedAt,
       OffsetDateTime paymentVerifiedAt,
       OffsetDateTime expiresAt,
@@ -90,6 +96,8 @@ public class AppContract {
     this.companySlug = companySlug;
     this.companyTaxId = companyTaxId;
     this.companyAddress = companyAddress;
+    this.verificationCode = verificationCode;
+    this.verificationCodeExpiresAt = verificationCodeExpiresAt;
     this.emailVerifiedAt = emailVerifiedAt;
     this.paymentVerifiedAt = paymentVerifiedAt;
     this.expiresAt = expiresAt;
@@ -113,6 +121,27 @@ public class AppContract {
 
   public boolean isActivated() {
     return ContractStatus.ACTIVATED.equals(this.status);
+  }
+
+  /**
+   * Verifica el código de verificación de email del contrato.
+   * Si es válido, avanza el estado a PENDING_PAYMENT.
+   */
+  public void verifyCode(String inputCode, OffsetDateTime now) {
+    if (ContractStatus.ACTIVATED.equals(this.status) || ContractStatus.CANCELLED.equals(this.status)
+        || ContractStatus.EXPIRED.equals(this.status) || ContractStatus.FAILED.equals(this.status)) {
+      throw new IllegalStateException("El contrato está en estado terminal: " + this.status);
+    }
+    if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
+      throw new IllegalStateException("El email ya fue verificado para el contrato: " + this.id);
+    }
+    if (this.verificationCode == null || !this.verificationCode.equalsIgnoreCase(inputCode)) {
+      throw new IllegalArgumentException("Código de verificación inválido");
+    }
+    if (this.verificationCodeExpiresAt != null && now.isAfter(this.verificationCodeExpiresAt)) {
+      throw new IllegalStateException("El código de verificación ha expirado");
+    }
+    markEmailVerified(now);
   }
 
   public void markEmailVerified(OffsetDateTime verifiedAt) {

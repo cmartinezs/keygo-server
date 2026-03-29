@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.api.billing.controller;
 
 import io.cmartinezs.keygo.api.billing.request.CreateAppContractRequest;
+import io.cmartinezs.keygo.api.billing.request.VerifyContractEmailRequest;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
@@ -47,6 +49,7 @@ class AppBillingContractControllerTest {
   @Mock GetAppContractUseCase getContractUseCase;
   @Mock MockApprovePaymentUseCase mockApprovePaymentUseCase;
   @Mock ActivateAppContractUseCase activateContractUseCase;
+  @Mock VerifyContractEmailUseCase verifyContractEmailUseCase;
 
   @InjectMocks
   AppBillingContractController controller;
@@ -171,6 +174,21 @@ class AppBillingContractControllerTest {
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody().getData().status()).isEqualTo("ACTIVATED");
   }
+
+  @Test
+  void verifyEmail_validCode_returns200WithPendingPaymentStatus() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    AppContract c = contract(ContractStatus.PENDING_PAYMENT);
+    when(verifyContractEmailUseCase.execute(contractId, "123456"))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.verifyEmail(TENANT_SLUG, CLIENT_ID, contractId,
+        new VerifyContractEmailRequest("123456"));
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().getData().status()).isEqualTo("PENDING_PAYMENT");
+  }
 }
-
-

@@ -84,6 +84,8 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .companySlug(c.getCompanySlug())
         .companyTaxId(c.getCompanyTaxId())
         .companyAddress(c.getCompanyAddress())
+        .verificationCode(c.getVerificationCode())
+        .verificationCodeExpiresAt(c.getVerificationCodeExpiresAt())
         .emailVerifiedAt(c.getEmailVerifiedAt())
         .paymentVerifiedAt(c.getPaymentVerifiedAt())
         .expiresAt(c.getExpiresAt());

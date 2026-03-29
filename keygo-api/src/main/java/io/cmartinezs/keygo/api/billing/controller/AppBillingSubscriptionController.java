@@ -75,11 +75,13 @@ public class AppBillingSubscriptionController {
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> getSubscription(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug (suscriptor)") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
 
+    // {tenantSlug} = tenant del SUSCRIPTOR — identifica quién es el suscriptor
+    // {clientId}   = clientId del PROVEEDOR — se resuelve globalmente (no pertenece al suscriptor)
     UUID tenantId = resolveTenantId(tenantSlug);
-    UUID appId = resolveClientAppId(tenantSlug, clientId);
+    UUID appId    = resolveAppIdGlobally(clientId);
 
     AppSubscription sub = getSubscriptionUseCase.execute(appId, SubscriberType.TENANT, tenantId);
     return ResponseEntity.ok(BaseResponse.<AppSubscriptionData>builder()
@@ -100,11 +102,11 @@ public class AppBillingSubscriptionController {
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> cancelSubscription(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug (suscriptor)") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
 
     UUID tenantId = resolveTenantId(tenantSlug);
-    UUID appId = resolveClientAppId(tenantSlug, clientId);
+    UUID appId    = resolveAppIdGlobally(clientId);
 
     AppSubscription sub = cancelSubscriptionUseCase.execute(appId, SubscriberType.TENANT, tenantId);
     return ResponseEntity.ok(BaseResponse.<AppSubscriptionData>builder()
@@ -125,11 +127,11 @@ public class AppBillingSubscriptionController {
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<List<AppInvoiceData>>> listInvoices(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId) {
+      @Parameter(description = "Tenant slug (suscriptor)") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
 
     UUID tenantId = resolveTenantId(tenantSlug);
-    UUID appId = resolveClientAppId(tenantSlug, clientId);
+    UUID appId    = resolveAppIdGlobally(clientId);
 
     AppSubscription sub = getSubscriptionUseCase.execute(appId, SubscriberType.TENANT, tenantId);
     List<AppInvoiceData> invoices = listInvoicesUseCase.execute(sub.getId())
@@ -149,13 +151,14 @@ public class AppBillingSubscriptionController {
         .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
   }
 
-  private UUID resolveClientAppId(String tenantSlug, String clientId) {
-    var tenant = tenantRepo.findBySlug(TenantSlug.of(tenantSlug))
-        .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
-    return clientAppRepo.findByClientIdAndTenantId(ClientId.of(clientId), tenant.getId())
+  /**
+   * Resuelve el UUID interno de la ClientApp por su clientId (OAuth2 client_id) globalmente.
+   * El clientId es globalmente único y pertenece al PROVEEDOR, no al suscriptor.
+   * Usar este método (no findByClientIdAndTenantId) para los endpoints de gestión de suscripción.
+   */
+  private UUID resolveAppIdGlobally(String clientId) {
+    return clientAppRepo.findByClientId(ClientId.of(clientId))
         .map(app -> app.getId().value())
         .orElseThrow(() -> new ClientAppNotFoundException(clientId));
   }
 }
-
-

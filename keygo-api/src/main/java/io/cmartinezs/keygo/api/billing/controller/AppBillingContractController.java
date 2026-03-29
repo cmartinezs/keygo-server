@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.api.billing.controller;
 
 import io.cmartinezs.keygo.api.billing.request.CreateAppContractRequest;
+import io.cmartinezs.keygo.api.billing.request.VerifyContractEmailRequest;
 import io.cmartinezs.keygo.api.billing.response.AppContractData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
@@ -10,6 +11,7 @@ import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUs
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
@@ -46,6 +48,7 @@ public class AppBillingContractController {
   private final GetAppContractUseCase getContractUseCase;
   private final MockApprovePaymentUseCase mockApprovePaymentUseCase;
   private final ActivateAppContractUseCase activateContractUseCase;
+  private final VerifyContractEmailUseCase verifyContractEmailUseCase;
 
   public AppBillingContractController(
       TenantRepositoryPort tenantRepo,
@@ -53,13 +56,15 @@ public class AppBillingContractController {
       CreateAppContractUseCase createContractUseCase,
       GetAppContractUseCase getContractUseCase,
       MockApprovePaymentUseCase mockApprovePaymentUseCase,
-      ActivateAppContractUseCase activateContractUseCase) {
+      ActivateAppContractUseCase activateContractUseCase,
+      VerifyContractEmailUseCase verifyContractEmailUseCase) {
     this.tenantRepo = tenantRepo;
     this.clientAppRepo = clientAppRepo;
     this.createContractUseCase = createContractUseCase;
     this.getContractUseCase = getContractUseCase;
     this.mockApprovePaymentUseCase = mockApprovePaymentUseCase;
     this.activateContractUseCase = activateContractUseCase;
+    this.verifyContractEmailUseCase = verifyContractEmailUseCase;
   }
 
   /** POST /billing/contracts — initiate a new contract */
@@ -174,6 +179,31 @@ public class AppBillingContractController {
         .build());
   }
 
+  /** POST /billing/contracts/{contractId}/verify-email — verify email code */
+  @PostMapping("/{contractId}/verify-email")
+  @Operation(
+      summary = "Verify contract email",
+      description = "Validates the 6-digit code sent to the contractor's email. "
+                  + "Advances contract status from PENDING_EMAIL_VERIFICATION → PENDING_PAYMENT.")
+  @ApiResponse(responseCode = "200", description = "Email verified — contract now in PENDING_PAYMENT",
+      content = @Content(schema = @Schema(implementation = AppContractData.Response.class)))
+  @ApiResponse(responseCode = "400", description = "Invalid or expired verification code",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Contract not found",
+      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+  public ResponseEntity<BaseResponse<AppContractData>> verifyEmail(
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app client_id") @PathVariable String clientId,
+      @Parameter(description = "Contract UUID") @PathVariable UUID contractId,
+      @RequestBody VerifyContractEmailRequest request) {
+
+    var result = verifyContractEmailUseCase.execute(contractId, request.code());
+    return ResponseEntity.ok(BaseResponse.<AppContractData>builder()
+        .data(AppContractData.from(result.contract()))
+        .success(ResponseHelper.message(ResponseCode.APP_CONTRACT_EMAIL_VERIFIED))
+        .build());
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private UUID resolveClientAppId(String tenantSlug, String clientId) {
@@ -184,4 +214,3 @@ public class AppBillingContractController {
         .orElseThrow(() -> new ClientAppNotFoundException(clientId));
   }
 }
-

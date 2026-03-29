@@ -24,8 +24,19 @@ public interface ClientAppRepositoryPort {
   ClientApp save(ClientApp clientApp);
 
   /**
+   * Find a client application by its internal UUID.
+   */
+  Optional<ClientApp> findById(io.cmartinezs.keygo.domain.clientapp.model.ClientAppId id);
+
+  /**
+   * Find a client application by its globally unique OAuth2 client_id (string), across all tenants.
+   * Useful when the caller is a subscriber (not the owner) of the app.
+   */
+  Optional<ClientApp> findByClientId(ClientId clientId);
+
+  /**
    * Find a client application by its clientId and tenant.
-   * <p>Busca una aplicación cliente por su clientId y tenant.
+   * <p>Busca una aplicacin cliente por su clientId y tenant.
    * @param clientId the OAuth2 client_id
    * @param tenantId the tenant identifier
    * @return an Optional containing the client app if found

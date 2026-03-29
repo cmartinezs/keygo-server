@@ -47,6 +47,7 @@
 | ~~T-081~~ | ~~Tests de controller billing (`AppBillingPlanControllerTest`, `AppBillingContractControllerTest`, `AppBillingSubscriptionControllerTest`) + `CreateAppPlanUseCaseTest`~~ | ✅ Completada 2026-03-28 |
 | T-082 | Tests de regresión en `BootstrapAdminKeyFilterTest` para sufijos `/billing/catalog` y `/billing/contracts` como rutas públicas | 🔲 Pendiente |
 | T-083 | Endpoint `GET /billing/invoices/{invoiceId}` — detalle de factura individual (requiere nueva ruta en `AppBillingSubscriptionController`) | 🔲 Pendiente |
+| T-091 | Test de integración Testcontainers: validar coherencia JPA ↔ Flyway con `ddl-auto: validate` contra DB limpia con todas las migraciones aplicadas | 🔲 Pendiente |
 
 ---
 
@@ -79,6 +80,7 @@
 | T-084 | Integración con gateway de pago real (MercadoPago / Stripe) que reemplaza el endpoint `mock-approve-payment`; adapter configurable por `keygo.billing.payment-provider` | 🔲 Pendiente |
 | T-085 | Renovación automática de suscripciones via `@Scheduled` job: detectar suscripciones en `currentPeriodEnd < now()` + `autoRenew=true`, generar nueva factura, actualizar período | 🔲 Pendiente |
 | T-086 | Soporte Bearer TENANT_USER en `GET /billing/subscription`: resolver `subscriberId` desde JWT claim `sub` en lugar de asumir siempre TENANT | 🔲 Pendiente |
+| T-092 | Script CI que compare columnas `NOT NULL` de todas las entidades JPA con las definiciones de las migraciones correspondientes; detecta desincronías antes del runtime | 🔲 Pendiente |
 
 ---
 
@@ -107,6 +109,7 @@
 | T-088 | Factura electrónica CFDI México: integración con PAC (Proveedor Autorizado de Certificación); emit XML CFDI 4.0 post-pago | 🔲 Pendiente |
 | T-089 | Billing multi-currency: almacenar tipo de cambio en tabla `exchange_rates` (V22), convertir `base_price` al momento de crear contrato; campo `exchange_rate_snapshot` en `invoices` | 🔲 Pendiente |
 | T-090 | Motor de dunning: tabla `dunning_events`, job que detecta facturas vencidas, reintenta cobro en D+1/D+3/D+7 con notificación email por evento; requiere gateway real (T-084) | 🔲 Pendiente |
+| T-093 | Evaluar migración a Liquibase o jOOQ code generation para mantener schema y código en sincronía automática; elimina estructuralmente errores tipo `missing column` | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
@@ -123,4 +126,4 @@
 
 ---
 
-**Última actualización:** 2026-03-28 (T-080 y T-081 completadas; T-082/T-083 corto plazo; T-084/T-085/T-086 mediano plazo; T-087/T-088/T-089/T-090 largo plazo — generadas al implementar billing model + corto plazo seed + tests) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-29 (T-091/T-092/T-093 agregadas al corregir `SchemaManagementException` por tablas de billing ausentes: `invoices`+`usage_counters` en V24, `subscriber_type` en V23 — 2 incidentes del mismo tipo en el mismo día refuerzan urgencia de T-091) | **Responsable:** AI Agent

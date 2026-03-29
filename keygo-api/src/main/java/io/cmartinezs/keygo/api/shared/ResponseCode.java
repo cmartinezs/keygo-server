@@ -110,6 +110,7 @@ public enum ResponseCode {
   // Billing — Contracting
   APP_CONTRACT_CREATED("APP_CONTRACT_CREATED", "App contract created successfully"),
   APP_CONTRACT_RETRIEVED("APP_CONTRACT_RETRIEVED", "App contract retrieved successfully"),
+  APP_CONTRACT_EMAIL_VERIFIED("APP_CONTRACT_EMAIL_VERIFIED", "Contract email verified successfully"),
   APP_CONTRACT_PAYMENT_APPROVED("APP_CONTRACT_PAYMENT_APPROVED", "Payment approved for contract"),
   APP_CONTRACT_ACTIVATED("APP_CONTRACT_ACTIVATED", "App contract activated successfully"),
   APP_INVALID_PLAN_SUBSCRIBER_TYPE("APP_INVALID_PLAN_SUBSCRIBER_TYPE", "Contract and plan have incompatible subscriber types"),

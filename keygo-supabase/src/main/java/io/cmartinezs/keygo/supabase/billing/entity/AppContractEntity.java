@@ -91,6 +91,12 @@ public class AppContractEntity {
   @Column(name = "payment_verified_at")
   private OffsetDateTime paymentVerifiedAt;
 
+  @Column(name = "verification_code", length = 10)
+  private String verificationCode;
+
+  @Column(name = "verification_code_expires_at")
+  private OffsetDateTime verificationCodeExpiresAt;
+
   @Column(name = "expires_at", nullable = false)
   private OffsetDateTime expiresAt;
 
