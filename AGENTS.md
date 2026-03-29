@@ -284,7 +284,9 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V16__seed_billing_platform_app.sql` — Seed: app `keygo-platform` + rol `billing_admin`
 - `V17__seed_billing_plans.sql` — Seed: planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
 
-Next migration must be `V18__...`. **Never reuse or edit existing migration files.**
+- `V18__seed_keygo_billing_plans_v2.sql` — Escalera corregida: depreca versiones v1.0 de V17, desactiva STARTER, actualiza FREE/BUSINESS/ENTERPRISE (descripciones + USD), inserta PERSONAL/TEAM/FLEX con versiones y entitlements completos (incluye `MAX_TENANTS`, `MAX_ADMINS`, tarifas escalonadas Flex en centavos)
+
+Next migration must be `V19__...`. **Never reuse or edit existing migration files.**
 
 **Seed credentials (dev/local ONLY — never use in production):**
 

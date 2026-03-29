@@ -72,7 +72,7 @@ VALUES
   (
     '11111111-1111-1111-1111-222222222222',
     '11111111-1111-1111-1111-111111111111',
-    'key-go-ui',
+    'keygo-ui',
     'KeyGo UI',
     'Single UI app for platform and tenant administration',
     'PUBLIC', NULL, 'ACTIVE'

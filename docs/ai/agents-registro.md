@@ -22,6 +22,37 @@
 
 ## Registro de cambios
 
+### [2026-03-29] Migración V18 — Escalera de planes de billing corregida para keygo-platform
+
+**Motivo:** Reemplazar el catálogo de V17 (FREE/STARTER/BUSINESS/ENTERPRISE en MXN) con la escalera comercialmente coherente definida en `docs/research/billing-plans-for-keygo.md`.
+
+**Cambios realizados:**
+- **Creado:** `V18__seed_keygo_billing_plans_v2.sql`
+  - Depreca versiones v1.0 de V17 (cierra `effective_to = 2026-03-28`)
+  - Desactiva plan STARTER (reemplazado por PERSONAL)
+  - Actualiza descripciones de FREE, BUSINESS, ENTERPRISE
+  - Inserta planes nuevos: PERSONAL, TEAM, FLEX (con `subscriber_type = TENANT`)
+  - Inserta versiones v2.0 (FREE, BUSINESS, ENTERPRISE) y v1.0 (PERSONAL, TEAM, FLEX) en **USD**
+  - ENTERPRISE cambia a `billing_period = YEARLY`, `base_price = 0` (precio por contrato)
+  - Inserta entitlements completos incluyendo `MAX_TENANTS` y `MAX_ADMINS` (métricas ausentes en V17)
+  - Plan FLEX: 26 entitlements con tarifas escalonadas en centavos USD (`FLEX_*_RATE_T{n}` y `FLEX_*_T{n}_MAX`)
+
+**Escalera final:**
+| Plan | Precio | Tenants | Apps | Identidades | Admins |
+|------|--------|---------|------|-------------|--------|
+| Free | US$0/mes | 1 | 1 | 3 | 1 |
+| Personal | US$5/mes | 1 | 3 | 5 | 1 |
+| Team | US$49/mes | 1 | 10 | 25 | 3 |
+| Business | US$149/mes | 1 | 30 | 100 | 10 |
+| Flex | pago por uso | ilim. | ilim. | ilim. | 1/tenant + $4 c/u |
+| Enterprise | custom/año | custom | custom | custom | custom |
+
+**Impacto:**
+- Próxima migración: `V19__...`
+- `AGENTS.md` actualizado (sección "Flyway migrations already applied")
+
+---
+
 ### [2026-03-29] Reestructuración total de migraciones Flyway V1–V26 → V1–V17
 
 **Motivo:** Las 26 migraciones originales eran acumulativas y difíciles de mantener: contenían parches sobre parches, renombrados de tablas y correcciones de columnas faltantes (V22–V26). La historia no reflejaba el estado final del modelo y había inconsistencias con las entidades JPA.
