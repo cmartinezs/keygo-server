@@ -22,6 +22,31 @@
 
 ## Registro de cambios
 
+### [2026-03-29] Reestructuración total de migraciones Flyway V1–V26 → V1–V17
+
+**Motivo:** Las 26 migraciones originales eran acumulativas y difíciles de mantener: contenían parches sobre parches, renombrados de tablas y correcciones de columnas faltantes (V22–V26). La historia no reflejaba el estado final del modelo y había inconsistencias con las entidades JPA.
+
+**Cambios realizados:**
+- **Eliminados:** Archivos V11–V26 con contenido viejo (parches, renombrados, seeds fragmentados).
+- **Actualizado V10:** Se restauró `subscriber_type` en `app_plans` para alinear con `AppPlanEntity.subscriberType` (`ddl-auto: validate` requiere coherencia).
+- **Creados (nuevos):**
+  - `V11__billing_contracts.sql` — `app_contracts` con `verification_code`, `company_*` columns, `subscriber_type`
+  - `V12__billing_subscriptions.sql` — `app_subscriptions` + `payment_transactions`
+  - `V13__billing_invoices_and_usage.sql` — `invoices` + `usage_counters`
+  - `V14__billing_support_tables.sql` — `payment_methods` + `tenant_billing_profiles`
+  - `V15__seed_foundation.sql` — seed consolidado: tenants, apps, usuarios, roles, memberships (contraseñas correctas desde el inicio)
+  - `V16__seed_billing_platform_app.sql` — seed: app `keygo-platform` + rol `billing_admin`
+  - `V17__seed_billing_plans.sql` — seed: FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
+
+**Impacto:**
+- Próxima migración: `V18__...`
+- Tests: `./mvnw test` → Exit 0 ✅
+- `docs/data/MIGRATIONS.md` actualizado con nuevo resumen V1–V17
+- `AGENTS.md` actualizado (sección "Flyway migrations already applied")
+- `docs/ai/lecciones.md` actualizado con lección sobre reestructuración
+
+---
+
 ### [2026-03-28] Dashboard admin `GET /api/v1/admin/platform/dashboard` + refactorización GROUP BY
 
 **Motivo:** Implementar un endpoint de dashboard administrativo que devuelva en una sola llamada todas las métricas operacionales de la plataforma. Además, refactorizar los métodos de conteo por status para usar una sola query `GROUP BY` en lugar de N queries independientes.

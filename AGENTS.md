@@ -266,32 +266,25 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `EmailVerificationJpaRepository` | `user.repository` |
 
 **Flyway migrations already applied:**
-- `V1__initial_schema.sql` — users, roles, user_roles, permissions, role_permissions tables
-- `V2__seed_data.sql` — seed data
-- `V3__add_oauth_support.sql` — oauth_providers, oauth_tokens tables
-- `V4__add_tenants.sql` — tenants table (slug unique, status check constraint)
-- `V5__add_client_apps.sql` — client_apps, client_redirect_uris, client_allowed_grants, client_allowed_scopes tables
-- `V6__add_tenant_users.sql` — tenant_users table (unique per tenant: email, username; FK → tenants ON DELETE CASCADE)
-- `V7__add_memberships.sql` — app_role, membership, membership_role tables (en singular; renombradas en V10)
-- `V8__add_oauth_authorization_codes.sql` — authorization_codes table
-- `V9__add_signing_keys.sql` — signing_keys table (kid unique, status check, algorithm, public/private PEM)
-- `V10__rename_membership_tables_to_plural.sql` — renames app_role→app_roles, membership→memberships, membership_role→membership_roles
-- `V11__add_refresh_tokens_and_sessions.sql` — sessions + refresh_tokens tables (SHA-256 hash, status checks, session FK)
-- `V12__add_email_verifications.sql` — email_verifications table (tenant_user_id FK, code VARCHAR(10), expires_at, used_at; latest row per user = active verification)
-- `V13__extend_tenant_user_profile.sql` — extends tenant_users with 6 OIDC profile fields: phone_number, locale, zoneinfo, profile_picture_url, birthdate, website
-- `V14__seed_initial_ui_tenants.sql` — seed base para UI: tenants `keygo`+`demo`, apps, usuarios, roles y memberships
-- `V15__reset_seed_user_passwords.sql` — corrige hashes BCrypt desconocidos de V2/V14; establece contraseñas conocidas para dev
-- `V16__add_billing_catalog.sql` — billing catalog: app_plans, app_plan_versions, app_plan_entitlements tables
-- `V17__add_billing_contracts.sql` — app_contracts table (contratación de suscripciones con estados y suscriptor polimórfico)
-- `V18__add_billing_subscriptions.sql` — app_subscriptions + payment_transactions tables
-- `V19` — (no encontrada; verificar si existe o fue omitida)
-- `V20__seed_billing_keygo_platform_app.sql` — seed: plataforma keygo como app de billing
-- `V21__seed_billing_keygo_plans.sql` — seed: planes iniciales para la plataforma keygo
-- `V22__add_contract_verification_code.sql` — adds `verification_code` + `verification_code_expires_at` columns to `app_contracts` for self-contained email verification during contract creation
-- `V23__add_subscriber_type_to_app_subscriptions.sql` — adds missing `subscriber_type VARCHAR(20) NOT NULL` column to `app_subscriptions` (discriminador `TENANT`/`TENANT_USER`); back-fills from polymorphic FKs
-- `V24__add_billing_invoices_and_usage_counters.sql` — adds missing `subscriber_type VARCHAR(20) NOT NULL` column to `usage_counters` (V19 creó la tabla sin ese discriminador); back-fills from polymorphic FKs. `invoices` ya tenía todas sus columnas en V19 — sin cambios.
+- `V1__initial_schema.sql` — **Drop ALL** (pizarrón limpio: elimina todas las tablas existentes, idempotente)
+- `V2__seed_data.sql` — Extensión `uuid-ossp` + función trigger `update_updated_at_column()`
+- `V3__add_oauth_support.sql` — Tabla `tenants` (slug, status check, trigger updated_at)
+- `V4__add_tenants.sql` — Tablas `client_apps`, `client_redirect_uris`, `client_allowed_grants`, `client_allowed_scopes`
+- `V5__add_client_apps.sql` — Tabla `tenant_users` (con 6 campos OIDC 5.3 de perfil desde el inicio)
+- `V6__add_tenant_users.sql` — Tablas `app_roles`, `memberships`, `membership_roles` (PK compuesta)
+- `V7__add_memberships.sql` — Tablas `authorization_codes` (PKCE), `signing_keys` (RSA PEM)
+- `V8__add_oauth_authorization_codes.sql` — Tablas `sessions`, `refresh_tokens` (hash SHA-256, rotación)
+- `V9__add_signing_keys.sql` — Tabla `email_verifications` (código 6 dígitos, TTL 30 min)
+- `V10__rename_membership_tables_to_plural.sql` — Tablas `app_plans` (con `subscriber_type`), `app_plan_versions`, `app_plan_entitlements`
+- `V11__billing_contracts.sql` — Tabla `app_contracts` (con `verification_code` + `verification_code_expires_at`, `company_*` columns)
+- `V12__billing_subscriptions.sql` — Tablas `app_subscriptions`, `payment_transactions`
+- `V13__billing_invoices_and_usage.sql` — Tablas `invoices`, `usage_counters` (con `subscriber_type`)
+- `V14__billing_support_tables.sql` — Tablas `payment_methods`, `tenant_billing_profiles`
+- `V15__seed_foundation.sql` — Seed: tenants `keygo`+`demo`, apps, usuarios (contraseñas correctas), roles, memberships
+- `V16__seed_billing_platform_app.sql` — Seed: app `keygo-platform` + rol `billing_admin`
+- `V17__seed_billing_plans.sql` — Seed: planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
 
-Next migration must be `V25__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V18__...`. **Never reuse or edit existing migration files.**
 
 **Seed credentials (dev/local ONLY — never use in production):**
 
@@ -401,6 +394,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-29 | **Reestructuración total de migraciones Flyway:** V1–V26 (acumulativo con parches) reemplazado por **V1–V17** organizado por dominio. V1=Drop ALL, V2=Foundation, V3=Tenants, V4=ClientApps, V5=TenantUsers (OIDC 5.3 incluido), V6=Memberships, V7=AuthCodes+SigningKeys, V8=Sessions+RefreshTokens, V9=EmailVerifications, V10=BillingCatalog (con `subscriber_type`), V11=BillingContracts (con `verification_code`), V12=BillingSubscriptions, V13=Invoices+UsageCounters, V14=BillingSupport, V15=SeedFoundation, V16=SeedBillingPlatformApp, V17=SeedBillingPlans. Próxima migración: `V18__...` |
 | 2026-03-28 | Billing model B-1→B-8: dominio de billing (11 enums, 6 modelos), puertos/use cases catálogo+contratación+suscripción+facturación+uso, entidades JPA (7), repositorios JPA (7), adaptadores (7), mapper, 3 controllers REST (`AppBillingPlanController`, `AppBillingContractController`, `AppBillingSubscriptionController`), 18 ResponseCodes de billing, `KeyGoBillingProperties`, 2 sufijos públicos (`billing-catalog`, `billing-contracts`), 25 tests unitarios nuevos; 89 tests totales pasan |
 | 2026-03-28 | Dashboard admin: nuevo `GET /api/v1/admin/platform/dashboard` (`PlatformDashboardController`, `GetPlatformDashboardUseCase`, `PlatformDashboardAdapter`, `PlatformDashboardPort`, `PlatformDashboardResult`, `PlatformDashboardData`); refactorización GROUP BY — 9 métodos `countX(status)` → `Map<K,Long> countX()` eliminando ~16 queries individuales; `PLATFORM_DASHBOARD_RETRIEVED` `ResponseCode` |
 | 2026-03-28 | Dashboard endpoints: `ServiceInfoData` extendido con `environment`+`status`; nuevo `GET /api/v1/platform/stats` (`PlatformStatsController`, `GetPlatformStatsUseCase`, `PlatformStatsAdapter`, `PlatformStatsPort`, `PlatformStatsResult`, `PlatformStatsData`); nuevo `PUT /api/v1/tenants/{slug}/activate` (`ActivateTenantUseCase`); 3 nuevos `ResponseCode`: `PLATFORM_STATS_RETRIEVED`, `TENANT_ACTIVATED` |

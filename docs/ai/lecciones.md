@@ -10,6 +10,44 @@
 
 ---
 
+### [2026-03-29] Reestructuración de migraciones Flyway: consolidar en archivos por dominio
+
+**Contexto:** El esquema original creció de forma acumulativa: V1–V26 donde V1-V9 eran el core, V10-V22 eran extensiones y parches, y V23-V26 eran correcciones de inconsistencias (columnas faltantes, renombrados). La historia era difícil de seguir y había redundancias (ej. V11 volvía a crear tablas que V8 ya creaba, V13/V22/V23/V24 aplicaban parches a tablas creadas en migraciones anteriores).
+
+**Problema:**
+1. Las migraciones acumulativas mezclaban el estado inicial con parches, haciendo imposible entender el estado final de una tabla con solo leer una migración.
+2. Los archivos con nombres legados (ej. `V10__rename_membership_tables_to_plural.sql`) describían una operación que ya no era relevante en el contexto de una BD limpia.
+3. Las entidades JPA debían compararse con múltiples archivos para validar la coherencia del schema.
+4. La columna `subscriber_type` fue añadida en la entidad JPA (`AppPlanEntity`) pero el nuevo V10 no la incluía, causando inconsistencia latente que rompería `ddl-auto: validate`.
+
+**Solución / Buena práctica:**
+1. **Reiniciar la numeración desde V1** siempre que se haga una reestructuración total — usar V1=Drop ALL como pizarrón limpio.
+2. **Una migración por dominio** (no por operación de parche): V3=Tenants, V4=ClientApps, V5=TenantUsers, V6=Memberships, V7=Auth, V8=Sessions, V9=EmailVerifications, V10=BillingCatalog, etc.
+3. **Cada migración = estado final del modelo** de ese dominio. Los parches van directamente en el CREATE TABLE, nunca como ALTER TABLE separado (que solo tendría sentido si hubiera datos en producción que proteger).
+4. **Validar coherencia contra las entidades JPA antes de hacer el DROP** en V1: las entidades son la fuente de verdad para el schema al usar `ddl-auto: validate`. Si una entidad tiene `@Column(name = "subscriber_type")`, la tabla debe tenerlo.
+5. **No incluir en V1 (Drop ALL) el Drop de `flyway_schema_history`** — eso corresponde al script `./docs/scripts/db/clean.sh` que el usuario ejecuta manualmente.
+
+**Archivos clave:**
+- `keygo-supabase/src/main/resources/db/migration/V1__initial_schema.sql` — Drop ALL
+- `keygo-supabase/src/main/resources/db/migration/V10__rename_membership_tables_to_plural.sql` — Billing Catalog (con `subscriber_type` en `app_plans`)
+- `keygo-supabase/src/main/java/io/cmartinezs/keygo/supabase/billing/entity/AppPlanEntity.java` — entidad JPA con `subscriberType`
+
+---
+
+### [2026-03-29] Modelo de billing unificado: eliminar polimorfismo TENANT/TENANT_USER como tipo de suscriptor
+
+**Contexto:** El modelo original de billing implementó dos tipos de suscriptor (`TENANT` = B2B, `TENANT_USER` = B2C) con columnas polimórficas (`subscriber_tenant_id`, `subscriber_tenant_user_id`) en `app_contracts`, `app_subscriptions` y `usage_counters`, y un campo `subscriber_type` en `app_plans`. Esto duplicó la lógica de activación (`ActivateAppContractUseCase` tenía dos ramas), complicó los constraints y generó migraciones correctivas (V23, V24) solo para añadir el discriminador faltante.
+**Problema:** El modelo era innecesariamente complejo — en la práctica siempre hay una persona real que administra el servicio, y la base de toda entidad del sistema es el Tenant. La diferencia entre persona física y empresa es solo un detalle del perfil de facturación, no de la estructura de suscripción. Además faltaba por completo la representación de datos de facturación (RFC, domicilio fiscal) y métodos de pago.
+**Solución / Buena práctica:**
+1. **Un único tipo de suscriptor**: toda suscripción apunta a `subscriber_tenant_id` (NOT NULL). Eliminar `subscriber_tenant_user_id` y `subscriber_type` de `app_subscriptions`, `usage_counters` y `app_contracts`. Eliminar `subscriber_type` de `app_plans`.
+2. **`billing_type` (PERSONAL/COMPANY)** reemplaza a `subscriber_type` en `app_contracts` — solo afecta qué datos de facturación se recolectan, no la estructura de la suscripción.
+3. **Nueva tabla `tenant_billing_profiles`**: datos fiscales por Tenant (RFC, domicilio fiscal, tipo persona). Soporta múltiples perfiles con uno predeterminado.
+4. **Nueva tabla `payment_methods`**: tokens PSP por Tenant (tarjeta, PayPal). Nunca datos crudos. Múltiples métodos con uno predeterminado.
+5. Al diseñar entidades polimórficas con FKs opcionales, evaluar primero si el polimorfismo es necesario o si una sola FK con datos de presentación separados es suficiente.
+**Archivos clave:** `V25__add_billing_support_tables.sql`, `V26__unify_billing_subscriber_model.sql`
+
+---
+
 ### [2026-03-29] Tablas JPA de billing con columnas faltantes (invoices, usage_counters)
 
 **Contexto:** V19 creó las tablas `invoices` y `usage_counters`. Al comparar contra `InvoiceEntity` y `UsageCounterEntity`, `invoices` tenía todas sus columnas pero `usage_counters` omitió `subscriber_type`, definida como `NOT NULL` en la entidad.
