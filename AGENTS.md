@@ -169,6 +169,16 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (GET — **público con Bearer** — perfil propio del usuario autenticado)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (PATCH — **público con Bearer** — editar perfil propio, PATCH semántica)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog` (GET — **público** — catálogo de planes públicos, filtro opcional `?subscriberType=TENANT|TENANT_USER`)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog/{planCode}` (GET — **público** — detalle de un plan público con entitlements)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/plans` (POST — **Bearer ADMIN_TENANT** — crear plan con versión inicial y entitlements)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` (POST — **público** — iniciar contrato de suscripción)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}` (GET — **público** — estado del contrato)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/mock-approve-payment` (POST — **público/dev** — simular pago, requiere `keygo.billing.mock-payment-enabled=true`)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/activate` (POST — **público** — activar contrato → crea tenant/user + suscripción + factura)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription` (GET — **Bearer ADMIN_TENANT** — suscripción activa)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/subscription/cancel` (POST — **Bearer ADMIN_TENANT** — marcar cancelación al fin del período)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/invoices` (GET — **Bearer ADMIN_TENANT** — lista de facturas)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — exchange code → JWT tokens)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — rotate refresh_token grant)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/oauth2/token` (POST — client_credentials grant, M2M, requiere `client_id` + `client_secret`)
@@ -381,6 +391,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-28 | Billing model B-1→B-8: dominio de billing (11 enums, 6 modelos), puertos/use cases catálogo+contratación+suscripción+facturación+uso, entidades JPA (7), repositorios JPA (7), adaptadores (7), mapper, 3 controllers REST (`AppBillingPlanController`, `AppBillingContractController`, `AppBillingSubscriptionController`), 18 ResponseCodes de billing, `KeyGoBillingProperties`, 2 sufijos públicos (`billing-catalog`, `billing-contracts`), 25 tests unitarios nuevos; 89 tests totales pasan |
 | 2026-03-28 | Dashboard admin: nuevo `GET /api/v1/admin/platform/dashboard` (`PlatformDashboardController`, `GetPlatformDashboardUseCase`, `PlatformDashboardAdapter`, `PlatformDashboardPort`, `PlatformDashboardResult`, `PlatformDashboardData`); refactorización GROUP BY — 9 métodos `countX(status)` → `Map<K,Long> countX()` eliminando ~16 queries individuales; `PLATFORM_DASHBOARD_RETRIEVED` `ResponseCode` |
 | 2026-03-28 | Dashboard endpoints: `ServiceInfoData` extendido con `environment`+`status`; nuevo `GET /api/v1/platform/stats` (`PlatformStatsController`, `GetPlatformStatsUseCase`, `PlatformStatsAdapter`, `PlatformStatsPort`, `PlatformStatsResult`, `PlatformStatsData`); nuevo `PUT /api/v1/tenants/{slug}/activate` (`ActivateTenantUseCase`); 3 nuevos `ResponseCode`: `PLATFORM_STATS_RETRIEVED`, `TENANT_ACTIVATED` |
 | 2026-03-27 | Endpoint `GET /api/v1/tenants` — listado paginado de tenants con filtros `status`/`nameLike`: `PagedResult<T>`, `TenantFilter`, `ListTenantsUseCase`, `PagedData<T>`, `TenantJpaRepository+JpaSpecificationExecutor`, `TENANT_LIST_RETRIEVED` |

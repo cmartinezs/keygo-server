@@ -10,6 +10,24 @@
 
 ---
 
+### [2026-03-28] `BaseResponse` está en sub-paquete `response`, no directamente en `shared`
+
+**Contexto:** Implementación del módulo de billing — controllers en `keygo-api`.
+**Problema:** Los imports usaban `io.cmartinezs.keygo.api.shared.BaseResponse` pero la clase real está en `io.cmartinezs.keygo.api.shared.response.BaseResponse`. Generó errores de compilación en los tres controllers de billing.
+**Solución / Buena práctica:** Siempre verificar la ubicación real de clases del paquete `shared` antes de escribir imports. Ejecutar `find ... -name "BaseResponse.java"` o buscar un controller existente de referencia.
+**Archivos clave:** `keygo-api/src/.../api/shared/response/BaseResponse.java`
+
+---
+
+### [2026-03-28] `List.of()` sin tipo genérico explícito falla con tipos incompatibles en Java 21
+
+**Contexto:** Implementación de use cases de catálogo de billing.
+**Problema:** Código como `var entitlements = versions.isEmpty() ? List.of() : entitlementRepo.findByAppPlanVersionId(...)` produce error de compilación porque Java infiere `List<Object>` para `List.of()` cuando hay una rama alternativa de tipo diferente. Aplica cuando el tipo esperado no puede inferirse del contexto.
+**Solución / Buena práctica:** Usar siempre el tipo explícito: `List.<AppPlanEntitlement>of()` o declarar la variable con el tipo completo `List<AppPlanEntitlement> entitlements = ...`.
+**Archivos clave:** `keygo-app/src/.../billing/catalog/usecase/GetAppPlanCatalogUseCase.java`
+
+---
+
 ### [2026-03-28] Patrón inner class `Response` en DTOs para visibilidad real del schema en Swagger
 
 **Contexto:** Los controllers devuelven `ResponseEntity<BaseResponse<T>>` y todos usaban `@Schema(implementation = BaseResponse.class)` en `@ApiResponse`, lo que hacía que Swagger UI solo mostrara la estructura de `BaseResponse` con `data: {}` — el frontend debía inferir la estructura del campo `data` sin ayuda de la documentación.

@@ -141,7 +141,9 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasSuffix(path, bootstrapProperties.getAccountProfilePathSuffix())
         || hasSuffix(path, bootstrapProperties.getAuthorizePathSuffix())
         || hasSuffix(path, bootstrapProperties.getLoginPathSuffix())
-        || hasSuffix(path, bootstrapProperties.getTokenPathSuffix());
+        || hasSuffix(path, bootstrapProperties.getTokenPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getBillingCatalogPathSuffix())
+        || hasSegment(path, bootstrapProperties.getBillingContractsPathSuffix());
   }
   private static boolean hasPrefix(String path, String prefix) {
     return prefix != null && path.startsWith(prefix);

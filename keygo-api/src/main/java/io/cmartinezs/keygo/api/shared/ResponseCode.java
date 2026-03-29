@@ -102,6 +102,30 @@ public enum ResponseCode {
   INSUFFICIENT_PERMISSIONS("INSUFFICIENT_PERMISSIONS", "Insufficient permissions for this operation"),
   AUTHENTICATION_REQUIRED("AUTHENTICATION_REQUIRED", "Authentication is required"),
 
+  // Billing — Catalog
+  APP_PLAN_CATALOG_RETRIEVED("APP_PLAN_CATALOG_RETRIEVED", "App plan catalog retrieved successfully"),
+  APP_PLAN_RETRIEVED("APP_PLAN_RETRIEVED", "App plan retrieved successfully"),
+  APP_PLAN_CREATED("APP_PLAN_CREATED", "App plan created successfully"),
+
+  // Billing — Contracting
+  APP_CONTRACT_CREATED("APP_CONTRACT_CREATED", "App contract created successfully"),
+  APP_CONTRACT_RETRIEVED("APP_CONTRACT_RETRIEVED", "App contract retrieved successfully"),
+  APP_CONTRACT_PAYMENT_APPROVED("APP_CONTRACT_PAYMENT_APPROVED", "Payment approved for contract"),
+  APP_CONTRACT_ACTIVATED("APP_CONTRACT_ACTIVATED", "App contract activated successfully"),
+  APP_INVALID_PLAN_SUBSCRIBER_TYPE("APP_INVALID_PLAN_SUBSCRIBER_TYPE", "Contract and plan have incompatible subscriber types"),
+
+  // Billing — Subscription
+  APP_SUBSCRIPTION_RETRIEVED("APP_SUBSCRIPTION_RETRIEVED", "App subscription retrieved successfully"),
+  APP_SUBSCRIPTION_CANCELLED("APP_SUBSCRIPTION_CANCELLED", "App subscription marked for cancellation at period end"),
+
+  // Billing — Invoices
+  APP_INVOICE_LIST_RETRIEVED("APP_INVOICE_LIST_RETRIEVED", "Invoice list retrieved successfully"),
+  APP_INVOICE_RETRIEVED("APP_INVOICE_RETRIEVED", "Invoice retrieved successfully"),
+
+  // Billing — Usage
+  APP_USAGE_RETRIEVED("APP_USAGE_RETRIEVED", "App usage retrieved successfully"),
+  APP_LIMITS_RETRIEVED("APP_LIMITS_RETRIEVED", "App limits retrieved successfully"),
+
   // System Errors
   OPERATION_FAILED("OPERATION_FAILED", "Operation failed to complete"),
   EXTERNAL_SERVICE_ERROR("EXTERNAL_SERVICE_ERROR", "External service error occurred"),

@@ -97,8 +97,16 @@ public class KeyGoBootstrapProperties {
   private String loginPathSuffix;
 
   /* OAuth2 token path suffix that is public (code exchange, PKCE-protected).
-   * Sufijo de ruta token que es público (canje de código, protegido por PKCE). */
+   * Sufijo de ruta token que es pblico (canje de cdigo, protegido por PKCE). */
   private String tokenPathSuffix;
+
+  /* Billing catalog path suffix that is public (plan catalog visible without auth).
+   * Sufijo de ruta del catálogo de billing que es público. */
+  private String billingCatalogPathSuffix;
+
+  /* Billing contracts path suffix that is public (contracting flow).
+   * Sufijo de ruta de contratos de billing que es público. */
+  private String billingContractsPathSuffix;
 
 }
 

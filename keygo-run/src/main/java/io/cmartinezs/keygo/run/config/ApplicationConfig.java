@@ -66,6 +66,25 @@ import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.usecase.CreateAppPlanUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanCatalogUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
+import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
+import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
+import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.subscription.usecase.CancelAppSubscriptionUseCase;
+import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUseCase;
+import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
+import io.cmartinezs.keygo.app.billing.usage.usecase.CheckAppEntitlementUseCase;
+import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
 import io.cmartinezs.keygo.infra.email.SmtpEmailNotificationAdapter;
 import org.springframework.mail.javamail.JavaMailSender;
 import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
@@ -515,6 +534,110 @@ public class ApplicationConfig {
         tokenClaimsFactoryPort,
         clockPort,
         issuerBaseUrl);
+  }
+
+  // ─── Billing: Catálogo ────────────────────────────────────────────────────
+
+  @Bean
+  public GetAppPlanCatalogUseCase getAppPlanCatalogUseCase(
+      AppPlanRepositoryPort planRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo) {
+    return new GetAppPlanCatalogUseCase(planRepo, versionRepo, entitlementRepo);
+  }
+
+  @Bean
+  public GetAppPlanUseCase getAppPlanUseCase(
+      AppPlanRepositoryPort planRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo) {
+    return new GetAppPlanUseCase(planRepo, versionRepo, entitlementRepo);
+  }
+
+  @Bean
+  public CreateAppPlanUseCase createAppPlanUseCase(
+      AppPlanRepositoryPort planRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo) {
+    return new CreateAppPlanUseCase(planRepo, versionRepo, entitlementRepo);
+  }
+
+  // ─── Billing: Contratación ────────────────────────────────────────────────
+
+  @Bean
+  public CreateAppContractUseCase createAppContractUseCase(
+      AppContractRepositoryPort contractRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      UserRepositoryPort userRepo,
+      PasswordHasherPort passwordHasherPort,
+      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      EmailNotificationPort emailNotificationPort,
+      KeyGoBillingProperties billingProperties) {
+    return new CreateAppContractUseCase(
+        contractRepo, versionRepo, userRepo, passwordHasherPort,
+        emailVerificationRepositoryPort, emailNotificationPort,
+        billingProperties.getContractExpiryHours());
+  }
+
+  @Bean
+  public GetAppContractUseCase getAppContractUseCase(AppContractRepositoryPort contractRepo) {
+    return new GetAppContractUseCase(contractRepo);
+  }
+
+  @Bean
+  public MockApprovePaymentUseCase mockApprovePaymentUseCase(
+      AppContractRepositoryPort contractRepo,
+      KeyGoBillingProperties billingProperties) {
+    return new MockApprovePaymentUseCase(contractRepo, billingProperties.isMockPaymentEnabled());
+  }
+
+  @Bean
+  public ActivateAppContractUseCase activateAppContractUseCase(
+      AppContractRepositoryPort contractRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppSubscriptionRepositoryPort subscriptionRepo,
+      InvoiceRepositoryPort invoiceRepo,
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepo,
+      MembershipRepositoryPort membershipRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort) {
+    return new ActivateAppContractUseCase(
+        contractRepo, versionRepo, subscriptionRepo, invoiceRepo,
+        tenantRepositoryPort, userRepo, membershipRepositoryPort, appRoleRepositoryPort);
+  }
+
+  // ─── Billing: Suscripción ─────────────────────────────────────────────────
+
+  @Bean
+  public GetAppSubscriptionUseCase getAppSubscriptionUseCase(
+      AppSubscriptionRepositoryPort subscriptionRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo) {
+    return new GetAppSubscriptionUseCase(subscriptionRepo, versionRepo, entitlementRepo);
+  }
+
+  @Bean
+  public CancelAppSubscriptionUseCase cancelAppSubscriptionUseCase(
+      AppSubscriptionRepositoryPort subscriptionRepo) {
+    return new CancelAppSubscriptionUseCase(subscriptionRepo);
+  }
+
+  // ─── Billing: Facturación ─────────────────────────────────────────────────
+
+  @Bean
+  public ListAppInvoicesUseCase listAppInvoicesUseCase(InvoiceRepositoryPort invoiceRepo) {
+    return new ListAppInvoicesUseCase(invoiceRepo);
+  }
+
+  // ─── Billing: Uso ─────────────────────────────────────────────────────────
+
+  @Bean
+  public CheckAppEntitlementUseCase checkAppEntitlementUseCase(
+      AppSubscriptionRepositoryPort subscriptionRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo,
+      UsageCounterRepositoryPort usageRepo) {
+    return new CheckAppEntitlementUseCase(subscriptionRepo, versionRepo, entitlementRepo, usageRepo);
   }
 
     @Bean

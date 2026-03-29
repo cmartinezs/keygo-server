@@ -36,6 +36,12 @@ keygo:
     authorize-path-suffix: "/oauth2/authorize"
     login-path-suffix: "/account/login"
     token-path-suffix: "/oauth2/token"
+    billing-catalog-path-suffix: "/billing/catalog"
+    billing-contracts-path-suffix: "/billing/contracts"
+  billing:
+    mock-payment-enabled: true
+    contract-expiry-hours: 48
+    default-currency: MXN
   mail:
     from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
     app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
