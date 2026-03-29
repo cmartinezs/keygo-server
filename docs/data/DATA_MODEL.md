@@ -2,7 +2,7 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-03-23** | Estado: ✅ Sincronizado con migraciones V1–V11
+> Fecha de actualización: **2026-03-29** | Estado: ✅ Sincronizado con migraciones V1–V19
 
 ---
 
@@ -703,7 +703,215 @@ Almacena códigos de verificación de email generados durante el auto-registro d
 
 ---
 
-## Seed base operativo — V14 (`V14__seed_initial_ui_tenants.sql`)
+## Tablas de billing — V16–V19
+
+> Las tablas de billing son `app-scoped`: pertenecen a una `ClientApp`, no directamente a un tenant. Cada app puede tener su propio catálogo de planes y flujo de contratación independiente.
+
+### Tabla: `app_plans` — V16
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE CASCADE | NO | App propietaria del plan |
+| `code` | VARCHAR(50) | UNIQUE (app) | NO | Código único del plan dentro de la app (e.g. `STARTER`, `PRO`) |
+| `name` | VARCHAR(100) | — | NO | Nombre legible del plan |
+| `description` | TEXT | — | SÍ | Descripción opcional |
+| `subscriber_type` | VARCHAR(20) | — | NO | Tipo de suscriptor: `TENANT` (B2B) o `TENANT_USER` (B2C) |
+| `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `INACTIVE` |
+| `is_public` | BOOLEAN | — | NO | Si aparece en el catálogo público |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Constraints:** `UNIQUE(client_app_id, code)` | `CHECK(subscriber_type IN ('TENANT','TENANT_USER'))` | `CHECK(status IN ('ACTIVE','INACTIVE'))`
+
+**Reglas de negocio:**
+- Un plan con `is_public=false` no aparece en `GET /billing/catalog` pero puede asignarse manualmente.
+- El `code` es el identificador funcional del plan en APIs y mensajes (no el UUID).
+- Una app puede tener planes `TENANT` y `TENANT_USER` simultáneamente.
+
+---
+
+### Tabla: `app_plan_versions` — V16
+
+Snapshots inmutables de precio y período. Las suscripciones apuntan a una versión específica; cambiar precios requiere crear una nueva versión.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `app_plan_id` | UUID | FK → `app_plans.id` ON DELETE RESTRICT | NO | Plan padre |
+| `version` | VARCHAR(20) | UNIQUE (plan) | NO | Etiqueta de versión (e.g. `1.0`, `2.0-beta`) |
+| `currency` | VARCHAR(3) | — | NO | Moneda ISO-4217 (default `MXN`) |
+| `billing_period` | VARCHAR(20) | — | NO | Período: `MONTHLY`, `YEARLY`, `ONE_TIME` |
+| `base_price` | NUMERIC(12,2) | — | NO | Precio base del período |
+| `setup_fee` | NUMERIC(12,2) | — | NO | Tarifa de activación única |
+| `trial_days` | INT | — | NO | Días de prueba gratuita (0 = sin prueba) |
+| `effective_from` | DATE | — | NO | Fecha de inicio de vigencia |
+| `effective_to` | DATE | — | SÍ | Fecha de fin de vigencia (`NULL` = sin vencimiento) |
+| `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `INACTIVE`, `DEPRECATED` |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+
+**Constraints:** `UNIQUE(app_plan_id, version)` | `CHECK(billing_period IN ('MONTHLY','YEARLY','ONE_TIME'))`
+
+**Reglas de negocio:**
+- Las versiones con `status=DEPRECATED` no pueden ser seleccionadas en nuevos contratos.
+- Las suscripciones activas apuntando a una versión `DEPRECATED` no se afectan.
+- `ON DELETE RESTRICT` en la FK impide eliminar un plan que tiene versiones.
+
+---
+
+### Tabla: `app_plan_entitlements` — V16
+
+Límites y feature flags por versión de plan. Definen qué puede hacer el suscriptor dentro de los límites del plan.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `app_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE CASCADE | NO | Versión a la que pertenece |
+| `metric_code` | VARCHAR(100) | UNIQUE (version) | NO | Código de métrica de negocio (e.g. `MAX_USERS`, `ALLOW_SSO`, `EVALUACIONES_POR_MES`) |
+| `metric_type` | VARCHAR(20) | — | NO | Tipo: `QUOTA` (cuota numérica), `BOOLEAN` (habilitado/deshabilitado), `RATE` (rate limit) |
+| `limit_value` | BIGINT | — | SÍ | Valor límite (`NULL` = ilimitado para QUOTA/RATE) |
+| `period_type` | VARCHAR(20) | — | NO | Período de reset: `NONE`, `DAY`, `MONTH` |
+| `enforcement_mode` | VARCHAR(20) | — | NO | Modo: `HARD` (bloquea) o `SOFT` (alerta pero permite) |
+| `is_enabled` | BOOLEAN | — | NO | Si el entitlement está activo |
+
+**Constraints:** `UNIQUE(app_plan_version_id, metric_code)` | `CHECK(metric_type IN ('QUOTA','BOOLEAN','RATE'))` | `CHECK(enforcement_mode IN ('HARD','SOFT'))`
+
+---
+
+### Tabla: `app_contracts` — V17
+
+Representa el proceso de onboarding/checkout previo a una suscripción. Registra el progreso de verificación de email, pago y activación.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único del contrato |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | NO | App a la que pertenece el contrato |
+| `selected_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE RESTRICT | NO | Versión del plan seleccionada |
+| `billing_period` | VARCHAR(20) | — | NO | Período elegido: `MONTHLY`, `YEARLY`, `ONE_TIME` |
+| `subscriber_type` | VARCHAR(20) | — | NO | Tipo: `TENANT` (B2B) o `TENANT_USER` (B2C) |
+| `subscriber_tenant_id` | UUID | FK → `tenants.id` ON DELETE SET NULL | SÍ | FK al tenant creado en activación (B2B) |
+| `subscriber_tenant_user_id` | UUID | FK → `tenant_users.id` ON DELETE SET NULL | SÍ | FK al usuario creado en activación (B2C) |
+| `status` | VARCHAR(40) | — | NO | Estado del flujo de contratación (ver máquina de estados) |
+| `contractor_email` | VARCHAR(255) | — | NO | Email del contratante |
+| `contractor_first_name` | VARCHAR(100) | — | NO | Nombre del contratante |
+| `contractor_last_name` | VARCHAR(100) | — | NO | Apellido del contratante |
+| `company_name` | VARCHAR(200) | — | SÍ | Nombre de empresa (solo B2B) |
+| `company_slug` | VARCHAR(100) | UNIQUE | SÍ | Slug de empresa → se convierte en `tenant.slug` al activar |
+| `company_tax_id` | VARCHAR(100) | — | SÍ | RFC / Tax ID (solo B2B) |
+| `company_address` | TEXT | — | SÍ | Dirección fiscal (solo B2B) |
+| `email_verified_at` | TIMESTAMPTZ | — | SÍ | Timestamp de verificación de email |
+| `payment_verified_at` | TIMESTAMPTZ | — | SÍ | Timestamp de confirmación de pago |
+| `expires_at` | TIMESTAMPTZ | — | NO | TTL del contrato (configurable, default 24h) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Constraints:**
+- `UNIQUE(company_slug)` — slug globalmente único
+- `CHECK(NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL))` — solo un suscriptor
+
+**Estados válidos:** `PENDING_EMAIL_VERIFICATION` → `PENDING_PAYMENT` → `READY_TO_ACTIVATE` → `ACTIVATED` | `CANCELLED` | `EXPIRED` | `FAILED`
+
+---
+
+### Tabla: `app_subscriptions` — V18
+
+Relación activa entre un suscriptor y una versión de plan de una app. Exactamente uno de `subscriber_tenant_id` / `subscriber_tenant_user_id` debe ser no-null.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | NO | App propietaria |
+| `app_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE RESTRICT | NO | Versión del plan activo |
+| `contract_id` | UUID | FK → `app_contracts.id` ON DELETE SET NULL | SÍ | Contrato origen |
+| `subscriber_tenant_id` | UUID | FK → `tenants.id` ON DELETE RESTRICT | SÍ | Suscriptor B2B |
+| `subscriber_tenant_user_id` | UUID | FK → `tenant_users.id` ON DELETE RESTRICT | SÍ | Suscriptor B2C |
+| `status` | VARCHAR(20) | — | NO | Estado: `PENDING`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELLED`, `EXPIRED` |
+| `current_period_start` | TIMESTAMPTZ | — | NO | Inicio del período actual |
+| `current_period_end` | TIMESTAMPTZ | — | NO | Fin del período actual |
+| `cancel_at_period_end` | BOOLEAN | — | NO | Marcar cancelación al fin del período |
+| `cancelled_at` | TIMESTAMPTZ | — | SÍ | Timestamp de cancelación efectiva |
+| `next_billing_at` | TIMESTAMPTZ | — | SÍ | Próxima fecha de renovación |
+| `auto_renew` | BOOLEAN | — | NO | Si renueva automáticamente |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Constraints:**
+- `UNIQUE(client_app_id, subscriber_tenant_id)` — una suscripción B2B activa por app
+- `UNIQUE(client_app_id, subscriber_tenant_user_id)` — una suscripción B2C activa por app
+- `CHECK(NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL))`
+
+---
+
+### Tabla: `payment_transactions` — V18
+
+Una transacción de pago por evento de facturación (activación inicial, renovación, etc.).
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `contract_id` | UUID | FK → `app_contracts.id` ON DELETE SET NULL | SÍ | Contrato asociado |
+| `subscription_id` | UUID | FK → `app_subscriptions.id` ON DELETE SET NULL | SÍ | Suscripción asociada |
+| `provider` | VARCHAR(50) | — | NO | Proveedor: `MANUAL`, `MOCK`, `MERCADOPAGO`, `STRIPE`, `OTHER` |
+| `provider_reference` | VARCHAR(255) | — | SÍ | ID de referencia del PSP externo |
+| `amount` | NUMERIC(12,2) | — | NO | Monto cobrado |
+| `currency` | VARCHAR(3) | — | NO | Moneda ISO-4217 |
+| `status` | VARCHAR(20) | — | NO | Estado: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`, `EXPIRED` |
+| `paid_at` | TIMESTAMPTZ | — | SÍ | Timestamp de pago exitoso |
+| `raw_response` | JSONB | — | SÍ | Respuesta raw del PSP (auditoría) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+
+---
+
+### Tabla: `invoices` — V19
+
+Snapshot inmutable de una factura por período de suscripción. Los campos `*_snapshot` no se modifican retroactivamente.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `subscription_id` | UUID | FK → `app_subscriptions.id` ON DELETE RESTRICT | NO | Suscripción a la que pertenece |
+| `invoice_number` | VARCHAR(50) | UNIQUE | NO | Número de factura (e.g. `INV-A1B2C3D4`) |
+| `status` | VARCHAR(20) | — | NO | Estado: `DRAFT`, `ISSUED`, `PAID`, `VOID`, `OVERDUE` |
+| `issue_date` | DATE | — | NO | Fecha de emisión |
+| `due_date` | DATE | — | NO | Fecha de vencimiento |
+| `period_start` | DATE | — | NO | Inicio del período facturado |
+| `period_end` | DATE | — | NO | Fin del período facturado |
+| `currency` | VARCHAR(3) | — | NO | Moneda |
+| `subtotal` | NUMERIC(12,2) | — | NO | Subtotal sin impuestos |
+| `tax_amount` | NUMERIC(12,2) | — | NO | Monto de impuestos |
+| `total` | NUMERIC(12,2) | — | NO | Total a pagar |
+| `billing_name_snapshot` | VARCHAR(300) | — | SÍ | Nombre del titular al momento de emisión |
+| `billing_tax_id_snapshot` | VARCHAR(100) | — | SÍ | RFC/Tax ID al momento de emisión |
+| `billing_address_snapshot` | TEXT | — | SÍ | Dirección al momento de emisión |
+| `plan_name_snapshot` | VARCHAR(100) | — | SÍ | Nombre del plan al momento de emisión |
+| `plan_version_snapshot` | VARCHAR(20) | — | SÍ | Versión del plan al momento de emisión |
+| `pdf_url` | TEXT | — | SÍ | URL del PDF de la factura |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+
+---
+
+### Tabla: `usage_counters` — V19
+
+Contadores atómicos de uso por suscriptor, métrica y período. Los incrementos se realizan con `UPDATE ... SET used_value = used_value + delta` para atomicidad PostgreSQL.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE CASCADE | NO | App propietaria |
+| `subscriber_tenant_id` | UUID | FK → `tenants.id` ON DELETE CASCADE | SÍ | Suscriptor B2B |
+| `subscriber_tenant_user_id` | UUID | FK → `tenant_users.id` ON DELETE CASCADE | SÍ | Suscriptor B2C |
+| `metric_code` | VARCHAR(100) | — | NO | Código de métrica (e.g. `MAX_USERS`, `EVALUACIONES_POR_MES`) |
+| `period_start` | TIMESTAMPTZ | — | NO | Inicio del período de la cuota |
+| `period_end` | TIMESTAMPTZ | — | NO | Fin del período de la cuota |
+| `used_value` | BIGINT | — | NO | Valor acumulado en el período (default 0) |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Constraints:**
+- `UNIQUE(client_app_id, subscriber_tenant_id, metric_code, period_start, period_end)` (B2B)
+- `UNIQUE(client_app_id, subscriber_tenant_user_id, metric_code, period_start, period_end)` (B2C)
+- `CHECK(NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL))`
+
+--- (`V14__seed_initial_ui_tenants.sql`)
 
 > V14 no agrega tablas ni columnas nuevas; define un dataset base idempotente para arrancar desarrollo UI y pruebas funcionales.
 
@@ -731,10 +939,15 @@ Almacena códigos de verificación de email generados durante el auto-registro d
 | `V12__add_email_verifications.sql` | Tabla `email_verifications` para flujo de auto-registro con verificación de email | ✅ Aplicada (2026-03-23) |
 | `V13__extend_tenant_user_profile.sql` | Extiende `tenant_users` con 6 campos OIDC de perfil canónico | ✅ Aplicada (2026-03-24) |
 | `V14__seed_initial_ui_tenants.sql` | Seed base para UI: tenants/apps/usuarios/roles/memberships (`keygo`, `demo`) | ✅ Aplicada (2026-03-25) |
-| `V15__...` | Próxima migración — sin definir aún | ⏳ Planificada |
+| `V15__reset_seed_user_passwords.sql` | Corrección de hashes BCrypt desconocidos de V2/V14; contraseñas conocidas para dev | ✅ Aplicada (2026-03-27) |
+| `V16__add_billing_catalog.sql` | Tablas `app_plans`, `app_plan_versions`, `app_plan_entitlements` — catálogo de planes por app | ✅ Aplicada (2026-03-28) |
+| `V17__add_billing_contracts.sql` | Tabla `app_contracts` — flujo self-service de contratación con verificación de email y pago | ✅ Aplicada (2026-03-28) |
+| `V18__add_billing_subscriptions.sql` | Tablas `app_subscriptions`, `payment_transactions` — suscripciones activas y transacciones | ✅ Aplicada (2026-03-28) |
+| `V19__add_billing_invoices_and_usage.sql` | Tablas `invoices`, `usage_counters` — facturas históricas y contadores de uso atómicos | ✅ Aplicada (2026-03-28) |
+| `V20__...` | Próxima migración — sin definir aún | ⏳ Planificada |
 
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V15`.
+> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V20`.
 
 ---
 
-**Última actualización:** 2026-03-25 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V14
+**Última actualización:** 2026-03-29 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V19

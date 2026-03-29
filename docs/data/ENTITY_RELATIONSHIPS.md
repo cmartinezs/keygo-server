@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-23** | Estado: ✅ Sincronizado con migraciones V1–V11
+> Fecha de actualización: **2026-03-29** | Estado: ✅ Sincronizado con migraciones V1–V19
 
 ---
 
@@ -740,5 +740,215 @@ flowchart LR
 
 ---
 
-**Última actualización:** 2026-03-25 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V14, Fases 0–9)
+### Contexto 9: Billing — Catálogo de planes (V16)
+
+```mermaid
+classDiagram
+    class ClientApp {
+        UUID id
+        String clientId
+        String type
+        String status
+    }
+
+    class AppPlan {
+        UUID id
+        UUID clientAppId
+        String code
+        String name
+        String subscriberType
+        String status
+        boolean isPublic
+    }
+
+    class AppPlanVersion {
+        UUID id
+        UUID appPlanId
+        String version
+        String currency
+        String billingPeriod
+        BigDecimal basePrice
+        BigDecimal setupFee
+        int trialDays
+        Date effectiveFrom
+        Date effectiveTo
+        String status
+    }
+
+    class AppPlanEntitlement {
+        UUID id
+        UUID appPlanVersionId
+        String metricCode
+        String metricType
+        Long limitValue
+        String periodType
+        String enforcementMode
+        boolean isEnabled
+    }
+
+    ClientApp "1" --> "0..*" AppPlan : "owns"
+    AppPlan "1" --> "1..*" AppPlanVersion : "versions (immutable)"
+    AppPlanVersion "1" --> "0..*" AppPlanEntitlement : "entitlements"
+```
+
+**Reglas:**
+- Un plan tiene `subscriberType` = `TENANT` (B2B) o `TENANT_USER` (B2C).
+- Las versiones son inmutables: cambiar el precio requiere crear una nueva versión.
+- `ON DELETE RESTRICT` en `AppPlanVersion → AppPlan` impide borrar un plan con versiones.
+- `ON DELETE CASCADE` en `AppPlanEntitlement → AppPlanVersion` elimina entitlements al eliminar la versión.
+
+---
+
+### Contexto 10: Billing — Contratos y suscripciones (V17–V18)
+
+```mermaid
+classDiagram
+    class AppContract {
+        UUID id
+        UUID clientAppId
+        UUID selectedPlanVersionId
+        String billingPeriod
+        String subscriberType
+        String status
+        String contractorEmail
+        String companySlug
+        boolean emailVerified
+        boolean paymentVerified
+        OffsetDateTime expiresAt
+    }
+
+    class AppSubscription {
+        UUID id
+        UUID clientAppId
+        UUID appPlanVersionId
+        UUID contractId
+        UUID subscriberTenantId
+        UUID subscriberTenantUserId
+        String status
+        OffsetDateTime currentPeriodStart
+        OffsetDateTime currentPeriodEnd
+        boolean cancelAtPeriodEnd
+        boolean autoRenew
+    }
+
+    class PaymentTransaction {
+        UUID id
+        UUID contractId
+        UUID subscriptionId
+        String provider
+        BigDecimal amount
+        String status
+        OffsetDateTime paidAt
+    }
+
+    class Tenant {
+        UUID id
+        String slug
+        String status
+    }
+
+    class TenantUser {
+        UUID id
+        UUID tenantId
+        String email
+        String status
+    }
+
+    AppContract "1" --> "0..1" AppSubscription : "origina (al activar)"
+    AppContract "0..1" --> "0..1" Tenant : "subscriber B2B (post-activación)"
+    AppContract "0..1" --> "0..1" TenantUser : "subscriber B2C (post-activación)"
+    AppSubscription "0..1" --> "0..1" Tenant : "subscriber B2B"
+    AppSubscription "0..1" --> "0..1" TenantUser : "subscriber B2C"
+    AppSubscription "1" --> "0..*" PaymentTransaction : "tiene transacciones"
+    AppContract "1" --> "0..*" PaymentTransaction : "genera"
+```
+
+**Estados del contrato:**
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_EMAIL_VERIFICATION : POST /billing/contracts
+    PENDING_EMAIL_VERIFICATION --> PENDING_PAYMENT : email_verified_at set
+    PENDING_EMAIL_VERIFICATION --> EXPIRED : TTL superado
+    PENDING_EMAIL_VERIFICATION --> CANCELLED : cancelación manual
+    PENDING_PAYMENT --> READY_TO_ACTIVATE : payment_verified_at set
+    PENDING_PAYMENT --> EXPIRED : TTL superado
+    READY_TO_ACTIVATE --> ACTIVATED : POST /activate → crea tenant/user + suscripción + factura
+    READY_TO_ACTIVATE --> FAILED : error en activación
+    ACTIVATED --> [*]
+    EXPIRED --> [*]
+    CANCELLED --> [*]
+    FAILED --> [*]
+```
+
+**Estados de la suscripción:**
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : creación
+    PENDING --> ACTIVE : activación exitosa
+    ACTIVE --> PAST_DUE : pago fallido en renovación
+    ACTIVE --> CANCELLED : cancel_at_period_end=true al fin del período
+    ACTIVE --> EXPIRED : período finalizado sin renovación
+    PAST_DUE --> ACTIVE : pago recuperado
+    PAST_DUE --> SUSPENDED : umbral de días sin pago
+    SUSPENDED --> CANCELLED : sin resolución
+    CANCELLED --> [*]
+    EXPIRED --> [*]
+```
+
+---
+
+### Contexto 11: Billing — Facturas y uso (V19)
+
+```mermaid
+classDiagram
+    class AppSubscription {
+        UUID id
+        String status
+        OffsetDateTime currentPeriodStart
+        OffsetDateTime currentPeriodEnd
+    }
+
+    class Invoice {
+        UUID id
+        UUID subscriptionId
+        String invoiceNumber
+        String status
+        Date issueDate
+        Date dueDate
+        BigDecimal subtotal
+        BigDecimal taxAmount
+        BigDecimal total
+        String planVersionSnapshot
+        String billingNameSnapshot
+    }
+
+    class UsageCounter {
+        UUID id
+        UUID clientAppId
+        UUID subscriberTenantId
+        UUID subscriberTenantUserId
+        String metricCode
+        OffsetDateTime periodStart
+        OffsetDateTime periodEnd
+        Long usedValue
+    }
+
+    class ClientApp {
+        UUID id
+        String clientId
+    }
+
+    AppSubscription "1" --> "0..*" Invoice : "genera por período"
+    ClientApp "1" --> "0..*" UsageCounter : "acumula uso"
+```
+
+**Reglas de negocio:**
+- Una `Invoice` es un snapshot inmutable: los campos `*_snapshot` no se modifican retroactivamente.
+- El `invoice_number` es único globalmente (formato `INV-XXXXXXXX`).
+- Los `UsageCounter` se incrementan atómicamente con `UPDATE ... SET used_value = used_value + delta`.
+- Solo uno de `subscriber_tenant_id` / `subscriber_tenant_user_id` puede ser no-null en cada tabla polimórfica.
+
+---
+
+**Última actualización:** 2026-03-29 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V19, Fases 0–Billing)
 
