@@ -102,6 +102,59 @@ public class AppContract {
     this.subscriberTenantUserId = subscriberTenantUserId;
   }
 
+  /**
+   * Generates a username from the contractor's name: first initial + last name.
+   * Sanitizes input by normalizing accented characters (NFD → strip combining marks)
+   * and removing any character not allowed by the Username value object
+   * ({@code [a-zA-Z0-9_\-.]}). Result is lowercase, at least 3 characters
+   * and at most 100 characters (matching the JPA column length).
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>"Carlos" / "Martínez" → "cmartinez"</li>
+   *   <li>"José" / "Ñoño" → "jnono"</li>
+   *   <li>"Ana" / "Li" → "ali"</li>
+   *   <li>"Ana" / "I" → "ai_"  (padded to min 3)</li>
+   * </ul>
+   *
+   * @return a valid username string ready to wrap in {@code Username.of(...)}.
+   */
+  public String generateUsername() {
+    String sanitizedFirst = sanitizeForUsername(contractorFirstName);
+    String sanitizedLast  = sanitizeForUsername(contractorLastName);
+
+    String initial = sanitizedFirst.isEmpty() ? "" : String.valueOf(sanitizedFirst.charAt(0));
+    StringBuilder candidate = new StringBuilder((initial + sanitizedLast).toLowerCase());
+
+    // Ensure minimum length (pad with '_')
+    while (candidate.length() < 3) {
+      candidate.append("_");
+    }
+
+    // Truncate to column / Username max (100)
+    if (candidate.length() > 100) {
+      candidate = new StringBuilder(candidate.substring(0, 100));
+    }
+
+    return candidate.toString();
+  }
+
+  /**
+   * Strips diacritics and removes characters not allowed in a Username.
+   * Uses only standard {@code java.text.Normalizer} — no external dependencies.
+   */
+  private static String sanitizeForUsername(String input) {
+    if (input == null || input.isBlank()) {
+      return "";
+    }
+    // NFD normalization decomposes accented chars into base + combining mark
+    String decomposed = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
+    // Remove combining diacritical marks (U+0300 – U+036F)
+    String stripped = decomposed.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+    // Keep only allowed chars: letters, digits, underscore, dash, dot
+    return stripped.replaceAll("[^a-zA-Z0-9_\\-.]+", "");
+  }
+
   public boolean isEmailVerified() {
     return emailVerifiedAt != null;
   }
