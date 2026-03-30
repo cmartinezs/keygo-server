@@ -52,6 +52,20 @@ spring:
       connection-timeout: ${DATASOURCE_CONNECTION_TIMEOUT:30000}
       idle-timeout: ${DATASOURCE_IDLE_TIMEOUT:600000}
       max-lifetime: ${DATASOURCE_MAX_LIFETIME:1800000}
+      # ── Supabase Connection Pooler (Supavisor / PgBouncer) ─────────────────
+      # pool_mode se configura en el dashboard de Supabase, no aquí.
+      # Lo que varía en Spring Boot es el manejo de prepared statements:
+      #
+      #   Transaction mode (puerto 6543) → SUPABASE_PREPARE_THRESHOLD=0
+      #     El pooler no mantiene estado entre transacciones; los prepared
+      #     statements del servidor no son soportados. Equivale a agregar
+      #     "?pgbouncer=true" en la JDBC URL.
+      #
+      #   Session mode (puerto 5432)     → SUPABASE_PREPARE_THRESHOLD=5 (default JDBC)
+      #     La conexión persiste durante la sesión; prepared statements normales.
+      #
+      data-source-properties:
+        prepareThreshold: ${SUPABASE_PREPARE_THRESHOLD:0}
 
   jpa:
     hibernate:

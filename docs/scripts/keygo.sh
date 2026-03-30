@@ -59,7 +59,7 @@ _banner() {
 
     echo -e "${BOLD}${BLUE}"
     echo "  ╔══════════════════════════════════════════════════╗"
-    echo "  ║          🔑  KeyGo Server CLI                   ║"
+    echo "  ║          🔑  KeyGo Server CLI                    ║"
     echo "  ║          Gestión centralizada del proyecto       ║"
     echo "  ╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -92,6 +92,9 @@ _menu() {
     echo ""
     echo -e "  ${BOLD}⚙️   SETUP & CONFIGURACIÓN${NC}"
     echo -e "  ${CYAN}19)${NC} Setup inicial de tenant  ${CYAN}20)${NC} Setup Supabase (DB remota)"
+    echo ""
+    echo -e "  ${BOLD}🐳  DOCKER${NC}"
+    echo -e "  ${CYAN}21)${NC} Lanzar contenedor (docker-run)   ${CYAN}22)${NC} Lanzar en background (--detach)"
     echo ""
     echo -e "  ${BLUE}────────────────────────────────────────────────────${NC}"
     echo -e "  ${YELLOW} q)${NC} Salir / Exit"
@@ -145,11 +148,15 @@ _execute() {
         19) _run setup-keygo-tenant.sh ;;
         20) _run db/setup.sh           ;;
 
+        # ── Docker ────────────────────────────────────────────────────────────
+        21) _run docker-run.sh                  ;;
+        22) _run docker-run.sh --detach         ;;
+
         # ── Control ───────────────────────────────────────────────────────────
         q|Q|exit|quit|salir) echo -e "${GREEN}👋 ¡Hasta luego!${NC}"; echo ""; exit 0 ;;
         *)
             echo -e "${RED}❌ Opción inválida: '$OPT'${NC}"
-            echo "   Opciones válidas: 1–20, q"
+            echo "   Opciones válidas: 1–22, q"
             ;;
     esac
 }

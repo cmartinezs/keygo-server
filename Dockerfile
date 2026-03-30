@@ -14,6 +14,7 @@ COPY keygo-domain/pom.xml keygo-domain/
 COPY keygo-app/pom.xml keygo-app/
 COPY keygo-infra/pom.xml keygo-infra/
 COPY keygo-api/pom.xml keygo-api/
+COPY keygo-supabase/pom.xml keygo-supabase/
 COPY keygo-run/pom.xml keygo-run/
 
 # Download dependencies (cached layer) / Descargar dependencias (capa cacheada)
@@ -25,6 +26,7 @@ COPY keygo-domain/src keygo-domain/src
 COPY keygo-app/src keygo-app/src
 COPY keygo-infra/src keygo-infra/src
 COPY keygo-api/src keygo-api/src
+COPY keygo-supabase/src keygo-supabase/src
 COPY keygo-run/src keygo-run/src
 
 # Build application / Construir aplicación
@@ -68,6 +70,22 @@ EXPOSE 8080
 # Health check / Verificación de salud
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/keygo-server/actuator/health || exit 1
+
+# Spring profile — activates Supabase datasource & Flyway
+# Override at runtime: -e SPRING_PROFILES_ACTIVE=supabase,other
+ENV SPRING_PROFILES_ACTIVE="supabase"
+
+# ── Supabase / Database connection variables ──────────────────────────────────
+# Required — must be provided at runtime (no defaults for sensitive values)
+# Provide via: docker run -e SUPABASE_URL=jdbc:postgresql://host:5432/db ...
+#              docker-compose environment section
+#              Kubernetes Secret / ConfigMap
+ENV SUPABASE_URL=""
+ENV SUPABASE_USER=""
+ENV SUPABASE_PASSWORD=""
+
+# Optional — defaults match application-supabase.yml
+ENV SUPABASE_DB_SCHEMA="public"
 
 # Set JVM options / Configurar opciones de JVM
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+OptimizeStringConcat"
