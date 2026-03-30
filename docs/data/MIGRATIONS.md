@@ -1,8 +1,9 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-03-29  
-> **Reestructuración total (2026-03-29):** Las migraciones V1–V26 (acumulativas con parches) fueron reemplazadas por **V1–V17** organizadas por dominio. Cada archivo representa el estado final consolidado.  
-> **Próxima migración:** `V19__...`
+> **Última actualización:** 2026-03-30  
+> **Reestructuración total (2026-03-29):** Las migraciones V1–V26 (acumulativas con parches) fueron reemplazadas por **V1–V17** organizadas por dominio.  
+> **Rediseño de billing (2026-03-30):** Modelo v2 — nueva entidad `contractors`, modificaciones en `app_contracts`, `app_subscriptions`, `usage_counters` y `tenants`. Ver sección §4.  
+> **Próxima migración:** `V19__billing_v2_contractors.sql`
 
 ---
 
@@ -258,14 +259,47 @@ Incluye los 6 campos de perfil OIDC 5.3 desde el inicio:
 | Fecha | Acción |
 |---|---|
 | 2026-03-29 | Reescritura completa V1–V26 → **V1–V17** por dominio. Elimina parches acumulativos (V22–V26). Cada archivo = estado final del modelo. |
+| 2026-03-30 | Diseño del modelo v2 de billing: nueva entidad `contractors`, modificaciones en billing. Migraciones V19–V20 pendientes de implementación. |
 
 ---
 
-## 4. Workflow para crear una nueva migración
+## 4. Migraciones pendientes (modelo v2 billing)
+
+> ⚠️ Las siguientes migraciones están **diseñadas pero no implementadas**. Representan el modelo de datos v2 descrito en `docs/api/BILLING_FLOW.md` y `docs/data/DATA_MODEL.md`.
+
+### V19 — Billing v2: Contratantes y restructuración
+
+**Archivo:** `V19__billing_v2_contractors.sql`  
+**Propósito:** Nueva entidad `contractors`, modificaciones en tablas de billing y `tenants`.
+
+| Tabla | Operación | Detalle |
+|---|---|---|
+| `contractors` | CREATE | Nueva tabla: `id`, `tenant_user_id` (UNIQUE FK → `tenant_users`), `status`, timestamps |
+| `tenants` | ALTER | Agregar `contractor_id UUID REFERENCES contractors(id) ON DELETE SET NULL` |
+| `tenants` | ALTER | Agregar estado `'DELETED'` al CHECK de `status` |
+| `app_contracts` | ALTER | Agregar `contractor_id UUID REFERENCES contractors(id)` (nullable hasta verificación) |
+| `app_contracts` | ALTER | Eliminar: `subscriber_type`, `subscriber_tenant_id`, `subscriber_tenant_user_id`, `company_slug` |
+| `app_contracts` | ALTER | Agregar estados `ACTIVE`, `SUPERSEDED`, `FINALIZED` al CHECK de `status` |
+| `app_contracts` | CREATE INDEX | `UNIQUE(contractor_id) WHERE status = 'ACTIVE'` (índice único parcial) |
+| `app_subscriptions` | ALTER | Agregar `contractor_id UUID NOT NULL REFERENCES contractors(id)` |
+| `app_subscriptions` | ALTER | Eliminar: `subscriber_tenant_id`, `subscriber_tenant_user_id` |
+| `app_subscriptions` | ALTER | Reemplazar UNIQUE por `UNIQUE(client_app_id, contractor_id)` |
+| `usage_counters` | ALTER | Agregar `contractor_id UUID NOT NULL REFERENCES contractors(id)` |
+| `usage_counters` | ALTER | Eliminar: `subscriber_tenant_id`, `subscriber_tenant_user_id` |
+| `usage_counters` | ALTER | Reemplazar UNIQUE por `UNIQUE(client_app_id, contractor_id, metric_code, period_start, period_end)` |
+
+### V20 — Seed post-v2
+
+**Archivo:** `V20__seed_billing_v2_base.sql`  
+**Propósito:** Validar que el tenant `keygo` tiene `contractor_id = NULL` (tenant de sistema) y que los planes existentes no tienen referencias rotas.
+
+---
+
+## 5. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V18)
-touch keygo-supabase/src/main/resources/db/migration/V18__descripcion_del_cambio.sql
+# 1. Crear el archivo (próxima es V19)
+touch keygo-supabase/src/main/resources/db/migration/V19__billing_v2_contractors.sql
 
 # 2. Escribir SQL limpio (estado final, no parches)
 # 3. Levantar DB local
@@ -291,7 +325,7 @@ touch keygo-supabase/src/main/resources/db/migration/V18__descripcion_del_cambio
 
 ---
 
-## 5. Documentación obligatoria al crear una migración
+## 6. Documentación obligatoria al crear una migración
 
 Al crear `V{n}__*.sql`, actualizar **antes de cerrar la tarea**:
 
@@ -303,7 +337,7 @@ Al crear `V{n}__*.sql`, actualizar **antes de cerrar la tarea**:
 
 ---
 
-## 6. Comandos Flyway
+## 7. Comandos Flyway
 
 ```bash
 ./docs/scripts/db/info.sh      # estado de todas las migraciones

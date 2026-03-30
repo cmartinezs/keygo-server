@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-29** | Estado: ✅ Sincronizado con migraciones V1–V19
+> Fecha de actualización: **2026-03-30** | Estado: ✅ Sincronizado con migraciones V1–V17 + diseño de datos v2
 
 ---
 
@@ -144,7 +144,7 @@ classDiagram
     AppRole "1" --> "0..*" MembershipRole : grants
 ```
 
-> Tablas en DB: `memberships`, `membership_roles`, `app_roles` (renombradas a plural en V10).  
+> Tablas en DB: `memberships`, `membership_roles`, `app_roles` (en V6 con nombres correctos desde la reestructuración).  
 > ⚠️ `memberships` **sin columna `tenant_id`** (redundante — user_id implica el tenant).  
 > ⚠️ `membership_roles` tiene **PK compuesta** `(membership_id, role_id)` — sin columna `id`.  
 > ⚠️ `app_roles` no tiene columna `status` en la DB actual. El campo FK al rol es `role_id`.  
@@ -206,7 +206,7 @@ classDiagram
 
 > ⚠️ `authorization_codes.status` usa valores en **minúsculas**: `pending`, `used`, `expired`, `revoked`.  
 > ⚠️ El campo es `requested_scopes` (no `scope_set`).  
-> ✅ `RefreshToken` y `Session` existen en DB desde **V11** (`sessions` + `refresh_tokens`).  
+> ✅ `RefreshToken` y `Session` existen en DB desde **V8** (`sessions` + `refresh_tokens`).  
 > `SigningKey.status`: `ACTIVE`, `RETIRED`, `REVOKED` (UPPERCASE).
 
 **Flujos:**
@@ -585,38 +585,38 @@ graph TB
 > Los índices marcados con ✅ ya existen en las migraciones Flyway. Los marcados con 💡 son sugeridos adicionales.
 
 ```sql
--- ✅ Ya aplicados por migraciones (V4-V9, renombrados en V10)
-CREATE INDEX idx_tenants_slug ON tenants(slug);                                 -- V4
-CREATE INDEX idx_tenants_status ON tenants(status);                             -- V4
-CREATE INDEX idx_client_apps_tenant_id ON client_apps(tenant_id);               -- V5
-CREATE INDEX idx_client_apps_client_id ON client_apps(client_id);               -- V5
-CREATE INDEX idx_client_apps_status ON client_apps(status);                     -- V5
-CREATE INDEX idx_tenant_users_tenant_id ON tenant_users(tenant_id);             -- V6
-CREATE INDEX idx_tenant_users_email ON tenant_users(email);                     -- V6
-CREATE INDEX idx_tenant_users_username ON tenant_users(username);               -- V6
-CREATE INDEX idx_tenant_users_status ON tenant_users(status);                   -- V6
-CREATE INDEX idx_app_roles_client_app_id ON app_roles(client_app_id);           -- V7 (renombrado V10)
-CREATE INDEX idx_app_roles_code ON app_roles(code);                             -- V7 (renombrado V10)
-CREATE INDEX idx_memberships_user_id ON memberships(user_id);                   -- V7 (renombrado V10)
-CREATE INDEX idx_memberships_client_app_id ON memberships(client_app_id);       -- V7 (renombrado V10)
-CREATE INDEX idx_memberships_status ON memberships(status);                     -- V7 (renombrado V10)
-CREATE INDEX idx_authorization_codes_code ON authorization_codes(code);                   -- V8
-CREATE INDEX idx_authorization_codes_tenant_id ON authorization_codes(tenant_id);         -- V8
-CREATE INDEX idx_authorization_codes_client_app_id ON authorization_codes(client_app_id); -- V8
-CREATE INDEX idx_authorization_codes_user_id ON authorization_codes(user_id);             -- V8
-CREATE INDEX idx_authorization_codes_status ON authorization_codes(status);               -- V8
-CREATE INDEX idx_authorization_codes_expires_at ON authorization_codes(expires_at);       -- V8
-CREATE INDEX idx_signing_keys_status ON signing_keys(status);                   -- V9
-CREATE INDEX idx_sessions_user_tenant ON sessions(user_id, tenant_id);          -- V11
-CREATE INDEX idx_sessions_status ON sessions(status);                           -- V11
-CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);             -- V11
-CREATE INDEX idx_refresh_tokens_session ON refresh_tokens(session_id);          -- V11
-CREATE INDEX idx_refresh_tokens_user_tenant ON refresh_tokens(user_id, tenant_id); -- V11
-CREATE INDEX idx_refresh_tokens_status ON refresh_tokens(status);               -- V11
+-- ✅ Ya aplicados por migraciones (V3-V9 identidad; V10-V14 billing)
+CREATE INDEX idx_tenants_slug ON tenants(slug);                                 -- V3
+CREATE INDEX idx_tenants_status ON tenants(status);                             -- V3
+CREATE INDEX idx_client_apps_tenant_id ON client_apps(tenant_id);               -- V4
+CREATE INDEX idx_client_apps_client_id ON client_apps(client_id);               -- V4
+CREATE INDEX idx_client_apps_status ON client_apps(status);                     -- V4
+CREATE INDEX idx_tenant_users_tenant_id ON tenant_users(tenant_id);             -- V5
+CREATE INDEX idx_tenant_users_email ON tenant_users(email);                     -- V5
+CREATE INDEX idx_tenant_users_username ON tenant_users(username);               -- V5
+CREATE INDEX idx_tenant_users_status ON tenant_users(status);                   -- V5
+CREATE INDEX idx_app_roles_client_app_id ON app_roles(client_app_id);           -- V6
+CREATE INDEX idx_app_roles_code ON app_roles(code);                             -- V6
+CREATE INDEX idx_memberships_user_id ON memberships(user_id);                   -- V6
+CREATE INDEX idx_memberships_client_app_id ON memberships(client_app_id);       -- V6
+CREATE INDEX idx_memberships_status ON memberships(status);                     -- V6
+CREATE INDEX idx_authorization_codes_code ON authorization_codes(code);                   -- V7
+CREATE INDEX idx_authorization_codes_tenant_id ON authorization_codes(tenant_id);         -- V7
+CREATE INDEX idx_authorization_codes_client_app_id ON authorization_codes(client_app_id); -- V7
+CREATE INDEX idx_authorization_codes_user_id ON authorization_codes(user_id);             -- V7
+CREATE INDEX idx_authorization_codes_status ON authorization_codes(status);               -- V7
+CREATE INDEX idx_authorization_codes_expires_at ON authorization_codes(expires_at);       -- V7
+CREATE INDEX idx_signing_keys_status ON signing_keys(status);                   -- V7
+CREATE INDEX idx_sessions_user_tenant ON sessions(user_id, tenant_id);          -- V8
+CREATE INDEX idx_sessions_status ON sessions(status);                           -- V8
+CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);             -- V8
+CREATE INDEX idx_refresh_tokens_session ON refresh_tokens(session_id);          -- V8
+CREATE INDEX idx_refresh_tokens_user_tenant ON refresh_tokens(user_id, tenant_id); -- V8
+CREATE INDEX idx_refresh_tokens_status ON refresh_tokens(status);               -- V8
 
--- V12
-CREATE INDEX idx_email_verifications_tenant_user_id ON email_verifications(tenant_user_id); -- V12
-CREATE INDEX idx_email_verifications_code ON email_verifications(code);                      -- V12
+-- V9
+CREATE INDEX idx_email_verifications_tenant_user_id ON email_verifications(tenant_user_id); -- V9
+CREATE INDEX idx_email_verifications_code ON email_verifications(code);                      -- V9
 
 -- 💡 Índices adicionales sugeridos para optimización
 CREATE INDEX idx_client_apps_tenant_status ON client_apps(tenant_id, status);
@@ -626,7 +626,7 @@ CREATE INDEX idx_memberships_user_app ON memberships(user_id, client_app_id, sta
 CREATE INDEX idx_authorization_codes_expires_status ON authorization_codes(expires_at, status);
 ```
 
-### Contexto 6: Sesiones y Refresh Tokens (V11)
+### Contexto 6: Sesiones y Refresh Tokens (V8)
 
 ```mermaid
 classDiagram
@@ -665,7 +665,7 @@ classDiagram
 
 ---
 
-### Contexto 7: Verificación de Email (V12)
+### Contexto 7: Verificación de Email (V9)
 
 ```mermaid
 classDiagram
@@ -712,7 +712,7 @@ stateDiagram-v2
 
 ---
 
-### Contexto 8: Seed base para UI (V14)
+### Contexto 8: Seed base para UI (V15)
 
 ```mermaid
 flowchart LR
@@ -736,11 +736,11 @@ flowchart LR
 
 **Objetivo operativo:** permitir pruebas tempranas de UI con dos tenants y jerarquías de rol independientes por app.
 
-**Aclaración:** V14 es migración de seed, no de schema. No agrega nuevas entidades; solo registra datos iniciales idempotentes en tablas existentes.
+**Aclaración:** V15 es migración de seed, no de schema. No agrega nuevas entidades; solo registra datos iniciales idempotentes en tablas existentes.
 
 ---
 
-### Contexto 9: Billing — Catálogo de planes (V16)
+### Contexto 9: Billing — Catálogo de planes (V10)
 
 ```mermaid
 classDiagram
@@ -792,26 +792,41 @@ classDiagram
 ```
 
 **Reglas:**
-- Un plan tiene `subscriberType` = `TENANT` (B2B) o `TENANT_USER` (B2C).
+- `AppPlan.subscriberType` (`TENANT` / `TENANT_USER`) se conserva en el modelo v2 **solo para validar compatibilidad** entre el plan seleccionado y el perfil del contratante. Ya **no determina** qué entidades se crean al activar un contrato (eso lo gestiona `Contractor`).
 - Las versiones son inmutables: cambiar el precio requiere crear una nueva versión.
 - `ON DELETE RESTRICT` en `AppPlanVersion → AppPlan` impide borrar un plan con versiones.
 - `ON DELETE CASCADE` en `AppPlanEntitlement → AppPlanVersion` elimina entitlements al eliminar la versión.
 
 ---
 
-### Contexto 10: Billing — Contratos y suscripciones (V17–V18)
+### Contexto 10: Billing — Contratos y suscripciones (v2)
+
+> ⚡ **Modelo v2 (2026-03-30):** El suscriptor ya no es un `Tenant` o `TenantUser` creado al activar.
+> Es siempre un `Contractor` con cuenta en el tenant del proveedor. Los tenants se crean manualmente
+> después, dentro del límite `MAX_TENANTS` del plan activo.
 
 ```mermaid
 classDiagram
+    class Contractor {
+        UUID id
+        UUID tenantUserId
+        String status
+        OffsetDateTime createdAt
+    }
+
     class AppContract {
         UUID id
         UUID clientAppId
+        UUID contractorId
         UUID selectedPlanVersionId
         String billingPeriod
-        String subscriberType
         String status
         String contractorEmail
-        String companySlug
+        String contractorFirstName
+        String contractorLastName
+        String companyName
+        String companyTaxId
+        String companyAddress
         boolean emailVerified
         boolean paymentVerified
         OffsetDateTime expiresAt
@@ -822,8 +837,7 @@ classDiagram
         UUID clientAppId
         UUID appPlanVersionId
         UUID contractId
-        UUID subscriberTenantId
-        UUID subscriberTenantUserId
+        UUID contractorId
         String status
         OffsetDateTime currentPeriodStart
         OffsetDateTime currentPeriodEnd
@@ -841,12 +855,6 @@ classDiagram
         OffsetDateTime paidAt
     }
 
-    class Tenant {
-        UUID id
-        String slug
-        String status
-    }
-
     class TenantUser {
         UUID id
         UUID tenantId
@@ -854,31 +862,55 @@ classDiagram
         String status
     }
 
+    class Tenant {
+        UUID id
+        UUID contractorId
+        String slug
+        String status
+    }
+
+    Contractor "1" --> "1" TenantUser : "cuenta en tenant proveedor (1:1 UNIQUE)"
+    Contractor "1" --> "0..*" AppContract : "historial (solo 1 ACTIVE)"
+    Contractor "1" --> "0..*" AppSubscription : "suscripto a"
+    Contractor "1" --> "0..*" Tenant : "crea (dentro del límite MAX_TENANTS)"
     AppContract "1" --> "0..1" AppSubscription : "origina (al activar)"
-    AppContract "0..1" --> "0..1" Tenant : "subscriber B2B (post-activación)"
-    AppContract "0..1" --> "0..1" TenantUser : "subscriber B2C (post-activación)"
-    AppSubscription "0..1" --> "0..1" Tenant : "subscriber B2B"
-    AppSubscription "0..1" --> "0..1" TenantUser : "subscriber B2C"
     AppSubscription "1" --> "0..*" PaymentTransaction : "tiene transacciones"
     AppContract "1" --> "0..*" PaymentTransaction : "genera"
 ```
 
-**Estados del contrato:**
+> **Columnas eliminadas respecto al modelo v1:**  
+> `AppContract`: ~~`subscriberType`~~ ~~`companySlug`~~ ~~`subscriberTenantId`~~ ~~`subscriberTenantUserId`~~  
+> `AppSubscription`: ~~`subscriberTenantId`~~ ~~`subscriberTenantUserId`~~
+
+**Estados del contrato (modelo v2):**
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING_EMAIL_VERIFICATION : POST /billing/contracts
-    PENDING_EMAIL_VERIFICATION --> PENDING_PAYMENT : email_verified_at set
+
+    PENDING_EMAIL_VERIFICATION --> PENDING_PAYMENT : email verificado\n(crea TenantUser + Contractor si es nuevo)
     PENDING_EMAIL_VERIFICATION --> EXPIRED : TTL superado
     PENDING_EMAIL_VERIFICATION --> CANCELLED : cancelación manual
-    PENDING_PAYMENT --> READY_TO_ACTIVATE : payment_verified_at set
+
+    PENDING_PAYMENT --> READY_TO_ACTIVATE : pago aprobado
     PENDING_PAYMENT --> EXPIRED : TTL superado
-    READY_TO_ACTIVATE --> ACTIVATED : POST /activate → crea tenant/user + suscripción + factura
+    PENDING_PAYMENT --> CANCELLED : cancelación manual
+
+    READY_TO_ACTIVATE --> ACTIVE : POST /activate → crea suscripción + factura
     READY_TO_ACTIVATE --> FAILED : error en activación
-    ACTIVATED --> [*]
+
+    ACTIVE --> SUPERSEDED : upgrade/downgrade (nuevo contrato activado)
+    ACTIVE --> FINALIZED : período terminó sin renovación
+    ACTIVE --> CANCELLED : cancelación manual
+
+    ACTIVE --> [*]
+    SUPERSEDED --> [*]
+    FINALIZED --> [*]
     EXPIRED --> [*]
     CANCELLED --> [*]
     FAILED --> [*]
 ```
+
+> **Invariante DB:** `UNIQUE(contractor_id) WHERE status = 'ACTIVE'` en `app_contracts` garantiza que solo puede haber un contrato `ACTIVE` por contratante en cualquier momento.
 
 **Estados de la suscripción:**
 ```mermaid
@@ -897,7 +929,7 @@ stateDiagram-v2
 
 ---
 
-### Contexto 11: Billing — Facturas y uso (V19)
+### Contexto 11: Billing — Facturas y uso (V13)
 
 ```mermaid
 classDiagram
@@ -925,8 +957,7 @@ classDiagram
     class UsageCounter {
         UUID id
         UUID clientAppId
-        UUID subscriberTenantId
-        UUID subscriberTenantUserId
+        UUID contractorId
         String metricCode
         OffsetDateTime periodStart
         OffsetDateTime periodEnd
@@ -946,9 +977,145 @@ classDiagram
 - Una `Invoice` es un snapshot inmutable: los campos `*_snapshot` no se modifican retroactivamente.
 - El `invoice_number` es único globalmente (formato `INV-XXXXXXXX`).
 - Los `UsageCounter` se incrementan atómicamente con `UPDATE ... SET used_value = used_value + delta`.
-- Solo uno de `subscriber_tenant_id` / `subscriber_tenant_user_id` puede ser no-null en cada tabla polimórfica.
+- `UsageCounter.contractor_id` identifica unívocamente al suscriptor (modelo v2); no hay columnas polimórficas.
+- La métrica `MAX_TENANTS` no usa `UsageCounter`; se evalúa directamente con `COUNT(*) FROM tenants WHERE contractor_id = :id AND status != 'DELETED'`.
 
 ---
 
-**Última actualización:** 2026-03-29 | **Responsable:** AI Agent | **Estado:** ✅ Completo (V1–V19, Fases 0–Billing)
+## Contexto 9b: Modelo de Contratación — Billing v2
+
+> Introducido en el modelo v2 (2026-03-30). El `Contractor` es la entidad central de billing.
+> Todo suscriptor de planes es un `Contractor` con cuenta en el tenant del proveedor.
+
+```mermaid
+classDiagram
+    class TenantUser {
+        UUID id
+        UUID tenantId
+        String email
+        String username
+        UserStatus status
+    }
+
+    class Contractor {
+        UUID id
+        UUID tenantUserId
+        ContractorStatus status
+    }
+
+    class AppContract {
+        UUID id
+        UUID contractorId
+        UUID clientAppId
+        UUID selectedPlanVersionId
+        String billingPeriod
+        ContractStatus status
+        String contractorEmail
+        String contractorFirstName
+        String contractorLastName
+        String companyName
+        String companyTaxId
+        String companyAddress
+        String verificationCode
+        OffsetDateTime emailVerifiedAt
+        OffsetDateTime paymentVerifiedAt
+        OffsetDateTime expiresAt
+    }
+
+    class AppSubscription {
+        UUID id
+        UUID contractorId
+        UUID clientAppId
+        UUID appPlanVersionId
+        UUID contractId
+        SubscriptionStatus status
+        OffsetDateTime currentPeriodStart
+        OffsetDateTime currentPeriodEnd
+        Boolean cancelAtPeriodEnd
+    }
+
+    class Tenant {
+        UUID id
+        String slug
+        UUID contractorId
+        TenantStatus status
+    }
+
+    class AppPlanVersion {
+        UUID id
+        UUID appPlanId
+        String version
+        BigDecimal basePrice
+        String billingPeriod
+    }
+
+    TenantUser "1" --> "1" Contractor : "representa (UNIQUE)"
+    Contractor "1" --> "0..*" AppContract : "historial de contratos\n(solo 1 ACTIVE)"
+    Contractor "1" --> "0..*" Tenant : "crea (dentro del límite MAX_TENANTS)"
+    Contractor "1" --> "0..*" AppSubscription : "suscripto a"
+    AppContract "1" --> "1" AppPlanVersion : "selecciona"
+    AppSubscription "1" --> "1" AppPlanVersion : "usa versión"
+    AppSubscription "1" --> "0..1" AppContract : "originada en"
+```
+
+### Flujo de creación del Contractor
+
+```mermaid
+sequenceDiagram
+    participant K as KeyGo Server
+    participant DB as Base de datos
+
+    Note over K,DB: POST /billing/contracts → Estado inicial
+    K->>DB: INSERT app_contracts (contractor_id=NULL, status=PENDING_EMAIL_VERIFICATION)
+
+    Note over K,DB: POST /billing/contracts/{id}/verify-email
+    K->>DB: Si contratante NUEVO: INSERT tenant_users (en tenant proveedor, status=PENDING)
+    K->>DB: Si contratante NUEVO: INSERT contractors (tenant_user_id, status=PENDING)
+    K->>DB: UPDATE app_contracts SET contractor_id=:id, status=PENDING_PAYMENT
+
+    Note over K,DB: POST /billing/contracts/{id}/activate
+    K->>DB: UPDATE tenant_users SET status=ACTIVE
+    K->>DB: UPDATE contractors SET status=ACTIVE
+    K->>DB: INSERT app_subscriptions (contractor_id, status=ACTIVE)
+    K->>DB: INSERT invoices (subscription_id, ...)
+    K->>DB: UPDATE app_contracts SET status=ACTIVE
+
+    Note over K,DB: Upgrade de plan (later)
+    K->>DB: UPDATE app_contracts SET status=SUPERSEDED WHERE status=ACTIVE AND contractor_id=:id
+    K->>DB: UPDATE app_subscriptions SET cancel_at_period_end=true WHERE contractor_id=:id
+    K->>DB: INSERT app_subscriptions (contractor_id, new plan, status=ACTIVE)
+    K->>DB: UPDATE new_contract SET status=ACTIVE
+```
+
+### Relación Contractor ↔ Tenant (creación post-contratación)
+
+```mermaid
+graph TD
+    C["Contractor\n(tenant_user en proveedor keygo)"]
+    AC["AppContract ACTIVE\n(plan: TEAM, MAX_TENANTS=5)"]
+    T1["Tenant A\ncontractor_id=C"]
+    T2["Tenant B\ncontractor_id=C"]
+    T3["Tenant C\ncontractor_id=C"]
+
+    C -->|"contrato vigente"| AC
+    C -->|"crea (1/5)"| T1
+    C -->|"crea (2/5)"| T2
+    C -->|"crea (3/5)"| T3
+
+    style AC fill:#d4edda,stroke:#28a745
+```
+
+**Invariante de límite:**
+```sql
+-- Verificar antes de permitir crear un nuevo tenant
+SELECT COUNT(*) FROM tenants
+WHERE contractor_id = :contractorId
+  AND status != 'DELETED'
+-- Si resultado >= entitlement.limit_value (MAX_TENANTS) → rechazar
+```
+
+---
+
+**Última actualización:** 2026-03-30 | **Responsable:** AI Agent | **Estado:** ✅ Sincronizado con migraciones V1–V17 + diseño de datos v2
+
 
