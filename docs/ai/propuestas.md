@@ -48,6 +48,9 @@
 | T-082 | Tests de regresión en `BootstrapAdminKeyFilterTest` para sufijos `/billing/catalog` y `/billing/contracts` como rutas públicas | 🔲 Pendiente |
 | T-083 | Endpoint `GET /billing/invoices/{invoiceId}` — detalle de factura individual (requiere nueva ruta en `AppBillingSubscriptionController`) | 🔲 Pendiente |
 | T-091 | Test de integración Testcontainers: validar coherencia JPA ↔ Flyway con `ddl-auto: validate` contra DB limpia con todas las migraciones aplicadas | 🔲 Pendiente |
+| T-094 | Agregar test unitario para `AppPlanBillingOptionRepositoryAdapter`: `findByAppPlanVersionId`, `findByAppPlanVersionIdAndBillingPeriod` y `saveAll` con Mockito | 🔲 Pendiente |
+| T-095 | Validar en `CreateAppPlanCommand` que si `billingOptions` no está vacía, al menos una opción tenga `isDefault=true`; lanzar `IllegalArgumentException` si ninguna es default | 🔲 Pendiente |
+| T-096 | Añadir `@NotNull` y `@Valid` en `CreateAppPlanRequest.billingOptions`, `@NotNull` en `billingPeriod` y `basePrice` de `BillingOptionRequest`; agregar test de validación Bean Validation | 🔲 Pendiente |
 
 ---
 
@@ -81,6 +84,9 @@
 | T-085 | Renovación automática de suscripciones via `@Scheduled` job: detectar suscripciones en `currentPeriodEnd < now()` + `autoRenew=true`, generar nueva factura, actualizar período | 🔲 Pendiente |
 | T-086 | Soporte Bearer TENANT_USER en `GET /billing/subscription`: resolver `subscriberId` desde JWT claim `sub` en lugar de asumir siempre TENANT | 🔲 Pendiente |
 | T-092 | Script CI que compare columnas `NOT NULL` de todas las entidades JPA con las definiciones de las migraciones correspondientes; detecta desincronías antes del runtime | 🔲 Pendiente |
+| T-097 | `PUT /billing/plans/{planCode}/billing-options` — añadir/actualizar opciones de pago de la versión activa sin crear nueva versión; valida que no se duplique `billing_period` | 🔲 Pendiente |
+| T-098 | Filtro `?subscriberType=TENANT\|TENANT_USER` en `GET /billing/catalog`: la tabla `app_plans` ya tiene la columna; filtrar por ella si se especifica, retornar todos si no | 🔲 Pendiente |
+| T-099 | Caché `@Cacheable` + Caffeine TTL 5 min en `GetAppPlanCatalogUseCase` y `GetAppPlanUseCase`; invalidar al crear plan o actualizar billing options (T-097) | 🔲 Pendiente |
 
 ---
 
@@ -110,6 +116,9 @@
 | T-089 | Billing multi-currency: almacenar tipo de cambio en tabla `exchange_rates` (V22), convertir `base_price` al momento de crear contrato; campo `exchange_rate_snapshot` en `invoices` | 🔲 Pendiente |
 | T-090 | Motor de dunning: tabla `dunning_events`, job que detecta facturas vencidas, reintenta cobro en D+1/D+3/D+7 con notificación email por evento; requiere gateway real (T-084) | 🔲 Pendiente |
 | T-093 | Evaluar migración a Liquibase o jOOQ code generation para mantener schema y código en sincronía automática; elimina estructuralmente errores tipo `missing column` | 🔲 Pendiente |
+| T-100 | Modelo de precios escalonado (tiers) por billing option: tabla `app_plan_billing_tiers`; cálculo de precio en `ActivateAppContractUseCase`; necesario para plan FLEX con precios por rangos de uso | 🔲 Pendiente |
+| T-101 | Soporte de múltiples monedas por opción de billing: tabla `app_plan_billing_option_prices` con overrides por moneda (`USD`, `MXN`, `EUR`); resolver moneda del suscriptor desde el contrato | 🔲 Pendiente |
+| T-102 | Precios dinámicos vía webhook externo: `DynamicPricingPort` + adapter configurable; precio base en `app_plan_billing_options` como fallback; integración con Stripe Price API | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
@@ -126,4 +135,4 @@
 
 ---
 
-**Última actualización:** 2026-03-29 (T-091/T-092/T-093 agregadas al corregir `SchemaManagementException` por tablas de billing ausentes: `invoices`+`usage_counters` en V24, `subscriber_type` en V23 — 2 incidentes del mismo tipo en el mismo día refuerzan urgencia de T-091) | **Responsable:** AI Agent
+**Última actualización:** 2026-03-30 (T-094/T-095/T-096/T-097/T-098/T-099/T-100/T-101/T-102 agregadas tras refactor de modelo de billing: `billing_period` como lista en `app_plan_billing_options`, `sort_order` en `app_plans`, plan gratuito = sin opciones de billing) | **Responsable:** AI Agent
