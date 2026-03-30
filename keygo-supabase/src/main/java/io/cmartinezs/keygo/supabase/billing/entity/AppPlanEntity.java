@@ -51,6 +51,10 @@ public class AppPlanEntity {
   @Builder.Default
   private boolean isPublic = true;
 
+  @Column(name = "sort_order", nullable = false)
+  @Builder.Default
+  private int sortOrder = 0;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;

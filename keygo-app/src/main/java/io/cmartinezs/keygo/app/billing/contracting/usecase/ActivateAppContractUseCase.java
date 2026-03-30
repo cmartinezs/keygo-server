@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
@@ -10,7 +11,9 @@ import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanBillingOption;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
+import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.billing.invoice.model.Invoice;
@@ -43,6 +46,7 @@ public class ActivateAppContractUseCase {
 
   private final AppContractRepositoryPort contractRepo;
   private final AppPlanVersionRepositoryPort versionRepo;
+  private final AppPlanBillingOptionRepositoryPort billingOptionRepo;
   private final AppSubscriptionRepositoryPort subscriptionRepo;
   private final InvoiceRepositoryPort invoiceRepo;
   private final TenantRepositoryPort tenantRepo;
@@ -54,6 +58,7 @@ public class ActivateAppContractUseCase {
   public ActivateAppContractUseCase(
       AppContractRepositoryPort contractRepo,
       AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
       AppSubscriptionRepositoryPort subscriptionRepo,
       InvoiceRepositoryPort invoiceRepo,
       TenantRepositoryPort tenantRepo,
@@ -63,6 +68,7 @@ public class ActivateAppContractUseCase {
       ClientAppRepositoryPort clientAppRepo) {
     this.contractRepo = contractRepo;
     this.versionRepo = versionRepo;
+    this.billingOptionRepo = billingOptionRepo;
     this.subscriptionRepo = subscriptionRepo;
     this.invoiceRepo = invoiceRepo;
     this.tenantRepo = tenantRepo;
@@ -93,18 +99,29 @@ public class ActivateAppContractUseCase {
     AppPlanVersion planVersion = versionRepo.findById(contract.getSelectedPlanVersionId())
         .orElseThrow(() -> new IllegalStateException("Plan version not found"));
 
+    // Resolve the billing period chosen at contract time
+    BillingPeriod chosenPeriod = contract.getBillingPeriod() != null
+        ? BillingPeriod.valueOf(contract.getBillingPeriod())
+        : null;
+
+    // Resolve billing option for price (free plan = no billing options)
+    AppPlanBillingOption billingOption = chosenPeriod != null
+        ? billingOptionRepo.findByAppPlanVersionIdAndBillingPeriod(planVersion.getId(), chosenPeriod)
+            .orElse(null)
+        : null;
+
     OffsetDateTime now = OffsetDateTime.now();
     AppSubscription subscription;
 
     // B2B branch: companySlug present → create new Tenant
     if (contract.getCompanySlug() != null && !contract.getCompanySlug().isBlank()) {
-      subscription = activateTenantBranch(contract, planVersion, now);
+      subscription = activateTenantBranch(contract, planVersion, chosenPeriod, now);
     } else {
-      subscription = activateTenantUserBranch(contract, planVersion, now);
+      subscription = activateTenantUserBranch(contract, planVersion, chosenPeriod, now);
     }
 
     // Generate first invoice
-    generateInvoice(subscription, contract, planVersion, now);
+    generateInvoice(subscription, contract, planVersion, billingOption, now);
 
     // Mark contract as activated
     UUID tenantId = subscription.getSubscriberTenantId();
@@ -115,7 +132,7 @@ public class ActivateAppContractUseCase {
     return new AppContractResult(contract, subscription);
   }
 
-  private AppSubscription activateTenantBranch(AppContract contract, AppPlanVersion planVersion, OffsetDateTime now) {
+  private AppSubscription activateTenantBranch(AppContract contract, AppPlanVersion planVersion, BillingPeriod chosenPeriod, OffsetDateTime now) {
     // Create new Tenant using companySlug
     Tenant newTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
@@ -138,11 +155,11 @@ public class ActivateAppContractUseCase {
         .build();
     adminUser = userRepo.save(adminUser);
 
-    return createSubscription(contract, planVersion,
+    return createSubscription(contract, planVersion, chosenPeriod,
         newTenant.getId().value(), null, now);
   }
 
-  private AppSubscription activateTenantUserBranch(AppContract contract, AppPlanVersion planVersion, OffsetDateTime now) {
+  private AppSubscription activateTenantUserBranch(AppContract contract, AppPlanVersion planVersion, BillingPeriod chosenPeriod, OffsetDateTime now) {
     // Obtener el tenant del PROVEEDOR a partir del clientAppId almacenado en el contrato
     var providerApp = clientAppRepo.findById(ClientAppId.of(contract.getClientAppId()))
         .orElseThrow(() -> new IllegalStateException(
@@ -166,18 +183,19 @@ public class ActivateAppContractUseCase {
           return userRepo.save(newUser);
         });
 
-    return createSubscription(contract, planVersion,
+    return createSubscription(contract, planVersion, chosenPeriod,
         null, tenantUser.getId().value(), now);
   }
 
   private AppSubscription createSubscription(
       AppContract contract,
       AppPlanVersion planVersion,
+      BillingPeriod chosenPeriod,
       UUID tenantId,
       UUID tenantUserId,
       OffsetDateTime now) {
 
-    OffsetDateTime periodEnd = computePeriodEnd(planVersion, now);
+    OffsetDateTime periodEnd = computePeriodEnd(chosenPeriod, now);
 
     AppSubscription sub = AppSubscription.builder()
         .clientAppId(contract.getClientAppId())
@@ -198,17 +216,33 @@ public class ActivateAppContractUseCase {
     return subscriptionRepo.save(sub);
   }
 
-  private OffsetDateTime computePeriodEnd(AppPlanVersion planVersion, OffsetDateTime start) {
-    return switch (planVersion.getBillingPeriod()) {
+  /**
+   * Computes the period end based on the billing period chosen in the contract.
+   * If the plan is free (no billing period), defaults to 1 month (convention).
+   */
+  private OffsetDateTime computePeriodEnd(BillingPeriod billingPeriod, OffsetDateTime start) {
+    if (billingPeriod == null) {
+      return start.plusYears(100); // free plan — effectively no end
+    }
+    return switch (billingPeriod) {
       case YEARLY -> start.plusYears(1);
       case ONE_TIME -> start.plusYears(100); // effectively no end
       default -> start.plusMonths(1); // MONTHLY
     };
   }
 
-  private void generateInvoice(AppSubscription sub, AppContract contract, AppPlanVersion planVersion, OffsetDateTime now) {
+  private void generateInvoice(
+      AppSubscription sub,
+      AppContract contract,
+      AppPlanVersion planVersion,
+      AppPlanBillingOption billingOption,
+      OffsetDateTime now) {
+
     String invoiceNumber = "INV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     LocalDate today = now.toLocalDate();
+
+    // Free plan: basePrice = 0; paid plan: use the selected billing option price
+    BigDecimal basePrice = billingOption != null ? billingOption.getBasePrice() : BigDecimal.ZERO;
 
     Invoice invoice = Invoice.builder()
         .subscriptionId(sub.getId())
@@ -219,9 +253,9 @@ public class ActivateAppContractUseCase {
         .periodStart(today)
         .periodEnd(sub.getCurrentPeriodEnd().toLocalDate())
         .currency(planVersion.getCurrency())
-        .subtotal(planVersion.getBasePrice())
+        .subtotal(basePrice)
         .taxAmount(BigDecimal.ZERO)
-        .total(planVersion.getBasePrice())
+        .total(basePrice)
         .billingNameSnapshot(contract.getContractorFirstName() + " " + contract.getContractorLastName())
         .billingTaxIdSnapshot(contract.getCompanyTaxId())
         .billingAddressSnapshot(contract.getCompanyAddress())

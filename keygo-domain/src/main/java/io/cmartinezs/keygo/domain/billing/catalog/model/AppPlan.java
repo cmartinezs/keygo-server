@@ -21,6 +21,7 @@ public class AppPlan {
   private final String description;
   private AppPlanStatus status;
   private final boolean isPublic;
+  private final int sortOrder;
 
   @Builder
   private AppPlan(
@@ -30,7 +31,8 @@ public class AppPlan {
       String name,
       String description,
       AppPlanStatus status,
-      boolean isPublic) {
+      boolean isPublic,
+      int sortOrder) {
     if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (code == null || code.isBlank()) throw new IllegalArgumentException("code cannot be blank");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("name cannot be blank");
@@ -43,6 +45,7 @@ public class AppPlan {
     this.description = description;
     this.status = status;
     this.isPublic = isPublic;
+    this.sortOrder = sortOrder;
   }
 
   public boolean isActive() {

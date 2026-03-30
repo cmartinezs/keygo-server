@@ -10,7 +10,34 @@
 
 ---
 
-### [2026-03-29] Seeds de migraciones usaban UUIDs hardcodeados para FKs, planes asignados al app incorrecto y app ficticia en el seed
+### [2026-03-29] Refactor de modelo de billing: billing_period como lista y sort_order en planes
+
+**Contexto:** El modelo original de `app_plan_versions` incluía `billing_period` y `base_price` directamente en la versión del plan. La tarea requería mover el precio/periodo a una tabla separada `app_plan_billing_options` (una fila por periodo disponible), añadir `sort_order` en `app_plans` para ordenar el catálogo en la UI y tratar los planes sin opciones de billing como gratuitos.
+
+**Problema:**
+1. **Código en estados intermedios:** El código ya tenía `AppPlanBillingOptionEntity` y el domain model `AppPlanBillingOption` correctos, pero el mapper, adapters, use cases y la respuesta REST todavía usaban `billingPeriod`/`basePrice` directamente en `AppPlanVersion`. Esto causó múltiples errores de compilación encadenados.
+2. **Maven usa artefactos cacheados:** Al compilar solo `keygo-supabase` con `-pl keygo-supabase` (sin `--also-make`), Maven usa el JAR cacheado de `keygo-app` en el repositorio local, que podía tener una interfaz diferente a la fuente actual. Esto genera errores de "does not override abstract method" falsos. Siempre compilar con `./mvnw compile` o `./mvnw test` en la raíz para evitar inconsistencias.
+3. **Tests usaban API antigua del builder:** Los tests de `CreateAppPlanUseCase`, `GetAppPlanCatalogUseCase` y `AppBillingPlanController` usaban `.billingPeriod()` y `.basePrice()` en el builder de `AppPlanVersion`, que ya no existe. Todos debieron actualizarse.
+4. **`UnnecessaryStubbingException` de Mockito:** Al usar `@ExtendWith(MockitoExtension.class)`, Mockito en strict mode detecta stubs configurados que nunca se invocan (e.g., stub de `entitlementRepo` en un test donde no hay versiones). Eliminar stubs innecesarios o usar `lenient()`.
+
+**Solución / Buena práctica:**
+- `app_plan_versions` ya NO tiene `billing_period` ni `base_price`. Esos campos viven en `app_plan_billing_options` (una fila por periodo por versión).
+- **Plan gratuito = cero filas en `app_plan_billing_options`** para esa versión. No se revisa el precio; simplemente no hay opciones de pago.
+- `app_plans.sort_order INT NOT NULL DEFAULT 0` controla el orden en la UI. Menor = más barato / mostrar primero.
+- La respuesta `AppPlanVersionData` ahora tiene `billingOptions: List<AppPlanBillingOptionData>` y `free: boolean` (= `billingOptions.isEmpty()`).
+- `ActivateAppContractUseCase` debe usar `BillingPeriod.valueOf(contract.getBillingPeriod())` para resolver el periodo, y buscar el precio con `billingOptionRepo.findByAppPlanVersionIdAndBillingPeriod()`.
+- `GetAppPlanCatalogUseCase.execute()` aplica `sorted(Comparator.comparingInt(AppPlan::getSortOrder))` — el sort doble (DB + Java) asegura consistencia incluso si la consulta devuelve datos no ordenados.
+- Al compilar desde raíz, el build compila módulos en orden correcto (domain → app → api → supabase → run) sin inconsistencias de caché.
+
+**Archivos clave:**
+- `keygo-supabase/src/main/resources/db/migration/V10__billing_catalog.sql` — esquema corregido
+- `keygo-domain/.../AppPlanVersion.java` — sin billingPeriod/basePrice
+- `keygo-domain/.../AppPlanBillingOption.java` — lleva billingPeriod, basePrice, discountPct, isDefault
+- `keygo-supabase/.../AppPlanBillingOptionRepositoryAdapter.java` — nuevo adapter
+- `keygo-api/.../AppPlanData.java` — nuevo campo sortOrder, AppPlanVersionData con billingOptions list
+- `keygo-api/.../CreateAppPlanRequest.java` — billingOptions list en vez de billingPeriod/basePrice únicos
+
+
 
 **Contexto:** Los scripts V15–V18 tenían UUIDs hardcodeados para referencias de claves foráneas (tenant_id, client_app_id, user_id, role_id, membership_id, app_plan_id, app_plan_version_id). Además, V16 creaba `keygo-platform` (que no debe existir en el seed) y V17/V18 asociaban los planes de billing a esa app en lugar de `keygo-ui`.
 

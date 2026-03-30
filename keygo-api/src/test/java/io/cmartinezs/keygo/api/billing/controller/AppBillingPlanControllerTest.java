@@ -8,6 +8,7 @@ import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanBillingOption;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanStatus;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersionStatus;
@@ -32,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -88,16 +90,32 @@ class AppBillingPlanControllerTest {
         .name("Starter")
         .status(AppPlanStatus.ACTIVE)
         .isPublic(true)
+        .sortOrder(1)
         .build();
   }
 
+  /** Version without billing period/price (those go in billing options). */
   private AppPlanVersion version(UUID planId) {
     return AppPlanVersion.builder()
         .id(UUID.randomUUID()).appPlanId(planId).version("1.0")
-        .currency("MXN").billingPeriod(BillingPeriod.MONTHLY)
-        .basePrice(new BigDecimal("299")).setupFee(BigDecimal.ZERO)
+        .currency("MXN").setupFee(BigDecimal.ZERO)
         .trialDays(14).effectiveFrom(LocalDate.now())
         .status(AppPlanVersionStatus.ACTIVE).build();
+  }
+
+  private AppPlanBillingOption monthlyOption(UUID versionId) {
+    return AppPlanBillingOption.builder()
+        .id(UUID.randomUUID()).appPlanVersionId(versionId)
+        .billingPeriod(BillingPeriod.MONTHLY)
+        .basePrice(new BigDecimal("299"))
+        .discountPct(BigDecimal.ZERO)
+        .isDefault(true).build();
+  }
+
+  private AppPlanResult planResult(AppPlan p) {
+    AppPlanVersion v = version(p.getId());
+    AppPlanBillingOption opt = monthlyOption(v.getId());
+    return new AppPlanResult(p, List.of(v), Map.of(v.getId(), List.of(opt)), List.of());
   }
 
   private void stubResolver(Tenant t, ClientApp app) {
@@ -114,8 +132,7 @@ class AppBillingPlanControllerTest {
     ClientApp app = clientApp(t.getId());
     AppPlan p = plan(app.getId().value());
     stubResolver(t, app);
-    when(getCatalogUseCase.execute(any()))
-        .thenReturn(List.of(new AppPlanResult(p, List.of(version(p.getId())), List.of())));
+    when(getCatalogUseCase.execute(any())).thenReturn(List.of(planResult(p)));
 
     // When
     var response = controller.getCatalog(TENANT_SLUG, CLIENT_ID);
@@ -124,6 +141,7 @@ class AppBillingPlanControllerTest {
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody().getData()).hasSize(1);
     assertThat(response.getBody().getData().get(0).code()).isEqualTo("STARTER");
+    assertThat(response.getBody().getData().get(0).sortOrder()).isEqualTo(1);
   }
 
   @Test
@@ -133,8 +151,7 @@ class AppBillingPlanControllerTest {
     ClientApp app = clientApp(t.getId());
     AppPlan p = plan(app.getId().value());
     stubResolver(t, app);
-    when(getPlanUseCase.execute(any(), eq("STARTER")))
-        .thenReturn(new AppPlanResult(p, List.of(version(p.getId())), List.of()));
+    when(getPlanUseCase.execute(any(), eq("STARTER"))).thenReturn(planResult(p));
 
     // When
     var response = controller.getPlanPublic(TENANT_SLUG, CLIENT_ID, "STARTER");
@@ -142,6 +159,9 @@ class AppBillingPlanControllerTest {
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody().getData().code()).isEqualTo("STARTER");
+    // Version should have 1 billing option (MONTHLY), not free
+    assertThat(response.getBody().getData().versions().get(0).free()).isFalse();
+    assertThat(response.getBody().getData().versions().get(0).billingOptions()).hasSize(1);
   }
 
   @Test
@@ -168,10 +188,12 @@ class AppBillingPlanControllerTest {
 
     CreateAppPlanRequest request = new CreateAppPlanRequest(
         "STARTER", "Starter Plan", null, true,
-        "1.0", BillingPeriod.MONTHLY, new BigDecimal("299"), "MXN",
-        14, LocalDate.now(), List.of());
-    when(createPlanUseCase.execute(any()))
-        .thenReturn(new AppPlanResult(p, List.of(version(p.getId())), List.of()));
+        1,          // sortOrder
+        "1.0", "MXN", 14, LocalDate.now(),
+        List.of(new CreateAppPlanRequest.BillingOptionRequest(
+            BillingPeriod.MONTHLY, new BigDecimal("299"), BigDecimal.ZERO, true)),
+        List.of());
+    when(createPlanUseCase.execute(any())).thenReturn(planResult(p));
 
     // When
     var response = controller.createPlan(TENANT_SLUG, CLIENT_ID, request);

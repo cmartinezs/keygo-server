@@ -49,8 +49,6 @@ public class AppPlanVersionRepositoryAdapter implements AppPlanVersionRepository
         .appPlan(planRef)
         .version(version.getVersion())
         .currency(version.getCurrency())
-        .billingPeriod(version.getBillingPeriod())
-        .basePrice(version.getBasePrice())
         .setupFee(version.getSetupFee())
         .trialDays(version.getTrialDays())
         .effectiveFrom(version.getEffectiveFrom())

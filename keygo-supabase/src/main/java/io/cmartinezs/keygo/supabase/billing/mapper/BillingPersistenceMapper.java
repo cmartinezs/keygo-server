@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.supabase.billing.mapper;
 
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanBillingOption;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanEntitlement;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
@@ -39,13 +40,24 @@ public final class BillingPersistenceMapper {
         .appPlanId(e.getAppPlan().getId())
         .version(e.getVersion())
         .currency(e.getCurrency())
-        .billingPeriod(e.getBillingPeriod())
-        .basePrice(e.getBasePrice())
         .setupFee(e.getSetupFee())
         .trialDays(e.getTrialDays())
         .effectiveFrom(e.getEffectiveFrom())
         .effectiveTo(e.getEffectiveTo())
         .status(e.getStatus())
+        .build();
+  }
+
+  // ── AppPlanBillingOption ─────────────────────────────────────────────────
+
+  public static AppPlanBillingOption toDomain(AppPlanBillingOptionEntity e) {
+    return AppPlanBillingOption.builder()
+        .id(e.getId())
+        .appPlanVersionId(e.getAppPlanVersion().getId())
+        .billingPeriod(e.getBillingPeriod())
+        .basePrice(e.getBasePrice())
+        .discountPct(e.getDiscountPct())
+        .isDefault(e.isDefault())
         .build();
   }
 

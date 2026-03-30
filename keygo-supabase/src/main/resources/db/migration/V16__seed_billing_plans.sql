@@ -5,7 +5,9 @@
 -- ClientApp "keygo-ui" — la app pública a través de la cual los suscriptores
 -- contratan el servicio KeyGo IAM.
 --
--- Todos los planes son públicos y ACTIVE. Precio en MXN, facturación MONTHLY.
+-- Todos los planes son públicos y ACTIVE. Precio en MXN.
+-- sort_order controla el orden en la UI (menor = más barato).
+-- Billing options separadas: FREE no tiene opciones (plan gratuito).
 --
 -- Convención de FK: nunca se hardcodean UUIDs de FK; se resuelven con
 -- subqueries SELECT sobre el campo semántico del padre (client_id, code, version).
@@ -23,38 +25,38 @@
 -- =============================================================================
 
 -- ────────────────────────────────────────────────────────────────────────────
--- PLANES
+-- PLANES (con sort_order: FREE=0, STARTER=1, BUSINESS=2, ENTERPRISE=3)
 --    FK client_app_id → client_apps.client_id (subquery)
 -- ────────────────────────────────────────────────────────────────────────────
-INSERT INTO app_plans (id, client_app_id, code, name, description, status, is_public)
+INSERT INTO app_plans (id, client_app_id, code, name, description, status, is_public, sort_order)
 VALUES
   (
     '22222222-2222-2222-2222-100000000001',
     (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
     'FREE', 'Free',
     'Ideal para explorar KeyGo sin costo. Sin tarjeta de crédito.',
-    'ACTIVE', TRUE
+    'ACTIVE', TRUE, 0
   ),
   (
     '22222222-2222-2222-2222-100000000002',
     (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
     'STARTER', 'Starter',
     'Para startups y equipos pequeños que necesitan IAM básico.',
-    'ACTIVE', TRUE
+    'ACTIVE', TRUE, 1
   ),
   (
     '22222222-2222-2222-2222-100000000003',
     (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
     'BUSINESS', 'Business',
     'Para empresas medianas con múltiples aplicaciones y equipos.',
-    'ACTIVE', TRUE
+    'ACTIVE', TRUE, 2
   ),
   (
     '22222222-2222-2222-2222-100000000004',
     (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
     'ENTERPRISE', 'Enterprise',
     'Para grandes organizaciones con requerimientos avanzados de seguridad y soporte.',
-    'ACTIVE', TRUE
+    'ACTIVE', TRUE, 3
   )
 ON CONFLICT (client_app_id, code) DO UPDATE
 SET
@@ -62,43 +64,71 @@ SET
   description = EXCLUDED.description,
   status      = EXCLUDED.status,
   is_public   = EXCLUDED.is_public,
+  sort_order  = EXCLUDED.sort_order,
   updated_at  = CURRENT_TIMESTAMP;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- VERSIONES DE PLAN (v1.0, vigente desde 2026-01-01)
+-- NOTA: billing_period y base_price ya no van aquí; están en app_plan_billing_options
 --    FK app_plan_id → app_plans.code + client_apps.client_id (subquery)
 -- ────────────────────────────────────────────────────────────────────────────
-INSERT INTO app_plan_versions (id, app_plan_id, version, currency, billing_period, base_price, setup_fee, trial_days, effective_from, status)
+INSERT INTO app_plan_versions (id, app_plan_id, version, currency, setup_fee, trial_days, effective_from, status)
 VALUES
   (
     '33333333-3333-3333-3333-100000000001',
     (SELECT ap.id FROM app_plans ap JOIN client_apps ca ON ca.id = ap.client_app_id WHERE ca.client_id = 'keygo-ui' AND ap.code = 'FREE'),
-    '1.0', 'MXN', 'MONTHLY',    0.00, 0.00,  0, '2026-01-01', 'ACTIVE'
+    '1.0', 'MXN', 0.00,  0, '2026-01-01', 'ACTIVE'
   ),
   (
     '33333333-3333-3333-3333-100000000002',
     (SELECT ap.id FROM app_plans ap JOIN client_apps ca ON ca.id = ap.client_app_id WHERE ca.client_id = 'keygo-ui' AND ap.code = 'STARTER'),
-    '1.0', 'MXN', 'MONTHLY',  299.00, 0.00, 14, '2026-01-01', 'ACTIVE'
+    '1.0', 'MXN', 0.00, 14, '2026-01-01', 'ACTIVE'
   ),
   (
     '33333333-3333-3333-3333-100000000003',
     (SELECT ap.id FROM app_plans ap JOIN client_apps ca ON ca.id = ap.client_app_id WHERE ca.client_id = 'keygo-ui' AND ap.code = 'BUSINESS'),
-    '1.0', 'MXN', 'MONTHLY',  999.00, 0.00, 14, '2026-01-01', 'ACTIVE'
+    '1.0', 'MXN', 0.00, 14, '2026-01-01', 'ACTIVE'
   ),
   (
     '33333333-3333-3333-3333-100000000004',
     (SELECT ap.id FROM app_plans ap JOIN client_apps ca ON ca.id = ap.client_app_id WHERE ca.client_id = 'keygo-ui' AND ap.code = 'ENTERPRISE'),
-    '1.0', 'MXN', 'MONTHLY', 3999.00, 0.00, 30, '2026-01-01', 'ACTIVE'
+    '1.0', 'MXN', 0.00, 30, '2026-01-01', 'ACTIVE'
   )
 ON CONFLICT (app_plan_id, version) DO UPDATE
 SET
   currency       = EXCLUDED.currency,
-  billing_period = EXCLUDED.billing_period,
-  base_price     = EXCLUDED.base_price,
   setup_fee      = EXCLUDED.setup_fee,
   trial_days     = EXCLUDED.trial_days,
   effective_from = EXCLUDED.effective_from,
   status         = EXCLUDED.status;
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- BILLING OPTIONS — opciones de período por versión
+-- FREE: sin opciones (plan gratuito, no se requiere pago)
+-- STARTER / BUSINESS / ENTERPRISE: MONTHLY + YEARLY (con descuento)
+-- ────────────────────────────────────────────────────────────────────────────
+-- STARTER v1.0 — MONTHLY $299 / YEARLY $2,990 (descuento ~17%)
+INSERT INTO app_plan_billing_options (id, app_plan_version_id, billing_period, base_price, discount_pct, is_default)
+VALUES
+  (gen_random_uuid(), '33333333-3333-3333-3333-100000000002', 'MONTHLY',   299.00,  0.00, TRUE),
+  (gen_random_uuid(), '33333333-3333-3333-3333-100000000002', 'YEARLY',   2990.00, 16.62, FALSE)
+ON CONFLICT (app_plan_version_id, billing_period) DO UPDATE
+SET base_price=EXCLUDED.base_price, discount_pct=EXCLUDED.discount_pct, is_default=EXCLUDED.is_default;
+
+-- BUSINESS v1.0 — MONTHLY $999 / YEARLY $9,990 (descuento ~17%)
+INSERT INTO app_plan_billing_options (id, app_plan_version_id, billing_period, base_price, discount_pct, is_default)
+VALUES
+  (gen_random_uuid(), '33333333-3333-3333-3333-100000000003', 'MONTHLY',   999.00,  0.00, TRUE),
+  (gen_random_uuid(), '33333333-3333-3333-3333-100000000003', 'YEARLY',   9990.00, 16.62, FALSE)
+ON CONFLICT (app_plan_version_id, billing_period) DO UPDATE
+SET base_price=EXCLUDED.base_price, discount_pct=EXCLUDED.discount_pct, is_default=EXCLUDED.is_default;
+
+-- ENTERPRISE v1.0 — solo YEARLY (precio por negociación)
+INSERT INTO app_plan_billing_options (id, app_plan_version_id, billing_period, base_price, discount_pct, is_default)
+VALUES
+  (gen_random_uuid(), '33333333-3333-3333-3333-100000000004', 'YEARLY', 3999.00, 0.00, TRUE)
+ON CONFLICT (app_plan_version_id, billing_period) DO UPDATE
+SET base_price=EXCLUDED.base_price, discount_pct=EXCLUDED.discount_pct, is_default=EXCLUDED.is_default;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- ENTITLEMENTS — FREE v1.0

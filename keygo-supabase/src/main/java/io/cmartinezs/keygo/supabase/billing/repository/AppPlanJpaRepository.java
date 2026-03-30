@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AppPlanJpaRepository extends JpaRepository<AppPlanEntity, UUID> {
-  List<AppPlanEntity> findByClientAppIdAndIsPublicTrueAndStatus(UUID clientAppId, AppPlanStatus status);
+  List<AppPlanEntity> findByClientAppIdAndIsPublicTrueAndStatusOrderBySortOrderAsc(UUID clientAppId, AppPlanStatus status);
   List<AppPlanEntity> findByClientAppId(UUID clientAppId);
   Optional<AppPlanEntity> findByClientAppIdAndCode(UUID clientAppId, String code);
   boolean existsByClientAppIdAndCode(UUID clientAppId, String code);

@@ -32,7 +32,7 @@ public class AppPlanRepositoryAdapter implements AppPlanRepositoryPort {
 
   @Override
   public List<AppPlan> findPublicByClientAppId(UUID clientAppId) {
-    return jpaRepo.findByClientAppIdAndIsPublicTrueAndStatus(clientAppId, AppPlanStatus.ACTIVE)
+    return jpaRepo.findByClientAppIdAndIsPublicTrueAndStatusOrderBySortOrderAsc(clientAppId, AppPlanStatus.ACTIVE)
         .stream().map(BillingPersistenceMapper::toDomain).toList();
   }
 
@@ -64,6 +64,7 @@ public class AppPlanRepositoryAdapter implements AppPlanRepositoryPort {
         .description(plan.getDescription())
         .status(plan.getStatus())
         .isPublic(plan.isPublic())
+        .sortOrder(plan.getSortOrder())
         .build();
     return BillingPersistenceMapper.toDomain(jpaRepo.save(entity));
   }

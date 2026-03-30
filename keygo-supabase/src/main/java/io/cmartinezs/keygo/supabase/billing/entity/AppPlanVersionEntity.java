@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersionStatus;
-import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,6 +12,7 @@ import java.util.UUID;
 
 /**
  * JPA entity for app_plan_versions table.
+ * Pricing per billing period is defined in {@link AppPlanBillingOptionEntity}.
  * @author cmartinezs
  * @version 1.0
  */
@@ -38,15 +38,7 @@ public class AppPlanVersionEntity {
 
   @Column(nullable = false, length = 3)
   @Builder.Default
-  private String currency = "MXN";
-
-  @Enumerated(EnumType.STRING)
-  @Column(name = "billing_period", nullable = false, length = 20)
-  private BillingPeriod billingPeriod;
-
-  @Column(name = "base_price", nullable = false, precision = 12, scale = 2)
-  @Builder.Default
-  private BigDecimal basePrice = BigDecimal.ZERO;
+  private String currency = "USD";
 
   @Column(name = "setup_fee", nullable = false, precision = 12, scale = 2)
   @Builder.Default
@@ -71,4 +63,3 @@ public class AppPlanVersionEntity {
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 }
-

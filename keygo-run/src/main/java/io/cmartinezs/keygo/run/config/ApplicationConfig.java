@@ -66,6 +66,7 @@ import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
@@ -543,24 +544,27 @@ public class ApplicationConfig {
   public GetAppPlanCatalogUseCase getAppPlanCatalogUseCase(
       AppPlanRepositoryPort planRepo,
       AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
       AppPlanEntitlementRepositoryPort entitlementRepo) {
-    return new GetAppPlanCatalogUseCase(planRepo, versionRepo, entitlementRepo);
+    return new GetAppPlanCatalogUseCase(planRepo, versionRepo, billingOptionRepo, entitlementRepo);
   }
 
   @Bean
   public GetAppPlanUseCase getAppPlanUseCase(
       AppPlanRepositoryPort planRepo,
       AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
       AppPlanEntitlementRepositoryPort entitlementRepo) {
-    return new GetAppPlanUseCase(planRepo, versionRepo, entitlementRepo);
+    return new GetAppPlanUseCase(planRepo, versionRepo, billingOptionRepo, entitlementRepo);
   }
 
   @Bean
   public CreateAppPlanUseCase createAppPlanUseCase(
       AppPlanRepositoryPort planRepo,
       AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
       AppPlanEntitlementRepositoryPort entitlementRepo) {
-    return new CreateAppPlanUseCase(planRepo, versionRepo, entitlementRepo);
+    return new CreateAppPlanUseCase(planRepo, versionRepo, billingOptionRepo, entitlementRepo);
   }
 
   // ─── Billing: Contratación ────────────────────────────────────────────────
@@ -598,6 +602,7 @@ public class ApplicationConfig {
   public ActivateAppContractUseCase activateAppContractUseCase(
       AppContractRepositoryPort contractRepo,
       AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
       AppSubscriptionRepositoryPort subscriptionRepo,
       InvoiceRepositoryPort invoiceRepo,
       TenantRepositoryPort tenantRepositoryPort,
@@ -606,7 +611,7 @@ public class ApplicationConfig {
       AppRoleRepositoryPort appRoleRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort) {
     return new ActivateAppContractUseCase(
-        contractRepo, versionRepo, subscriptionRepo, invoiceRepo,
+        contractRepo, versionRepo, billingOptionRepo, subscriptionRepo, invoiceRepo,
         tenantRepositoryPort, userRepo, membershipRepositoryPort, appRoleRepositoryPort,
         clientAppRepositoryPort);
   }

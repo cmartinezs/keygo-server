@@ -9,7 +9,8 @@ import java.util.UUID;
 
 /**
  * Domain model for a versioned plan definition.
- * Subscriptions reference a specific version, freezing the pricing.
+ * Subscriptions reference a specific version, freezing the configuration.
+ * Pricing per billing period is defined in {@link AppPlanBillingOption}.
  * @author cmartinezs
  * @version 1.0
  */
@@ -21,8 +22,6 @@ public class AppPlanVersion {
   private final UUID appPlanId;
   private final String version;
   private final String currency;
-  private final BillingPeriod billingPeriod;
-  private final BigDecimal basePrice;
   private final BigDecimal setupFee;
   private final int trialDays;
   private final LocalDate effectiveFrom;
@@ -37,4 +36,3 @@ public class AppPlanVersion {
     this.status = AppPlanVersionStatus.DEPRECATED;
   }
 }
-
