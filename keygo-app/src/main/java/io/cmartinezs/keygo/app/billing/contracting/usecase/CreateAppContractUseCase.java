@@ -72,7 +72,8 @@ public class CreateAppContractUseCase {
     contract = contractRepo.save(contract);
 
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
-    emailNotification.sendVerificationEmail(contract.getContractorEmail(), recipientName, verificationCode);
+    emailNotification.sendContractVerificationEmail(
+        contract.getContractorEmail(), recipientName, verificationCode, contract.getId());
 
     return new AppContractResult(contract, null);
   }

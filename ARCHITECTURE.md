@@ -1,6 +1,6 @@
 # Arquitectura de KeyGo Server
 
-> 📖 **Documento canónico:** [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md)  
+> 📖 **Documento canónico:** [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md)
 > Este archivo es un resumen de referencia rápida. Para el detalle completo, ver el enlace anterior.
 
 ---
@@ -21,7 +21,7 @@
 | `keygo-app` | Usecases + puertos (interfaces OUT). | ✅ Activo |
 | `keygo-infra` | JWT signer (RSA/Nimbus), JWKS builder, PkceVerifier. | ✅ Activo |
 | `keygo-api` | REST controllers + DTOs + error handlers. | ✅ Activo |
-| `keygo-supabase` | JPA/Flyway + entidades + repos. Migraciones V1–V10. | ✅ Activo |
+| `keygo-supabase` | JPA/Flyway + entidades + repos. Migraciones V1–V18. | ✅ Activo |
 | `keygo-run` | Main + wiring + `application.yml`. | ✅ Activo |
 | `keygo-bom` | Gestión de versiones de dependencias. | ✅ Activo |
 | `keygo-common` | Utilidades compartidas. | 🚧 Stub |
@@ -40,23 +40,11 @@ Client → BootstrapAdminKeyFilter → keygo-api (Controller)
 
 ## Seguridad
 
-- `/api/**` protegido con header `X-KEYGO-ADMIN` (valor: `KEYGO_ADMIN_KEY`).
+- `/api/**` protegido con `Authorization: Bearer <jwt>` (rol `ADMIN` o `ADMIN_TENANT`).
 - `/actuator/**`, `/.well-known/**`, `/swagger-ui/**`, `/v3/api-docs` son públicos.
-- ✅ T-001 corregido (2026-03-21): el filtro usa `getServletPath()` correctamente con `context-path`.
-
-## Respuestas API
-
-Toda respuesta usa `BaseResponse<T>` con `ResponseCode` en `keygo-api`.
-
-## Comandos
-
-```bash
-./mvnw clean package          # build completo
-./mvnw test                   # tests
-./mvnw spring-boot:run -pl keygo-run  # ejecutar
-```
+- `@PreAuthorize` por endpoint + `TenantAuthorizationEvaluator` para aislamiento por tenant.
 
 ---
 
-> Ver [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) para: modelo conceptual,
-> estrategia multi-tenant, flujos OAuth2/OIDC, planos del sistema, CI/CD propuesto y más.
+> Ver [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) para modelo conceptual,
+> estrategia multi-tenant, flujos OAuth2/OIDC y más.

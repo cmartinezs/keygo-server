@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.user.port;
 
+import java.util.UUID;
+
 /**
  * Port OUT — contract for sending email notifications.
  * <p>Puerto de salida — contrato para el envío de notificaciones por email.
@@ -18,14 +20,26 @@ public interface EmailNotificationPort {
   void sendVerificationEmail(String toEmail, String username, String verificationCode);
 
   /**
-   * Send a temporary password to a provisioned user (e.g. created via billing contract).
-   * The user must reset the password on first login.
-   * <p>Envía una contraseña temporal a un usuario aprovisionado (ej. creado vía contrato de billing).
-   * El usuario debe resetear la contraseña en el primer inicio de sesión.
+   * Send a verification code email for a billing contract onboarding.
+   * Includes the contractId so the recipient can resume the onboarding flow via
+   * {@code GET /billing/contracts/{contractId}/resume}.
+   * <p>Envía un email con código de verificación para el onboarding de un contrato de billing.
+   * Incluye el contractId para que el destinatario pueda retomar el flujo via
+   * {@code GET /billing/contracts/{contractId}/resume}.
    *
-   * @param toEmail       the recipient's email address
-   * @param username      the recipient's username (for personalization)
-   * @param rawPassword   the temporary raw password (plain text — sent once, never stored)
+   * @param toEmail          the contractor's email address
+   * @param recipientName    the contractor's full name (for personalization)
+   * @param verificationCode the 6-digit verification code
+   * @param contractId       the UUID of the contract (needed to resume onboarding)
+   */
+  void sendContractVerificationEmail(String toEmail, String recipientName, String verificationCode, UUID contractId);
+
+  /**
+   * Send a temporary password email to a newly created user.
+   * <p>Envía un email con contraseña temporal a un usuario recién creado.
+   * @param toEmail      the recipient's email address
+   * @param username     the recipient's username (for personalization)
+   * @param rawPassword  the plain-text temporary password
    */
   void sendTemporaryPasswordEmail(String toEmail, String username, String rawPassword);
 }

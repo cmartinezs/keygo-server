@@ -72,7 +72,8 @@ public class ResendContractVerificationUseCase {
     }
 
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
-    emailNotification.sendVerificationEmail(contract.getContractorEmail(), recipientName, codeToSend);
+    emailNotification.sendContractVerificationEmail(
+        contract.getContractorEmail(), recipientName, codeToSend, contract.getId());
 
     return new AppContractResult(contract, null);
   }

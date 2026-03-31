@@ -30,5 +30,20 @@ public interface EmailVerificationRepositoryPort {
    * @return an Optional containing the latest verification if found
    */
   Optional<EmailVerification> findLatestByUserIdAndTenantId(UserId userId, TenantId tenantId);
+
+  /**
+   * Atomically: if there is a valid (non-expired, non-used) verification for the user, returns it
+   * without persisting anything. Otherwise, saves {@code newVerification} and returns it.
+   * <p>Atómicamente: si existe una verificación vigente (no expirada, no usada) para el usuario,
+   * la devuelve sin persistir nada. Si no, guarda {@code newVerification} y la devuelve.
+   * <p>Implementations must execute the find+check+save sequence within a single database
+   * transaction with a pessimistic write lock to prevent concurrent duplicate insertions.
+   *
+   * @param userId          the user identifier
+   * @param tenantId        the tenant identifier
+   * @param newVerification the verification to persist when none is currently active
+   * @return the active {@link EmailVerification} — either the pre-existing one or the newly saved one
+   */
+  EmailVerification saveIfExpiredOrAbsent(UserId userId, TenantId tenantId, EmailVerification newVerification);
 }
 

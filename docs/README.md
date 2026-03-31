@@ -14,7 +14,7 @@ docs/
 ├── data/        Modelo de datos, relaciones entre entidades y migraciones Flyway
 ├── development/ Herramientas de desarrollo: IntelliJ, entornos, tests, estilo de código
 ├── operations/  Despliegue, Docker, firma de tokens y JWKS
-└── research/    Investigaciones y reportes técnicos de referencia
+└── archive/     Reportes y documentos históricos de referencia (ya no activos)
 ```
 
 ---
@@ -29,7 +29,8 @@ docs/
 | [propuestas.md](ai/propuestas.md) | Propuestas técnicas (T-NNN) y funcionales (F-NNN) — resumen de estado rápido | AI Agents |
 | [inconsistencias.md](ai/inconsistencias.md) | Centralizador de inconsistencias detectadas entre docs y código/DB | AI Agents |
 | [inconsistencias-datos.md](ai/inconsistencias-datos.md) | Detalle de inconsistencias en el modelo de datos / schema DB | AI Agents, DBA |
-| [agents-registro.md](ai/agents-registro.md) | Historial detallado de cambios en módulos, comandos, patrones y URLs del quick-start | AI Agents |
+| [agents-registro.md](ai/agents-registro.md) | Historial de cambios recientes en módulos, comandos, patrones y URLs del quick-start | AI Agents |
+| [agents-registro-historico.md](ai/agents-registro-historico.md) | Historial archivado de cambios (Fases 0–9b, pre 2026-03-25) | AI Agents |
 
 > Ver también `AI_CONTEXT.md` y `AGENTS.md` en la raíz del repo para los resúmenes de referencia rápida con enlaces a esta carpeta.
 
@@ -67,7 +68,7 @@ docs/
 |---|---|---|
 | [DATA_MODEL.md](data/DATA_MODEL.md) | Diccionario completo de tablas: campos, tipos, constraints, reglas de negocio | Devs, QA, DBA |
 | [ENTITY_RELATIONSHIPS.md](data/ENTITY_RELATIONSHIPS.md) | Diagramas E/R, flujos de datos, state machines, índices SQL | Devs, Arquitectos |
-| [MIGRATIONS.md](data/MIGRATIONS.md) | Migraciones Flyway V1–V10 + convenciones para futuras migraciones | Devs, DBA |
+| [MIGRATIONS.md](data/MIGRATIONS.md) | Migraciones Flyway V1–V18 + convenciones para futuras migraciones | Devs, DBA |
 
 ---
 
@@ -105,7 +106,7 @@ docs/
 3. [`OPENAPI.md`](api/OPENAPI.md) — probar los endpoints en Swagger UI
 
 ### Quiero trabajar con la base de datos
-1. [`MIGRATIONS.md`](data/MIGRATIONS.md) — migraciones V1–V10 y cómo crear V11+
+1. [`MIGRATIONS.md`](data/MIGRATIONS.md) — migraciones V1–V18 y cómo crear V19+
 2. [`DATA_MODEL.md`](data/DATA_MODEL.md) — diccionario de tablas
 3. [`ENTITY_RELATIONSHIPS.md`](data/ENTITY_RELATIONSHIPS.md) — relaciones E/R
 

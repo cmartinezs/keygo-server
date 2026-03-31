@@ -145,31 +145,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 ### Retroalimentación obligatoria al concluir tarea
 
-Al terminar **cualquier tarea**, evaluar los eventos de la siguiente tabla y actualizar los docs correspondientes **antes de cerrar**:
-
-| Evento | Documento | Sección |
-|---|---|---|
-| Error de compilación / test fallido / bug resuelto | [`docs/ai/lecciones.md`](docs/ai/lecciones.md) | Agregar entrada |
-| Mejor patrón o convención nueva | [`docs/ai/lecciones.md`](docs/ai/lecciones.md) | Agregar entrada |
-| Inconsistencia detectada entre docs y código/DB | [`docs/ai/inconsistencias-<cat>.md`](docs/ai/inconsistencias.md) | Agregar entrada + registrar en `docs/ai/inconsistencias.md` |
-| Propuesta técnica o funcional nueva | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Agregar con ID T-NNN o F-NNN |
-| Propuesta completada | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) | Marcar ✅ + mover a historial |
-| Cambio en módulos, rutas o patrones quick-start | [`AGENTS.md`](AGENTS.md) + [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) | Actualizar sección + entrada registro |
-| Nuevo endpoint REST | `docs/postman/KeyGo-Server.postman_collection.json` | Agregar request con `pm.test()` |
-| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Diccionario de nuevas tablas |
-| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
-| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Sección "Próximas migraciones" |
-
+> Ver tabla completa y formato de entrada en [`CLAUDE.md`](CLAUDE.md#3--retroalimentación-obligatoria-al-concluir-una-tarea).
+>
 > ⚠️ Esta retroalimentación **no está sujeta** a la regla "solo bajo orden explícita".
-
-**Formato de entrada en lecciones:**
-```markdown
-### [YYYY-MM-DD] Título descriptivo
-**Contexto:** Tarea que generó el aprendizaje.
-**Problema:** Qué falló o qué mejoró.
-**Solución / Buena práctica:** Cómo se resolvió.
-**Archivos clave:** (opcional)
-```
 
 ### Git — prohibición de ejecución directa
 

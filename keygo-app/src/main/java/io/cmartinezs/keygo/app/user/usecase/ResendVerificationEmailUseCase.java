@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.user.usecase;
 
+import io.cmartinezs.keygo.app.auth.port.ClockPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResendVerificationCommand;
@@ -11,23 +12,29 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.EmailVerification;
 import io.cmartinezs.keygo.domain.user.model.User;
 
 import java.security.SecureRandom;
-import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
  * Use case: resend a verification email to a pending user.
  * <p>Caso de uso: reenviar el email de verificación a un usuario pendiente.
- * A new code can only be requested once the previous one has expired.
- * <p>Un nuevo código solo se puede solicitar cuando el anterior ya ha expirado.
+ *
+ * <p><strong>Policy (aligned with the billing contracting flow):</strong>
+ * <ul>
+ *   <li>If the current code is still valid (not expired, not used) → resend the <em>same</em> code.
+ *       The user simply did not receive the previous email.</li>
+ *   <li>If the code has expired or there is no previous code → generate a new one, persist it
+ *       atomically (pessimistic lock prevents duplicate inserts under concurrent requests), and
+ *       send the email.</li>
+ * </ul>
+ *
  * @author cmartinezs
- * @version 1.0
+ * @version 1.1
  */
 public class ResendVerificationEmailUseCase {
 
@@ -39,6 +46,7 @@ public class ResendVerificationEmailUseCase {
   private final UserRepositoryPort userRepositoryPort;
   private final EmailVerificationRepositoryPort emailVerificationRepositoryPort;
   private final EmailNotificationPort emailNotificationPort;
+  private final ClockPort clock;
   private final SecureRandom secureRandom;
 
   public ResendVerificationEmailUseCase(
@@ -46,22 +54,24 @@ public class ResendVerificationEmailUseCase {
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       EmailVerificationRepositoryPort emailVerificationRepositoryPort,
-      EmailNotificationPort emailNotificationPort) {
+      EmailNotificationPort emailNotificationPort,
+      ClockPort clock) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
     this.emailVerificationRepositoryPort = emailVerificationRepositoryPort;
     this.emailNotificationPort = emailNotificationPort;
+    this.clock = clock;
     this.secureRandom = new SecureRandom();
   }
 
   /**
    * Execute the resend verification flow.
+   *
    * @param command the resend command
-   * @throws TenantNotFoundException               if the tenant does not exist
-   * @throws ClientAppNotFoundException            if the client app does not belong to this tenant
-   * @throws UserNotFoundException                 if no user matches the email within the tenant
-   * @throws EmailVerificationStillActiveException if the current code has not expired yet
+   * @throws TenantNotFoundException     if the tenant does not exist
+   * @throws ClientAppNotFoundException  if the client app does not belong to this tenant
+   * @throws UserNotFoundException       if no user matches the email within the tenant
    */
   public void execute(ResendVerificationCommand command) {
     // 1. Validate tenant and client app
@@ -76,23 +86,19 @@ public class ResendVerificationEmailUseCase {
     User user = userRepositoryPort.findByTenantIdAndEmail(tenant.getId(), email)
         .orElseThrow(() -> new UserNotFoundException(command.email()));
 
-    // 3. Check if there is a still-active code (not expired and not used)
-    emailVerificationRepositoryPort
-        .findLatestByUserIdAndTenantId(user.getId(), tenant.getId())
-        .ifPresent(existing -> {
-          if (!existing.isExpired() && !existing.isUsed()) {
-            throw new EmailVerificationStillActiveException(command.email());
-          }
-        });
+    // 3. Prepare a new verification in case the current one is expired or absent.
+    //    saveIfExpiredOrAbsent will atomically return the existing valid one if it exists,
+    //    or persist and return the new one — preventing concurrent duplicate inserts.
+    String newCode = generateCode();
+    EmailVerification newVerification = EmailVerification.create(
+        user.getId(), tenant.getId(), newCode,
+        clock.now().plus(VERIFICATION_EXPIRY_MINUTES, ChronoUnit.MINUTES));
 
-    // 4. Generate new code and persist
-    String code = generateCode();
-    Instant expiresAt = Instant.now().plus(VERIFICATION_EXPIRY_MINUTES, ChronoUnit.MINUTES);
-    EmailVerification verification = EmailVerification.create(user.getId(), tenant.getId(), code, expiresAt);
-    emailVerificationRepositoryPort.save(verification);
+    EmailVerification active = emailVerificationRepositoryPort
+        .saveIfExpiredOrAbsent(user.getId(), tenant.getId(), newVerification);
 
-    // 5. Send new verification email
-    emailNotificationPort.sendVerificationEmail(email.value(), user.getUsername().value(), code);
+    // 4. Send whichever code is active (same or newly generated)
+    emailNotificationPort.sendVerificationEmail(email.value(), user.getUsername().value(), active.getCode());
   }
 
   private String generateCode() {

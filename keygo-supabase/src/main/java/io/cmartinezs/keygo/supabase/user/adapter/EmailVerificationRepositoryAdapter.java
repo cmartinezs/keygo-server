@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import io.cmartinezs.keygo.supabase.user.repository.EmailVerificationJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -33,10 +34,56 @@ public class EmailVerificationRepositoryAdapter implements EmailVerificationRepo
 
   @Override
   public EmailVerification save(EmailVerification verification) {
-    // Resolve TenantUserEntity (proxy with only the id is sufficient for FK)
     TenantUserEntity userProxy = tenantUserJpaRepository.getReferenceById(verification.getUserId().value());
+    EmailVerificationEntity entity = toEntity(verification, userProxy);
+    EmailVerificationEntity saved = jpaRepository.save(entity);
+    return toDomain(saved, verification.getTenantId());
+  }
 
-    EmailVerificationEntity entity = EmailVerificationEntity.builder()
+  @Override
+  public Optional<EmailVerification> findLatestByUserIdAndTenantId(UserId userId, TenantId tenantId) {
+    return tenantUserJpaRepository.findByIdAndTenantId(userId.value(), tenantId.value())
+        .flatMap(userEntity ->
+            jpaRepository.findTopByTenantUserOrderByCreatedAtDesc(userEntity)
+                .map(ev -> toDomain(ev, tenantId)));
+  }
+
+  /**
+   * Atomically checks if a valid (non-expired, non-used) verification exists for the user.
+   * If one exists, returns it without persisting anything.
+   * If none exists (or the latest is expired/used), saves {@code newVerification} and returns it.
+   * <p>Uses a pessimistic write lock on the latest row to prevent concurrent duplicate inserts.
+   */
+  @Override
+  @Transactional
+  public EmailVerification saveIfExpiredOrAbsent(UserId userId, TenantId tenantId, EmailVerification newVerification) {
+    Optional<TenantUserEntity> userEntityOpt =
+        tenantUserJpaRepository.findByIdAndTenantId(userId.value(), tenantId.value());
+
+    if (userEntityOpt.isPresent()) {
+      TenantUserEntity userEntity = userEntityOpt.get();
+      Optional<EmailVerificationEntity> latestOpt =
+          jpaRepository.findTopByTenantUserOrderByCreatedAtDescWithLock(userEntity);
+
+      if (latestOpt.isPresent()) {
+        EmailVerificationEntity latest = latestOpt.get();
+        boolean expired = latest.getUsedAt() != null
+            || latest.getExpiresAt().isBefore(java.time.Instant.now());
+        if (!expired) {
+          // Still valid — return existing without saving a new row
+          return toDomain(latest, tenantId);
+        }
+      }
+    }
+
+    // Expired or absent — persist the new verification
+    TenantUserEntity userProxy = tenantUserJpaRepository.getReferenceById(newVerification.getUserId().value());
+    EmailVerificationEntity entity = toEntity(newVerification, userProxy);
+    return toDomain(jpaRepository.save(entity), tenantId);
+  }
+
+  private EmailVerificationEntity toEntity(EmailVerification verification, TenantUserEntity userProxy) {
+    return EmailVerificationEntity.builder()
         .id(verification.getId())
         .tenantUser(userProxy)
         .code(verification.getCode())
@@ -44,18 +91,6 @@ public class EmailVerificationRepositoryAdapter implements EmailVerificationRepo
         .usedAt(verification.getUsedAt())
         .createdAt(verification.getCreatedAt())
         .build();
-
-    EmailVerificationEntity saved = jpaRepository.save(entity);
-    return toDomain(saved, verification.getTenantId());
-  }
-
-  @Override
-  public Optional<EmailVerification> findLatestByUserIdAndTenantId(UserId userId, TenantId tenantId) {
-    // Look up the TenantUserEntity to use as the query parameter
-    return tenantUserJpaRepository.findByIdAndTenantId(userId.value(), tenantId.value())
-        .flatMap(userEntity ->
-            jpaRepository.findTopByTenantUserOrderByCreatedAtDesc(userEntity)
-                .map(ev -> toDomain(ev, tenantId)));
   }
 
   private EmailVerification toDomain(EmailVerificationEntity entity, TenantId tenantId) {
@@ -69,4 +104,6 @@ public class EmailVerificationRepositoryAdapter implements EmailVerificationRepo
         entity.getCreatedAt());
   }
 }
+
+
 

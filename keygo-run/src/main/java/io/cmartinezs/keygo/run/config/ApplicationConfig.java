@@ -310,10 +310,11 @@ public class ApplicationConfig {
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       EmailVerificationRepositoryPort emailVerificationRepositoryPort,
-      EmailNotificationPort emailNotificationPort) {
+      EmailNotificationPort emailNotificationPort,
+      ClockPort clockPort) {
     return new ResendVerificationEmailUseCase(
         tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        emailVerificationRepositoryPort, emailNotificationPort);
+        emailVerificationRepositoryPort, emailNotificationPort, clockPort);
   }
 
   @Bean
