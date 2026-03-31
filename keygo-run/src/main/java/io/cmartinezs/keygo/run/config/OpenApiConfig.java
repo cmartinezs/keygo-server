@@ -67,8 +67,9 @@ public class OpenApiConfig {
   }
 
   /**
-   * Grouped API for Platform endpoints (service info, response codes).
-   * <p>Grupo de API para endpoints de plataforma.
+   * Grouped API for Platform endpoints (service info, response codes, platform stats).
+   * <p>Grupo de API para endpoints de plataforma: info del servicio, códigos de respuesta y
+   * estadísticas de plataforma.
    *
    * @return {@link GroupedOpenApi} bean for platform group
    */
@@ -77,7 +78,10 @@ public class OpenApiConfig {
     return GroupedOpenApi.builder()
         .group("1-platform")
         .displayName("🏠 Platform")
-        .pathsToMatch("/api/v1/service/**", "/api/v1/response-codes/**")
+        .pathsToMatch(
+            "/api/v1/service/**",
+            "/api/v1/response-codes/**",
+            "/api/v1/platform/**")
         .build();
   }
 
@@ -106,8 +110,11 @@ public class OpenApiConfig {
 
   /**
    * Grouped API for Client Application management endpoints
-   * (including registration and app roles — all under /apps/**).
-   * <p>Grupo de API para endpoints de aplicaciones cliente, registro y roles de app.
+   * (CRUD, secret rotation, self-registration).
+   * <p>Billing ({@code /billing/**}) and app roles ({@code /roles/**}) are intentionally
+   * excluded — see groups {@code 8-billing} and {@code 6-memberships} respectively.
+   * <p>Grupo de API para endpoints de aplicaciones cliente: CRUD, rotación de secreto y
+   * auto-registro. Billing y roles de app se exponen en sus grupos dedicados.
    *
    * @return {@link GroupedOpenApi} bean for client apps group
    */
@@ -117,6 +124,9 @@ public class OpenApiConfig {
         .group("3-client-apps")
         .displayName("📦 Client Apps")
         .pathsToMatch("/api/v1/tenants/*/apps/**")
+        .pathsToExclude(
+            "/api/v1/tenants/*/apps/*/billing/**",
+            "/api/v1/tenants/*/apps/*/roles/**")
         .build();
   }
 
@@ -158,8 +168,10 @@ public class OpenApiConfig {
   }
 
   /**
-   * Grouped API for Membership management (grant/revoke user access to applications).
-   * <p>Grupo de API para gestión de membresías.
+   * Grouped API for Membership management (grant/revoke user access to applications)
+   * and App Role management (define available roles per client app).
+   * <p>Grupo de API para gestión de membresías (asignar/revocar acceso de usuarios a apps)
+   * y gestión de roles de app (definir roles disponibles por aplicación cliente).
    *
    * @return {@link GroupedOpenApi} bean for memberships group
    */
@@ -168,7 +180,45 @@ public class OpenApiConfig {
     return GroupedOpenApi.builder()
         .group("6-memberships")
         .displayName("🔗 Memberships")
-        .pathsToMatch("/api/v1/tenants/*/memberships/**")
+        .pathsToMatch(
+            "/api/v1/tenants/*/memberships/**",
+            "/api/v1/tenants/*/apps/*/roles/**")
+        .build();
+  }
+
+  /**
+   * Grouped API for Admin-only endpoints (dashboard, platform operations).
+   * <p>Grupo de API para endpoints exclusivos de administrador global: dashboard completo
+   * ({@code GET /api/v1/admin/platform/dashboard}). Todos requieren
+   * {@code Authorization: Bearer <jwt>} con rol {@code ADMIN}.
+   *
+   * @return {@link GroupedOpenApi} bean for admin group
+   */
+  @Bean
+  public GroupedOpenApi adminGroup() {
+    return GroupedOpenApi.builder()
+        .group("7-admin")
+        .displayName("🛡️ Admin")
+        .pathsToMatch("/api/v1/admin/**")
+        .build();
+  }
+
+  /**
+   * Grouped API for Billing endpoints: contracts (onboarding top-level) and tenant/app-level
+   * subscriptions, invoices and billing catalog.
+   * <p>Grupo de API para endpoints de billing: contratos de onboarding ({@code /api/v1/billing/**}),
+   * catálogo de planes, suscripciones y facturas ({@code /api/v1/tenants/*&#47;apps/*&#47;billing/**}).
+   *
+   * @return {@link GroupedOpenApi} bean for billing group
+   */
+  @Bean
+  public GroupedOpenApi billingGroup() {
+    return GroupedOpenApi.builder()
+        .group("8-billing")
+        .displayName("💳 Billing")
+        .pathsToMatch(
+            "/api/v1/billing/**",
+            "/api/v1/tenants/*/apps/*/billing/**")
         .build();
   }
 

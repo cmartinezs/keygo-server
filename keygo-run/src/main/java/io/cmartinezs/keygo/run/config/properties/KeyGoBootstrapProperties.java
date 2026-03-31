@@ -9,7 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import java.util.List;
 
 /**
- * Configuration properties for KeyGo bootstrap settings.
+ * Configuration properties for KeyGo bootstrap settings.({@code /api/v1/tenants/*&#47;apps/*&#47;billing/**}).
  * <p>Propiedades de configuración para ajustes de arranque de KeyGo.
  * @author cmartinezs
  * @version 1.0
