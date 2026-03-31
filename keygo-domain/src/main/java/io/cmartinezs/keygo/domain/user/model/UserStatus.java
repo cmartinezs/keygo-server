@@ -18,6 +18,10 @@ public enum UserStatus {
 
   /* User account is pending activation (e.g. awaiting email verification).
    * La cuenta está pendiente de activación (ej. esperando verificación de email). */
-  PENDING
+  PENDING,
+
+  /* User was provisioned with a temporary password and must reset it before gaining full access.
+   * El usuario fue aprovisionado con una contraseña temporal y debe cambiarla antes de tener acceso completo. */
+  RESET_PASSWORD
 }
 

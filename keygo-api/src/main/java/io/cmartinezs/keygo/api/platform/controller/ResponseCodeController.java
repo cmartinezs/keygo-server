@@ -6,8 +6,6 @@ import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.platform.response.ResponseCodeCatalog;
 import io.cmartinezs.keygo.api.platform.response.ResponseCodeInfo;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -44,8 +42,7 @@ public class ResponseCodeController {
                     + "success codes and failure codes. This endpoint does not require authentication.")
   @ApiResponse(
       responseCode = "200",
-      description = "Response code catalog retrieved successfully",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      description = "Response code catalog retrieved successfully")
   public ResponseEntity<BaseResponse<ResponseCodeCatalog>> getResponseCodeCatalog() {
     List<ResponseCodeInfo> successCodes = Arrays.stream(ResponseCode.values())
         .filter(this::isSuccessCode)

@@ -44,9 +44,10 @@ public class CreateAppContractUseCase {
   }
 
   public AppContractResult execute(CreateAppContractCommand cmd) {
-    AppPlanVersion planVersion = versionRepo.findById(cmd.planVersionId())
+    versionRepo.findById(cmd.planVersionId())
         .orElseThrow(() -> new IllegalArgumentException("Plan version not found: " + cmd.planVersionId()));
 
+    // TODO hay que validar el client app id tambien
     OffsetDateTime now = OffsetDateTime.now();
     String verificationCode = String.format("%06d", RANDOM.nextInt(1_000_000));
 

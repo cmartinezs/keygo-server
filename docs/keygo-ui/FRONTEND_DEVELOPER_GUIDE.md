@@ -2043,23 +2043,83 @@ Reglas rápidas de interpretación en frontend:
 > La app proveedora se identifica mediante `clientAppId` en el body del `POST`.
 > Estos endpoints son totalmente públicos — la verificación de email y el pago protegen el flujo internamente.
 
-| Caso de uso | Método | Endpoint | Auth | `ResponseCode` | Estado |
-|---|---|---|---|---|---|
-| Iniciar contrato | POST | `/api/v1/billing/contracts` | Público | `APP_CONTRACT_CREATED` | ✅ |
-| Ver estado del contrato | GET | `/api/v1/billing/contracts/{contractId}` | Público | `APP_CONTRACT_RETRIEVED` | ✅ |
-| Verificar email | POST | `/api/v1/billing/contracts/{contractId}/verify-email` | Público | `APP_CONTRACT_EMAIL_VERIFIED` | ✅ |
-| Simular pago aprobado (DEV) | POST | `/api/v1/billing/contracts/{contractId}/mock-approve-payment` | Público (DEV) | `APP_CONTRACT_PAYMENT_APPROVED` | ✅ |
-| Activar contrato | POST | `/api/v1/billing/contracts/{contractId}/activate` | Público | `APP_CONTRACT_ACTIVATED` | ✅ |
+| Caso de uso                         | Método | Endpoint                                                      | Auth          | `ResponseCode`                     | Estado |
+|-------------------------------------|--------|---------------------------------------------------------------|---------------|------------------------------------|--------|
+| Iniciar contrato                    | POST   | `/api/v1/billing/contracts`                                   | Público       | `APP_CONTRACT_CREATED`             | ✅      |
+| Ver estado del contrato             | GET    | `/api/v1/billing/contracts/{contractId}`                      | Público       | `APP_CONTRACT_RETRIEVED`           | ✅      |
+| **Restaurar onboarding**            | GET    | `/api/v1/billing/contracts/{contractId}/resume`               | Público       | `APP_CONTRACT_ONBOARDING_RESUMED`  | ✅      |
+| Verificar email                     | POST   | `/api/v1/billing/contracts/{contractId}/verify-email`         | Público       | `APP_CONTRACT_EMAIL_VERIFIED`      | ✅      |
+| **Reenviar código de verificación** | POST   | `/api/v1/billing/contracts/{contractId}/resend-verification`  | Público       | `APP_CONTRACT_VERIFICATION_RESENT` | ✅      |
+| Simular pago aprobado (DEV)         | POST   | `/api/v1/billing/contracts/{contractId}/mock-approve-payment` | Público (DEV) | `APP_CONTRACT_PAYMENT_APPROVED`    | ✅      |
+| Activar contrato                    | POST   | `/api/v1/billing/contracts/{contractId}/activate`             | Público       | `APP_CONTRACT_ACTIVATED`           | ✅      |
 
 > `mock-approve-payment` solo funciona cuando `keygo.billing.mock-payment-enabled=true`. En producción devuelve `404 RESOURCE_NOT_FOUND`.
+
+#### Endpoint: `GET /billing/contracts/{contractId}/resume`
+
+Permite al frontend **restaurar el onboarding** cuando el usuario cierra la página y vuelve con el `contractId` guardado (p. ej. en `localStorage`).
+
+Devuelve todos los datos del contrato más dos campos orientados a la UI:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `next_action` | `string` | Qué pantalla mostrar (ver valores abajo) |
+| `verification_code_expired` | `boolean` | Si el código de verificación ya expiró |
+
+**Valores de `next_action`:**
+
+| Valor | Pantalla a mostrar |
+|---|---|
+| `ENTER_VERIFICATION_CODE` | Pantalla de ingreso de código (código aún válido) |
+| `REQUEST_NEW_CODE` | Botón de reenvío visible (código expirado) |
+| `COMPLETE_PAYMENT` | Pantalla de pago |
+| `ACTIVATE` | Botón de activación |
+| `COMPLETE` | Pantalla de bienvenida / éxito |
+| `CANCELLED` | Pantalla de error / contrato inactivo |
+
+**Ejemplo de uso en React:**
+
+```typescript
+const resumeOnboarding = async (contractId: string) => {
+  const res = await fetch(`${API_V1}/billing/contracts/${contractId}/resume`);
+  const { data } = await res.json();
+
+  switch (data.next_action) {
+    case 'ENTER_VERIFICATION_CODE': return <VerifyEmailStep contractId={contractId} />;
+    case 'REQUEST_NEW_CODE':        return <ResendCodeStep contractId={contractId} />;
+    case 'COMPLETE_PAYMENT':        return <PaymentStep contractId={contractId} />;
+    case 'ACTIVATE':                return <ActivateStep contractId={contractId} />;
+    case 'COMPLETE':                return <SuccessStep />;
+    default:                        return <ErrorStep reason={data.status} />;
+  }
+};
+```
+
+#### Endpoint: `POST /billing/contracts/{contractId}/resend-verification`
+
+Reenvía el código de verificación al email del contratante. **No requiere body.**
+
+**Comportamiento:**
+- Si el código **todavía es válido** → reenvía el **mismo código** (el usuario simplemente no lo recibió)
+- Si el código **ya expiró** → genera uno nuevo, actualiza el contrato y envía
+
+Usar cuando `verification_code_expired === true` en la respuesta de `/resume`, o cuando el usuario reporta que no recibió el email.
+
+```typescript
+const resendCode = (contractId: string) =>
+  fetch(`${API_V1}/billing/contracts/${contractId}/resend-verification`, { method: 'POST' })
+    .then(r => r.json());
+```
 
 **Flujo UI paso a paso:**
 
 1. Usuario ve el catálogo → selecciona plan → obtiene `planVersionId`
-2. Llena formulario → `POST /api/v1/billing/contracts` → servidor envía email con código de 6 dígitos
-3. Usuario ingresa código → `POST /api/v1/billing/contracts/{contractId}/verify-email` → estado pasa a `PENDING_PAYMENT`
-4. Usuario paga → mock: `POST /api/v1/billing/contracts/{contractId}/mock-approve-payment` → `READY_TO_ACTIVATE`
-5. `POST /api/v1/billing/contracts/{contractId}/activate` → contrato `ACTIVE`, suscripción y factura creadas
+2. Llena formulario → `POST /api/v1/billing/contracts` → guardar `contractId` en `localStorage` → servidor envía email con código de 6 dígitos
+3. **Si el usuario regresa después de cerrar la página:** `GET /billing/contracts/{contractId}/resume` → leer `next_action` → mostrar pantalla correcta
+4. Usuario ingresa código → `POST /billing/contracts/{contractId}/verify-email` → estado pasa a `PENDING_PAYMENT`
+   - **Si el código expiró o no llegó:** `POST /billing/contracts/{contractId}/resend-verification` → el servidor reenvía o regenera
+5. Usuario paga → mock: `POST /billing/contracts/{contractId}/mock-approve-payment` → `READY_TO_ACTIVATE`
+6. `POST /billing/contracts/{contractId}/activate` → contrato `ACTIVE`, suscripción y factura creadas
 
 **Body de `POST /api/v1/billing/contracts` (B2B con empresa):**
 

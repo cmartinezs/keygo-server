@@ -31,12 +31,6 @@ public class PlatformDashboardData {
   private List<ActivityItem> recentActivity;
   private List<QuickActionItem> quickActions;
 
-  // ── OpenAPI schema helpers ─────────────────────────────────────────────────
-
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<PlatformDashboardData> {
-  }
-
   // ── Nested DTOs ───────────────────────────────────────────────────────────
 
   @Getter

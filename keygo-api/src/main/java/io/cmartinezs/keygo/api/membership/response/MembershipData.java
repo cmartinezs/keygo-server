@@ -1,10 +1,8 @@
 package io.cmartinezs.keygo.api.membership.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Builder;
@@ -25,11 +23,4 @@ public record MembershipData(
     OffsetDateTime createdAt
 ) {
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<MembershipData> {
-  }
-
-  /** Solo para referencia de schema OpenAPI (lista). */
-  public static final class ListResponse extends BaseResponse<List<MembershipData>> {
-  }
 }

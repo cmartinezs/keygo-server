@@ -10,6 +10,72 @@
 
 ---
 
+### [2026-03-31] Endpoints de recuperación de onboarding y reenvío de código — billing contracts
+
+**Contexto:** Implementación de 2 endpoints públicos para el flujo de contratos de billing:
+- `GET /billing/contracts/{contractId}/resume` — restaurar onboarding tras cerrar la página
+- `POST /billing/contracts/{contractId}/resend-verification` — reenviar código de verificación
+
+**Problema / Decisiones de diseño:**
+1. **Rutas públicas sin cambios en el filtro:** El `BootstrapAdminKeyFilter` ya usa `hasSegment(path, "/billing/contracts")` para marcar como públicas todas las rutas que contengan ese segmento. Ambos nuevos endpoints quedan cubiertos automáticamente sin tocar propiedades ni `application.yml`.
+2. **Política de reenvío más permisiva que el flujo de usuario:** El use case `ResendContractVerificationUseCase` permite reenviar el mismo código si todavía es válido (en lugar de lanzar `EmailVerificationStillActiveException`). Esto es intencional: el billing es un proceso de negocio crítico donde bloquear el reenvío perjudica la conversión.
+3. **Clase duplicada en test al usar `replace_string_in_file`:** Al reemplazar solo el inicio del archivo del test, el contenido original quedó al final generando `Duplicate class`. Solución: reemplazar el bloque completo de apertura de la clase incluyendo todo el contenido antiguo.
+
+**Solución / Buena práctica:**
+- Agregar métodos de dominio para comportamientos reutilizables: `isVerificationCodeExpired()` y `renewVerificationCode()` en `AppContract`.
+- El campo `nextAction` en `AppContractResumeData` encapsula la lógica de qué pantalla mostrar — el frontend no necesita conocer los estados internos del dominio.
+- Al querer que el front guarde el `contractId` en `localStorage`, documentar explícitamente ese patrón en el Frontend Guide.
+
+**Archivos clave:**
+- `keygo-domain/.../billing/contracting/model/AppContract.java` — `isVerificationCodeExpired()`, `renewVerificationCode()`
+- `keygo-app/.../billing/contracting/usecase/ResumeContractOnboardingUseCase.java` — nuevo
+- `keygo-app/.../billing/contracting/usecase/ResendContractVerificationUseCase.java` — nuevo
+- `keygo-api/.../billing/response/AppContractResumeData.java` — nuevo DTO con `nextAction`
+- `keygo-api/.../billing/controller/AppBillingContractController.java` — 2 nuevos métodos
+- `keygo-run/.../config/ApplicationConfig.java` — 2 nuevos `@Bean`
+
+---
+
+### [2026-03-31] Estado RESET_PASSWORD y provisión de contraseña temporal vía billing
+
+**Contexto:** En el flujo de verificación de email de un contrato de billing (`VerifyContractEmailUseCase`), cuando el contractor no tenía cuenta en el sistema, era necesario crear un `TenantUser` con contraseña. Esto requirió agregar el estado `RESET_PASSWORD` al dominio y un nuevo tipo de email.
+
+**Problema:** El constructor del use case no recibía `PasswordHasherPort` ni `EmailNotificationPort`, dejando `@InjectMocks` de Mockito sin poder inyectarlos. Al agregar los mocks al test, `@InjectMocks` resuelve el constructor más completo automáticamente.
+
+**Solución / Buena práctica:**
+1. Al extender un use case con nuevos puertos, siempre agregar los `@Mock` correspondientes en el test — Mockito los inyecta vía constructor automáticamente.
+2. Nuevos estados de enum (`RESET_PASSWORD`) requieren tanto actualizar el enum del dominio como el CHECK constraint de PostgreSQL. Usar una migración `ALTER TABLE ... DROP CONSTRAINT ... ADD CONSTRAINT ...` ya que PostgreSQL no permite `ALTER CONSTRAINT` directo.
+3. El template HTML de email para contraseñas temporales debe indicar claramente que es temporal, incluir el aviso de cambio obligatorio (amber) y el aviso de seguridad (emerald), diferenciándose visualmente del email de verificación.
+
+**Archivos clave:**
+- `keygo-domain/.../UserStatus.java` — nuevo valor `RESET_PASSWORD`
+- `keygo-domain/.../User.java` — `isResetPassword()` + `requirePasswordReset()`
+- `keygo-app/.../EmailNotificationPort.java` — nuevo método `sendTemporaryPasswordEmail`
+- `keygo-infra/.../SmtpEmailNotificationAdapter.java` — implementación HTML en español
+- `keygo-app/.../VerifyContractEmailUseCase.java` — genera password, hashea, envía email
+- `keygo-supabase/db/migration/V19__user_status_reset_password.sql` — altera CHECK constraint
+
+
+
+**Contexto:** El email de verificación enviado por `SmtpEmailNotificationAdapter` era texto plano en inglés. Se migró a HTML responsivo en español usando la paleta de colores de `keygo-web-ui`.
+
+**Problema:**
+1. `SimpleMailMessage` solo soporta texto plano — para HTML se requiere `MimeMessage` + `MimeMessageHelper`.
+2. Al stubbear `MimeMessage` con Mockito, `mimeMessage.setFrom(any())` es ambiguo porque `MimeMessage` tiene dos sobrecargas: `setFrom(Address)` y `setFrom(String)`. Mockito no puede resolver el `any()` genérico y falla en compilación.
+3. `mockito-junit-jupiter` no estaba en las dependencias de test de `keygo-infra` (solo `mockito-core`), por lo que `@ExtendWith(MockitoExtension.class)` no compilaba.
+
+**Solución / Buena práctica:**
+- Usar `MimeMessageHelper(message, true, "UTF-8")` con `helper.setText(html, true)` para enviar HTML.
+- Para stubbear `setFrom` en tests, usar el tipo explícito: `doThrow(...).when(mock).setFrom(any(Address.class))`.
+- Agregar `mockito-junit-jupiter` a `keygo-infra/pom.xml` cuando se necesite `@ExtendWith(MockitoExtension.class)`.
+- Los colores de keygo-ui (Tailwind): primario `#4f46e5` (indigo-600), hover `#4338ca` (indigo-700), éxito `#10b981` (emerald-500), fondo `#f1f5f9` (slate-100), texto `#0f172a` (slate-900).
+- El template HTML usa tablas para máxima compatibilidad con clientes de correo (Gmail, Outlook).
+
+**Archivos clave:**
+- `keygo-infra/src/main/java/io/cmartinezs/keygo/infra/email/SmtpEmailNotificationAdapter.java`
+- `keygo-infra/src/test/java/io/cmartinezs/keygo/infra/email/SmtpEmailNotificationAdapterTest.java`
+- `keygo-infra/pom.xml` — `mockito-junit-jupiter` agregado
+
 ### [2026-03-31] Actualización de FRONTEND_DEVELOPER_GUIDE.md §14 — billing model v2
 
 **Contexto:** Al simplificar el path del controller de contratos (`/api/v1/billing/contracts`) en el billing model v2, el documento `FRONTEND_DEVELOPER_GUIDE.md` quedó desactualizado en múltiples lugares: tabla de endpoints §14.3.2, bodies de request, ejemplos de respuesta JSON, MSW mock handlers §15.2, diagrama Mermaid §14.3.5, checklist de implementación y tabla de errores §14.3.4.

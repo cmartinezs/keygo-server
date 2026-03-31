@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.billing.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
 
 import java.time.OffsetDateTime;
@@ -38,6 +37,4 @@ public record AppSubscriptionData(
     );
   }
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<AppSubscriptionData> {}
 }

@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.clientapp.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -24,6 +23,4 @@ public class ClientAppSecretData {
   /* The raw client secret — store it immediately, it will not be shown again */
   private String clientSecret;
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<ClientAppSecretData> {}
 }

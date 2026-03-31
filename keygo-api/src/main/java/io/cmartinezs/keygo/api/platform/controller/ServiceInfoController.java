@@ -7,8 +7,6 @@ import io.cmartinezs.keygo.api.platform.response.ServiceInfoData;
 import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
 import io.cmartinezs.keygo.app.platform.usecase.GetServiceInfoUseCase;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -48,8 +46,7 @@ public class ServiceInfoController {
                     + "This endpoint does not require authentication.")
   @ApiResponse(
       responseCode = "200",
-      description = "Service information retrieved successfully",
-      content = @Content(schema = @Schema(implementation = ServiceInfoData.Response.class)))
+      description = "Service information retrieved successfully")
   public ResponseEntity<BaseResponse<ServiceInfoData>> getServiceInfo() {
     ServiceInfoProvider info = getServiceInfoUseCase.execute();
 

@@ -31,5 +31,8 @@ public class BaseResponse<T> {
   private T data;
   @Setter private MessageResponse debug;
   @Setter private String throwable;
+
+  /** Schema reference for error responses (400, 401, 404, 500) — do not instantiate in business logic. */
+  public static final class ErrorResponse extends BaseResponse<Void> {}
 }
 

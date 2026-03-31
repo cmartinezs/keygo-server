@@ -79,6 +79,8 @@ import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUs
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ResendContractVerificationUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ResumeContractOnboardingUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
 import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
 import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
@@ -587,8 +589,12 @@ public class ApplicationConfig {
       AppContractRepositoryPort contractRepo,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepo,
-      ContractorRepositoryPort contractorRepositoryPort) {
-    return new VerifyContractEmailUseCase(contractRepo, clientAppRepositoryPort, userRepo, contractorRepositoryPort);
+      ContractorRepositoryPort contractorRepositoryPort,
+      PasswordHasherPort passwordHasherPort,
+      EmailNotificationPort emailNotificationPort) {
+    return new VerifyContractEmailUseCase(
+        contractRepo, clientAppRepositoryPort, userRepo, contractorRepositoryPort,
+        passwordHasherPort, emailNotificationPort);
   }
 
   @Bean
@@ -612,6 +618,22 @@ public class ApplicationConfig {
       InvoiceRepositoryPort invoiceRepo) {
     return new ActivateAppContractUseCase(
         contractRepo, versionRepo, billingOptionRepo, subscriptionRepo, invoiceRepo);
+  }
+
+  @Bean
+  public ResumeContractOnboardingUseCase resumeContractOnboardingUseCase(
+      AppContractRepositoryPort contractRepo) {
+    return new ResumeContractOnboardingUseCase(contractRepo);
+  }
+
+  @Bean
+  public ResendContractVerificationUseCase resendContractVerificationUseCase(
+      AppContractRepositoryPort contractRepo,
+      EmailNotificationPort emailNotificationPort,
+      KeyGoBillingProperties billingProperties) {
+    return new ResendContractVerificationUseCase(
+        contractRepo, emailNotificationPort,
+        billingProperties.getVerificationCodeExpiryMinutes());
   }
 
   // ─── Billing: Suscripción ─────────────────────────────────────────────────

@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.billing.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanBillingOption;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanEntitlement;
@@ -69,12 +68,6 @@ public record AppPlanData(
       EnforcementMode enforcementMode,
       boolean isEnabled
   ) {}
-
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<AppPlanData> {}
-
-  /** Solo para referencia de schema OpenAPI (lista). */
-  public static final class ListResponse extends BaseResponse<List<AppPlanData>> {}
 
   /** Build from a full AppPlanResult (plan + versions + billingOptionsByVersion + entitlements). */
   public static AppPlanData from(

@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.platform.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -21,7 +20,4 @@ public class ServiceInfoData {
   private String environment;
   private String status;
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<ServiceInfoData> {
-  }
 }

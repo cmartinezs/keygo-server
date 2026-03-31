@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.platform.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -20,10 +19,6 @@ public class PlatformStatsData {
   private UserStats users;
   private AppStats apps;
   private SigningKeyStats signingKeys;
-
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<PlatformStatsData> {
-  }
 
   @Getter
   @Builder

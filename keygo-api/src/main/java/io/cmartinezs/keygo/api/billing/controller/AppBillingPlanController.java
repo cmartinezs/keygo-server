@@ -79,10 +79,9 @@ public class AppBillingPlanController {
       description = "Returns all active public plans for the specified client app. "
                     + "No authentication required. Each entry includes the plan metadata, "
                     + "its active version (price, billing period, trial days) and the associated entitlements.")
-  @ApiResponse(responseCode = "200", description = "Plan catalog retrieved successfully",
-      content = @Content(schema = @Schema(implementation = AppPlanData.ListResponse.class)))
+  @ApiResponse(responseCode = "200", description = "Plan catalog retrieved successfully")
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<List<AppPlanData>>> getCatalog(
       @Parameter(description = "Tenant slug", example = "keygo") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id", example = "keygo-ui") @PathVariable String clientId) {
@@ -111,10 +110,9 @@ public class AppBillingPlanController {
       description = "Returns a single active public plan identified by its code, including the "
                     + "active version (price, billing period, trial days) and its full entitlements list. "
                     + "No authentication required.")
-  @ApiResponse(responseCode = "200", description = "Plan detail retrieved successfully",
-      content = @Content(schema = @Schema(implementation = AppPlanData.Response.class)))
+  @ApiResponse(responseCode = "200", description = "Plan detail retrieved successfully")
   @ApiResponse(responseCode = "404", description = "Tenant, client app or plan not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppPlanData>> getPlanPublic(
       @Parameter(description = "Tenant slug", example = "keygo") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id", example = "keygo-ui") @PathVariable String clientId,
@@ -145,16 +143,15 @@ public class AppBillingPlanController {
                     + "and an optional list of entitlements (feature flags and usage quotas). "
                     + "The plan code must be unique within the client app. "
                     + "Requires Bearer JWT with ADMIN_TENANT role.")
-  @ApiResponse(responseCode = "201", description = "Plan created successfully",
-      content = @Content(schema = @Schema(implementation = AppPlanData.Response.class)))
+  @ApiResponse(responseCode = "201", description = "Plan created successfully")
   @ApiResponse(responseCode = "400", description = "Invalid request body or missing required fields",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "409", description = "A plan with the same code already exists for this client app",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppPlanData>> createPlan(
       @Parameter(description = "Tenant slug", example = "keygo") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id", example = "keygo-ui") @PathVariable String clientId,

@@ -1,88 +1,77 @@
-# CLAUDE.md — Reglas para agentes
+# CLAUDE.md — Instrucciones para Claude Code
 
-> Este archivo es para agentes que soportan reglas a nivel de repo (Claude, Copilot agent mode, etc.).
-> Si estás usando **GitHub Copilot Chat**, la fuente principal de instrucciones es `.github/copilot-instructions.md`.
+> Archivo de comportamiento para **Claude Code** en este repositorio.
+> Todo el conocimiento técnico (módulos, patrones, entidades, endpoints, convenciones) vive en los
+> documentos canónicos referenciados abajo. Este archivo define únicamente cómo debe comportarse el agente.
 
-## Identidad del proyecto
+**Idioma:** responder siempre en **español** salvo que el usuario pida otro idioma explícitamente.
 
-- Repo: **KeyGo Server** — servicio de identidad/accesos (IAM) open source.
-- Stack: Java 21 + Spring Boot, monorepo Maven multi-módulo.
-- Arquitectura: Hexagonal / Ports & Adapters.
-- Módulo ejecutable: `keygo-run`.
+---
 
-## Flujo de trabajo obligatorio
+## Documentos canónicos — leer antes de cualquier acción
 
-> Aplica a **toda** acción que implique generar o modificar código, configuración o estructura.
-
-### Planificar → Implementar
-
-Antes de escribir cualquier código el agente **debe**:
-
-1. Consultar los documentos de referencia obligatorios (ver abajo).
-2. Presentar un **plan explícito**: módulos afectados, archivos a crear/modificar, flujo de datos y tests a agregar.
-3. Solo después de ese plan proceder a implementar.
-
-### Documentación: solo bajo orden explícita
-
-- **Dentro de un mismo contexto de chat, NO generar documentación automáticamente.**
-- Crear o actualizar archivos `.md` solo cuando el usuario lo ordene de forma explícita.
-- Toda documentación va en la ruta que le corresponde (`docs/<módulo>/`, raíz, etc.) — nunca en una ruta arbitraria.
-
-#### Diagramas en documentación
-
-Cuando sea necesario incluir un diagrama, usar el siguiente orden de preferencia:
-
-| Prioridad | Herramienta | Cuándo usarla |
+| Documento | Ruta | Contenido |
 |---|---|---|
-| 1 | **Mermaid** | Primera opción siempre — soportado nativamente en GitHub, GitLab, Notion y la mayoría de editores Markdown |
-| 2 | **PlantUML** | Si el tipo de diagrama no es expresable con Mermaid (p. ej. diagramas de componentes complejos, C4, timing) |
-| 3 | **ASCII art** | Último recurso — solo si ni Mermaid ni PlantUML son viables en el contexto |
-
-### Documentos de referencia obligatorios
-
-Antes de cualquier acción consultar:
-
-| Documento | Ruta | Para qué sirve |
-|---|---|---|
-| Contexto general AI | `AI_CONTEXT.md` | Estado del proyecto, bugs, convenciones, lecciones aprendidas |
+| Quick-start técnico | `AGENTS.md` | Módulos, comandos, patrones, entidades JPA, endpoints, convenciones de nombrado, tests, seguridad |
+| Estado del proyecto | `AI_CONTEXT.md` | Resumen ejecutivo, bugs conocidos, convenciones activas, propuestas de alto valor |
 | Lecciones aprendidas | `docs/ai/lecciones.md` | Errores resueltos y buenas prácticas — **leer para no repetir errores** |
-| Propuestas de mejoras | `docs/ai/propuestas.md` | Estado de propuestas T-NNN/F-NNN activas y completadas |
-| Inconsistencias conocidas | `docs/ai/inconsistencias.md` | Centralizador de inconsistencias detectadas |
-| Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño y estructura de módulos |
-| Guía de agentes | `AGENTS.md` | Quick-start: módulos, comandos, patrones y flujos concretos |
-| Historial de cambios | `docs/ai/agents-registro.md` | Registro detallado de cambios al quick-start |
-| Instrucciones Copilot | `.github/copilot-instructions.md` | Lineamientos para Copilot Chat / agent mode |
-| Este archivo | `CLAUDE.md` | Reglas de oro del agente |
-| Roadmap de mejoras | `ROADMAP.md` | Propuestas técnicas (T-NNN) y funcionales (F-NNN) activas y completadas |
+| Propuestas | `docs/ai/propuestas.md` | Estado de propuestas T-NNN / F-NNN activas y completadas |
+| Inconsistencias | `docs/ai/inconsistencias.md` | Inconsistencias detectadas entre docs y código/DB |
+| Roadmap | `ROADMAP.md` | Propuestas técnicas (T-NNN) y funcionales (F-NNN) con horizontes |
+| Arquitectura | `ARCHITECTURE.md` | Decisiones de diseño, estructura de módulos, flujo general |
+| Historial quick-start | `docs/ai/agents-registro.md` | Registro de cambios a `AGENTS.md` |
 
-Adicionalmente, leer los docs específicos del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.).
+Adicionalmente, leer los docs del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.).
 
-### Aprendizaje continuo y retroalimentación obligatoria
+---
 
-Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de estos eventos y actualizar el documento correspondiente **antes de cerrar la tarea**:
+## Comportamiento obligatorio
+
+### 1 · Planificar → Implementar
+
+Antes de escribir cualquier código:
+
+1. Leer los documentos canónicos relevantes.
+2. Presentar un **plan explícito**: módulos afectados, archivos a crear/modificar, flujo de datos, tests.
+3. Implementar solo después del plan.
+
+### 2 · Documentación: solo bajo orden explícita
+
+- No generar ni actualizar archivos `.md` automáticamente dentro de un chat.
+- Crear o actualizar docs solo cuando el usuario lo ordene de forma explícita.
+- Colocar siempre en la ruta que corresponde (`docs/<módulo>/`, raíz, etc.).
+- **Excepción:** los docs de base de conocimiento AI (`docs/ai/*.md`, `AGENTS.md`) se actualizan
+  siempre al concluir una tarea según la tabla de retroalimentación — sin orden explícita.
+
+#### Diagramas
+
+| Prioridad | Herramienta | Cuándo |
+|---|---|---|
+| 1 | **Mermaid** | Siempre — soportado en GitHub, GitLab, Notion |
+| 2 | **PlantUML** | Si el tipo no es expresable en Mermaid (C4, timing, componentes complejos) |
+| 3 | **ASCII art** | Último recurso |
+
+### 3 · Retroalimentación obligatoria al concluir una tarea
+
+Evaluar los siguientes eventos y actualizar el documento correspondiente **antes de cerrar**:
 
 | Evento | Documento | Sección |
 |---|---|---|
-| Error resuelto (compilación, test, comportamiento inesperado) | `docs/ai/lecciones.md` | `## Lecciones` |
-| Mejor patrón de implementación encontrado | `docs/ai/lecciones.md` | `## Lecciones` |
-| Cambio de versión de dependencia o tecnología | `docs/ai/lecciones.md` | `## Lecciones` |
-| Nueva convención acordada | `docs/ai/lecciones.md` | `## Lecciones` |
+| Error resuelto / bug / comportamiento inesperado | `docs/ai/lecciones.md` | Agregar entrada |
+| Mejor patrón o nueva convención adoptada | `docs/ai/lecciones.md` | Agregar entrada |
+| Cambio de versión de dependencia o tecnología | `docs/ai/lecciones.md` | Agregar entrada |
 | Inconsistencia detectada entre docs y código/DB | `docs/ai/inconsistencias-<cat>.md` + `docs/ai/inconsistencias.md` | Agregar detalle + actualizar índice |
-| Propuesta recurrente o de alto valor | `docs/ai/propuestas.md` + `ROADMAP.md` | `## Propuestas de mejoras futuras` + tabla técnica o funcional |
-| Propuesta técnica concreta generada al concluir tarea | `ROADMAP.md` | Tabla **Propuestas técnicas** (horizonte correspondiente) con ID `T-NNN` |
-| Propuesta funcional nueva o aclaración de épica | `ROADMAP.md` | Tabla **Propuestas funcionales** con ID `F-NNN` |
-| Propuesta completada / implementada | `docs/ai/propuestas.md` + `ROADMAP.md` | Marcar ✅ + tabla **Historial de propuestas completadas** |
-| Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` + `docs/ai/agents-registro.md` | Sección correspondiente + entrada en registro |
-| Nuevo endpoint REST creado o modificado | `docs/postman/KeyGo-Server.postman_collection.json` | Agregar o actualizar request con método, URL, headers, body y `pm.test()` |
-| Nuevo endpoint REST creado o modificado | `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` | Actualizar sección §14 (inventario de endpoints) con método, URL, auth requerida, body/params y ejemplo de respuesta |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Agregar diccionario de la(s) nueva(s) tabla(s) con campos, tipos, constraints y reglas de negocio |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Actualizar diagramas de contexto y relaciones afectadas |
-| Nueva migración Flyway creada (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Actualizar sección "Próximas migraciones" y cualquier referencia relevante |
+| Propuesta técnica concreta generada | `ROADMAP.md` + `docs/ai/propuestas.md` | Tabla técnica (ID `T-NNN`) |
+| Propuesta funcional nueva | `ROADMAP.md` + `docs/ai/propuestas.md` | Tabla funcional (ID `F-NNN`) |
+| Propuesta completada / implementada | `docs/ai/propuestas.md` + `ROADMAP.md` | Marcar ✅ + historial |
+| Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` + `docs/ai/agents-registro.md` | Sección + entrada en registro |
+| Nuevo endpoint REST creado o modificado | `docs/postman/KeyGo-Server.postman_collection.json` | Agregar/actualizar request con `pm.test()` |
+| Nuevo endpoint REST creado o modificado | `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` | Sección §14 — inventario de endpoints |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Diccionario de nuevas tablas |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
+| Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Sección "Próximas migraciones" |
 
-> ⚠️ Esta actualización **no está sujeta** a la regla "solo bajo orden explícita". Los documentos
-> de base de conocimiento AI (`AI_CONTEXT.md`, `AGENTS.md`) son parte del ciclo de trabajo del agente.
-
-**Formato de entrada en `## Lecciones aprendidas`:**
+**Formato de entrada en `docs/ai/lecciones.md`:**
 ```markdown
 ### [YYYY-MM-DD] Título descriptivo
 **Contexto:** Tarea o escenario que generó el aprendizaje.
@@ -91,109 +80,32 @@ Al concluir **cualquier tarea**, el agente debe evaluar si ocurrió alguno de es
 **Archivos clave:** (opcional) Rutas relevantes.
 ```
 
-### Git — prohibición de ejecución directa
+### 4 · Propuestas de mejoras al concluir
 
-- El agente **nunca debe ejecutar comandos `git`** directamente (commit, push, merge, rebase, etc.).
-- Listar los comandos sugeridos para que el usuario los ejecute manualmente.
+Incluir propuestas en tres horizontes. Si son relevantes, registrarlas con ID en `ROADMAP.md` y `docs/ai/propuestas.md`:
 
-### Propuesta de mejoras futuras
-
-Al concluir cualquier tarea, el agente **debe** incluir propuestas organizadas en tres horizontes:
-
-| Horizonte | Criterio orientativo |
+| Horizonte | Criterio |
 |---|---|
 | **Corto plazo** | Relacionado con lo recién implementado; bajo esfuerzo |
 | **Mediano plazo** | Evoluciones naturales; esfuerzo moderado |
 | **Largo plazo** | Capacidades estratégicas; alto esfuerzo o dependencias externas |
 
-- Las propuestas deben ser **concretas y accionables**, no genéricas.
-- Si son recurrentes o relevantes para el proyecto, registrarlas en `AI_CONTEXT.md` bajo `## Propuestas de mejoras futuras`.
+### 5 · Git — nunca ejecutar directamente
 
-## Reglas de oro
+Nunca ejecutar comandos `git` (commit, push, merge, rebase…). Listar los comandos sugeridos para que el usuario los ejecute manualmente.
 
-1. **No inventes** estructura del repo: apóyate en los módulos existentes (`keygo-api`, `keygo-app`, etc.).
-2. Mantén `keygo-domain` **libre de dependencias Spring** y de otros módulos del proyecto.
-3. Cualquier endpoint REST debe:
-   - Estar en `keygo-api`.
-   - Usar `BaseResponse<T>` como envelope.
-   - Emitir `ResponseCode` apropiado.
-4. No asumas paths sin `/keygo-server` — hay `context-path` activo.
-5. **Nunca** agregues secretos, tokens ni `.env` a Git.
-6. Antes de dar por finalizado un cambio, sugiere siempre:
-   ```bash
-   ./mvnw test
-   ./mvnw clean package
-   ```
-7. **Al crear o modificar cualquier endpoint REST**, actualizar `docs/postman/KeyGo-Server.postman_collection.json` con el request correspondiente **antes de cerrar la tarea**. La actualización de Postman **no requiere orden explícita** del usuario — es parte del ciclo de trabajo estándar de un endpoint.
-8. **Al crear o modificar cualquier endpoint REST**, actualizar también la sección §14 (inventario de endpoints) en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` **antes de cerrar la tarea**. Incluir: método HTTP, URL completa con `context-path`, autenticación requerida (`X-KEYGO-ADMIN` / Bearer / público), parámetros o body de ejemplo y estructura de respuesta `BaseResponse`. Esta actualización **no requiere orden explícita** del usuario.
-9. **En scripts de seed de migraciones Flyway**, cuando una fila tenga claves foráneas, **nunca** hardcodear el UUID/ID directamente. En su lugar, usar una subquery `SELECT` sobre la tabla padre con `WHERE` en un campo único y legible a nivel humano (p. ej. `slug`, `code`, `client_id`, `username`, `email`).
+---
 
-   ```sql
-   -- ❌ Mal: ID hardcodeado (frágil, ilegible)
-   INSERT INTO client_apps (tenant_id, name)
-   VALUES ('550e8400-e29b-41d4-a716-446655440000', 'my-app');
+## Checklist de reglas críticas
 
-   -- ✅ Bien: subquery por campo semántico
-   INSERT INTO client_apps (tenant_id, name)
-   VALUES ((SELECT id FROM tenants WHERE slug = 'keygo'), 'my-app');
+Antes de entregar cualquier implementación, verificar:
 
-   -- ✅ Bien: subquery anidada en cadena
-   INSERT INTO memberships (tenant_user_id, client_app_id)
-   VALUES (
-     (SELECT tu.id FROM tenant_users tu
-      JOIN tenants t ON t.id = tu.tenant_id
-      WHERE t.slug = 'keygo' AND tu.username = 'keygo_admin'),
-     (SELECT id FROM client_apps WHERE client_id = 'keygo-ui')
-   );
-   ```
-
-   Campos de referencia preferidos por tabla:
-
-   | Tabla padre | Campo semántico preferido |
-   |---|---|
-   | `tenants` | `slug` |
-   | `client_apps` | `client_id` |
-   | `tenant_users` | `username` o `email` (combinado con `tenant_id` subquery) |
-   | `app_roles` | `code` (combinado con `client_app_id` subquery) |
-   | `app_plans` | `code` (combinado con `client_app_id` subquery) |
-   | `app_plan_versions` | `version_tag` (combinado con `plan_id` subquery) |
-
-## Cómo trabajar al implementar una feature
-
-1. **Diseño mínimo primero:** consulta los documentos de referencia, luego describe clases, módulos afectados y flujo antes de generar código.
-2. **Cambios pequeños:** genera un commit lógico por vez.
-3. **Tests:** agrega tests unitarios (JUnit 5 + Mockito/AssertJ).
-4. **Postman:** agrega o actualiza el request en `docs/postman/KeyGo-Server.postman_collection.json` incluyendo scripts `pm.test()` que validen status code, estructura `BaseResponse` y campos de negocio.
-5. **Frontend Guide:** actualiza la sección §14 en `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` con el inventario del nuevo/modificado endpoint (método, URL, auth, body/params, respuesta). Esta actualización **no requiere orden explícita** del usuario.
-6. **Docs:** actualiza `README.md` o `ARCHITECTURE.md` **solo si el usuario lo solicita explícitamente**.
-
-## Módulos y sus roles
-
-| Módulo | Rol | Estado |
-|---|---|---|
-| `keygo-domain` | Dominio puro. Sin Spring. | 🚧 Stub vacío |
-| `keygo-app` | Usecases + puertos (interfaces OUT). | ✅ Activo |
-| `keygo-infra` | Implementaciones de puertos. | 🚧 Stub vacío |
-| `keygo-api` | REST controllers + DTOs + error handlers. | ✅ Activo |
-| `keygo-supabase` | JPA/Flyway + entidades + repos de Supabase. | ✅ Activo |
-| `keygo-run` | Main + wiring + `application.yml`. | ✅ Activo |
-| `keygo-bom` | Gestión de versiones de dependencias. | ✅ Activo |
-| `keygo-common` | Utilidades compartidas. | 🚧 Stub vacío |
-
-## Conocimiento específico útil
-
-- Supabase/DB se habilita con perfil `supabase` en `SPRING_PROFILES_ACTIVE`.
-- Scripts de DB local en `keygo-supabase/scripts/`.
-- `KEYGO_ADMIN_KEY` protege `/api/**` vía header `X-KEYGO-ADMIN` — default `changeMe` solo para dev.
-- El filtro `BootstrapAdminKeyFilter` puede tener problemas de matching con `context-path`: siempre validar.
-
-## Ejemplo de prompt interno recomendado
-
-```
-Implementa la feature X siguiendo la arquitectura hexagonal del repo.
-Asegúrate de que compile y tenga tests unitarios.
-Si tocas endpoints, documenta considerando context-path=/keygo-server.
-No introduzcas secretos ni dependencias innecesarias.
-Al finalizar, indica los comandos exactos para verificar (build + tests).
-```
-
+- [ ] `keygo-domain` no tiene dependencias Spring ni de otros módulos del proyecto
+- [ ] Los endpoints usan `BaseResponse<T>` como envelope y `ResponseCode` del enum en `keygo-api`
+- [ ] Todas las URLs incluyen `/keygo-server` como `context-path`
+- [ ] Imports Jackson son `tools.jackson.databind.*` — **nunca** `com.fasterxml.jackson.databind.*`
+- [ ] Las entidades JPA usan `@Getter @Setter @Builder` — **nunca `@Data`**
+- [ ] La autenticación es `Authorization: Bearer <jwt>` — no `X-KEYGO-ADMIN`
+- [ ] La próxima migración Flyway es `V19__...` (nunca reutilizar ni editar migraciones existentes)
+- [ ] No hay secretos, tokens ni `.env` en el código
+- [ ] Se sugieren los comandos de verificación: `./mvnw test` y `./mvnw clean package`

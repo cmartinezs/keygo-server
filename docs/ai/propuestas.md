@@ -51,6 +51,7 @@
 | T-094 | Agregar test unitario para `AppPlanBillingOptionRepositoryAdapter`: `findByAppPlanVersionId`, `findByAppPlanVersionIdAndBillingPeriod` y `saveAll` con Mockito | 🔲 Pendiente |
 | T-095 | Validar en `CreateAppPlanCommand` que si `billingOptions` no está vacía, al menos una opción tenga `isDefault=true`; lanzar `IllegalArgumentException` si ninguna es default | 🔲 Pendiente |
 | T-096 | Añadir `@NotNull` y `@Valid` en `CreateAppPlanRequest.billingOptions`, `@NotNull` en `billingPeriod` y `basePrice` de `BillingOptionRequest`; agregar test de validación Bean Validation | 🔲 Pendiente |
+| T-103 | Bloquear login cuando `status = RESET_PASSWORD` en `ValidateUserCredentialsUseCase` → `UserPasswordResetRequiredException`; `GlobalExceptionHandler` responde `403 RESET_PASSWORD_REQUIRED`; el frontend redirige al flujo de cambio de contraseña | 🔲 Pendiente |
 
 ---
 
@@ -87,6 +88,7 @@
 | T-097 | `PUT /billing/plans/{planCode}/billing-options` — añadir/actualizar opciones de pago de la versión activa sin crear nueva versión; valida que no se duplique `billing_period` | 🔲 Pendiente |
 | T-098 | Filtro `?subscriberType=TENANT\|TENANT_USER` en `GET /billing/catalog`: la tabla `app_plans` ya tiene la columna; filtrar por ella si se especifica, retornar todos si no | 🔲 Pendiente |
 | T-099 | Caché `@Cacheable` + Caffeine TTL 5 min en `GetAppPlanCatalogUseCase` y `GetAppPlanUseCase`; invalidar al crear plan o actualizar billing options (T-097) | 🔲 Pendiente |
+| T-104 | Endpoint `POST /api/v1/tenants/{slug}/account/reset-password` — recibe `temporaryPassword` + `newPassword`; `ResetPasswordUseCase` verifica hash temporal (BCrypt), actualiza hash con nueva contraseña y cambia `status → ACTIVE`; validación de complejidad mínima; depende de T-103 | 🔲 Pendiente |
 
 ---
 
@@ -119,6 +121,7 @@
 | T-100 | Modelo de precios escalonado (tiers) por billing option: tabla `app_plan_billing_tiers`; cálculo de precio en `ActivateAppContractUseCase`; necesario para plan FLEX con precios por rangos de uso | 🔲 Pendiente |
 | T-101 | Soporte de múltiples monedas por opción de billing: tabla `app_plan_billing_option_prices` con overrides por moneda (`USD`, `MXN`, `EUR`); resolver moneda del suscriptor desde el contrato | 🔲 Pendiente |
 | T-102 | Precios dinámicos vía webhook externo: `DynamicPricingPort` + adapter configurable; precio base en `app_plan_billing_options` como fallback; integración con Stripe Price API | 🔲 Pendiente |
+| T-105 | Política de expiración de contraseñas temporales (TTL 24 h): campo `temp_password_expires_at` en `tenant_users`; job `@Scheduled` que detecta usuarios `RESET_PASSWORD` con TTL vencido, genera nueva contraseña y la reenvía por email; config `keygo.security.temp-password-ttl-hours` | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |

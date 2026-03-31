@@ -79,6 +79,39 @@ class UserTest {
   }
 
   @Test
+  void requirePasswordReset_setsResetPasswordStatus() {
+    // Given
+    User user = buildActiveUser();
+
+    // When
+    user.requirePasswordReset();
+
+    // Then
+    assertThat(user.isResetPassword()).isTrue();
+    assertThat(user.isActive()).isFalse();
+    assertThat(user.getStatus()).isEqualTo(UserStatus.RESET_PASSWORD);
+  }
+
+  @Test
+  void builderWithResetPasswordStatus_succeeds() {
+    // When
+    User user = User.builder()
+        .id(UserId.generate())
+        .tenantId(TenantId.of(UUID.randomUUID()))
+        .username(Username.of(VALID_USERNAME))
+        .email(EmailAddress.of(VALID_EMAIL))
+        .passwordHash(PasswordHash.of(VALID_HASH))
+        .status(UserStatus.RESET_PASSWORD)
+        .build();
+
+    // Then
+    assertThat(user.isResetPassword()).isTrue();
+    assertThat(user.isActive()).isFalse();
+    assertThat(user.isSuspended()).isFalse();
+    assertThat(user.isPending()).isFalse();
+  }
+
+  @Test
   void updatePasswordReplacesHash() {
     // Given
     User user = buildActiveUser();

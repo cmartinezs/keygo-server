@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.user.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -57,7 +56,4 @@ public class UserProfileData {
   /* OIDC website — URL */
   private final String website;
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<UserProfileData> {
-  }
 }

@@ -44,7 +44,7 @@ public class GetAppPlanCatalogUseCase {
         .stream()
         .filter(AppPlan::isActive)
         .sorted(java.util.Comparator.comparingInt(AppPlan::getSortOrder))
-        .map(plan -> buildResult(plan))
+        .map(this::buildResult)
         .toList();
   }
 
@@ -59,7 +59,7 @@ public class GetAppPlanCatalogUseCase {
 
     List<AppPlanEntitlement> entitlements = versions.isEmpty()
         ? List.of()
-        : entitlementRepo.findByAppPlanVersionId(versions.get(0).getId());
+        : entitlementRepo.findByAppPlanVersionId(versions.getFirst().getId());
 
     return new AppPlanResult(plan, versions, billingOptionsByVersion, entitlements);
   }

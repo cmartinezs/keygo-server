@@ -11,8 +11,6 @@ import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.domain.membership.model.AppRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,8 +49,7 @@ public class TenantAppRoleController {
   @Operation(
       summary = "Create an app role",
       description = "Create a new role within a client application")
-  @ApiResponse(responseCode = "201", description = "Role created",
-      content = @Content(schema = @Schema(implementation = AppRoleData.Response.class)))
+  @ApiResponse(responseCode = "201", description = "Role created")
   @ApiResponse(responseCode = "400", description = "Invalid input or duplicate role code")
   @ApiResponse(responseCode = "404", description = "App or tenant not found")
   public ResponseEntity<BaseResponse<AppRoleData>> createAppRole(
@@ -89,8 +86,7 @@ public class TenantAppRoleController {
   @Operation(
       summary = "List app roles",
       description = "List all roles defined for a client application")
-  @ApiResponse(responseCode = "200", description = "Roles retrieved",
-      content = @Content(schema = @Schema(implementation = AppRoleData.ListResponse.class)))
+  @ApiResponse(responseCode = "200", description = "Roles retrieved")
   @ApiResponse(responseCode = "404", description = "App or tenant not found")
   public ResponseEntity<BaseResponse<List<AppRoleData>>> listAppRoles(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "col-keygo-server-v1",
     "name": "KeyGo Server API",
-    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, etc.) no requieren autenticación.",
+    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, `/billing/catalog`, etc.) no requieren autenticación.\n\n## Folders\n- **🏠 Platform** — service/info, response-codes, stats, dashboard\n- **🏥 Actuator** — health check\n- **🏢 Tenants** — CRUD + suspend/activate\n- **⚠️ Escenarios de Error** — casos de error comunes\n- **📦 Client Apps** — CRUD + rotate-secret + roles\n- **👤 Users** — CRUD + reset-password + validate-credentials\n- **🔐 OAuth2 Authorization** — authorize → login → token\n- **🔑 OIDC & JWKS** — discovery, jwks, refresh, client_credentials, revoke, userinfo\n- **Registration** — register, verify-email, resend-verification\n- **👤 Account Profile** — GET/PATCH perfil propio (Bearer)\n- **💳 Billing — Contracts** — initiate, status, resume, verify-email, resend, mock-payment, activate\n- **💳 Billing — Catalog** — GET catalog, GET plan detail, POST create plan\n- **💳 Billing — Subscription** — GET active subscription, POST cancel, GET invoices",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -27,6 +27,18 @@
       "value": "",
       "type": "string",
       "description": "Código de autorización OAuth2. Se setea automáticamente tras el paso '2. POST Account Login'."
+    },
+    {
+      "key": "planCode",
+      "value": "FREE",
+      "type": "string",
+      "description": "Código del plan de billing a consultar en el catálogo. Ej: FREE, PERSONAL, TEAM, BUSINESS."
+    },
+    {
+      "key": "contractId",
+      "value": "",
+      "type": "string",
+      "description": "UUID del contrato de billing. Se setea manualmente tras el POST Initiate Contract."
     }
   ],
   "event": [
@@ -337,8 +349,16 @@
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/admin/platform/dashboard",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "admin", "platform", "dashboard"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "platform",
+                "dashboard"
+              ]
             },
             "description": "Devuelve el dashboard completo de la plataforma en una sola llamada:\nservice summary, security metrics (signing keys, sessions, refresh tokens, auth codes),\ncountadores por estado (tenants/users/apps/memberships), registration metrics,\ntopología, rankings top-5, actividad reciente y quick actions.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminToken>` con rol `ADMIN`.\n\n**ResponseCode esperado:** `PLATFORM_DASHBOARD_RETRIEVED`\n**HTTP Status:** `200 OK`\n\n> ℹ️ Rendimiento: ejecuta ~9 queries GROUP BY en lugar de ~25 queries individuales — seguro llamarlo en cada carga del panel admin."
           },
@@ -403,7 +423,12 @@
               "name": "200 OK — Platform Dashboard",
               "status": "OK",
               "code": 200,
-              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"date\": \"2026-03-28T13:15:30Z\",\n  \"success\": {\n    \"code\": \"PLATFORM_DASHBOARD_RETRIEVED\",\n    \"message\": \"Platform dashboard retrieved successfully\"\n  },\n  \"data\": {\n    \"service\": { \"title\": \"KeyGo Server\", \"name\": \"keygo-server\", \"version\": \"1.0-SNAPSHOT\", \"environment\": \"local\", \"status\": \"UP\" },\n    \"security\": {\n      \"activeSigningKey\": { \"kid\": \"kg-2026-01\", \"algorithm\": \"RS256\", \"activatedAt\": \"2026-03-20T10:00:00Z\", \"ageDays\": 8 },\n      \"counts\": { \"activeSigningKeys\": 1, \"retiredSigningKeys\": 2, \"revokedSigningKeys\": 0, \"activeSessions\": 91, \"expiredSessions\": 17, \"terminatedSessions\": 6, \"activeRefreshTokens\": 90, \"usedRefreshTokens\": 210, \"expiredRefreshTokens\": 14, \"revokedRefreshTokens\": 3, \"pendingAuthorizationCodes\": 2, \"usedAuthorizationCodes\": 150, \"expiredAuthorizationCodes\": 7, \"revokedAuthorizationCodes\": 0 },\n      \"alerts\": []\n    },\n    \"tenants\": { \"total\": 52, \"active\": 42, \"pending\": 5, \"suspended\": 5, \"recentlyCreated\": 4 },\n    \"users\": { \"total\": 105, \"active\": 100, \"pending\": 5, \"suspended\": 0, \"recentlyCreated\": 8 },\n    \"apps\": { \"total\": 52, \"active\": 48, \"pending\": 2, \"suspended\": 2, \"publicCount\": 29, \"confidentialCount\": 23, \"withoutRedirectUris\": 3 },\n    \"memberships\": { \"total\": 140, \"active\": 131, \"pending\": 4, \"suspended\": 5, \"usersWithoutMembership\": 6 },\n    \"registration\": { \"pendingEmailVerifications\": 5, \"expiredPendingVerifications\": 2, \"recentRegistrations\": 7, \"recentVerifications\": 5 },\n    \"topology\": { \"avgUsersPerTenant\": 2.02, \"avgAppsPerTenant\": 1.0, \"avgMembershipsPerApp\": 2.69, \"tenantsWithoutApps\": 3, \"tenantsWithoutUsers\": 1 },\n    \"rankings\": { \"topTenantsByUsers\": [{ \"slug\": \"keygo\", \"name\": \"KeyGo\", \"count\": 25 }], \"topAppsByMemberships\": [{ \"slug\": \"keygo-ui\", \"name\": \"KeyGo UI\", \"tenantSlug\": \"keygo\", \"count\": 25 }] },\n    \"pendingActions\": [{ \"type\": \"TENANT_APPROVAL\", \"count\": 5, \"route\": \"/tenants?status=PENDING\" }],\n    \"recentActivity\": [],\n    \"quickActions\": [{ \"code\": \"CREATE_TENANT\", \"label\": \"Crear tenant\", \"route\": \"/tenants/new\" }, { \"code\": \"CREATE_APP\", \"label\": \"Registrar app\", \"route\": \"/apps/new\" }, { \"code\": \"INVITE_USER\", \"label\": \"Invitar usuario\", \"route\": \"/users/new\" }]\n  }\n}",
               "_postman_previewlanguage": "json"
             },
@@ -411,7 +436,12 @@
               "name": "401 Unauthorized — token ausente o inválido",
               "status": "Unauthorized",
               "code": 401,
-              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"date\": \"2026-03-28T13:15:30Z\",\n  \"failure\": {\n    \"code\": \"AUTHENTICATION_REQUIRED\",\n    \"message\": \"Authentication is required to access this resource\"\n  }\n}",
               "_postman_previewlanguage": "json"
             }
@@ -3001,6 +3031,597 @@
                   "});"
                 ],
                 "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Billing — Contracts",
+      "description": "Flujo de onboarding de contratos de billing (modelo v2). Todos los endpoints son públicos.",
+      "item": [
+        {
+          "name": "POST Initiate Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_app_id\": \"{{billingProviderClientAppId}}\",\n  \"plan_version_id\": \"{{selectedPlanVersionId}}\",\n  \"billing_period\": \"MONTHLY\",\n  \"contractor_email\": \"contractor@acme.com\",\n  \"contractor_first_name\": \"Jane\",\n  \"contractor_last_name\": \"Doe\",\n  \"company_name\": \"ACME Corp\"\n}"
+            },
+            "description": "Inicia el flujo de contratación. Crea contrato PENDING_EMAIL_VERIFICATION y envía código de verificación.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_CREATED | **HTTP:** 201"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Has BaseResponse envelope\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_CREATED\");",
+                  "  pm.expect(body.data.status).to.equal(\"PENDING_EMAIL_VERIFICATION\");",
+                  "  pm.collectionVariables.set(\"contractId\", body.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Contract Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}"
+              ]
+            },
+            "description": "Obtiene el estado actual del contrato.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_RETRIEVED | **HTTP:** 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has BaseResponse\", () => pm.expect(pm.response.json().success.code).to.equal(\"APP_CONTRACT_RETRIEVED\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Resume Onboarding",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}/resume",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}",
+                "resume"
+              ]
+            },
+            "description": "Recupera el estado del onboarding enriquecido con `next_action` y `verification_code_expired` para que el frontend pueda restaurar el paso correcto.\n\n**`next_action` posibles:** ENTER_VERIFICATION_CODE | REQUEST_NEW_CODE | COMPLETE_PAYMENT | ACTIVATE | COMPLETE | CANCELLED\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_ONBOARDING_RESUMED | **HTTP:** 200 | **400** si estado terminal"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Resume data has UI fields\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_ONBOARDING_RESUMED\");",
+                  "  const data = body.data;",
+                  "  pm.expect(data).to.have.property(\"status\");",
+                  "  pm.expect(data).to.have.property(\"next_action\");",
+                  "  pm.expect(data).to.have.property(\"verification_code_expired\");",
+                  "  pm.expect([\"ENTER_VERIFICATION_CODE\",\"REQUEST_NEW_CODE\",\"COMPLETE_PAYMENT\",\"ACTIVATE\",\"COMPLETE\",\"CANCELLED\"]).to.include(data.next_action);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Verify Contract Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}/verify-email",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}",
+                "verify-email"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "description": "Valida el código de 6 dígitos. Avanza a PENDING_PAYMENT.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_EMAIL_VERIFIED | **HTTP:** 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Advances to PENDING_PAYMENT\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_EMAIL_VERIFIED\");",
+                  "  pm.expect(body.data.status).to.equal(\"PENDING_PAYMENT\");",
+                  "  pm.expect(body.data.email_verified).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Resend Verification Code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}/resend-verification",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}",
+                "resend-verification"
+              ]
+            },
+            "description": "Reenvía el código de verificación al email del contratante.\n\n**Comportamiento:**\n- Código aún válido → reenvía el mismo (sin regenerar)\n- Código expirado → genera uno nuevo, actualiza el contrato y envía\n\nÚsalo cuando el usuario no recibió el email o cuando `verification_code_expired=true` en `/resume`.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_VERIFICATION_RESENT | **HTTP:** 200 | **400** si no está en PENDING_EMAIL_VERIFICATION"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Code resent successfully\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_VERIFICATION_RESENT\");",
+                  "  pm.expect(body.data.status).to.equal(\"PENDING_EMAIL_VERIFICATION\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Mock Approve Payment (DEV)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}/mock-approve-payment",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}",
+                "mock-approve-payment"
+              ]
+            },
+            "description": "Simula aprobación de pago (solo dev). Requiere `keygo.billing.mock-payment-enabled=true`.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_PAYMENT_APPROVED | **HTTP:** 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Advances to READY_TO_ACTIVATE\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_PAYMENT_APPROVED\");",
+                  "  pm.expect(body.data.status).to.equal(\"READY_TO_ACTIVATE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Activate Contract",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}/activate",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}",
+                "activate"
+              ]
+            },
+            "description": "Activa el contrato en READY_TO_ACTIVATE. Crea suscripción activa y primera factura.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_ACTIVATED | **HTTP:** 200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Contract is ACTIVE\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_ACTIVATED\");",
+                  "  pm.expect(body.data.status).to.equal(\"ACTIVE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Billing — Catalog",
+      "description": "Catálogo de planes de billing por app. Lectura pública; escritura requiere Bearer JWT con rol ADMIN_TENANT.\n\nURL base: `/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing`",
+      "item": [
+        {
+          "name": "GET Billing Catalog",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/billing/catalog",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "billing",
+                "catalog"
+              ],
+              "query": [
+                {
+                  "key": "subscriberType",
+                  "value": "TENANT",
+                  "description": "Filtro opcional: TENANT | TENANT_USER",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retorna todos los planes públicos activos de una app cliente.\n\n**Auth:** Público (sin autenticación) | **ResponseCode:** `APP_PLAN_CATALOG_RETRIEVED` | **HTTP:** 200 OK\n\n`{tenantSlug}` = proveedor del plan (ej. `keygo`)\n`{clientId}` = `client_id` de la app proveedora (ej. `keygo-ui`)\n`subscriberType` (opcional): `TENANT` | `TENANT_USER`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is APP_PLAN_CATALOG_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_PLAN_CATALOG_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data is an array\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Billing Catalog — Plan Detail",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/billing/catalog/{{planCode}}",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "billing",
+                "catalog",
+                "{{planCode}}"
+              ]
+            },
+            "description": "Retorna el detalle de un plan público individual incluyendo versión activa y entitlements completos.\n\n**Auth:** Público (sin autenticación) | **ResponseCode:** `APP_PLAN_RETRIEVED` | **HTTP:** 200 OK\n\n`{planCode}` = código del plan, ej. `FREE`, `PERSONAL`, `BUSINESS`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is APP_PLAN_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_PLAN_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data has plan code\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property(\"code\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Create Billing Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"STARTER\",\n  \"name\": \"Plan Starter\",\n  \"description\": \"Plan de entrada con funcionalidades básicas\",\n  \"isPublic\": true,\n  \"sortOrder\": 10,\n  \"version\": \"v1.0\",\n  \"currency\": \"USD\",\n  \"trialDays\": 14,\n  \"effectiveFrom\": \"2026-04-01\",\n  \"billingOptions\": [\n    {\n      \"billingPeriod\": \"MONTHLY\",\n      \"basePrice\": 9.99,\n      \"discountPct\": 0,\n      \"isDefault\": true\n    },\n    {\n      \"billingPeriod\": \"ANNUAL\",\n      \"basePrice\": 99.99,\n      \"discountPct\": 16.7,\n      \"isDefault\": false\n    }\n  ],\n  \"entitlements\": [\n    {\n      \"metricCode\": \"MAX_USERS\",\n      \"metricType\": \"GAUGE\",\n      \"limitValue\": 10,\n      \"periodType\": \"NONE\",\n      \"enforcementMode\": \"HARD\",\n      \"isEnabled\": true\n    },\n    {\n      \"metricCode\": \"MAX_APPS\",\n      \"metricType\": \"GAUGE\",\n      \"limitValue\": 3,\n      \"periodType\": \"NONE\",\n      \"enforcementMode\": \"HARD\",\n      \"isEnabled\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/billing/plans",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "billing",
+                "plans"
+              ]
+            },
+            "description": "Crea un nuevo plan de billing con versión inicial y entitlements.\n\n**Auth:** Bearer JWT con rol `ADMIN_TENANT` (scoped al tenant del path) | **ResponseCode:** `APP_PLAN_CREATED` | **HTTP:** 201 Created\n\n`billingOptions`: define los períodos de facturación disponibles. Lista vacía = plan gratuito.\n`entitlements`: feature flags y cuotas de uso asociadas al plan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"ResponseCode is APP_PLAN_CREATED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_PLAN_CREATED\");",
+                  "});",
+                  "pm.test(\"data has plan code and id\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property(\"code\");",
+                  "  pm.expect(body.data).to.have.property(\"id\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Billing — Subscription",
+      "description": "Gestión de suscripción y facturas del tenant suscriptor. Todos los endpoints requieren Bearer JWT con rol ADMIN_TENANT.\n\n`{tenantSlug}` = slug del tenant **suscriptor** (creado por el Contractor, tiene `contractor_id` en DB)\n`{clientId}` = `client_id` global del proveedor (ej. `keygo-ui`)\n\nURL base: `/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing`",
+      "item": [
+        {
+          "name": "GET Active Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/billing/subscription",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "billing",
+                "subscription"
+              ]
+            },
+            "description": "Retorna la suscripción activa del tenant suscriptor para la app proveedora indicada.\n\n**Auth:** Bearer JWT con rol `ADMIN_TENANT` | **ResponseCode:** `APP_SUBSCRIPTION_RETRIEVED` | **HTTP:** 200 OK\n\n`{tenantSlug}` = tenant creado por el Contractor (tiene `contractor_id` != NULL)\n`{clientId}` = `client_id` global del proveedor (ej. `keygo-ui`)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is APP_SUBSCRIPTION_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_SUBSCRIPTION_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data has subscription status\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property(\"status\");",
+                  "  pm.expect(body.data).to.have.property(\"id\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/billing/subscription/cancel",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "billing",
+                "subscription",
+                "cancel"
+              ]
+            },
+            "description": "Marca la suscripción activa para cancelación al final del período de facturación vigente. No cancela de forma inmediata.\n\n**Auth:** Bearer JWT con rol `ADMIN_TENANT` | **ResponseCode:** `APP_SUBSCRIPTION_CANCELLED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is APP_SUBSCRIPTION_CANCELLED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_SUBSCRIPTION_CANCELLED\");",
+                  "});",
+                  "pm.test(\"data has subscription status\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property(\"status\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/billing/invoices",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "billing",
+                "invoices"
+              ]
+            },
+            "description": "Retorna todas las facturas asociadas a la suscripción del tenant suscriptor con la app proveedora.\n\n**Auth:** Bearer JWT con rol `ADMIN_TENANT` | **ResponseCode:** `APP_INVOICE_LIST_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is APP_INVOICE_LIST_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"APP_INVOICE_LIST_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data is an array\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "});"
+                ]
               }
             }
           ]

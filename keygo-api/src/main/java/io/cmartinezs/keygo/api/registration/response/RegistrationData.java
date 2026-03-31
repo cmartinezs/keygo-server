@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.registration.response;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 
 import java.util.UUID;
@@ -22,7 +21,4 @@ public record RegistrationData(
     UserStatus status
 ) {
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<RegistrationData> {
-  }
 }

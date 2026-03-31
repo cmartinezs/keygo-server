@@ -165,12 +165,11 @@ public class AuthorizationController {
           authorization state in the HTTP session so that `POST /account/login` can retrieve it.
 
           **Flow:** `GET /authorize` → `POST /account/login` → `POST /oauth2/token`""")
-  @ApiResponse(responseCode = "200", description = "Authorization initiated — client app metadata returned",
-      content = @Content(schema = @Schema(implementation = AuthorizationInitiatedData.Response.class)))
+  @ApiResponse(responseCode = "200", description = "Authorization initiated — client app metadata returned")
   @ApiResponse(responseCode = "400", description = "Invalid or missing query parameters",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AuthorizationInitiatedData>> authorize(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Parameter(description = "OAuth2 client_id", required = true) @RequestParam(name = "client_id") String clientId,
@@ -251,14 +250,13 @@ public class AuthorizationController {
 
           The returned `code` must be exchanged for tokens via `POST /oauth2/token` \
           (`grant_type=authorization_code`) using the original PKCE `code_verifier`.""")
-  @ApiResponse(responseCode = "200", description = "Login successful — authorization code issued",
-      content = @Content(schema = @Schema(implementation = LoginData.Response.class)))
+  @ApiResponse(responseCode = "200", description = "Login successful — authorization code issued")
   @ApiResponse(responseCode = "400", description = "No authorization state in session — call GET /oauth2/authorize first",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Invalid credentials",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "User or tenant not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<LoginData>> login(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Valid @RequestBody LoginRequest request,
@@ -323,14 +321,13 @@ public class AuthorizationController {
           | `authorization_code` | `client_id`, `code`, `redirect_uri`, `code_verifier` | `access_token` + `id_token` + `refresh_token` |
           | `refresh_token` | `client_id`, `refresh_token` | new `access_token` + `id_token` + rotated `refresh_token` |
           | `client_credentials` | `client_id`, `client_secret`, `scope` | `access_token` only (M2M) |""")
-  @ApiResponse(responseCode = "200", description = "Token(s) issued successfully",
-      content = @Content(schema = @Schema(implementation = TokenData.Response.class)))
+  @ApiResponse(responseCode = "200", description = "Token(s) issued successfully")
   @ApiResponse(responseCode = "400", description = "Invalid request — missing required fields for the selected grant_type",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Invalid code, credentials or token",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<TokenData>> token(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Valid @RequestBody TokenRequest request) {

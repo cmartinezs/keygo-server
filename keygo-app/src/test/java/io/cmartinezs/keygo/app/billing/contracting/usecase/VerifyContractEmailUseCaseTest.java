@@ -3,6 +3,8 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
+import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
@@ -12,6 +14,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +27,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +37,8 @@ class VerifyContractEmailUseCaseTest {
   @Mock ClientAppRepositoryPort clientAppRepo;
   @Mock UserRepositoryPort userRepo;
   @Mock ContractorRepositoryPort contractorRepo;
+  @Mock PasswordHasherPort passwordHasher;
+  @Mock EmailNotificationPort emailNotification;
 
   @InjectMocks
   VerifyContractEmailUseCase useCase;
@@ -80,7 +86,35 @@ class VerifyContractEmailUseCaseTest {
     return contractorId;
   }
 
-  // ── Tests ─────────────────────────────────────────────────────────────────
+  /**
+   * Stubs for the "new user" flow: user does not exist, must be created with a temporary password.
+   */
+  private UUID stubNewUserFlow() {
+    TenantId tenantId = TenantId.of(UUID.randomUUID());
+    ClientApp providerApp = mock(ClientApp.class);
+    when(providerApp.getTenantId()).thenReturn(tenantId);
+    when(clientAppRepo.findById(any())).thenReturn(Optional.of(providerApp));
+
+    // User does not exist → triggers creation
+    when(userRepo.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.empty());
+    when(passwordHasher.hash(anyString())).thenReturn("$2a$10$hashedtemppassword");
+
+    UUID tenantUserId = UUID.randomUUID();
+    User savedUser = mock(User.class);
+    when(savedUser.getId()).thenReturn(UserId.of(tenantUserId));
+    when(userRepo.save(any())).thenReturn(savedUser);
+
+    UUID contractorId = UUID.randomUUID();
+    Contractor contractor = Contractor.builder()
+        .id(contractorId)
+        .tenantUserId(tenantUserId)
+        .status(ContractorStatus.PENDING)
+        .build();
+    when(contractorRepo.findByTenantUserId(any())).thenReturn(Optional.of(contractor));
+    return contractorId;
+  }
+
+  // ── Tests: usuario existente ───────────────────────────────────────────────
 
   @Test
   void execute_validCode_advancesToPendingPayment() {
@@ -164,5 +198,132 @@ class VerifyContractEmailUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  // ── Tests: usuario nuevo (RESET_PASSWORD + envío de contraseña temporal) ──
+
+  @Test
+  void execute_newUser_createsUserWithResetPasswordStatus() {
+    // Given
+    String code = "654321";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubNewUserFlow();
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — el nuevo usuario se guarda con status RESET_PASSWORD
+    verify(userRepo).save(argThat(u -> UserStatus.RESET_PASSWORD.equals(u.getStatus())));
+  }
+
+  @Test
+  void execute_newUser_sendsTemporaryPasswordEmail() {
+    // Given
+    String code = "654321";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubNewUserFlow();
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — se envía email de contraseña temporal al email del contratante
+    verify(emailNotification).sendTemporaryPasswordEmail(
+        eq("admin@acme.com"), anyString(), anyString());
+  }
+
+  @Test
+  void execute_newUser_hashesPasswordBeforeSaving() {
+    // Given
+    String code = "654321";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubNewUserFlow();
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — se invoca el hasher antes de persistir la contraseña
+    verify(passwordHasher).hash(anyString());
+    verify(userRepo).save(argThat(u ->
+        "$2a$10$hashedtemppassword".equals(u.getPasswordHash().value())));
+  }
+
+  @Test
+  void execute_existingUser_doesNotSendTemporaryPasswordEmail() {
+    // Given — usuario ya existe; no debe enviarse email de contraseña temporal
+    String code = "123456";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubDownstreamDeps();
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then
+    verify(emailNotification, never()).sendTemporaryPasswordEmail(anyString(), anyString(), anyString());
+    verify(userRepo, never()).save(any());
+  }
+
+  // ── Tests: generateTemporaryPassword ──────────────────────────────────────
+
+  @Test
+  void generateTemporaryPassword_hasCorrectLength() {
+    // When
+    String pwd = useCase.generateTemporaryPassword();
+
+    // Then
+    assertThat(pwd).hasSize(14);
+  }
+
+  @Test
+  void generateTemporaryPassword_containsAtLeastOneUppercase() {
+    // When
+    String pwd = useCase.generateTemporaryPassword();
+
+    // Then
+    assertThat(pwd).matches(".*[A-Z].*");
+  }
+
+  @Test
+  void generateTemporaryPassword_containsAtLeastOneLowercase() {
+    // When
+    String pwd = useCase.generateTemporaryPassword();
+
+    // Then
+    assertThat(pwd).matches(".*[a-z].*");
+  }
+
+  @Test
+  void generateTemporaryPassword_containsAtLeastOneDigit() {
+    // When
+    String pwd = useCase.generateTemporaryPassword();
+
+    // Then
+    assertThat(pwd).matches(".*[0-9].*");
+  }
+
+  @Test
+  void generateTemporaryPassword_containsAtLeastOneSpecialChar() {
+    // When
+    String pwd = useCase.generateTemporaryPassword();
+
+    // Then
+    assertThat(pwd).matches(".*[!@#$%&*].*");
+  }
+
+  @Test
+  void generateTemporaryPassword_twoCallsReturnDifferentValues() {
+    // When
+    String pwd1 = useCase.generateTemporaryPassword();
+    String pwd2 = useCase.generateTemporaryPassword();
+
+    // Then — with 70^14 combinations, collision probability is negligible
+    assertThat(pwd1).isNotEqualTo(pwd2);
   }
 }

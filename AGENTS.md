@@ -174,7 +174,9 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/plans` (POST — **Bearer ADMIN_TENANT** — crear plan con versión inicial y entitlements)
 - `http://localhost:8080/keygo-server/api/v1/billing/contracts` (POST — **público** — iniciar contrato de suscripción; body incluye `clientAppId`; genera código de verificación y envía email)
 - `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}` (GET — **público** — estado del contrato)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/resume` (GET — **público** — restaurar onboarding; devuelve `nextAction` + `verificationCodeExpired` para que el frontend sepa en qué paso está)
 - `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/verify-email` (POST — **público** — verificar código de email → avanza a `PENDING_PAYMENT`; body: `{"code":"123456"}`)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/resend-verification` (POST — **público** — reenviar código; si código válido lo reenvía igual; si expiró genera uno nuevo)
 - `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/mock-approve-payment` (POST — **público/dev** — simular pago, requiere `keygo.billing.mock-payment-enabled=true`)
 - `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/activate` (POST — **público** — activar contrato → crea tenant/user + suscripción + factura)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription` (GET — **Bearer ADMIN_TENANT** — suscripción activa; `{subscriberSlug}`=tenant suscriptor, `{providerClientId}`=client_id global del proveedor)
@@ -356,10 +358,40 @@ set -a; source .env; set +a
 ./docs/scripts/keygo.sh 5     # iniciar DB directamente
 ```
 
+## Naming conventions
+
+| Artifact | Pattern | Example |
+|---|---|---|
+| Port OUT | `<Action><Entity>Port` | `FindTenantPort`, `SaveContractPort` |
+| UseCase | `<Action><Entity>UseCase` | `CreateAppContractUseCase` |
+| Controller | `<Module><Resource>Controller` | `AppBillingContractController` |
+| Response DTO | `<Entity>Data` | `AppContractData`, `AppContractResumeData` |
+| Request DTO | `<Action><Entity>Request` | `CreateContractRequest` |
+| JPA Entity | `<Entity>Entity` | `AppContractEntity` |
+| JPA Repository | `<Entity>JpaRepository` | `AppContractJpaRepository` |
+| Adapter (port impl) | `<Technology><Port>Adapter` | `SupabaseContractRepositoryAdapter` |
+
+## Environment variables
+
+| Variable | Description | Default |
+|---|---|---|
+| `PORT` | Server port | `8080` |
+| `SPRING_PROFILES_ACTIVE` | Active profiles (`supabase`, `local`, `desa`, `prod`) | `default` |
+| `SUPABASE_URL` | PostgreSQL JDBC URL | — |
+| `SUPABASE_USER` | DB user | — |
+| `SUPABASE_PASSWORD` | DB password | — |
+| `KEYGO_BOOTSTRAP_ENABLED` | Enable security filter | `true` |
+
+Profiles: `supabase` activates JPA + Flyway; combine with `local` / `desa` / `prod` for env-specific config.  
+Switch env: `./docs/scripts/switch-env.sh <local|desa|prod>`.
+
 ## Testing conventions
 
 - Unit tests: `@ExtendWith(MockitoExtension.class)` + AssertJ + Mockito — **no Spring context**.
-- Integration tests (supabase): Testcontainers PostgreSQL is configured in `pom.xml` and `src/test/resources/application-test.yml` (uses TC JDBC URL `jdbc:tc:postgresql:15-alpine:///testdb`) but **no integration tests are written yet** — `UserRepositoryTest` is a pure unit test using the Lombok builder.
+- UseCases: constructor injection; add `@Mock` for every port — `@InjectMocks` resolves via constructor automatically. When adding a new port to a use case, always add the corresponding `@Mock` in the test.
+- Controllers: `@WebMvcTest` or plain Mockito without full Spring context.
+- Integration tests (supabase): Testcontainers PostgreSQL is configured in `pom.xml` and `src/test/resources/application-test.yml` (uses TC JDBC URL `jdbc:tc:postgresql:15-alpine:///testdb`) but **no integration tests are written yet** — prefer Testcontainers over repository mocks when possible.
+- `mockito-junit-jupiter` must be in the module's `pom.xml` when using `@ExtendWith(MockitoExtension.class)`.
 - Pattern: Given/When/Then comments in every test method.
 
 ## Implementation plan

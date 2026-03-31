@@ -11,6 +11,8 @@ import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUs
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ResendContractVerificationUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ResumeContractOnboardingUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
 import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
@@ -32,6 +34,8 @@ class AppBillingContractControllerTest {
   @Mock MockApprovePaymentUseCase mockApprovePaymentUseCase;
   @Mock ActivateAppContractUseCase activateContractUseCase;
   @Mock VerifyContractEmailUseCase verifyContractEmailUseCase;
+  @Mock ResumeContractOnboardingUseCase resumeContractOnboardingUseCase;
+  @Mock ResendContractVerificationUseCase resendContractVerificationUseCase;
 
   @InjectMocks AppBillingContractController controller;
 
@@ -54,7 +58,26 @@ class AppBillingContractControllerTest {
         .build();
   }
 
-  // ── Tests ─────────────────────────────────────────────────────────────────
+  private AppContract contractWithCode(ContractStatus status, OffsetDateTime codeExpiresAt) {
+    return AppContract.builder()
+        .id(UUID.randomUUID())
+        .clientAppId(UUID.randomUUID())
+        .selectedPlanVersionId(UUID.randomUUID())
+        .billingPeriod("MONTHLY")
+        .status(status)
+        .contractorEmail("admin@acme.com")
+        .contractorFirstName("John")
+        .contractorLastName("Doe")
+        .companyName("ACME Corp")
+        .verificationCode("123456")
+        .verificationCodeExpiresAt(codeExpiresAt)
+        .expiresAt(OffsetDateTime.now().plusHours(48))
+        .createdAt(OffsetDateTime.now())
+        .updatedAt(OffsetDateTime.now())
+        .build();
+  }
+
+  // ── Tests — endpoints existentes ──────────────────────────────────────────
 
   @Test
   void createContract_happyPath_returns201() {
@@ -162,4 +185,135 @@ class AppBillingContractControllerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getData().status()).isEqualTo("PENDING_PAYMENT");
   }
+
+  // ── Tests — resumeOnboarding ──────────────────────────────────────────────
+
+  @Test
+  void resumeOnboarding_pendingEmailVerification_withValidCode_returnsEnterCode() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    // Código expira en el futuro → todavía válido
+    AppContract c = contractWithCode(ContractStatus.PENDING_EMAIL_VERIFICATION,
+        OffsetDateTime.now().plusMinutes(20));
+    when(resumeContractOnboardingUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resumeOnboarding(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData().status()).isEqualTo("PENDING_EMAIL_VERIFICATION");
+    assertThat(response.getBody().getData().verificationCodeExpired()).isFalse();
+    assertThat(response.getBody().getData().nextAction()).isEqualTo("ENTER_VERIFICATION_CODE");
+  }
+
+  @Test
+  void resumeOnboarding_pendingEmailVerification_withExpiredCode_returnsRequestNewCode() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    // Código expiró hace 5 minutos
+    AppContract c = contractWithCode(ContractStatus.PENDING_EMAIL_VERIFICATION,
+        OffsetDateTime.now().minusMinutes(5));
+    when(resumeContractOnboardingUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resumeOnboarding(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().getData().verificationCodeExpired()).isTrue();
+    assertThat(response.getBody().getData().nextAction()).isEqualTo("REQUEST_NEW_CODE");
+  }
+
+  @Test
+  void resumeOnboarding_pendingPayment_returnsCompletePaymentAction() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    AppContract c = contract(ContractStatus.PENDING_PAYMENT);
+    when(resumeContractOnboardingUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resumeOnboarding(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().getData().nextAction()).isEqualTo("COMPLETE_PAYMENT");
+    assertThat(response.getBody().getData().verificationCodeExpired()).isFalse();
+  }
+
+  @Test
+  void resumeOnboarding_readyToActivate_returnsActivateAction() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    AppContract c = contract(ContractStatus.READY_TO_ACTIVATE);
+    when(resumeContractOnboardingUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resumeOnboarding(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().getData().nextAction()).isEqualTo("ACTIVATE");
+  }
+
+  @Test
+  void resumeOnboarding_active_returnsCompleteAction() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    AppContract c = contract(ContractStatus.ACTIVE);
+    when(resumeContractOnboardingUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resumeOnboarding(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().getData().nextAction()).isEqualTo("COMPLETE");
+  }
+
+  // ── Tests — resendVerification ────────────────────────────────────────────
+
+  @Test
+  void resendVerification_pendingEmailVerification_returns200() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    AppContract c = contractWithCode(ContractStatus.PENDING_EMAIL_VERIFICATION,
+        OffsetDateTime.now().plusMinutes(20));
+    when(resendContractVerificationUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resendVerification(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData().status()).isEqualTo("PENDING_EMAIL_VERIFICATION");
+  }
+
+  @Test
+  void resendVerification_expiredCode_returns200AfterRenewal() {
+    // Given
+    UUID contractId = UUID.randomUUID();
+    // El use case devuelve el contrato con código renovado — para el controller solo importa el status
+    AppContract c = contractWithCode(ContractStatus.PENDING_EMAIL_VERIFICATION,
+        OffsetDateTime.now().plusMinutes(30)); // nuevo código con nueva expiración
+    when(resendContractVerificationUseCase.execute(contractId))
+        .thenReturn(new AppContractResult(c, null));
+
+    // When
+    var response = controller.resendVerification(contractId);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().getData().status()).isEqualTo("PENDING_EMAIL_VERIFICATION");
+  }
 }
+
+

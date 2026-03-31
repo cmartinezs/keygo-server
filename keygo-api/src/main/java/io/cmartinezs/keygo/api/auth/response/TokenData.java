@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.api.auth.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 
 
 /**
@@ -26,7 +25,4 @@ public record TokenData(
     @JsonProperty("scope")                String scope,
     @JsonProperty("authorization_code_id") String authorizationCodeId) {
 
-  /** Solo para referencia de schema OpenAPI — no instanciar en lógica de negocio. */
-  public static final class Response extends BaseResponse<TokenData> {
-  }
 }

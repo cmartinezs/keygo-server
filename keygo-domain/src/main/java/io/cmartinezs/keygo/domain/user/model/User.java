@@ -104,6 +104,22 @@ public class User {
   }
 
   /**
+   * Returns true if the user was provisioned with a temporary password and must reset it.
+   * <p>Retorna true si el usuario fue aprovisionado con contraseña temporal y debe resetearla.
+   */
+  public boolean isResetPassword() {
+    return UserStatus.RESET_PASSWORD.equals(this.status);
+  }
+
+  /**
+   * Mark this user as requiring a password reset (provisioned with a temporary password).
+   * <p>Marca a este usuario como requiriendo un cambio de contraseña (aprovisionado con contraseña temporal).
+   */
+  public void requirePasswordReset() {
+    this.status = UserStatus.RESET_PASSWORD;
+  }
+
+  /**
    * Suspend this user account. Throws if already suspended.
    * <p>Suspende esta cuenta de usuario. Lanza excepción si ya estaba suspendida.
    * @throws IllegalStateException if the user is already suspended

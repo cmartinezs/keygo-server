@@ -22,6 +22,33 @@
 
 ## Registro de cambios
 
+### [2026-03-31] Endpoints de onboarding billing: resume + resend-verification
+
+**Motivo:** El frontend necesitaba poder restaurar el flujo de contratación cuando el usuario cierra la página, y reenviar el código de verificación cuando no llegó o expiró.
+
+**Cambios realizados:**
+
+- **Dominio** (`keygo-domain`): `AppContract` — nuevos métodos `isVerificationCodeExpired()` y `renewVerificationCode(String, OffsetDateTime, OffsetDateTime)`
+- **App** (`keygo-app`): 2 nuevos use cases:
+  - `ResumeContractOnboardingUseCase` — valida que el contrato no esté en estado terminal y retorna el estado actual
+  - `ResendContractVerificationUseCase` — reenvía el mismo código si es válido; genera uno nuevo si expiró
+- **API** (`keygo-api`):
+  - Nuevo DTO `AppContractResumeData` con campos `nextAction` y `verificationCodeExpired`
+  - 2 nuevos métodos en `AppBillingContractController`: `GET /{contractId}/resume` y `POST /{contractId}/resend-verification`
+  - 2 nuevos `ResponseCode`: `APP_CONTRACT_ONBOARDING_RESUMED`, `APP_CONTRACT_VERIFICATION_RESENT`
+- **Run** (`keygo-run`): 2 nuevos `@Bean` en `ApplicationConfig`
+- **Tests**: 7 nuevos tests en `AppBillingContractControllerTest` (total: 89 tests, 0 fallos)
+- **Postman**: Nuevo folder `💳 Billing — Contracts` con 7 requests (incluye el flujo completo)
+- **Frontend Guide**: Tabla §14 actualizada, documentación de `resume` y `resend-verification` con ejemplos TypeScript
+
+**URLs nuevas:**
+- `GET /keygo-server/api/v1/billing/contracts/{contractId}/resume` — Público
+- `POST /keygo-server/api/v1/billing/contracts/{contractId}/resend-verification` — Público
+
+**Nota de seguridad:** Ambas rutas quedan cubiertas automáticamente como públicas por el `hasSegment(path, "/billing/contracts")` ya existente en `BootstrapAdminKeyFilter`. Sin cambios en filtro ni `application.yml`.
+
+---
+
 ### [2026-03-30] Reestructuración total de migraciones Flyway — Modelo v2 Contractors integrado desde V1
 
 **Motivo:** Integrar la entidad `contractors` como parte central del modelo de datos de billing desde el origen, eliminando el esquema polimórfico `subscriber_tenant_id` / `subscriber_tenant_user_id` de todo el stack de billing.

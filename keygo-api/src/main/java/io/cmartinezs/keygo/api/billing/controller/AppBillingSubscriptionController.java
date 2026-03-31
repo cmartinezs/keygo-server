@@ -72,12 +72,11 @@ public class AppBillingSubscriptionController {
       description = "Returns the current active subscription for the client app. "
                   + "{tenantSlug} is the tenant created by the Contractor (has contractor_id in DB). "
                   + "Requires ADMIN_TENANT role.")
-  @ApiResponse(responseCode = "200", description = "Subscription retrieved",
-      content = @Content(schema = @Schema(implementation = AppSubscriptionData.Response.class)))
+  @ApiResponse(responseCode = "200", description = "Subscription retrieved")
   @ApiResponse(responseCode = "404", description = "No active subscription found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> getSubscription(
       @Parameter(description = "Tenant slug (creado por el Contractor)") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
@@ -97,12 +96,11 @@ public class AppBillingSubscriptionController {
   @Operation(
       summary = "Cancel subscription at period end",
       description = "Marks the active subscription for cancellation at the end of the current billing period. Requires ADMIN_TENANT role.")
-  @ApiResponse(responseCode = "200", description = "Cancellation scheduled",
-      content = @Content(schema = @Schema(implementation = AppSubscriptionData.Response.class)))
+  @ApiResponse(responseCode = "200", description = "Cancellation scheduled")
   @ApiResponse(responseCode = "404", description = "No active subscription found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> cancelSubscription(
       @Parameter(description = "Tenant slug (creado por el Contractor)") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
@@ -122,12 +120,11 @@ public class AppBillingSubscriptionController {
   @Operation(
       summary = "List invoices",
       description = "Returns all invoices associated with the client app subscription. Requires ADMIN_TENANT role.")
-  @ApiResponse(responseCode = "200", description = "Invoices retrieved",
-      content = @Content(schema = @Schema(implementation = AppInvoiceData.ListResponse.class)))
+  @ApiResponse(responseCode = "200", description = "Invoices retrieved")
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
-      content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<List<AppInvoiceData>>> listInvoices(
       @Parameter(description = "Tenant slug (creado por el Contractor)") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {

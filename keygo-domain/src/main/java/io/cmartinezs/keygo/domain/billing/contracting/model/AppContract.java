@@ -138,6 +138,32 @@ public class AppContract {
   }
 
   /**
+   * Returns true if the verification code has expired.
+   * <p>Retorna true si el código de verificación ha expirado.
+   */
+  public boolean isVerificationCodeExpired() {
+    return verificationCodeExpiresAt != null && OffsetDateTime.now().isAfter(verificationCodeExpiresAt);
+  }
+
+  /**
+   * Renews the verification code (used when resending an expired code).
+   * Only valid in PENDING_EMAIL_VERIFICATION status.
+   * <p>Renueva el código de verificación (usado cuando se reenvía un código expirado).
+   * Solo válido en estado PENDING_EMAIL_VERIFICATION.
+   *
+   * @throws IllegalStateException if the contract is not in PENDING_EMAIL_VERIFICATION state
+   */
+  public void renewVerificationCode(String newCode, OffsetDateTime newExpiresAt, OffsetDateTime now) {
+    if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
+      throw new IllegalStateException(
+          "Solo se puede renovar el código en estado PENDING_EMAIL_VERIFICATION, actual: " + this.status);
+    }
+    this.verificationCode = newCode;
+    this.verificationCodeExpiresAt = newExpiresAt;
+    this.updatedAt = now;
+  }
+
+  /**
    * Verifies the email verification code and advances the status to PENDING_PAYMENT.
    * Also links the given contractorId to this contract.
    */

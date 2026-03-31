@@ -16,8 +16,6 @@ import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -65,8 +63,7 @@ public class RegistrationController {
       summary = "Register a new user",
       description = "Creates a new user with PENDING status and sends a 6-digit verification "
                     + "code to the provided email. The code is valid for 30 minutes.")
-  @ApiResponse(responseCode = "201", description = "User registered — verification email sent",
-      content = @Content(schema = @Schema(implementation = RegistrationData.Response.class)))
+  @ApiResponse(responseCode = "201", description = "User registered — verification email sent")
   @ApiResponse(responseCode = "400", description = "Invalid request body or duplicate email/username")
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found")
   public ResponseEntity<BaseResponse<RegistrationData>> register(
