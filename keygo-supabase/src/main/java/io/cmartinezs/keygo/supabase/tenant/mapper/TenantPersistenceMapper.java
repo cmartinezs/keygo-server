@@ -45,6 +45,7 @@ public class TenantPersistenceMapper {
         .name(entity.getName())
         .ownerEmail(entity.getOwnerEmail())
         .status(entity.getStatus())
+        .contractorId(entity.getContractor() != null ? entity.getContractor().getId() : null)
         .build();
   }
 }

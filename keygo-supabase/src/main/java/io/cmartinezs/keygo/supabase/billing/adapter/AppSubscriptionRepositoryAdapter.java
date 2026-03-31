@@ -7,16 +7,15 @@ import io.cmartinezs.keygo.supabase.billing.mapper.BillingPersistenceMapper;
 import io.cmartinezs.keygo.supabase.billing.repository.AppContractJpaRepository;
 import io.cmartinezs.keygo.supabase.billing.repository.AppPlanVersionJpaRepository;
 import io.cmartinezs.keygo.supabase.billing.repository.AppSubscriptionJpaRepository;
+import io.cmartinezs.keygo.supabase.billing.repository.ContractorJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
-import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
-import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Adapter: implements AppSubscriptionRepositoryPort using JPA.
+ * Adapter: implements AppSubscriptionRepositoryPort using JPA (billing model v2).
  * @author cmartinezs
  * @version 1.0
  */
@@ -27,22 +26,19 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
   private final ClientAppJpaRepository clientAppRepo;
   private final AppPlanVersionJpaRepository versionRepo;
   private final AppContractJpaRepository contractRepo;
-  private final TenantJpaRepository tenantRepo;
-  private final TenantUserJpaRepository tenantUserRepo;
+  private final ContractorJpaRepository contractorRepo;
 
   public AppSubscriptionRepositoryAdapter(
       AppSubscriptionJpaRepository jpaRepo,
       ClientAppJpaRepository clientAppRepo,
       AppPlanVersionJpaRepository versionRepo,
       AppContractJpaRepository contractRepo,
-      TenantJpaRepository tenantRepo,
-      TenantUserJpaRepository tenantUserRepo) {
+      ContractorJpaRepository contractorRepo) {
     this.jpaRepo = jpaRepo;
     this.clientAppRepo = clientAppRepo;
     this.versionRepo = versionRepo;
     this.contractRepo = contractRepo;
-    this.tenantRepo = tenantRepo;
-    this.tenantUserRepo = tenantUserRepo;
+    this.contractorRepo = contractorRepo;
   }
 
   @Override
@@ -51,6 +47,7 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
         .id(sub.getId())
         .clientApp(clientAppRepo.getReferenceById(sub.getClientAppId()))
         .appPlanVersion(versionRepo.getReferenceById(sub.getAppPlanVersionId()))
+        .contractor(contractorRepo.getReferenceById(sub.getContractorId()))
         .status(sub.getStatus())
         .currentPeriodStart(sub.getCurrentPeriodStart())
         .currentPeriodEnd(sub.getCurrentPeriodEnd())
@@ -62,25 +59,12 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
     if (sub.getContractId() != null) {
       builder.contract(contractRepo.getReferenceById(sub.getContractId()));
     }
-    if (sub.getSubscriberTenantId() != null) {
-      builder.subscriberTenant(tenantRepo.getReferenceById(sub.getSubscriberTenantId()));
-    }
-    if (sub.getSubscriberTenantUserId() != null) {
-      builder.subscriberTenantUser(tenantUserRepo.getReferenceById(sub.getSubscriberTenantUserId()));
-    }
     return BillingPersistenceMapper.toDomain(jpaRepo.save(builder.build()));
   }
 
   @Override
-  public Optional<AppSubscription> findByClientAppIdAndSubscriberTenantId(UUID clientAppId, UUID tenantId) {
-    return jpaRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, tenantId)
-        .map(BillingPersistenceMapper::toDomain);
-  }
-
-  @Override
-  public Optional<AppSubscription> findByClientAppIdAndSubscriberUserId(UUID clientAppId, UUID userId) {
-    return jpaRepo.findByClientAppIdAndSubscriberTenantUserId(clientAppId, userId)
+  public Optional<AppSubscription> findByClientAppIdAndContractorId(UUID clientAppId, UUID contractorId) {
+    return jpaRepo.findByClientAppIdAndContractorId(clientAppId, contractorId)
         .map(BillingPersistenceMapper::toDomain);
   }
 }
-

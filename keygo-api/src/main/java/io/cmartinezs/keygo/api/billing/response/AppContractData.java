@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Response data for app contract endpoints.
+ * Response data for app contract endpoints — billing model v2.
  */
 public record AppContractData(
     UUID id,
@@ -19,7 +19,7 @@ public record AppContractData(
     String contractorFirstName,
     String contractorLastName,
     String companyName,
-    String companySlug,
+    UUID contractorId,
     boolean emailVerified,
     boolean paymentVerified,
     OffsetDateTime expiresAt,
@@ -36,7 +36,7 @@ public record AppContractData(
         c.getContractorFirstName(),
         c.getContractorLastName(),
         c.getCompanyName(),
-        c.getCompanySlug(),
+        c.getContractorId(),
         c.isEmailVerified(),
         c.isPaymentVerified(),
         c.getExpiresAt(),

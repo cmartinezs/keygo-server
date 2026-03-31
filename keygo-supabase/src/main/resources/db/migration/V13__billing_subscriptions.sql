@@ -1,13 +1,15 @@
 -- =============================================================================
--- V12: Billing Subscriptions — relación activa de facturación
--- app_subscriptions  : suscripción activa entre un suscriptor y una versión
---   de plan de una ClientApp.
---   Exactamente uno de (subscriber_tenant_id, subscriber_tenant_user_id) es no-nulo.
--- payment_transactions: registro de cada evento de pago (inicial, renovación, etc.)
+-- V13: Billing Subscriptions — relacion activa de facturacion (modelo v2)
+--
+-- app_subscriptions: suscripcion activa entre un Contractor y una version de
+--   plan de una ClientApp. El Contractor reemplaza al modelo polimorfco anterior
+--   (subscriber_tenant_id / subscriber_tenant_user_id). Solo 1 suscripcion
+--   activa por Contractor por ClientApp.
+-- payment_transactions: registro de cada evento de pago (activacion, renovacion).
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
--- app_subscriptions
+-- app_subscriptions (modelo v2 — contractor-centric)
 -- ---------------------------------------------------------------------------
 CREATE TABLE app_subscriptions (
     id                        UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -15,9 +17,9 @@ CREATE TABLE app_subscriptions (
     app_plan_version_id       UUID         NOT NULL REFERENCES app_plan_versions(id) ON DELETE RESTRICT,
     contract_id               UUID         REFERENCES app_contracts(id)              ON DELETE SET NULL,
 
-    -- Suscriptor polimórfico — exactamente uno debe ser no-nulo
-    subscriber_tenant_id      UUID         REFERENCES tenants(id)      ON DELETE RESTRICT,
-    subscriber_tenant_user_id UUID         REFERENCES tenant_users(id) ON DELETE RESTRICT,
+    -- Contractor que realiza la suscripcion (reemplaza subscriber_tenant_id /
+    -- subscriber_tenant_user_id del modelo v1)
+    contractor_id             UUID         NOT NULL REFERENCES contractors(id) ON DELETE RESTRICT,
 
     status                    VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
 
@@ -33,42 +35,34 @@ CREATE TABLE app_subscriptions (
     CONSTRAINT chk_app_subscriptions_status CHECK (status IN (
         'PENDING', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'CANCELLED', 'EXPIRED'
     )),
-    -- Una suscripción activa por app por suscriptor B2B
-    CONSTRAINT uq_app_subscriptions_app_tenant UNIQUE (client_app_id, subscriber_tenant_id),
-    -- Una suscripción activa por app por suscriptor B2C
-    CONSTRAINT uq_app_subscriptions_app_user   UNIQUE (client_app_id, subscriber_tenant_user_id),
-    CONSTRAINT chk_app_subscriptions_single_subscriber CHECK (
-        NOT (subscriber_tenant_id IS NOT NULL AND subscriber_tenant_user_id IS NOT NULL)
-    )
+    -- Solo 1 suscripcion activa por Contractor por ClientApp
+    CONSTRAINT uq_app_subscriptions_app_contractor UNIQUE (client_app_id, contractor_id)
 );
 
-CREATE INDEX idx_app_subscriptions_client_app ON app_subscriptions(client_app_id);
-CREATE INDEX idx_app_subscriptions_status     ON app_subscriptions(status);
-CREATE INDEX idx_app_subscriptions_sub_tenant
-    ON app_subscriptions(subscriber_tenant_id)
-    WHERE subscriber_tenant_id IS NOT NULL;
-CREATE INDEX idx_app_subscriptions_sub_user
-    ON app_subscriptions(subscriber_tenant_user_id)
-    WHERE subscriber_tenant_user_id IS NOT NULL;
+CREATE INDEX idx_app_subscriptions_client_app   ON app_subscriptions(client_app_id);
+CREATE INDEX idx_app_subscriptions_contractor   ON app_subscriptions(contractor_id);
+CREATE INDEX idx_app_subscriptions_status       ON app_subscriptions(status);
+CREATE INDEX idx_app_subscriptions_contract     ON app_subscriptions(contract_id) WHERE contract_id IS NOT NULL;
 
 CREATE TRIGGER app_subscriptions_updated_at
     BEFORE UPDATE ON app_subscriptions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-COMMENT ON TABLE app_subscriptions IS 'Active billing relationship between a subscriber and a plan version of a ClientApp. Exactly one of subscriber_tenant_id / subscriber_tenant_user_id must be non-null.';
+COMMENT ON TABLE  app_subscriptions IS 'Active billing relationship between a Contractor and a plan version of a ClientApp (model v2). Replaces the polymorphic subscriber_tenant_id / subscriber_tenant_user_id design.';
+COMMENT ON COLUMN app_subscriptions.contractor_id IS 'The contractor who holds this subscription. One subscription per contractor per app.';
 
 -- ---------------------------------------------------------------------------
 -- payment_transactions
--- Registro de cada evento de pago (activación inicial, renovación, etc.)
+-- Registro de cada evento de pago (activacion inicial, renovacion, etc.)
 -- ---------------------------------------------------------------------------
 CREATE TABLE payment_transactions (
     id                 UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id        UUID          REFERENCES app_contracts(id)    ON DELETE SET NULL,
+    contract_id        UUID          REFERENCES app_contracts(id)     ON DELETE SET NULL,
     subscription_id    UUID          REFERENCES app_subscriptions(id) ON DELETE SET NULL,
     provider           VARCHAR(50)   NOT NULL DEFAULT 'MOCK',
     provider_reference VARCHAR(255),
     amount             NUMERIC(12,2) NOT NULL,
-    currency           VARCHAR(3)    NOT NULL DEFAULT 'MXN',
+    currency           VARCHAR(3)    NOT NULL DEFAULT 'USD',
     status             VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
     paid_at            TIMESTAMPTZ,
     raw_response       JSONB,
@@ -82,6 +76,6 @@ CREATE INDEX idx_payment_tx_contract     ON payment_transactions(contract_id);
 CREATE INDEX idx_payment_tx_subscription ON payment_transactions(subscription_id);
 CREATE INDEX idx_payment_tx_status       ON payment_transactions(status);
 
-COMMENT ON TABLE  payment_transactions IS 'Record of each payment event (initial activation, renewal, etc.). raw_response stores PSP payload.';
-COMMENT ON COLUMN payment_transactions.provider IS 'MOCK = dev/test; MANUAL = no PSP; others = real PSP';
+COMMENT ON TABLE  payment_transactions IS 'Record of each payment event (initial activation, renewal, etc.). raw_response stores PSP payload for auditing.';
+COMMENT ON COLUMN payment_transactions.provider IS 'MOCK = dev/test; MANUAL = no PSP; others = real PSP integration';
 

@@ -3,6 +3,8 @@ package io.cmartinezs.keygo.domain.tenant.model;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.UUID;
+
 /**
  * Tenant domain entity — the top-level isolation boundary of the system.
  * Every resource (users, client apps, memberships) belongs to a tenant.
@@ -19,6 +21,11 @@ public class Tenant {
   private final String name;
   private final String ownerEmail;
   private TenantStatus status;
+  /**
+   * NULL = system/platform tenant. NOT NULL = created by a contractor.
+   * Set when contractor activates a contract and creates this tenant.
+   */
+  private final UUID contractorId;
 
   @Builder
   private Tenant(
@@ -26,7 +33,8 @@ public class Tenant {
       TenantSlug slug,
       String name,
       String ownerEmail,
-      TenantStatus status) {
+      TenantStatus status,
+      UUID contractorId) {
     if (id == null) throw new IllegalArgumentException("Tenant id cannot be null");
     if (slug == null) throw new IllegalArgumentException("Tenant slug cannot be null");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("Tenant name cannot be null or blank");
@@ -38,6 +46,7 @@ public class Tenant {
     this.name = name;
     this.ownerEmail = ownerEmail;
     this.status = status;
+    this.contractorId = contractorId;
   }
 
   // ─── Domain behaviour ─────────────────────────────────────────────────────

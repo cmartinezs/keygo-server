@@ -169,14 +169,14 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (GET — **público con Bearer** — perfil propio del usuario autenticado)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (PATCH — **público con Bearer** — editar perfil propio, PATCH semántica)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog` (GET — **público** — catálogo de planes públicos, filtro opcional `?subscriberType=TENANT|TENANT_USER`)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/catalog/{planCode}` (GET — **público** — detalle de un plan público con entitlements)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{providerClientId}/billing/catalog` (GET — **público** — catálogo de planes públicos, filtro opcional `?subscriberType=TENANT|TENANT_USER`)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{providerClientId}/billing/catalog/{planCode}` (GET — **público** — detalle de un plan público con entitlements)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/plans` (POST — **Bearer ADMIN_TENANT** — crear plan con versión inicial y entitlements)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts` (POST — **público** — iniciar contrato de suscripción; genera código de verificación y envía email)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}` (GET — **público** — estado del contrato)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/verify-email` (POST — **público** — verificar código de email → avanza a `PENDING_PAYMENT`; body: `{"code":"123456"}`)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/mock-approve-payment` (POST — **público/dev** — simular pago, requiere `keygo.billing.mock-payment-enabled=true`)
-- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/contracts/{contractId}/activate` (POST — **público** — activar contrato → crea tenant/user + suscripción + factura)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts` (POST — **público** — iniciar contrato de suscripción; body incluye `clientAppId`; genera código de verificación y envía email)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}` (GET — **público** — estado del contrato)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/verify-email` (POST — **público** — verificar código de email → avanza a `PENDING_PAYMENT`; body: `{"code":"123456"}`)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/mock-approve-payment` (POST — **público/dev** — simular pago, requiere `keygo.billing.mock-payment-enabled=true`)
+- `http://localhost:8080/keygo-server/api/v1/billing/contracts/{contractId}/activate` (POST — **público** — activar contrato → crea tenant/user + suscripción + factura)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription` (GET — **Bearer ADMIN_TENANT** — suscripción activa; `{subscriberSlug}`=tenant suscriptor, `{providerClientId}`=client_id global del proveedor)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/subscription/cancel` (POST — **Bearer ADMIN_TENANT** — marcar cancelación al fin del período)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{subscriberSlug}/apps/{providerClientId}/billing/invoices` (GET — **Bearer ADMIN_TENANT** — lista de facturas)
@@ -266,25 +266,24 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `EmailVerificationJpaRepository` | `user.repository` |
 
 **Flyway migrations already applied:**
-- `V1__initial_schema.sql` — **Drop ALL** (pizarrón limpio: elimina todas las tablas existentes, idempotente)
-- `V2__seed_data.sql` — Extensión `uuid-ossp` + función trigger `update_updated_at_column()`
-- `V3__add_oauth_support.sql` — Tabla `tenants` (slug, status check, trigger updated_at)
-- `V4__add_tenants.sql` — Tablas `client_apps`, `client_redirect_uris`, `client_allowed_grants`, `client_allowed_scopes`
-- `V5__add_client_apps.sql` — Tabla `tenant_users` (con 6 campos OIDC 5.3 de perfil desde el inicio)
-- `V6__add_tenant_users.sql` — Tablas `app_roles`, `memberships`, `membership_roles` (PK compuesta)
-- `V7__add_memberships.sql` — Tablas `authorization_codes` (PKCE), `signing_keys` (RSA PEM)
-- `V8__add_oauth_authorization_codes.sql` — Tablas `sessions`, `refresh_tokens` (hash SHA-256, rotación)
-- `V9__add_signing_keys.sql` — Tabla `email_verifications` (código 6 dígitos, TTL 30 min)
-- `V10__rename_membership_tables_to_plural.sql` — Tablas `app_plans` (con `subscriber_type`), `app_plan_versions`, `app_plan_entitlements`
-- `V11__billing_contracts.sql` — Tabla `app_contracts` (con `verification_code` + `verification_code_expires_at`, `company_*` columns)
-- `V12__billing_subscriptions.sql` — Tablas `app_subscriptions`, `payment_transactions`
-- `V13__billing_invoices_and_usage.sql` — Tablas `invoices`, `usage_counters` (con `subscriber_type`)
-- `V14__billing_support_tables.sql` — Tablas `payment_methods`, `tenant_billing_profiles`
-- `V15__seed_foundation.sql` — Seed: tenants `keygo`+`demo`, apps, usuarios (contraseñas correctas), roles, memberships
-- `V16__seed_billing_platform_app.sql` — **(no-op)** Migración intencionalmente vacía; `keygo-platform` fue eliminado del seed — el seed solo incluye el tenant `keygo` con la app pública `keygo-ui`
-- `V16__seed_billing_plans.sql` — Seed: planes FREE/STARTER/BUSINESS/ENTERPRISE + versiones v1.0 + entitlements
-
-- `V17__seed_keygo_billing_plans_v2.sql` — Escalera corregida: depreca versiones v1.0 de V17, desactiva STARTER, actualiza FREE/BUSINESS/ENTERPRISE (descripciones + USD), inserta PERSONAL/TEAM/FLEX con versiones y entitlements completos (incluye `MAX_TENANTS`, `MAX_ADMINS`, tarifas escalonadas Flex en centavos)
+- `V1__drop_all.sql` — **Drop ALL** (pizarrón limpio, idempotente; incluye `contractors`)
+- `V2__foundation.sql` — Extensión `uuid-ossp` + función trigger `update_updated_at_column()`
+- `V3__tenants.sql` — Tabla `tenants` (slug, status check `ACTIVE|SUSPENDED|PENDING|DELETED`, `contractor_id` sin FK aún)
+- `V4__client_apps.sql` — Tablas `client_apps`, `client_redirect_uris`, `client_allowed_grants`, `client_allowed_scopes`
+- `V5__tenant_users.sql` — Tabla `tenant_users` (con 6 campos OIDC 5.3 de perfil)
+- `V6__memberships.sql` — Tablas `app_roles`, `memberships`, `membership_roles` (PK compuesta)
+- `V7__auth_codes_and_signing_keys.sql` — Tablas `authorization_codes` (PKCE), `signing_keys` (RSA PEM)
+- `V8__sessions_and_refresh_tokens.sql` — Tablas `sessions`, `refresh_tokens` (hash SHA-256, rotación)
+- `V9__email_verifications.sql` — Tabla `email_verifications` (código 6 dígitos, TTL 30 min)
+- `V10__billing_catalog.sql` — Tablas `app_plans` (con `subscriber_type`), `app_plan_versions`, `app_plan_billing_options`, `app_plan_entitlements`
+- `V11__contractors.sql` — **NUEVA** tabla `contractors` (1:1 con `tenant_users`; status `PENDING|ACTIVE|SUSPENDED`) + FK `tenants.contractor_id → contractors(id)`
+- `V12__billing_contracts.sql` — Tabla `app_contracts` (modelo v2: `contractor_id`, sin `subscriber_*` ni `company_slug`; estados ampliados: `SUPERSEDED`, `FINALIZED`)
+- `V13__billing_subscriptions.sql` — Tablas `app_subscriptions` (`contractor_id`, sin `subscriber_*`), `payment_transactions`
+- `V14__billing_invoices_and_usage.sql` — Tablas `invoices`, `usage_counters` (`contractor_id`, sin `subscriber_*`)
+- `V15__billing_support_tables.sql` — Tablas `payment_methods`, `tenant_billing_profiles`
+- `V16__seed_foundation.sql` — Seed: tenants `keygo`+`demo`, apps, usuarios (contraseñas correctas), roles, memberships
+- `V17__seed_billing_plans.sql` — Seed: planes FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE + versiones v1.0 + billing options + entitlements (escalera completa)
+- `V18__seed_contractors.sql` — Seed: `keygo_contractor` (TenantUser en keygo), `contractors` record ACTIVE, contrato ACTIVE plan PERSONAL, suscripción ACTIVE, tenant `acme` vinculado
 
 Next migration must be `V19__...`. **Never reuse or edit existing migration files.**
 
@@ -323,13 +322,20 @@ Preferred semantic fields by parent table:
 
 **Seed credentials (dev/local ONLY — never use in production):**
 
-| Tabla | Usuario | Email | Contraseña | Tenant |
+| Tabla | Usuario | Email | Contraseña | Tenant | Rol |
+|---|---|---|---|---|---|
+| `tenant_users` | `keygo_admin` | `admin@keygo.local` | `Admin1234!` | `keygo` | admin |
+| `tenant_users` | `keygo_tenant_admin` | `tenant-admin@keygo.local` | `Admin1234!` | `keygo` | admin_tenant |
+| `tenant_users` | `keygo_user` | `user@keygo.local` | `Admin1234!` | `keygo` | user_tenant |
+| `tenant_users` | `keygo_contractor` | `contractor@keygo.local` | `Admin1234!` | `keygo` | user_tenant |
+| `tenant_users` | `demo_admin` | `admin@demo.local` | `DevAdmin1!` | `demo` | demo_admin |
+| `tenant_users` | `demo_user` | `user@demo.local` | `DevUser1!` | `demo` | demo_user |
+
+**Seed contractors (modelo billing v2):**
+
+| Tabla | ID estable | Tenant user | Status | Tenant(s) creados |
 |---|---|---|---|---|
-| `tenant_users` | `keygo_admin` | `admin@keygo.local` | `Admin1234!` | `keygo` |
-| `tenant_users` | `keygo_tenant_admin` | `tenant-admin@keygo.local` | `Admin1234!` | `keygo` |
-| `tenant_users` | `keygo_user` | `user@keygo.local` | `Admin1234!` | `keygo` |
-| `tenant_users` | `demo_admin` | `admin@demo.local` | `DevAdmin1!` | `demo` |
-| `tenant_users` | `demo_user` | `user@demo.local` | `DevUser1!` | `demo` |
+| `contractors` | `88888888-8888-8888-8888-000000000001` | `keygo_contractor` | `ACTIVE` | `acme`, `demo` |
 
 **`SupabaseJpaConfig`** (`keygo-supabase`) declares `@EntityScan` + `@EnableJpaRepositories` — required when adding new entities or repositories to this module.
 
@@ -429,6 +435,9 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-03-31 | **Simplificación de `AppBillingContractController`:** path cambiado a `/api/v1/billing/contracts` (eliminado `{tenantSlug}/{clientId}` del path). `clientAppId` ahora va en el body del POST. Removidas dependencias `tenantRepo`/`clientAppRepo` del controller. `CreateAppContractRequest` agrega campo `clientAppId`. Tests actualizados. |
+| 2026-03-31 | **Sincronización modelo v2 Contractor (V1-V18):** JPA entities, repos, puertos, adaptadores, use cases y controllers actualizados. Nuevas entidades: `ContractorEntity`, `PaymentTransactionEntity`, `TenantBillingProfileEntity`, `PaymentMethodEntity`. `ContractStatus.ACTIVATED`→`ACTIVE`. `executeForTenant`→`executeForContractor`. 5 test files actualizados. |
+| 2026-03-30 | **Reestructuración total de migraciones Flyway — modelo v2 contractors:** V1-V18 desde cero. Backup en `backup_20260330/`. V3 agrega `contractor_id`+`DELETED`; V10 agrega `subscriber_type`; V11=contractors (nueva); V12=billing_contracts (sin subscriber_*, nuevo modelo); V13=billing_subscriptions (contractor_id); V14=billing_invoices+usage (contractor_id); V17=seed billing plans (escalera completa FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE); V18=seed contractors (keygo_contractor → contractor → acme_contract → acme_sub → tenants acme+demo vinculados). Próxima migración: `V19__...` |
 | 2026-03-29 | **Reestructuración total de migraciones Flyway:** V1–V26 (acumulativo con parches) reemplazado por **V1–V17** organizado por dominio. V1=Drop ALL, V2=Foundation, V3=Tenants, V4=ClientApps, V5=TenantUsers (OIDC 5.3 incluido), V6=Memberships, V7=AuthCodes+SigningKeys, V8=Sessions+RefreshTokens, V9=EmailVerifications, V10=BillingCatalog (con `subscriber_type`), V11=BillingContracts (con `verification_code`), V12=BillingSubscriptions, V13=Invoices+UsageCounters, V14=BillingSupport, V15=SeedFoundation, V16=SeedBillingPlatformApp, V17=SeedBillingPlans. Próxima migración: `V18__...` |
 | 2026-03-28 | Billing model B-1→B-8: dominio de billing (11 enums, 6 modelos), puertos/use cases catálogo+contratación+suscripción+facturación+uso, entidades JPA (7), repositorios JPA (7), adaptadores (7), mapper, 3 controllers REST (`AppBillingPlanController`, `AppBillingContractController`, `AppBillingSubscriptionController`), 18 ResponseCodes de billing, `KeyGoBillingProperties`, 2 sufijos públicos (`billing-catalog`, `billing-contracts`), 25 tests unitarios nuevos; 89 tests totales pasan |
 | 2026-03-28 | Dashboard admin: nuevo `GET /api/v1/admin/platform/dashboard` (`PlatformDashboardController`, `GetPlatformDashboardUseCase`, `PlatformDashboardAdapter`, `PlatformDashboardPort`, `PlatformDashboardResult`, `PlatformDashboardData`); refactorización GROUP BY — 9 métodos `countX(status)` → `Map<K,Long> countX()` eliminando ~16 queries individuales; `PLATFORM_DASHBOARD_RETRIEVED` `ResponseCode` |

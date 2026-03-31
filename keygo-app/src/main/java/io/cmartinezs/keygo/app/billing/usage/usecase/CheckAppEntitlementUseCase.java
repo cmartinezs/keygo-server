@@ -16,8 +16,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Use case: check whether an operation is allowed based on plan entitlements.
- * Backward compatible: if no subscription or entitlement is found, returns allowed=true.
+ * Use case: check whether an operation is allowed based on plan entitlements — billing model v2.
+ * If no subscription or entitlement is found, returns allowed=true (backward compatible).
  * @author cmartinezs
  * @version 1.0
  */
@@ -39,18 +39,10 @@ public class CheckAppEntitlementUseCase {
     this.usageRepo = usageRepo;
   }
 
-  /** Check entitlement for a B2B tenant subscriber. */
-  public EntitlementCheck executeForTenant(UUID clientAppId, UUID tenantId, String metricCode) {
-    Optional<AppSubscription> sub = subscriptionRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, tenantId);
-    Map<String, Long> usage = sub.map(s -> usageRepo.getCurrentUsageForTenant(clientAppId, tenantId))
-        .orElse(Map.of());
-    return check(sub, usage, metricCode);
-  }
-
-  /** Check entitlement for a B2C user subscriber. */
-  public EntitlementCheck executeForUser(UUID clientAppId, UUID userId, String metricCode) {
-    Optional<AppSubscription> sub = subscriptionRepo.findByClientAppIdAndSubscriberUserId(clientAppId, userId);
-    Map<String, Long> usage = sub.map(s -> usageRepo.getCurrentUsageForUser(clientAppId, userId))
+  /** Check entitlement for a Contractor (billing model v2). */
+  public EntitlementCheck executeForContractor(UUID clientAppId, UUID contractorId, String metricCode) {
+    Optional<AppSubscription> sub = subscriptionRepo.findByClientAppIdAndContractorId(clientAppId, contractorId);
+    Map<String, Long> usage = sub.map(s -> usageRepo.getCurrentUsageForContractor(clientAppId, contractorId))
         .orElse(Map.of());
     return check(sub, usage, metricCode);
   }
@@ -96,7 +88,6 @@ public class CheckAppEntitlementUseCase {
 
     long currentValue = usage.getOrDefault(metricCode, 0L);
     Long limitValue = entitlement.getLimitValue();
-
     boolean allowed = limitValue == null || currentValue < limitValue
         || EnforcementMode.SOFT.equals(entitlement.getEnforcementMode());
 

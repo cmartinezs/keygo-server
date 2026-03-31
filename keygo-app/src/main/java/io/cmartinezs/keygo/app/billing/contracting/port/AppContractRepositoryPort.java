@@ -13,8 +13,5 @@ import java.util.UUID;
 public interface AppContractRepositoryPort {
   AppContract save(AppContract contract);
   Optional<AppContract> findById(UUID id);
-  Optional<AppContract> findByClientAppIdAndCompanySlug(UUID clientAppId, String companySlug);
   Optional<AppContract> findByClientAppIdAndContractorEmail(UUID clientAppId, String email);
-  boolean existsByClientAppIdAndCompanySlug(UUID clientAppId, String companySlug);
 }
-

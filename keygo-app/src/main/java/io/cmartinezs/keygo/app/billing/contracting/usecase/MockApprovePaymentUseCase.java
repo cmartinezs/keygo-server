@@ -35,8 +35,8 @@ public class MockApprovePaymentUseCase {
     var contract = contractRepo.findById(contractId)
         .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + contractId));
 
-    if (ContractStatus.ACTIVATED.equals(contract.getStatus()) ||
-        ContractStatus.CANCELLED.equals(contract.getStatus())) {
+    if (ContractStatus.ACTIVE.equals(contract.getStatus())
+        || ContractStatus.CANCELLED.equals(contract.getStatus())) {
       throw new IllegalStateException("Contract cannot be approved in current state: " + contract.getStatus());
     }
 

@@ -13,9 +13,9 @@ import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 
 /**
- * Use case: create a new app contract (beginning the contracting flow).
+ * Use case: create a new app contract (beginning of the contracting flow) — billing model v2.
  * Generates a verification code and sends it to the contractor's email.
- * Handles TENANT (B2B) and TENANT_USER (B2C) branches.
+ * No B2B/B2C branch distinction here; that was removed in model v2.
  *
  * @author cmartinezs
  * @version 1.0
@@ -44,22 +44,10 @@ public class CreateAppContractUseCase {
   }
 
   public AppContractResult execute(CreateAppContractCommand cmd) {
-    // Validate plan version exists
     AppPlanVersion planVersion = versionRepo.findById(cmd.planVersionId())
         .orElseThrow(() -> new IllegalArgumentException("Plan version not found: " + cmd.planVersionId()));
 
-    // For B2B: validate companySlug is present and not already in use
-    if (cmd.companySlug() != null && !cmd.companySlug().isBlank()) {
-      if (contractRepo.existsByClientAppIdAndCompanySlug(cmd.clientAppId(), cmd.companySlug())) {
-        throw new IllegalArgumentException("El company_slug ya está en uso para esta app: " + cmd.companySlug());
-      }
-    }
-
     OffsetDateTime now = OffsetDateTime.now();
-    OffsetDateTime expiresAt = now.plusHours(contractExpiryHours);
-    OffsetDateTime codeExpiresAt = now.plusMinutes(verificationCodeExpiryMinutes);
-
-    // Generate a 6-digit numeric verification code (SecureRandom for safety)
     String verificationCode = String.format("%06d", RANDOM.nextInt(1_000_000));
 
     AppContract contract = AppContract.builder()
@@ -71,19 +59,17 @@ public class CreateAppContractUseCase {
         .contractorFirstName(cmd.contractorFirstName())
         .contractorLastName(cmd.contractorLastName())
         .companyName(cmd.companyName())
-        .companySlug(cmd.companySlug())
         .companyTaxId(cmd.companyTaxId())
         .companyAddress(cmd.companyAddress())
         .verificationCode(verificationCode)
-        .verificationCodeExpiresAt(codeExpiresAt)
-        .expiresAt(expiresAt)
+        .verificationCodeExpiresAt(now.plusMinutes(verificationCodeExpiryMinutes))
+        .expiresAt(now.plusHours(contractExpiryHours))
         .createdAt(now)
         .updatedAt(now)
         .build();
 
     contract = contractRepo.save(contract);
 
-    // Enviar email con el código de verificación
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
     emailNotification.sendVerificationEmail(contract.getContractorEmail(), recipientName, verificationCode);
 

@@ -7,7 +7,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Domain model for an active subscription between a ClientApp and its subscriber.
+ * Domain model for an active subscription — billing model v2 (contractor-centric).
+ * A subscription links a Contractor to a specific plan version of a ClientApp.
+ * Only one active subscription per Contractor per ClientApp is allowed.
  * @author cmartinezs
  * @version 1.0
  */
@@ -18,10 +20,8 @@ public class AppSubscription {
   private final UUID clientAppId;
   private final UUID appPlanVersionId;
   private final UUID contractId;
-  /** Non-null for B2B (tenant) subscribers. */
-  private final UUID subscriberTenantId;
-  /** Non-null for B2C (individual) subscribers. */
-  private final UUID subscriberTenantUserId;
+  /** The Contractor who holds this subscription. NOT NULL in model v2. */
+  private final UUID contractorId;
   private SubscriptionStatus status;
   private final OffsetDateTime currentPeriodStart;
   private OffsetDateTime currentPeriodEnd;
@@ -38,8 +38,7 @@ public class AppSubscription {
       UUID clientAppId,
       UUID appPlanVersionId,
       UUID contractId,
-      UUID subscriberTenantId,
-      UUID subscriberTenantUserId,
+      UUID contractorId,
       SubscriptionStatus status,
       OffsetDateTime currentPeriodStart,
       OffsetDateTime currentPeriodEnd,
@@ -51,10 +50,7 @@ public class AppSubscription {
       OffsetDateTime updatedAt) {
     if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (appPlanVersionId == null) throw new IllegalArgumentException("appPlanVersionId cannot be null");
-    if (subscriberTenantId != null && subscriberTenantUserId != null)
-      throw new IllegalArgumentException("Cannot set both subscriberTenantId and subscriberTenantUserId");
-    if (subscriberTenantId == null && subscriberTenantUserId == null)
-      throw new IllegalArgumentException("At least one of subscriberTenantId or subscriberTenantUserId must be set");
+    if (contractorId == null) throw new IllegalArgumentException("contractorId cannot be null");
     if (status == null) throw new IllegalArgumentException("status cannot be null");
     if (currentPeriodStart == null) throw new IllegalArgumentException("currentPeriodStart cannot be null");
     if (currentPeriodEnd == null) throw new IllegalArgumentException("currentPeriodEnd cannot be null");
@@ -63,8 +59,7 @@ public class AppSubscription {
     this.clientAppId = clientAppId;
     this.appPlanVersionId = appPlanVersionId;
     this.contractId = contractId;
-    this.subscriberTenantId = subscriberTenantId;
-    this.subscriberTenantUserId = subscriberTenantUserId;
+    this.contractorId = contractorId;
     this.status = status;
     this.currentPeriodStart = currentPeriodStart;
     this.currentPeriodEnd = currentPeriodEnd;

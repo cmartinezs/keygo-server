@@ -32,6 +32,9 @@ import java.util.UUID;
 /**
  * REST controller for subscription and invoice management within a client app.
  * Requires Bearer token with ADMIN_TENANT role.
+ * URL pattern: /tenants/{tenantSlug}/apps/{clientId}/billing
+ *   {tenantSlug} = slug del tenant creado por el Contractor (tiene contractor_id en DB)
+ *   {clientId}   = client_id global del proveedor
  *
  * @author cmartinezs
  * @version 1.0
@@ -66,7 +69,9 @@ public class AppBillingSubscriptionController {
   @GetMapping("/subscription")
   @Operation(
       summary = "Get active subscription",
-      description = "Returns the current active subscription for the client app. Requires ADMIN_TENANT role.")
+      description = "Returns the current active subscription for the client app. "
+                  + "{tenantSlug} is the tenant created by the Contractor (has contractor_id in DB). "
+                  + "Requires ADMIN_TENANT role.")
   @ApiResponse(responseCode = "200", description = "Subscription retrieved",
       content = @Content(schema = @Schema(implementation = AppSubscriptionData.Response.class)))
   @ApiResponse(responseCode = "404", description = "No active subscription found",
@@ -74,15 +79,13 @@ public class AppBillingSubscriptionController {
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> getSubscription(
-      @Parameter(description = "Tenant slug (suscriptor)") @PathVariable String tenantSlug,
+      @Parameter(description = "Tenant slug (creado por el Contractor)") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
 
-    // {tenantSlug} = tenant del SUSCRIPTOR — identifica quién es el suscriptor
-    // {clientId}   = clientId del PROVEEDOR — se resuelve globalmente (no pertenece al suscriptor)
-    UUID tenantId = resolveTenantId(tenantSlug);
-    UUID appId    = resolveAppIdGlobally(clientId);
+    UUID contractorId = resolveContractorIdFromTenant(tenantSlug);
+    UUID appId = resolveAppIdGlobally(clientId);
 
-    AppSubscription sub = getSubscriptionUseCase.executeForTenant(appId, tenantId);
+    AppSubscription sub = getSubscriptionUseCase.executeForContractor(appId, contractorId);
     return ResponseEntity.ok(BaseResponse.<AppSubscriptionData>builder()
         .data(AppSubscriptionData.from(sub))
         .success(ResponseHelper.message(ResponseCode.APP_SUBSCRIPTION_RETRIEVED))
@@ -101,13 +104,13 @@ public class AppBillingSubscriptionController {
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppSubscriptionData>> cancelSubscription(
-      @Parameter(description = "Tenant slug (suscriptor)") @PathVariable String tenantSlug,
+      @Parameter(description = "Tenant slug (creado por el Contractor)") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
 
-    UUID tenantId = resolveTenantId(tenantSlug);
-    UUID appId    = resolveAppIdGlobally(clientId);
+    UUID contractorId = resolveContractorIdFromTenant(tenantSlug);
+    UUID appId = resolveAppIdGlobally(clientId);
 
-    AppSubscription sub = cancelSubscriptionUseCase.executeForTenant(appId, tenantId);
+    AppSubscription sub = cancelSubscriptionUseCase.executeForContractor(appId, contractorId);
     return ResponseEntity.ok(BaseResponse.<AppSubscriptionData>builder()
         .data(AppSubscriptionData.from(sub))
         .success(ResponseHelper.message(ResponseCode.APP_SUBSCRIPTION_CANCELLED))
@@ -126,13 +129,13 @@ public class AppBillingSubscriptionController {
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<List<AppInvoiceData>>> listInvoices(
-      @Parameter(description = "Tenant slug (suscriptor)") @PathVariable String tenantSlug,
+      @Parameter(description = "Tenant slug (creado por el Contractor)") @PathVariable String tenantSlug,
       @Parameter(description = "Client app client_id (proveedor)") @PathVariable String clientId) {
 
-    UUID tenantId = resolveTenantId(tenantSlug);
-    UUID appId    = resolveAppIdGlobally(clientId);
+    UUID contractorId = resolveContractorIdFromTenant(tenantSlug);
+    UUID appId = resolveAppIdGlobally(clientId);
 
-    AppSubscription sub = getSubscriptionUseCase.executeForTenant(appId, tenantId);
+    AppSubscription sub = getSubscriptionUseCase.executeForContractor(appId, contractorId);
     List<AppInvoiceData> invoices = listInvoicesUseCase.execute(sub.getId())
         .stream().map(AppInvoiceData::from).toList();
 
@@ -144,16 +147,24 @@ public class AppBillingSubscriptionController {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  private UUID resolveTenantId(String tenantSlug) {
+  /**
+   * Resuelve el contractorId a partir del tenant creado por el Contractor.
+   * El tenant tiene contractor_id != NULL cuando fue creado por un Contractor.
+   */
+  private UUID resolveContractorIdFromTenant(String tenantSlug) {
     return tenantRepo.findBySlug(TenantSlug.of(tenantSlug))
-        .map(t -> t.getId().value())
+        .map(t -> {
+          if (t.getContractorId() == null) {
+            throw new IllegalArgumentException(
+                "El tenant '" + tenantSlug + "' no está asociado a ningún Contractor");
+          }
+          return t.getContractorId();
+        })
         .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
   }
 
   /**
-   * Resuelve el UUID interno de la ClientApp por su clientId (OAuth2 client_id) globalmente.
-   * El clientId es globalmente único y pertenece al PROVEEDOR, no al suscriptor.
-   * Usar este método (no findByClientIdAndTenantId) para los endpoints de gestión de suscripción.
+   * Resuelve el UUID interno de la ClientApp por su clientId globalmente.
    */
   private UUID resolveAppIdGlobally(String clientId) {
     return clientAppRepo.findByClientId(ClientId.of(clientId))

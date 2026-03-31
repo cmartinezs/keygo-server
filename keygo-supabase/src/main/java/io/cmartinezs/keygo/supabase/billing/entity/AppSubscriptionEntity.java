@@ -2,8 +2,6 @@ package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,7 +11,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * JPA entity for app_subscriptions table.
+ * JPA entity for app_subscriptions table — billing model v2 (contractor-centric).
+ * One active subscription per Contractor per ClientApp (unique constraint in DB).
  * @author cmartinezs
  * @version 1.0
  */
@@ -26,7 +25,9 @@ import java.util.UUID;
 @Table(name = "app_subscriptions",
     indexes = {
         @Index(name = "idx_app_subscriptions_client_app", columnList = "client_app_id"),
-        @Index(name = "idx_app_subscriptions_status",     columnList = "status")
+        @Index(name = "idx_app_subscriptions_contractor", columnList = "contractor_id"),
+        @Index(name = "idx_app_subscriptions_status",     columnList = "status"),
+        @Index(name = "idx_app_subscriptions_contract",   columnList = "contract_id")
     })
 public class AppSubscriptionEntity {
 
@@ -46,13 +47,10 @@ public class AppSubscriptionEntity {
   @JoinColumn(name = "contract_id")
   private AppContractEntity contract;
 
+  /** Contractor who holds this subscription. NOT NULL in model v2. */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscriber_tenant_id")
-  private TenantEntity subscriberTenant;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscriber_tenant_user_id")
-  private TenantUserEntity subscriberTenantUser;
+  @JoinColumn(name = "contractor_id", nullable = false)
+  private ContractorEntity contractor;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)

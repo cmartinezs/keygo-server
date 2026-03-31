@@ -6,13 +6,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Port OUT — persistence contract for AppSubscription.
+ * Port OUT — persistence contract for AppSubscription (billing model v2).
  * @author cmartinezs
  * @version 1.0
  */
 public interface AppSubscriptionRepositoryPort {
   AppSubscription save(AppSubscription subscription);
-  Optional<AppSubscription> findByClientAppIdAndSubscriberTenantId(UUID clientAppId, UUID tenantId);
-  Optional<AppSubscription> findByClientAppIdAndSubscriberUserId(UUID clientAppId, UUID userId);
+  Optional<AppSubscription> findByClientAppIdAndContractorId(UUID clientAppId, UUID contractorId);
 }
-

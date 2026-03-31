@@ -18,6 +18,10 @@ public enum TenantStatus {
 
   /* Tenant is pending activation (e.g. awaiting email verification).
    * El tenant está pendiente de activación (ej. esperando verificación de email). */
-  PENDING
+  PENDING,
+
+  /* Tenant has been soft-deleted.
+   * El tenant ha sido eliminado de forma lógica. */
+  DELETED
 }
 

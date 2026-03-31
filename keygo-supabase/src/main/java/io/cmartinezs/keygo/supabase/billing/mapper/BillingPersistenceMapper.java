@@ -89,9 +89,9 @@ public final class BillingPersistenceMapper {
         .contractorFirstName(e.getContractorFirstName())
         .contractorLastName(e.getContractorLastName())
         .companyName(e.getCompanyName())
-        .companySlug(e.getCompanySlug())
         .companyTaxId(e.getCompanyTaxId())
         .companyAddress(e.getCompanyAddress())
+        .contractorId(e.getContractor() != null ? e.getContractor().getId() : null)
         .verificationCode(e.getVerificationCode())
         .verificationCodeExpiresAt(e.getVerificationCodeExpiresAt())
         .emailVerifiedAt(e.getEmailVerifiedAt())
@@ -99,8 +99,6 @@ public final class BillingPersistenceMapper {
         .expiresAt(e.getExpiresAt())
         .createdAt(e.getCreatedAt())
         .updatedAt(e.getUpdatedAt())
-        .subscriberTenantId(e.getSubscriberTenant() != null ? e.getSubscriberTenant().getId() : null)
-        .subscriberTenantUserId(e.getSubscriberTenantUser() != null ? e.getSubscriberTenantUser().getId() : null)
         .build();
   }
 
@@ -112,8 +110,7 @@ public final class BillingPersistenceMapper {
         .clientAppId(e.getClientApp().getId())
         .appPlanVersionId(e.getAppPlanVersion().getId())
         .contractId(e.getContract() != null ? e.getContract().getId() : null)
-        .subscriberTenantId(e.getSubscriberTenant() != null ? e.getSubscriberTenant().getId() : null)
-        .subscriberTenantUserId(e.getSubscriberTenantUser() != null ? e.getSubscriberTenantUser().getId() : null)
+        .contractorId(e.getContractor().getId())
         .status(e.getStatus())
         .currentPeriodStart(e.getCurrentPeriodStart())
         .currentPeriodEnd(e.getCurrentPeriodEnd())

@@ -10,6 +10,78 @@
 
 ---
 
+### [2026-03-31] Controller de contratos: eliminar path vars de tenant/clientApp innecesarios
+
+**Contexto:** `AppBillingContractController` seguía con path `/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/contracts` del modelo v1, aunque en el modelo v2 los contratos son entidades independientes y no necesitan resolución de tenant/clientApp en el path.
+
+**Problema:** El path v1 requería dos resoluciones innecesarias (`tenantRepo` + `clientAppRepo`) en cada operación, incluyendo `getContract`, `mockApprovePayment`, `activateContract` y `verifyEmail`, que solo necesitan el `contractId` UUID. Solo `createContract` necesita saber a qué `clientApp` pertenece el contrato.
+
+**Solución / Buena práctica:**
+- **Mover `clientAppId` al body del POST** cuando se elimina el path param que lo proveía. El campo va como `String` (UUID texto) en el record `CreateAppContractRequest`.
+- **Eliminar `tenantRepo` y `clientAppRepo` del controller** cuando ya no son necesarios para ningún endpoint. Los `@RestController` sin mocks innecesarios son más fáciles de testear.
+- **El filtro `BootstrapAdminKeyFilter` usa `hasSegment` (contains)** para la ruta `/billing/contracts`, por lo que el cambio de path no rompe la visibilidad pública del endpoint.
+- **Al cambiar el path de un controller**, actualizar SIEMPRE: AGENTS.md (URLs), `docs/ai/agents-registro.md` (historial), Postman collection, y FRONTEND_DEVELOPER_GUIDE.md §14.
+
+**Archivos clave:**
+- `AppBillingContractController.java` — nuevo `@RequestMapping("/api/v1/billing/contracts")`
+- `CreateAppContractRequest.java` — nuevo campo `clientAppId`
+- `AppBillingContractControllerTest.java` — sin mocks de tenantRepo/clientAppRepo
+
+---
+
+### [2026-03-31] Sincronización completa de código Java con modelo v2 Contractor (V1-V18)
+
+**Contexto:** Se aplicaron los cambios del modelo de datos de las migraciones Flyway V1-V18 a toda la pila Java: JPA entities → repositorios → puertos → adaptadores → use cases → controllers → tests. El modelo v2 reemplaza el esquema polimórfico `subscriber_tenant_id`/`subscriber_tenant_user_id` con una entidad central `Contractor`.
+
+**Problema (múltiples errores de compilación en tests):**
+1. `AppContractTest`, `AppBillingContractControllerTest`, `VerifyContractEmailUseCaseTest` usaban `.companySlug(String)` que fue eliminado del builder de `AppContract` (se mantienen `companyName`, `companyTaxId`, `companyAddress` para invoicing B2B).
+2. `AppBillingContractControllerTest` usaba `ContractStatus.ACTIVATED` (renombrado a `ACTIVE`).
+3. `AppBillingSubscriptionControllerTest` usaba `.subscriberTenantId(UUID)` (reemplazado por `.contractorId(UUID)`) y métodos `.executeForTenant()` / `.executeForUser()` en los use cases (reemplazados por `.executeForContractor()`).
+4. `VerifyContractEmailUseCaseTest` usaba `@InjectMocks` con solo 1 mock (`contractRepo`) pero el use case v2 tiene 4 dependencias (`contractRepo`, `clientAppRepo`, `userRepo`, `contractorRepo`). Con `STRICT_STUBS`, Mockito falla al instanciar si faltan mocks del constructor.
+5. `CheckAppEntitlementUseCaseTest` usaba `getCurrentUsageForTenant()` / `findByClientAppIdAndSubscriberTenantId()` que fueron reemplazados por la variante `ForContractor`.
+
+**Solución / Buena práctica:**
+- **Al cambiar la firma de un constructor de use case (agregar/quitar dependencias)**, actualizar SIEMPRE los tests correspondientes añadiendo/quitando los `@Mock` necesarios antes de intentar compilar.
+- **El patrón `executeForTenant`/`executeForUser` → `executeForContractor`** debe buscarse en TODOS los tests de API (controllers) cuando se refactoriza un use case de billing, no solo en los tests del use case.
+- **`VerifyContractEmailUseCase` ahora llama a `clientAppRepo`, `userRepo` y `contractorRepo` ANTES de llamar a `verifyCode()`**. Los tests negativos (código incorrecto, expirado, ya verificado) necesitan TODOS los mocks configurados, no solo `contractRepo`. Usar un helper `stubDownstreamDeps()` privado para reutilizar la configuración.
+- **`ContractStatus.ACTIVATED` fue renombrado a `ACTIVE`** — buscar con grep antes de dar un enum por vigente: `grep -rn "ACTIVATED" keygo-*/src/`.
+- **`Tenant.builder()` necesita `contractorId` no-nulo** para el `AppBillingSubscriptionController` (que llama a `resolveContractorIdFromTenant`). Sin este campo, el controller lanza `IllegalArgumentException` y el test falla en tiempo de ejecución.
+
+**Archivos clave:**
+- Tests actualizados: `AppContractTest`, `VerifyContractEmailUseCaseTest`, `CheckAppEntitlementUseCaseTest`, `AppBillingContractControllerTest`, `AppBillingSubscriptionControllerTest`
+- Nuevas entidades JPA: `ContractorEntity`, `PaymentTransactionEntity`, `TenantBillingProfileEntity`, `PaymentMethodEntity`
+- Puerto nuevo: `ContractorRepositoryPort`
+- Use cases actualizados: `VerifyContractEmailUseCase`, `ActivateAppContractUseCase`, `GetAppSubscriptionUseCase`, `CancelAppSubscriptionUseCase`, `CheckAppEntitlementUseCase`
+
+---
+
+### [2026-03-30] Reestructuración de migraciones Flyway — integración del modelo v2 Contractors desde V1
+
+**Contexto:** Se integró la entidad `contractors` como parte central del modelo de datos de billing. Las migraciones anteriores (V1–V17) usaban un esquema polimórfico `subscriber_tenant_id` / `subscriber_tenant_user_id`. Se reescribieron todas las migraciones desde cero con el nuevo modelo.
+
+**Problema:**
+1. Las migraciones previas tenían dos FKs mutuamente excluyentes en `app_subscriptions` y `usage_counters`, con un CHECK constraint de exclusividad que era frágil y complejo de mantener.
+2. La tabla `contractors` debía crearse ANTES de que `tenants` agrege la FK `contractor_id`, pero `tenants` se crea antes que `contractors` → dependencia circular.
+3. Al renombrar archivos (V12→V13, V13→V14, etc.) mientras Flyway ya tiene su `flyway_schema_history`, los checksums de los archivos renombrados difieren y Flyway falla al validar.
+
+**Solución / Buena práctica:**
+- **Romper la dependencia circular con columna sin FK + ALTER TABLE posterior:** `tenants.contractor_id` se crea en V3 sin constraint FK. En V11 (después de crear `contractors`) se agrega la FK via `ALTER TABLE tenants ADD CONSTRAINT fk_tenants_contractor_id FOREIGN KEY (contractor_id) REFERENCES contractors(id) ON DELETE SET NULL`.
+- **El backup antes de reestructurar es obligatorio:** usar `cp V*.sql backup_YYYYMMDD/` antes de cualquier reorganización de versiones.
+- **Cuando se reescribe el historial de migraciones completo**, siempre hacer `clean` de Flyway (o limpiar `flyway_schema_history`) antes de aplicar las nuevas migraciones. Los checksums cambian incluso si el contenido lógico es equivalente.
+- **`subscriber_type` en `app_plans` es un campo de la tabla base** (V10), no de las versiones. Siempre verificar que la tabla tiene el campo antes de usarlo en seeds.
+- **Seed de contractors**: el patrón correcto es 1) insertar TenantUser, 2) insertar Membership + roles, 3) insertar Contractor, 4) insertar Contract, 5) insertar Subscription, 6) insertar/actualizar Tenants del contratante. Este orden respeta todas las FK constraints.
+
+**Archivos clave:**
+- `V3__tenants.sql` — columna `contractor_id` sin FK + CHECK status incluye `DELETED`
+- `V10__billing_catalog.sql` — campo `subscriber_type` en `app_plans`
+- `V11__contractors.sql` — tabla `contractors` + ALTER TABLE para agregar FK
+- `V12__billing_contracts.sql` — modelo v2 sin `subscriber_*`
+- `V13__billing_subscriptions.sql` — `contractor_id` en `app_subscriptions`
+- `V14__billing_invoices_and_usage.sql` — `contractor_id` en `usage_counters`
+- `V18__seed_contractors.sql` — seed completo del modelo contractor
+
+---
+
 ### [2026-03-30] Inconsistencia estructural: TenantUser B2C sin tenant_id — rediseño a modelo Contractor
 
 **Contexto:** Durante la revisión del flujo de activación de contratos billing (`ActivateAppContractUseCase`), se detectó que el flujo B2C creaba un `TenantUser` sin asignarle un `tenant_id`, violando el constraint `NOT NULL` de la columna en DB.

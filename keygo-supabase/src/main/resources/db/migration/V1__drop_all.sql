@@ -20,10 +20,14 @@ DROP TABLE IF EXISTS app_subscriptions    CASCADE;
 -- ── Billing contracts ─────────────────────────────────────────────────────────
 DROP TABLE IF EXISTS app_contracts CASCADE;
 
+-- ── Contractors ───────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS contractors CASCADE;
+
 -- ── Billing catalog ───────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS app_plan_entitlements CASCADE;
-DROP TABLE IF EXISTS app_plan_versions     CASCADE;
-DROP TABLE IF EXISTS app_plans             CASCADE;
+DROP TABLE IF EXISTS app_plan_entitlements  CASCADE;
+DROP TABLE IF EXISTS app_plan_billing_options CASCADE;
+DROP TABLE IF EXISTS app_plan_versions      CASCADE;
+DROP TABLE IF EXISTS app_plans              CASCADE;
 
 -- ── Auth / OAuth2 ─────────────────────────────────────────────────────────────
 DROP TABLE IF EXISTS email_verifications CASCADE;

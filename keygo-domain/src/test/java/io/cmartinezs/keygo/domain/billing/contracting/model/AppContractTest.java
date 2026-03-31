@@ -19,7 +19,7 @@ class AppContractTest {
         .contractorEmail("admin@acme.com")
         .contractorFirstName("John")
         .contractorLastName("Doe")
-        .companySlug("acme")
+        .contractorId(status == ContractStatus.READY_TO_ACTIVATE ? UUID.randomUUID() : null)
         .expiresAt(OffsetDateTime.now().plusHours(48))
         .createdAt(OffsetDateTime.now())
         .updatedAt(OffsetDateTime.now())
@@ -49,15 +49,28 @@ class AppContractTest {
   }
 
   @Test
-  void activate_withTenantId_setsSubscriberAndActivatedStatus() {
-    // Given
-    AppContract contract = validContract(ContractStatus.READY_TO_ACTIVATE);
-    UUID tenantId = UUID.randomUUID();
+  void activate_setsActiveStatus() {
+    // Given — contractorId already set (model v2: contractor is linked at email verification)
+    UUID contractorId = UUID.randomUUID();
+    AppContract contract = AppContract.builder()
+        .id(UUID.randomUUID())
+        .clientAppId(UUID.randomUUID())
+        .selectedPlanVersionId(UUID.randomUUID())
+        .billingPeriod("MONTHLY")
+        .status(ContractStatus.READY_TO_ACTIVATE)
+        .contractorEmail("admin@acme.com")
+        .contractorFirstName("John")
+        .contractorLastName("Doe")
+        .contractorId(contractorId)
+        .expiresAt(OffsetDateTime.now().plusHours(48))
+        .createdAt(OffsetDateTime.now())
+        .updatedAt(OffsetDateTime.now())
+        .build();
     // When
-    contract.activate(tenantId, null, OffsetDateTime.now());
+    contract.activate(OffsetDateTime.now());
     // Then
-    assertThat(contract.isActivated()).isTrue();
-    assertThat(contract.getSubscriberTenantId()).isEqualTo(tenantId);
+    assertThat(contract.isActive()).isTrue();
+    assertThat(contract.getContractorId()).isEqualTo(contractorId);
   }
 
   @Test
@@ -65,19 +78,32 @@ class AppContractTest {
     // Given
     AppContract contract = validContract(ContractStatus.PENDING_PAYMENT);
     // When / Then
-    assertThatThrownBy(() -> contract.activate(UUID.randomUUID(), null, OffsetDateTime.now()))
+    assertThatThrownBy(() -> contract.activate(OffsetDateTime.now()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("READY_TO_ACTIVATE");
   }
 
   @Test
-  void activate_throwsException_whenBothSubscriberIdsProvided() {
-    // Given
-    AppContract contract = validContract(ContractStatus.READY_TO_ACTIVATE);
+  void activate_throwsException_whenNoContractorLinked() {
+    // Given — READY_TO_ACTIVATE but no contractorId
+    AppContract contract = AppContract.builder()
+        .id(UUID.randomUUID())
+        .clientAppId(UUID.randomUUID())
+        .selectedPlanVersionId(UUID.randomUUID())
+        .billingPeriod("MONTHLY")
+        .status(ContractStatus.READY_TO_ACTIVATE)
+        .contractorEmail("admin@acme.com")
+        .contractorFirstName("John")
+        .contractorLastName("Doe")
+        .contractorId(null)
+        .expiresAt(OffsetDateTime.now().plusHours(48))
+        .createdAt(OffsetDateTime.now())
+        .updatedAt(OffsetDateTime.now())
+        .build();
     // When / Then
-    assertThatThrownBy(() ->
-        contract.activate(UUID.randomUUID(), UUID.randomUUID(), OffsetDateTime.now()))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> contract.activate(OffsetDateTime.now()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Contractor");
   }
 
   @Test

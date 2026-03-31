@@ -6,16 +6,15 @@ import io.cmartinezs.keygo.supabase.billing.entity.AppContractEntity;
 import io.cmartinezs.keygo.supabase.billing.mapper.BillingPersistenceMapper;
 import io.cmartinezs.keygo.supabase.billing.repository.AppContractJpaRepository;
 import io.cmartinezs.keygo.supabase.billing.repository.AppPlanVersionJpaRepository;
+import io.cmartinezs.keygo.supabase.billing.repository.ContractorJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
-import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
-import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Adapter: implements AppContractRepositoryPort using JPA.
+ * Adapter: implements AppContractRepositoryPort using JPA (billing model v2).
  * @author cmartinezs
  * @version 1.0
  */
@@ -25,26 +24,22 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
   private final AppContractJpaRepository jpaRepo;
   private final ClientAppJpaRepository clientAppRepo;
   private final AppPlanVersionJpaRepository versionRepo;
-  private final TenantJpaRepository tenantRepo;
-  private final TenantUserJpaRepository tenantUserRepo;
+  private final ContractorJpaRepository contractorRepo;
 
   public AppContractRepositoryAdapter(
       AppContractJpaRepository jpaRepo,
       ClientAppJpaRepository clientAppRepo,
       AppPlanVersionJpaRepository versionRepo,
-      TenantJpaRepository tenantRepo,
-      TenantUserJpaRepository tenantUserRepo) {
+      ContractorJpaRepository contractorRepo) {
     this.jpaRepo = jpaRepo;
     this.clientAppRepo = clientAppRepo;
     this.versionRepo = versionRepo;
-    this.tenantRepo = tenantRepo;
-    this.tenantUserRepo = tenantUserRepo;
+    this.contractorRepo = contractorRepo;
   }
 
   @Override
   public AppContract save(AppContract contract) {
-    AppContractEntity entity = toEntity(contract);
-    return BillingPersistenceMapper.toDomain(jpaRepo.save(entity));
+    return BillingPersistenceMapper.toDomain(jpaRepo.save(toEntity(contract)));
   }
 
   @Override
@@ -53,20 +48,9 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
   }
 
   @Override
-  public Optional<AppContract> findByClientAppIdAndCompanySlug(UUID clientAppId, String companySlug) {
-    return jpaRepo.findByClientAppIdAndCompanySlug(clientAppId, companySlug)
-        .map(BillingPersistenceMapper::toDomain);
-  }
-
-  @Override
   public Optional<AppContract> findByClientAppIdAndContractorEmail(UUID clientAppId, String email) {
     return jpaRepo.findByClientAppIdAndContractorEmail(clientAppId, email)
         .map(BillingPersistenceMapper::toDomain);
-  }
-
-  @Override
-  public boolean existsByClientAppIdAndCompanySlug(UUID clientAppId, String companySlug) {
-    return jpaRepo.existsByClientAppIdAndCompanySlug(clientAppId, companySlug);
   }
 
   private AppContractEntity toEntity(AppContract c) {
@@ -80,7 +64,6 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .contractorFirstName(c.getContractorFirstName())
         .contractorLastName(c.getContractorLastName())
         .companyName(c.getCompanyName())
-        .companySlug(c.getCompanySlug())
         .companyTaxId(c.getCompanyTaxId())
         .companyAddress(c.getCompanyAddress())
         .verificationCode(c.getVerificationCode())
@@ -89,13 +72,9 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .paymentVerifiedAt(c.getPaymentVerifiedAt())
         .expiresAt(c.getExpiresAt());
 
-    if (c.getSubscriberTenantId() != null) {
-      builder.subscriberTenant(tenantRepo.getReferenceById(c.getSubscriberTenantId()));
-    }
-    if (c.getSubscriberTenantUserId() != null) {
-      builder.subscriberTenantUser(tenantUserRepo.getReferenceById(c.getSubscriberTenantUserId()));
+    if (c.getContractorId() != null) {
+      builder.contractor(contractorRepo.getReferenceById(c.getContractorId()));
     }
     return builder.build();
   }
 }
-

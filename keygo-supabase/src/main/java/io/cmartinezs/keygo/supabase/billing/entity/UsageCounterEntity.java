@@ -1,8 +1,6 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -11,7 +9,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * JPA entity for usage_counters table.
+ * JPA entity for usage_counters table — billing model v2 (contractor-centric).
+ * Atomic counters per (app, contractor, metric, period).
+ * Increment with UPDATE ... SET used_value = used_value + delta (no app-level locking).
  * @author cmartinezs
  * @version 1.0
  */
@@ -23,8 +23,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "usage_counters",
     indexes = {
-        @Index(name = "idx_usage_counters_app_tenant", columnList = "client_app_id, subscriber_tenant_id"),
-        @Index(name = "idx_usage_counters_app_user",   columnList = "client_app_id, subscriber_tenant_user_id")
+        @Index(name = "idx_usage_counters_app_contractor", columnList = "client_app_id, contractor_id"),
+        @Index(name = "idx_usage_counters_contractor",     columnList = "contractor_id")
     })
 public class UsageCounterEntity {
 
@@ -36,13 +36,10 @@ public class UsageCounterEntity {
   @JoinColumn(name = "client_app_id", nullable = false)
   private ClientAppEntity clientApp;
 
+  /** Contractor who owns the counter. Replaces polymorphic subscriber_tenant_id/user_id. */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscriber_tenant_id")
-  private TenantEntity subscriberTenant;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscriber_tenant_user_id")
-  private TenantUserEntity subscriberTenantUser;
+  @JoinColumn(name = "contractor_id", nullable = false)
+  private ContractorEntity contractor;
 
   @Column(name = "metric_code", nullable = false, length = 100)
   private String metricCode;

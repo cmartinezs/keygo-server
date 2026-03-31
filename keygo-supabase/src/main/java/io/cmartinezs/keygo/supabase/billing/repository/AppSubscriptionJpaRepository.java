@@ -7,7 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AppSubscriptionJpaRepository extends JpaRepository<AppSubscriptionEntity, UUID> {
-  Optional<AppSubscriptionEntity> findByClientAppIdAndSubscriberTenantId(UUID clientAppId, UUID tenantId);
-  Optional<AppSubscriptionEntity> findByClientAppIdAndSubscriberTenantUserId(UUID clientAppId, UUID tenantUserId);
+  Optional<AppSubscriptionEntity> findByClientAppIdAndContractorId(UUID clientAppId, UUID contractorId);
 }
-

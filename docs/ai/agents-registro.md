@@ -22,6 +22,34 @@
 
 ## Registro de cambios
 
+### [2026-03-30] Reestructuración total de migraciones Flyway — Modelo v2 Contractors integrado desde V1
+
+**Motivo:** Integrar la entidad `contractors` como parte central del modelo de datos de billing desde el origen, eliminando el esquema polimórfico `subscriber_tenant_id` / `subscriber_tenant_user_id` de todo el stack de billing.
+
+**Cambios realizados:**
+- **Backup** de V1–V17 en `backup_20260330/` (17 archivos)
+- **Modificado:** `V1__drop_all.sql` — agrega `DROP TABLE IF EXISTS contractors CASCADE`
+- **Modificado:** `V3__tenants.sql` — agrega columna `contractor_id UUID` (sin FK aún) + estado `DELETED` en CHECK constraint
+- **Modificado:** `V10__billing_catalog.sql` — agrega `subscriber_type VARCHAR(20)` a `app_plans` con CHECK `('TENANT','TENANT_USER')`
+- **Creado:** `V11__contractors.sql` — tabla `contractors` (1:1 con `tenant_users`) + `ALTER TABLE tenants ADD CONSTRAINT fk_tenants_contractor_id`
+- **Creado:** `V12__billing_contracts.sql` — reemplaza `V11__billing_contracts.sql`; modelo v2: usa `contractor_id`, elimina `subscriber_tenant_id`, `subscriber_tenant_user_id`, `company_slug`; agrega estados `SUPERSEDED` y `FINALIZED`
+- **Renombrado+Modificado:** `V13__billing_subscriptions.sql` (era V12) — `app_subscriptions` usa `contractor_id NOT NULL`, elimina columnas polimórficas, constraint `UNIQUE(client_app_id, contractor_id)`
+- **Renombrado+Modificado:** `V14__billing_invoices_and_usage.sql` (era V13) — `usage_counters` usa `contractor_id NOT NULL`, elimina columnas polimórficas, constraint `UNIQUE(client_app_id, contractor_id, metric_code, period_start, period_end)`
+- **Renombrado:** `V15__billing_support_tables.sql` (era V14) — sin cambios de contenido
+- **Renombrado:** `V16__seed_foundation.sql` (era V15) — sin cambios de contenido
+- **Creado:** `V17__seed_billing_plans.sql` — catálogo completo consolidado (FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE, todas v1.0, en USD), reemplaza los dos seeds anteriores (V16+V17 old)
+- **Creado:** `V18__seed_contractors.sql` — seed del modelo contractor: usuario `keygo_contractor`, registro `contractors` ACTIVE, contrato ACTIVE plan PERSONAL, suscripción ACTIVE, tenant `acme` vinculado, tenant `demo` vinculado
+
+**Credenciales seed nuevas:**
+
+| Usuario            | Email                    | Contraseña   | Rol                    | Contractor                             |
+|--------------------|--------------------------|--------------|------------------------|----------------------------------------|
+| `keygo_contractor` | `contractor@keygo.local` | `Admin1234!` | `user_tenant` en keygo | `88888888-8888-8888-8888-000000000001` |
+
+**Próxima migración:** `V19__...`
+
+---
+
 ### [2026-03-29] Migración V18 — Escalera de planes de billing corregida para keygo-platform
 
 **Motivo:** Reemplazar el catálogo de V17 (FREE/STARTER/BUSINESS/ENTERPRISE en MXN) con la escalera comercialmente coherente definida en `docs/research/billing-plans-for-keygo.md`.
@@ -84,29 +112,29 @@
 
 **Componentes creados:**
 
-| Módulo | Artefacto | Descripción |
-|---|---|---|
-| `keygo-app` | `PlatformDashboardPort` | Puerto de salida con 9 métodos `Map<K,Long> countX()` (GROUP BY) + métodos de conteo total, rankings y actividad |
-| `keygo-app` | `GetPlatformDashboardUseCase` | Caso de uso que orquesta todas las llamadas al puerto y construye `PlatformDashboardResult` |
-| `keygo-app` | `PlatformDashboardResult` | Resultado con ~40 campos: contadores, topología, rankings, alertas, acciones pendientes, quick actions |
-| `keygo-supabase` | `PlatformDashboardAdapter` | Implementación JPA con helpers `toCountMap()` / `toStringCountMap()` para convertir GROUP BY |
-| `keygo-api` | `PlatformDashboardController` | `GET /api/v1/admin/platform/dashboard` — `@PreAuthorize("hasRole('ADMIN')")` |
-| `keygo-api` | `PlatformDashboardData` | DTO completo con 12 sub-DTOs anidados (ServiceSummary, SecuritySummary, SecurityCounts, etc.) |
-| `keygo-api` | `ResponseCode.PLATFORM_DASHBOARD_RETRIEVED` | Nuevo código de respuesta |
+| Módulo           | Artefacto                                   | Descripción                                                                                                      |
+|------------------|---------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `keygo-app`      | `PlatformDashboardPort`                     | Puerto de salida con 9 métodos `Map<K,Long> countX()` (GROUP BY) + métodos de conteo total, rankings y actividad |
+| `keygo-app`      | `GetPlatformDashboardUseCase`               | Caso de uso que orquesta todas las llamadas al puerto y construye `PlatformDashboardResult`                      |
+| `keygo-app`      | `PlatformDashboardResult`                   | Resultado con ~40 campos: contadores, topología, rankings, alertas, acciones pendientes, quick actions           |
+| `keygo-supabase` | `PlatformDashboardAdapter`                  | Implementación JPA con helpers `toCountMap()` / `toStringCountMap()` para convertir GROUP BY                     |
+| `keygo-api`      | `PlatformDashboardController`               | `GET /api/v1/admin/platform/dashboard` — `@PreAuthorize("hasRole('ADMIN')")`                                     |
+| `keygo-api`      | `PlatformDashboardData`                     | DTO completo con 12 sub-DTOs anidados (ServiceSummary, SecuritySummary, SecurityCounts, etc.)                    |
+| `keygo-api`      | `ResponseCode.PLATFORM_DASHBOARD_RETRIEVED` | Nuevo código de respuesta                                                                                        |
 
 **Refactorización GROUP BY (reducción de queries):**
 
-| Antes | Después | Queries ahorradas |
-|---|---|---|
-| 3× `countTenantsByStatus(status)` | 1× `countTenantsByStatus() → Map` | 2 |
-| 3× `countUsersByStatus(status)` | 1× `countUsersByStatus() → Map` | 2 |
-| 3× `countAppsByStatus(status)` | 1× `countAppsByStatus() → Map` | 2 |
-| 2× `countAppsByType(type)` | 1× `countAppsByType() → Map` | 1 |
-| 3× `countMembershipsByStatus(status)` | 1× `countMembershipsByStatus() → Map` | 2 |
-| 3× `countSigningKeysByStatus(s)` | 1× `countSigningKeysByStatus() → Map` | 2 |
-| 3× `countSessionsByStatus(s)` | 1× `countSessionsByStatus() → Map` | 2 |
-| 4× `countRefreshTokensByStatus(s)` | 1× `countRefreshTokensByStatus() → Map` | 3 |
-| 4× `countAuthCodesByStatus(s)` | 1× `countAuthCodesByStatus() → Map` | 3 |
+| Antes                                 | Después                                 | Queries ahorradas |
+|---------------------------------------|-----------------------------------------|-------------------|
+| 3× `countTenantsByStatus(status)`     | 1× `countTenantsByStatus() → Map`       | 2                 |
+| 3× `countUsersByStatus(status)`       | 1× `countUsersByStatus() → Map`         | 2                 |
+| 3× `countAppsByStatus(status)`        | 1× `countAppsByStatus() → Map`          | 2                 |
+| 2× `countAppsByType(type)`            | 1× `countAppsByType() → Map`            | 1                 |
+| 3× `countMembershipsByStatus(status)` | 1× `countMembershipsByStatus() → Map`   | 2                 |
+| 3× `countSigningKeysByStatus(s)`      | 1× `countSigningKeysByStatus() → Map`   | 2                 |
+| 3× `countSessionsByStatus(s)`         | 1× `countSessionsByStatus() → Map`      | 2                 |
+| 4× `countRefreshTokensByStatus(s)`    | 1× `countRefreshTokensByStatus() → Map` | 3                 |
+| 4× `countAuthCodesByStatus(s)`        | 1× `countAuthCodesByStatus() → Map`     | 3                 |
 
 **Total:** ~25 queries individuales → ~9 queries GROUP BY (ahorro de ~16 llamadas a DB por petición).
 

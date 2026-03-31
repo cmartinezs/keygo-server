@@ -7,14 +7,13 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Response data for app subscription endpoints.
+ * Response data for app subscription endpoints — billing model v2 (contractor-centric).
  */
 public record AppSubscriptionData(
     UUID id,
     UUID clientAppId,
     UUID appPlanVersionId,
-    UUID subscriberTenantId,
-    UUID subscriberTenantUserId,
+    UUID contractorId,
     String status,
     OffsetDateTime currentPeriodStart,
     OffsetDateTime currentPeriodEnd,
@@ -28,8 +27,7 @@ public record AppSubscriptionData(
         s.getId(),
         s.getClientAppId(),
         s.getAppPlanVersionId(),
-        s.getSubscriberTenantId(),
-        s.getSubscriberTenantUserId(),
+        s.getContractorId(),
         s.getStatus().name(),
         s.getCurrentPeriodStart(),
         s.getCurrentPeriodEnd(),

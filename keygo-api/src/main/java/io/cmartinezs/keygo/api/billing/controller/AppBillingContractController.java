@@ -12,12 +12,6 @@ import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseC
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
-import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
-import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
-import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
-import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
-import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
-import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,17 +27,17 @@ import java.util.UUID;
 /**
  * REST controller for app billing contract (contracting flow) endpoints.
  * All endpoints are public (email verification + payment guard the flow).
+ * <p>Billing model v2: contracts are standalone entities — no tenantSlug/clientId in the path.
+ * The target client app is identified by {@code clientAppId} in the create request body.
  *
  * @author cmartinezs
- * @version 1.0
+ * @version 2.0
  */
 @RestController
-@RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/contracts")
+@RequestMapping("/api/v1/billing/contracts")
 @Tag(name = "Billing — Contracts", description = "Self-service contracting flow — no auth required (email & payment verification built into the flow)")
 public class AppBillingContractController {
 
-  private final TenantRepositoryPort tenantRepo;
-  private final ClientAppRepositoryPort clientAppRepo;
   private final CreateAppContractUseCase createContractUseCase;
   private final GetAppContractUseCase getContractUseCase;
   private final MockApprovePaymentUseCase mockApprovePaymentUseCase;
@@ -51,15 +45,11 @@ public class AppBillingContractController {
   private final VerifyContractEmailUseCase verifyContractEmailUseCase;
 
   public AppBillingContractController(
-      TenantRepositoryPort tenantRepo,
-      ClientAppRepositoryPort clientAppRepo,
       CreateAppContractUseCase createContractUseCase,
       GetAppContractUseCase getContractUseCase,
       MockApprovePaymentUseCase mockApprovePaymentUseCase,
       ActivateAppContractUseCase activateContractUseCase,
       VerifyContractEmailUseCase verifyContractEmailUseCase) {
-    this.tenantRepo = tenantRepo;
-    this.clientAppRepo = clientAppRepo;
     this.createContractUseCase = createContractUseCase;
     this.getContractUseCase = getContractUseCase;
     this.mockApprovePaymentUseCase = mockApprovePaymentUseCase;
@@ -72,29 +62,24 @@ public class AppBillingContractController {
   @Operation(
       summary = "Initiate a subscription contract",
       description = "Starts the contracting flow: creates a contract in PENDING_EMAIL_VERIFICATION status. "
-                  + "The subscriber must verify their email before payment is collected.")
+                  + "The target client app is identified by clientAppId in the request body.")
   @ApiResponse(responseCode = "201", description = "Contract initiated",
       content = @Content(schema = @Schema(implementation = AppContractData.Response.class)))
-  @ApiResponse(responseCode = "400", description = "Invalid plan version or duplicate company slug",
+  @ApiResponse(responseCode = "400", description = "Invalid plan version or missing fields",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+  @ApiResponse(responseCode = "404", description = "Client app not found",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> createContract(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId,
       @RequestBody CreateAppContractRequest request) {
 
-    UUID appId = resolveClientAppId(tenantSlug, clientId);
-
     CreateAppContractCommand cmd = new CreateAppContractCommand(
-        appId,
+        UUID.fromString(request.clientAppId()),
         UUID.fromString(request.planVersionId()),
         request.billingPeriod(),
         request.contractorEmail(),
         request.contractorFirstName(),
         request.contractorLastName(),
         request.companyName(),
-        request.companySlug(),
         request.companyTaxId(),
         request.companyAddress()
     );
@@ -116,8 +101,6 @@ public class AppBillingContractController {
   @ApiResponse(responseCode = "404", description = "Contract not found",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> getContract(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId,
       @Parameter(description = "Contract UUID") @PathVariable UUID contractId) {
 
     var result = getContractUseCase.execute(contractId);
@@ -138,8 +121,6 @@ public class AppBillingContractController {
   @ApiResponse(responseCode = "404", description = "Contract not found or mock disabled",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> mockApprovePayment(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId,
       @Parameter(description = "Contract UUID") @PathVariable UUID contractId) {
 
     if (!mockApprovePaymentUseCase.isMockEnabled()) {
@@ -159,7 +140,7 @@ public class AppBillingContractController {
   @PostMapping("/{contractId}/activate")
   @Operation(
       summary = "Activate contract",
-      description = "Activates a READY_TO_ACTIVATE contract: creates the tenant/user, subscription and first invoice.")
+      description = "Activates a READY_TO_ACTIVATE contract: creates the subscription and first invoice.")
   @ApiResponse(responseCode = "200", description = "Contract activated",
       content = @Content(schema = @Schema(implementation = AppContractData.Response.class)))
   @ApiResponse(responseCode = "400", description = "Contract not in READY_TO_ACTIVATE status",
@@ -167,8 +148,6 @@ public class AppBillingContractController {
   @ApiResponse(responseCode = "404", description = "Contract not found",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> activateContract(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId,
       @Parameter(description = "Contract UUID") @PathVariable UUID contractId) {
 
     var result = activateContractUseCase.execute(contractId);
@@ -191,8 +170,6 @@ public class AppBillingContractController {
   @ApiResponse(responseCode = "404", description = "Contract not found",
       content = @Content(schema = @Schema(implementation = BaseResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> verifyEmail(
-      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app client_id") @PathVariable String clientId,
       @Parameter(description = "Contract UUID") @PathVariable UUID contractId,
       @RequestBody VerifyContractEmailRequest request) {
 
@@ -201,15 +178,5 @@ public class AppBillingContractController {
         .data(AppContractData.from(result.contract()))
         .success(ResponseHelper.message(ResponseCode.APP_CONTRACT_EMAIL_VERIFIED))
         .build());
-  }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  private UUID resolveClientAppId(String tenantSlug, String clientId) {
-    var tenant = tenantRepo.findBySlug(TenantSlug.of(tenantSlug))
-        .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
-    return clientAppRepo.findByClientIdAndTenantId(ClientId.of(clientId), tenant.getId())
-        .map(app -> app.getId().value())
-        .orElseThrow(() -> new ClientAppNotFoundException(clientId));
   }
 }

@@ -13,13 +13,15 @@ CREATE TABLE app_plans (
     code            VARCHAR(50)  NOT NULL,
     name            VARCHAR(100) NOT NULL,
     description     TEXT,
+    subscriber_type VARCHAR(20)  NOT NULL DEFAULT 'TENANT',
     status          VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
     is_public       BOOLEAN      NOT NULL DEFAULT TRUE,
     sort_order      INT          NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT uq_app_plans_app_code UNIQUE (client_app_id, code),
-    CONSTRAINT chk_app_plans_status  CHECK  (status IN ('ACTIVE', 'INACTIVE'))
+    CONSTRAINT chk_app_plans_status  CHECK  (status IN ('ACTIVE', 'INACTIVE')),
+    CONSTRAINT chk_app_plans_subscriber_type CHECK (subscriber_type IN ('TENANT', 'TENANT_USER'))
 );
 CREATE INDEX idx_app_plans_client_app_status
     ON app_plans(client_app_id, status)

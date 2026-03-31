@@ -2,8 +2,6 @@ package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,7 +11,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * JPA entity for app_contracts table.
+ * JPA entity for app_contracts table — billing model v2 (contractor-centric).
+ * contractor_id is NULL until email is verified and Contractor is created/found.
+ * From PENDING_PAYMENT onwards contractor_id is always NOT NULL.
  * @author cmartinezs
  * @version 1.0
  */
@@ -25,9 +25,10 @@ import java.util.UUID;
 @Entity
 @Table(name = "app_contracts",
     indexes = {
-        @Index(name = "idx_app_contracts_client_app_id",    columnList = "client_app_id"),
-        @Index(name = "idx_app_contracts_status",           columnList = "status"),
-        @Index(name = "idx_app_contracts_contractor_email", columnList = "contractor_email")
+        @Index(name = "idx_app_contracts_client_app",        columnList = "client_app_id"),
+        @Index(name = "idx_app_contracts_contractor_id",     columnList = "contractor_id"),
+        @Index(name = "idx_app_contracts_status",            columnList = "status"),
+        @Index(name = "idx_app_contracts_contractor_email",  columnList = "contractor_email")
     })
 public class AppContractEntity {
 
@@ -43,16 +44,13 @@ public class AppContractEntity {
   @JoinColumn(name = "selected_plan_version_id", nullable = false)
   private AppPlanVersionEntity selectedPlanVersion;
 
+  /** NULL until email verified. Set when Contractor is created/identified. */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "contractor_id")
+  private ContractorEntity contractor;
+
   @Column(name = "billing_period", nullable = false, length = 20)
   private String billingPeriod;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscriber_tenant_id")
-  private TenantEntity subscriberTenant;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "subscriber_tenant_user_id")
-  private TenantUserEntity subscriberTenantUser;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 40)
@@ -68,11 +66,9 @@ public class AppContractEntity {
   @Column(name = "contractor_last_name", nullable = false, length = 100)
   private String contractorLastName;
 
+  // Company data (optional, for B2B invoicing)
   @Column(name = "company_name", length = 200)
   private String companyName;
-
-  @Column(name = "company_slug", length = 100, unique = true)
-  private String companySlug;
 
   @Column(name = "company_tax_id", length = 100)
   private String companyTaxId;

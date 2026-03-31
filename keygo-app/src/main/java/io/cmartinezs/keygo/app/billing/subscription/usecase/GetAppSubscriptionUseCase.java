@@ -3,21 +3,12 @@ package io.cmartinezs.keygo.app.billing.subscription.usecase;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
-import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanEntitlement;
-import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
- * Result record for subscription use cases.
- */
-record AppSubscriptionResult(AppSubscription subscription, AppPlanVersion planVersion, List<AppPlanEntitlement> entitlements) {}
-
-/**
- * Use case: retrieve the active subscription for a subscriber toward a client app.
- * Supports both B2B (tenantId) and B2C (userId) lookups.
+ * Use case: retrieve the active subscription for a Contractor toward a client app (billing model v2).
  * @author cmartinezs
  * @version 1.0
  */
@@ -36,17 +27,10 @@ public class GetAppSubscriptionUseCase {
     this.entitlementRepo = entitlementRepo;
   }
 
-  /** Lookup by tenant (B2B). */
-  public AppSubscription executeForTenant(UUID clientAppId, UUID tenantId) {
-    return subscriptionRepo.findByClientAppIdAndSubscriberTenantId(clientAppId, tenantId)
+  /** Lookup subscription by Contractor. */
+  public AppSubscription executeForContractor(UUID clientAppId, UUID contractorId) {
+    return subscriptionRepo.findByClientAppIdAndContractorId(clientAppId, contractorId)
         .orElseThrow(() -> new IllegalArgumentException(
-            "No active subscription found for tenant: " + tenantId));
-  }
-
-  /** Lookup by user (B2C). */
-  public AppSubscription executeForUser(UUID clientAppId, UUID userId) {
-    return subscriptionRepo.findByClientAppIdAndSubscriberUserId(clientAppId, userId)
-        .orElseThrow(() -> new IllegalArgumentException(
-            "No active subscription found for user: " + userId));
+            "No active subscription found for contractor: " + contractorId));
   }
 }

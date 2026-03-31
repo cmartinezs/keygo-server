@@ -14,9 +14,8 @@ public record CreateAppContractCommand(
     String contractorEmail,
     String contractorFirstName,
     String contractorLastName,
-    // Company fields (optional, for B2B onboarding)
+    // Company fields (optional, for B2B invoicing — no longer creates a Tenant)
     String companyName,
-    String companySlug,
     String companyTaxId,
     String companyAddress
 ) {}

@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.supabase.tenant.entity;
 
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
+import io.cmartinezs.keygo.supabase.billing.entity.ContractorEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,6 +51,11 @@ public class TenantEntity {
   @Column(nullable = false, length = 20)
   @Builder.Default
   private TenantStatus status = TenantStatus.ACTIVE;
+
+  /** NULL = system/platform tenant. NOT NULL = created by a contractor. */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "contractor_id")
+  private ContractorEntity contractor;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

@@ -4,17 +4,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Port OUT — persistence contract for usage counters.
+ * Port OUT — persistence contract for usage counters (billing model v2, contractor-centric).
  * @author cmartinezs
  * @version 1.0
  */
 public interface UsageCounterRepositoryPort {
-  /** Returns current usage values for all metrics (metricCode -> usedValue). Tenant (B2B) lookup. */
-  Map<String, Long> getCurrentUsageForTenant(UUID clientAppId, UUID tenantId);
-  /** Returns current usage values for all metrics (metricCode -> usedValue). User (B2C) lookup. */
-  Map<String, Long> getCurrentUsageForUser(UUID clientAppId, UUID userId);
-  /** Atomically increments a usage counter for a tenant. */
-  void incrementForTenant(UUID clientAppId, UUID tenantId, String metricCode, long delta);
-  /** Atomically increments a usage counter for a user. */
-  void incrementForUser(UUID clientAppId, UUID userId, String metricCode, long delta);
+  /** Returns current usage values for all metrics (metricCode -> usedValue) for a Contractor. */
+  Map<String, Long> getCurrentUsageForContractor(UUID clientAppId, UUID contractorId);
+  /** Atomically increments a usage counter for a Contractor. */
+  void incrementForContractor(UUID clientAppId, UUID contractorId, String metricCode, long delta);
 }

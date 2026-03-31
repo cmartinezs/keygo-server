@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Adapter: implements UsageCounterRepositoryPort using JPA.
+ * Adapter: implements UsageCounterRepositoryPort using JPA (billing model v2).
  * @author cmartinezs
  * @version 1.0
  */
@@ -24,30 +24,17 @@ public class UsageCounterRepositoryAdapter implements UsageCounterRepositoryPort
   }
 
   @Override
-  public Map<String, Long> getCurrentUsageForTenant(UUID clientAppId, UUID tenantId) {
+  public Map<String, Long> getCurrentUsageForContractor(UUID clientAppId, UUID contractorId) {
     OffsetDateTime now = OffsetDateTime.now();
-    return jpaRepo.findByClientAppIdAndSubscriberTenantIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
-            clientAppId, tenantId, now, now)
+    return jpaRepo
+        .findByClientAppIdAndContractorIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
+            clientAppId, contractorId, now, now)
         .stream()
         .collect(Collectors.toMap(e -> e.getMetricCode(), e -> e.getUsedValue()));
   }
 
   @Override
-  public Map<String, Long> getCurrentUsageForUser(UUID clientAppId, UUID userId) {
-    OffsetDateTime now = OffsetDateTime.now();
-    return jpaRepo.findByClientAppIdAndSubscriberTenantUserIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
-            clientAppId, userId, now, now)
-        .stream()
-        .collect(Collectors.toMap(e -> e.getMetricCode(), e -> e.getUsedValue()));
-  }
-
-  @Override
-  public void incrementForTenant(UUID clientAppId, UUID tenantId, String metricCode, long delta) {
-    jpaRepo.incrementAtomic(clientAppId, metricCode, tenantId, null, delta);
-  }
-
-  @Override
-  public void incrementForUser(UUID clientAppId, UUID userId, String metricCode, long delta) {
-    jpaRepo.incrementAtomic(clientAppId, metricCode, null, userId, delta);
+  public void incrementForContractor(UUID clientAppId, UUID contractorId, String metricCode, long delta) {
+    jpaRepo.incrementAtomic(clientAppId, contractorId, metricCode, delta);
   }
 }

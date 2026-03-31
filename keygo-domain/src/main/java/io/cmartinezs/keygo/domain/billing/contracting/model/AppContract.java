@@ -7,9 +7,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Domain model for an app contract (the contracting process).
- * A contract transitions through states until it is ACTIVATED,
- * at which point a TenantSubscription is created.
+ * Domain model for an app contract (the contracting process) — billing model v2.
+ * A contract transitions through states until it is ACTIVE,
+ * at which point a Subscription is created for the Contractor.
  * @author cmartinezs
  * @version 1.0
  */
@@ -22,18 +22,20 @@ public class AppContract {
   private final String billingPeriod;
   private ContractStatus status;
 
-  // Contractor data (always present)
+  // Contractor data (always present, captured at signup)
   private final String contractorEmail;
   private final String contractorFirstName;
   private final String contractorLastName;
 
-  // Company data (for B2B onboarding)
+  // Company data (optional, for B2B invoicing)
   private final String companyName;
-  private final String companySlug;
   private final String companyTaxId;
   private final String companyAddress;
 
-  // Email verification (contrato propio, antes de que exista un TenantUser)
+  // Contractor link (set during email verification → PENDING_PAYMENT transition)
+  private UUID contractorId;
+
+  // Email verification (independent from email_verifications table)
   private String verificationCode;
   private OffsetDateTime verificationCodeExpiresAt;
 
@@ -43,10 +45,6 @@ public class AppContract {
   private final OffsetDateTime expiresAt;
   private final OffsetDateTime createdAt;
   private OffsetDateTime updatedAt;
-
-  // Subscriber references (set on ACTIVATED)
-  private UUID subscriberTenantId;
-  private UUID subscriberTenantUserId;
 
   @Builder
   private AppContract(
@@ -59,18 +57,16 @@ public class AppContract {
       String contractorFirstName,
       String contractorLastName,
       String companyName,
-      String companySlug,
       String companyTaxId,
       String companyAddress,
+      UUID contractorId,
       String verificationCode,
       OffsetDateTime verificationCodeExpiresAt,
       OffsetDateTime emailVerifiedAt,
       OffsetDateTime paymentVerifiedAt,
       OffsetDateTime expiresAt,
       OffsetDateTime createdAt,
-      OffsetDateTime updatedAt,
-      UUID subscriberTenantId,
-      UUID subscriberTenantUserId) {
+      OffsetDateTime updatedAt) {
     if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (selectedPlanVersionId == null) throw new IllegalArgumentException("selectedPlanVersionId cannot be null");
     if (contractorEmail == null || contractorEmail.isBlank()) throw new IllegalArgumentException("contractorEmail cannot be blank");
@@ -88,9 +84,9 @@ public class AppContract {
     this.contractorFirstName = contractorFirstName;
     this.contractorLastName = contractorLastName;
     this.companyName = companyName;
-    this.companySlug = companySlug;
     this.companyTaxId = companyTaxId;
     this.companyAddress = companyAddress;
+    this.contractorId = contractorId;
     this.verificationCode = verificationCode;
     this.verificationCodeExpiresAt = verificationCodeExpiresAt;
     this.emailVerifiedAt = emailVerifiedAt;
@@ -98,26 +94,12 @@ public class AppContract {
     this.expiresAt = expiresAt;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
-    this.subscriberTenantId = subscriberTenantId;
-    this.subscriberTenantUserId = subscriberTenantUserId;
   }
 
   /**
    * Generates a username from the contractor's name: first initial + last name.
    * Sanitizes input by normalizing accented characters (NFD → strip combining marks)
-   * and removing any character not allowed by the Username value object
-   * ({@code [a-zA-Z0-9_\-.]}). Result is lowercase, at least 3 characters
-   * and at most 100 characters (matching the JPA column length).
-   *
-   * <p>Examples:
-   * <ul>
-   *   <li>"Carlos" / "Martínez" → "cmartinez"</li>
-   *   <li>"José" / "Ñoño" → "jnono"</li>
-   *   <li>"Ana" / "Li" → "ali"</li>
-   *   <li>"Ana" / "I" → "ai_"  (padded to min 3)</li>
-   * </ul>
-   *
-   * @return a valid username string ready to wrap in {@code Username.of(...)}.
+   * and removing any character not allowed by the Username value object.
    */
   public String generateUsername() {
     String sanitizedFirst = sanitizeForUsername(contractorFirstName);
@@ -126,32 +108,16 @@ public class AppContract {
     String initial = sanitizedFirst.isEmpty() ? "" : String.valueOf(sanitizedFirst.charAt(0));
     StringBuilder candidate = new StringBuilder((initial + sanitizedLast).toLowerCase());
 
-    // Ensure minimum length (pad with '_')
-    while (candidate.length() < 3) {
-      candidate.append("_");
-    }
-
-    // Truncate to column / Username max (100)
-    if (candidate.length() > 100) {
-      candidate = new StringBuilder(candidate.substring(0, 100));
-    }
+    while (candidate.length() < 3) candidate.append("_");
+    if (candidate.length() > 100) candidate = new StringBuilder(candidate.substring(0, 100));
 
     return candidate.toString();
   }
 
-  /**
-   * Strips diacritics and removes characters not allowed in a Username.
-   * Uses only standard {@code java.text.Normalizer} — no external dependencies.
-   */
   private static String sanitizeForUsername(String input) {
-    if (input == null || input.isBlank()) {
-      return "";
-    }
-    // NFD normalization decomposes accented chars into base + combining mark
+    if (input == null || input.isBlank()) return "";
     String decomposed = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
-    // Remove combining diacritical marks (U+0300 – U+036F)
     String stripped = decomposed.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-    // Keep only allowed chars: letters, digits, underscore, dash, dot
     return stripped.replaceAll("[^a-zA-Z0-9_\\-.]+", "");
   }
 
@@ -167,16 +133,16 @@ public class AppContract {
     return ContractStatus.READY_TO_ACTIVATE.equals(this.status);
   }
 
-  public boolean isActivated() {
-    return ContractStatus.ACTIVATED.equals(this.status);
+  public boolean isActive() {
+    return ContractStatus.ACTIVE.equals(this.status);
   }
 
   /**
-   * Verifica el código de verificación de email del contrato.
-   * Si es válido, avanza el estado a PENDING_PAYMENT.
+   * Verifies the email verification code and advances the status to PENDING_PAYMENT.
+   * Also links the given contractorId to this contract.
    */
-  public void verifyCode(String inputCode, OffsetDateTime now) {
-    if (ContractStatus.ACTIVATED.equals(this.status) || ContractStatus.CANCELLED.equals(this.status)
+  public void verifyCode(String inputCode, UUID resolvedContractorId, OffsetDateTime now) {
+    if (ContractStatus.ACTIVE.equals(this.status) || ContractStatus.CANCELLED.equals(this.status)
         || ContractStatus.EXPIRED.equals(this.status) || ContractStatus.FAILED.equals(this.status)) {
       throw new IllegalStateException("El contrato está en estado terminal: " + this.status);
     }
@@ -189,6 +155,7 @@ public class AppContract {
     if (this.verificationCodeExpiresAt != null && now.isAfter(this.verificationCodeExpiresAt)) {
       throw new IllegalStateException("El código de verificación ha expirado");
     }
+    this.contractorId = resolvedContractorId;
     markEmailVerified(now);
   }
 
@@ -206,16 +173,14 @@ public class AppContract {
     this.updatedAt = approvedAt;
   }
 
-  public void activate(UUID tenantId, UUID tenantUserId, OffsetDateTime activatedAt) {
+  public void activate(OffsetDateTime activatedAt) {
     if (!isReadyToActivate()) {
       throw new IllegalStateException("Contract is not in READY_TO_ACTIVATE state: " + this.status);
     }
-    if (tenantId != null && tenantUserId != null) {
-      throw new IllegalArgumentException("Cannot set both tenantId and tenantUserId on a contract");
+    if (this.contractorId == null) {
+      throw new IllegalStateException("Contract cannot be activated without a linked Contractor");
     }
-    this.subscriberTenantId = tenantId;
-    this.subscriberTenantUserId = tenantUserId;
-    this.status = ContractStatus.ACTIVATED;
+    this.status = ContractStatus.ACTIVE;
     this.updatedAt = activatedAt;
   }
 }

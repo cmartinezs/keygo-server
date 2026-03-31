@@ -74,6 +74,7 @@ import io.cmartinezs.keygo.app.billing.catalog.usecase.CreateAppPlanUseCase;
 import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanCatalogUseCase;
 import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
@@ -582,8 +583,12 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public VerifyContractEmailUseCase verifyContractEmailUseCase(AppContractRepositoryPort contractRepo) {
-    return new VerifyContractEmailUseCase(contractRepo);
+  public VerifyContractEmailUseCase verifyContractEmailUseCase(
+      AppContractRepositoryPort contractRepo,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepo,
+      ContractorRepositoryPort contractorRepositoryPort) {
+    return new VerifyContractEmailUseCase(contractRepo, clientAppRepositoryPort, userRepo, contractorRepositoryPort);
   }
 
   @Bean
@@ -604,16 +609,9 @@ public class ApplicationConfig {
       AppPlanVersionRepositoryPort versionRepo,
       AppPlanBillingOptionRepositoryPort billingOptionRepo,
       AppSubscriptionRepositoryPort subscriptionRepo,
-      InvoiceRepositoryPort invoiceRepo,
-      TenantRepositoryPort tenantRepositoryPort,
-      UserRepositoryPort userRepo,
-      MembershipRepositoryPort membershipRepositoryPort,
-      AppRoleRepositoryPort appRoleRepositoryPort,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      InvoiceRepositoryPort invoiceRepo) {
     return new ActivateAppContractUseCase(
-        contractRepo, versionRepo, billingOptionRepo, subscriptionRepo, invoiceRepo,
-        tenantRepositoryPort, userRepo, membershipRepositoryPort, appRoleRepositoryPort,
-        clientAppRepositoryPort);
+        contractRepo, versionRepo, billingOptionRepo, subscriptionRepo, invoiceRepo);
   }
 
   // ─── Billing: Suscripción ─────────────────────────────────────────────────

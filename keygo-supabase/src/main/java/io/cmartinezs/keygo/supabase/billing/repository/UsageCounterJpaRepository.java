@@ -13,28 +13,23 @@ import java.util.UUID;
 
 public interface UsageCounterJpaRepository extends JpaRepository<UsageCounterEntity, UUID> {
 
-  List<UsageCounterEntity> findByClientAppIdAndSubscriberTenantIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
-      UUID clientAppId, UUID tenantId, OffsetDateTime now1, OffsetDateTime now2);
+  List<UsageCounterEntity> findByClientAppIdAndContractorIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
+      UUID clientAppId, UUID contractorId, OffsetDateTime now1, OffsetDateTime now2);
 
-  List<UsageCounterEntity> findByClientAppIdAndSubscriberTenantUserIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
-      UUID clientAppId, UUID userId, OffsetDateTime now1, OffsetDateTime now2);
-
-  /** Atomic increment using native PostgreSQL UPDATE. */
+  /** Atomic increment using native PostgreSQL UPDATE for a Contractor counter. */
   @Modifying
   @Transactional
   @Query(value = """
       UPDATE usage_counters
       SET used_value = used_value + :delta, updated_at = now()
       WHERE client_app_id = :appId
+        AND contractor_id = :contractorId
         AND metric_code = :metricCode
-        AND (subscriber_tenant_id = :tenantId OR subscriber_tenant_user_id = :userId)
         AND period_start <= now() AND period_end >= now()
       """, nativeQuery = true)
   int incrementAtomic(
       @Param("appId") UUID appId,
+      @Param("contractorId") UUID contractorId,
       @Param("metricCode") String metricCode,
-      @Param("tenantId") UUID tenantId,
-      @Param("userId") UUID userId,
       @Param("delta") long delta);
 }
-
