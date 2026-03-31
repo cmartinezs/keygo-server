@@ -10,6 +10,27 @@
 
 ---
 
+### [2026-03-31] Actualización de FRONTEND_DEVELOPER_GUIDE.md §14 — billing model v2
+
+**Contexto:** Al simplificar el path del controller de contratos (`/api/v1/billing/contracts`) en el billing model v2, el documento `FRONTEND_DEVELOPER_GUIDE.md` quedó desactualizado en múltiples lugares: tabla de endpoints §14.3.2, bodies de request, ejemplos de respuesta JSON, MSW mock handlers §15.2, diagrama Mermaid §14.3.5, checklist de implementación y tabla de errores §14.3.4.
+
+**Problema:** Los cambios de modelo (path, campos, estados) se propagaron a 4 secciones distintas y múltiples bloques de código en el mismo documento. No basta con actualizar solo la tabla de endpoints; hay que rastrear también: bodies de request, respuestas de ejemplo, handlers MSW, diagramas, checklists y notas de advertencia.
+
+**Solución / Buena práctica:**
+1. Buscar en todo el documento por el path/campo obsoleto antes de editar (evita dejar referencias huérfanas).
+2. Para billing model v2, los cambios en cascada fueron:
+   - `POST /tenants/{slug}/apps/{clientId}/billing/contracts` → `POST /billing/contracts`
+   - Body: quitar `subscriberType`, `companySlug`; agregar `clientAppId`
+   - Respuesta: quitar `subscriberType`, `subscriberTenantId`, `subscriberTenantUserId`; agregar `contractorId`
+   - Estado: `ACTIVATED` → `ACTIVE`; nuevos estados `SUPERSEDED`, `FINALIZED`
+   - MSW handlers: actualizar `http.post(...)` paths y data de respuesta
+3. Usar `grep_search` para verificar que no queden instancias del valor antiguo antes de dar la tarea por cerrada.
+
+**Archivos clave:**
+- `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` — §14.3.2, §14.3.3, §14.3.4, §14.3.5, §15.2
+
+---
+
 ### [2026-03-31] Controller de contratos: eliminar path vars de tenant/clientApp innecesarios
 
 **Contexto:** `AppBillingContractController` seguía con path `/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/contracts` del modelo v1, aunque en el modelo v2 los contratos son entidades independientes y no necesitan resolución de tenant/clientApp en el path.
