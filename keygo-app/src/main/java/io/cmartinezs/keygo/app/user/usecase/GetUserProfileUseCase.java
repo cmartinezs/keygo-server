@@ -87,7 +87,7 @@ public class GetUserProfileUseCase {
 
     // 6. Buscar usuario
     var user = userRepository.findByIdAndTenantId(new UserId(userId), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException("User not found: " + sub));
+        .orElseThrow(() -> new UserNotFoundException("id", sub));
 
     // 7. Construir resultado con perfil completo
     return new UserProfileResult(

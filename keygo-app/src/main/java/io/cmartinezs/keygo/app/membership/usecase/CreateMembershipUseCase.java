@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.membership.usecase;
 
 import io.cmartinezs.keygo.app.membership.command.CreateMembershipCommand;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
@@ -71,9 +72,7 @@ public class CreateMembershipUseCase {
 
     // Validate no duplicate membership
     if (membershipRepositoryPort.existsByUserAndClientApp(command.userId(), command.clientAppId())) {
-      throw new IllegalArgumentException(
-          "Membership already exists for user " + command.userId()
-              + " in app " + command.clientAppId());
+      throw new DuplicateMembershipException(command.userId(), command.clientAppId());
     }
 
     // Validate and load all requested roles

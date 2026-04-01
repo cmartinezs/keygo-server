@@ -107,6 +107,25 @@ public enum ResponseCode {
   APP_PLAN_RETRIEVED("APP_PLAN_RETRIEVED", "App plan retrieved successfully"),
   APP_PLAN_CREATED("APP_PLAN_CREATED", "App plan created successfully"),
 
+  // Billing — Contracting errors
+  CONTRACT_NOT_FOUND("CONTRACT_NOT_FOUND", "Contract not found"),
+  CONTRACT_INVALID_STATE("CONTRACT_INVALID_STATE", "Contract is in an invalid state for this operation"),
+  PROVIDER_APP_NOT_FOUND("PROVIDER_APP_NOT_FOUND", "Provider application not found"),
+  PLAN_VERSION_NOT_FOUND("PLAN_VERSION_NOT_FOUND", "Plan version not found"),
+
+  // Billing — Subscription errors
+  SUBSCRIPTION_NOT_FOUND("SUBSCRIPTION_NOT_FOUND", "Subscription not found"),
+  SUBSCRIPTION_INVALID_STATE("SUBSCRIPTION_INVALID_STATE", "Subscription is not in a valid state for this operation"),
+
+  // Auth errors
+  UNSUPPORTED_PKCE_METHOD("UNSUPPORTED_PKCE_METHOD", "The requested PKCE method is not supported"),
+
+  // Client App errors
+  CLIENT_APP_INACTIVE("CLIENT_APP_INACTIVE", "Client application is not active"),
+
+  // Tenant errors
+  DUPLICATE_TENANT("DUPLICATE_TENANT", "A tenant with this slug already exists"),
+
   // Billing — Contracting
   APP_CONTRACT_CREATED("APP_CONTRACT_CREATED", "App contract created successfully"),
   APP_CONTRACT_RETRIEVED("APP_CONTRACT_RETRIEVED", "App contract retrieved successfully"),

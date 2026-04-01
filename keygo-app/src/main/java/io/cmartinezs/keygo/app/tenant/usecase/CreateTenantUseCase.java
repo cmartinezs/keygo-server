@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.tenant.usecase;
 
 import io.cmartinezs.keygo.app.tenant.command.CreateTenantCommand;
+import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -33,7 +34,7 @@ public class CreateTenantUseCase {
     TenantSlug slug = TenantSlug.fromName(command.name());
 
     if (tenantRepositoryPort.existsBySlug(slug)) {
-      throw new IllegalArgumentException("A tenant with slug '" + slug.value() + "' already exists");
+      throw new DuplicateTenantException(slug.value());
     }
 
     Tenant tenant = Tenant.builder()

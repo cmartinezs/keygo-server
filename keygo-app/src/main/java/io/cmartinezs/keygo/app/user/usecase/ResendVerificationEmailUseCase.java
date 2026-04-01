@@ -84,7 +84,7 @@ public class ResendVerificationEmailUseCase {
     // 2. Find user by email
     EmailAddress email = EmailAddress.of(command.email());
     User user = userRepositoryPort.findByTenantIdAndEmail(tenant.getId(), email)
-        .orElseThrow(() -> new UserNotFoundException(command.email()));
+        .orElseThrow(() -> new UserNotFoundException("email", command.email()));
 
     // 3. Prepare a new verification in case the current one is expired or absent.
     //    saveIfExpiredOrAbsent will atomically return the existing valid one if it exists,

@@ -72,7 +72,7 @@ public class IssueTokensUseCase {
     SigningKey signingKey =
         signingKeyRepository
             .findActiveKey()
-            .orElseThrow(() -> new NoActiveSigningKeyException("No active signing key found"));
+            .orElseThrow(NoActiveSigningKeyException::new);
 
     // When: calcular tiempos
     Instant now = clock.now();

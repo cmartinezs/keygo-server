@@ -1,8 +1,11 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
@@ -11,6 +14,11 @@ import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
+import io.cmartinezs.keygo.domain.membership.model.AppRole;
+import io.cmartinezs.keygo.domain.membership.model.AppRoleId;
+import io.cmartinezs.keygo.domain.membership.model.Membership;
+import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -28,6 +36,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +46,8 @@ class VerifyContractEmailUseCaseTest {
   @Mock ClientAppRepositoryPort clientAppRepo;
   @Mock UserRepositoryPort userRepo;
   @Mock ContractorRepositoryPort contractorRepo;
+  @Mock MembershipRepositoryPort membershipRepo;
+  @Mock AppRoleRepositoryPort appRoleRepo;
   @Mock PasswordHasherPort passwordHasher;
   @Mock EmailNotificationPort emailNotification;
 
@@ -83,6 +94,24 @@ class VerifyContractEmailUseCaseTest {
         .status(ContractorStatus.PENDING)
         .build();
     when(contractorRepo.findByTenantUserId(any())).thenReturn(Optional.of(contractor));
+
+    // Membership does not exist → will be created (lenient: some tests override this stub)
+    lenient().when(membershipRepo.existsByUserAndClientApp(any(), any())).thenReturn(false);
+    lenient().when(membershipRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Stub admin_tenant role lookup (needed when membership is created)
+    lenient().when(appRoleRepo.findByClientAppAndCode(any(), eq(RoleCode.adminTenantRole())))
+        .thenAnswer(inv -> {
+          UUID clientAppId = inv.getArgument(0);
+          AppRole role = AppRole.builder()
+              .id(AppRoleId.generate())
+              .clientAppId(ClientAppId.of(clientAppId))
+              .code(RoleCode.adminTenantRole())
+              .displayName("Tenant Admin")
+              .build();
+          return Optional.of(role);
+        });
+
     return contractorId;
   }
 
@@ -111,6 +140,24 @@ class VerifyContractEmailUseCaseTest {
         .status(ContractorStatus.PENDING)
         .build();
     when(contractorRepo.findByTenantUserId(any())).thenReturn(Optional.of(contractor));
+
+    // Membership does not exist → will be created (lenient: some tests override this stub)
+    lenient().when(membershipRepo.existsByUserAndClientApp(any(), any())).thenReturn(false);
+    lenient().when(membershipRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // Stub admin_tenant role lookup (needed when membership is created)
+    lenient().when(appRoleRepo.findByClientAppAndCode(any(), eq(RoleCode.adminTenantRole())))
+        .thenAnswer(inv -> {
+          UUID clientAppId = inv.getArgument(0);
+          AppRole role = AppRole.builder()
+              .id(AppRoleId.generate())
+              .clientAppId(ClientAppId.of(clientAppId))
+              .code(RoleCode.adminTenantRole())
+              .displayName("Tenant Admin")
+              .build();
+          return Optional.of(role);
+        });
+
     return contractorId;
   }
 
@@ -165,15 +212,15 @@ class VerifyContractEmailUseCaseTest {
   }
 
   @Test
-  void execute_contractNotFound_throwsIllegalArgument() {
+  void execute_contractNotFound_throwsContractNotFoundException() {
     // Given — fails immediately, no downstream deps needed
     UUID contractId = UUID.randomUUID();
     when(contractRepo.findById(contractId)).thenReturn(Optional.empty());
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contractId, "123456"))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Contrato no encontrado");
+        .isInstanceOf(ContractNotFoundException.class)
+        .hasMessageContaining(contractId.toString());
   }
 
   @Test
@@ -268,6 +315,78 @@ class VerifyContractEmailUseCaseTest {
     // Then
     verify(emailNotification, never()).sendTemporaryPasswordEmail(anyString(), anyString(), anyString());
     verify(userRepo, never()).save(any());
+  }
+
+  // ── Tests: membership creation ────────────────────────────────────────────
+
+  @Test
+  void execute_validCode_createsMembershipWhenItDoesNotExist() {
+    // Given
+    String code = "123456";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubDownstreamDeps(); // membershipRepo.existsByUserAndClientApp → false
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — membership saved with ACTIVE status
+    verify(membershipRepo).save(argThat(m ->
+        m instanceof Membership membership && membership.isActive()));
+  }
+
+  @Test
+  void execute_validCode_doesNotCreateMembershipWhenAlreadyExists() {
+    // Given
+    String code = "123456";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubDownstreamDeps();
+    // Override: membership already exists
+    when(membershipRepo.existsByUserAndClientApp(any(), any())).thenReturn(true);
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — membership NOT saved again
+    verify(membershipRepo, never()).save(any());
+  }
+
+  @Test
+  void execute_newUser_createsMembership() {
+    // Given
+    String code = "654321";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubNewUserFlow(); // membershipRepo.existsByUserAndClientApp → false
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — membership saved with ACTIVE status for the newly created user
+    verify(membershipRepo).save(any(Membership.class));
+  }
+
+  @Test
+  void execute_validCode_membershipHasAdminTenantRole() {
+    // Given
+    String code = "123456";
+    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
+    stubDownstreamDeps(); // membershipRepo.existsByUserAndClientApp → false
+    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
+    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When
+    useCase.execute(contract.getId(), code);
+
+    // Then — membership saved with the admin_tenant role assigned
+    verify(membershipRepo).save(argThat(m ->
+        m instanceof Membership membership &&
+        membership.isActive() &&
+        !membership.getRoles().isEmpty()));
   }
 
   // ── Tests: generateTemporaryPassword ──────────────────────────────────────

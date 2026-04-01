@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 
@@ -20,7 +21,7 @@ public class GetAppContractUseCase {
 
   public AppContractResult execute(UUID contractId) {
     var contract = contractRepo.findById(contractId)
-        .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + contractId));
+        .orElseThrow(() -> new ContractNotFoundException(contractId));
     return new AppContractResult(contract, null);
   }
 }

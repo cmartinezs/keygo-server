@@ -1,22 +1,17 @@
 package io.cmartinezs.keygo.domain.auth.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
- * Excepción lanzada cuando la verificación PKCE falla.
- *
- * <p>Causas posibles:
- * <ul>
- *   <li>Code verifier no coincide con code challenge
- *   <li>Code verifier falta cuando code challenge está presente
- *   <li>Método PKCE no es soportado
- * </ul>
+ * Thrown when PKCE code verifier does not match the challenge or is missing/unsupported.
  */
-public class InvalidPkceVerificationException extends RuntimeException {
-  public InvalidPkceVerificationException(String message) {
-    super(message);
+public class InvalidPkceVerificationException extends DomainException {
+
+  public InvalidPkceVerificationException(String reason) {
+    super("PKCE verification failed: %s".formatted(reason));
   }
 
-  public InvalidPkceVerificationException(String message, Throwable cause) {
-    super(message, cause);
+  public InvalidPkceVerificationException(String reason, Throwable cause) {
+    super("PKCE verification failed: %s".formatted(reason), cause);
   }
 }
-

@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.billing.subscription.usecase;
 
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionInvalidStateException;
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionNotFoundException;
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
 
@@ -22,13 +24,13 @@ public class CancelAppSubscriptionUseCase {
   /** Cancel by Contractor. */
   public AppSubscription executeForContractor(UUID clientAppId, UUID contractorId) {
     AppSubscription sub = subscriptionRepo.findByClientAppIdAndContractorId(clientAppId, contractorId)
-        .orElseThrow(() -> new IllegalArgumentException("Subscription not found for contractor: " + contractorId));
+        .orElseThrow(() -> new SubscriptionNotFoundException("contractorId", contractorId.toString()));
     return cancel(sub);
   }
 
   private AppSubscription cancel(AppSubscription sub) {
     if (!sub.isActive()) {
-      throw new IllegalStateException("Subscription is not active, cannot cancel: " + sub.getStatus());
+      throw new SubscriptionInvalidStateException(sub.getStatus().name());
     }
     sub.markCancelAtPeriodEnd(OffsetDateTime.now());
     return subscriptionRepo.save(sub);

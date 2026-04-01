@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
@@ -45,17 +47,16 @@ public class ResendContractVerificationUseCase {
    *
    * @param contractId the contract UUID
    * @return {@link AppContractResult} with the (possibly updated) contract
-   * @throws IllegalArgumentException if the contract does not exist
-   * @throws IllegalStateException    if the contract is not in PENDING_EMAIL_VERIFICATION state
+   * @throws ContractNotFoundException     if the contract does not exist
+   * @throws ContractInvalidStateException if the contract is not in PENDING_EMAIL_VERIFICATION state
    */
   public AppContractResult execute(UUID contractId) {
     var contract = contractRepo.findById(contractId)
-        .orElseThrow(() -> new IllegalArgumentException("Contrato no encontrado: " + contractId));
+        .orElseThrow(() -> new ContractNotFoundException(contractId));
 
     if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(contract.getStatus())) {
-      throw new IllegalStateException(
-          "El reenvío de código solo aplica en estado PENDING_EMAIL_VERIFICATION, actual: "
-          + contract.getStatus());
+      throw new ContractInvalidStateException(contractId, contract.getStatus(),
+          "resend only applies in PENDING_EMAIL_VERIFICATION state");
     }
 
     OffsetDateTime now = OffsetDateTime.now();

@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.billing.catalog.usecase;
 
 import io.cmartinezs.keygo.app.billing.catalog.command.CreateAppPlanCommand;
+import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
@@ -43,7 +44,7 @@ public class CreateAppPlanUseCase {
 
   public AppPlanResult execute(CreateAppPlanCommand cmd) {
     if (planRepo.existsByClientAppIdAndCode(cmd.clientAppId(), cmd.code())) {
-      throw new IllegalArgumentException("Plan code already exists for this app: " + cmd.code());
+      throw new DuplicatePlanCodeException(cmd.code());
     }
 
     AppPlan plan = AppPlan.builder()

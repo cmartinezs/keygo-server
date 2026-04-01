@@ -1,11 +1,11 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
-import io.cmartinezs.keygo.app.billing.contracting.command.CreateAppContractCommand;
-import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.command.CreateAppContractCommand;
+import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 
@@ -45,7 +45,7 @@ public class CreateAppContractUseCase {
 
   public AppContractResult execute(CreateAppContractCommand cmd) {
     versionRepo.findById(cmd.planVersionId())
-        .orElseThrow(() -> new IllegalArgumentException("Plan version not found: " + cmd.planVersionId()));
+        .orElseThrow(() -> new PlanVersionNotFoundException(cmd.planVersionId()));
 
     // TODO hay que validar el client app id tambien
     OffsetDateTime now = OffsetDateTime.now();

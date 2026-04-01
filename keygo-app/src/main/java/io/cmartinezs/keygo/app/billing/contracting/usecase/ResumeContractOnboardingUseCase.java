@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
@@ -37,16 +39,16 @@ public class ResumeContractOnboardingUseCase {
    *
    * @param contractId the contract UUID provided by the frontend
    * @return {@link AppContractResult} with the current contract state
-   * @throws IllegalArgumentException if the contract does not exist
-   * @throws IllegalStateException    if the contract is in a terminal state (cannot be resumed)
+   * @throws ContractNotFoundException     if the contract does not exist
+   * @throws ContractInvalidStateException if the contract is in a terminal state (cannot be resumed)
    */
   public AppContractResult execute(UUID contractId) {
     var contract = contractRepo.findById(contractId)
-        .orElseThrow(() -> new IllegalArgumentException("Contrato no encontrado: " + contractId));
+        .orElseThrow(() -> new ContractNotFoundException(contractId));
 
     if (TERMINAL_STATUSES.contains(contract.getStatus())) {
-      throw new IllegalStateException(
-          "El contrato está en estado terminal y no puede retomarse: " + contract.getStatus());
+      throw new ContractInvalidStateException(contractId, contract.getStatus(),
+          "contract is in a terminal state and cannot be resumed");
     }
 
     return new AppContractResult(contract, null);

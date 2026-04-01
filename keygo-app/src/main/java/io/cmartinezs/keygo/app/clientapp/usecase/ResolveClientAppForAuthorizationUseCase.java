@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.clientapp.usecase;
 
+import io.cmartinezs.keygo.app.clientapp.exception.ClientAppInactiveException;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
@@ -57,7 +58,7 @@ public class ResolveClientAppForAuthorizationUseCase {
         .orElseThrow(() -> new ClientAppNotFoundException(clientId));
 
     if (!clientApp.isActive()) {
-      throw new IllegalStateException("Client application '" + clientId + "' is not active");
+      throw new ClientAppInactiveException(clientId);
     }
 
     if (redirectUri != null) {

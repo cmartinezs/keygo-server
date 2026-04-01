@@ -1,15 +1,24 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
+import io.cmartinezs.keygo.domain.membership.model.AppRole;
+import io.cmartinezs.keygo.domain.membership.model.Membership;
+import io.cmartinezs.keygo.domain.membership.model.MembershipId;
+import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
+import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.User;
@@ -45,6 +54,8 @@ public class VerifyContractEmailUseCase {
   private final ClientAppRepositoryPort clientAppRepo;
   private final UserRepositoryPort userRepo;
   private final ContractorRepositoryPort contractorRepo;
+  private final MembershipRepositoryPort membershipRepo;
+  private final AppRoleRepositoryPort appRoleRepo;
   private final PasswordHasherPort passwordHasher;
   private final EmailNotificationPort emailNotification;
   private final SecureRandom secureRandom;
@@ -54,12 +65,16 @@ public class VerifyContractEmailUseCase {
       ClientAppRepositoryPort clientAppRepo,
       UserRepositoryPort userRepo,
       ContractorRepositoryPort contractorRepo,
+      MembershipRepositoryPort membershipRepo,
+      AppRoleRepositoryPort appRoleRepo,
       PasswordHasherPort passwordHasher,
       EmailNotificationPort emailNotification) {
     this.contractRepo = contractRepo;
     this.clientAppRepo = clientAppRepo;
     this.userRepo = userRepo;
     this.contractorRepo = contractorRepo;
+    this.membershipRepo = membershipRepo;
+    this.appRoleRepo = appRoleRepo;
     this.passwordHasher = passwordHasher;
     this.emailNotification = emailNotification;
     this.secureRandom = new SecureRandom();
@@ -67,7 +82,7 @@ public class VerifyContractEmailUseCase {
 
   public AppContractResult execute(UUID contractId, String inputCode) {
     var contract = contractRepo.findById(contractId)
-        .orElseThrow(() -> new IllegalArgumentException("Contrato no encontrado: " + contractId));
+        .orElseThrow(() -> new ContractNotFoundException(contractId));
 
     OffsetDateTime now = OffsetDateTime.now();
 
@@ -80,23 +95,18 @@ public class VerifyContractEmailUseCase {
 
     // Resolve provider tenant from the contract's client app
     var providerApp = clientAppRepo.findById(ClientAppId.of(clientAppId))
-        .orElseThrow(() -> new IllegalStateException(
-            "ClientApp del proveedor no encontrada: " + clientAppId));
+        .orElseThrow(() -> new ProviderAppNotFoundException(clientAppId));
 
     // Find or create TenantUser in the provider's tenant
     final EmailAddress email   = EmailAddress.of(contractorEmail);
     final var tenantId         = providerApp.getTenantId();
 
-    final boolean[] isNewUser  = { false };
-
     User tenantUser = userRepo.findByTenantIdAndEmail(tenantId, email)
         .orElseGet(() -> {
-          isNewUser[0] = true;
           String rawPassword  = generateTemporaryPassword();
           String hashedPwd    = passwordHasher.hash(rawPassword);
 
           User newUser = User.builder()
-              .id(UserId.of(UUID.randomUUID()))
               .tenantId(tenantId)
               .email(email)
               .username(Username.of(generatedUsername))
@@ -127,10 +137,29 @@ public class VerifyContractEmailUseCase {
           return contractorRepo.save(newContractor);
         });
 
+    // Ensure membership exists for this user in the provider's client app
+    if (!membershipRepo.existsByUserAndClientApp(tenantUserIdFinal, clientAppId)) {
+      Membership membership = Membership.builder()
+          .id(MembershipId.generate())
+          .userId(UserId.of(tenantUserIdFinal))
+          .clientAppId(ClientAppId.of(clientAppId))
+          .status(MembershipStatus.ACTIVE)
+          .build();
+
+      // Assign ADMIN_TENANT role so the contractor can manage their own tenant
+      AppRole adminTenantRole = appRoleRepo.findByClientAppAndCode(clientAppId, RoleCode.adminTenantRole())
+          .orElseThrow(() -> new IllegalStateException(
+              "Role '" + RoleCode.ADMIN_TENANT + "' not found for clientApp: " + clientAppId));
+      membership.assignRole(adminTenantRole);
+
+      membershipRepo.save(membership);
+    }
+
     // Verify code and link contractor — advances status to PENDING_PAYMENT
     contract.verifyCode(inputCode, contractor.getId(), now);
     contract = contractRepo.save(contract);
 
+    // subscription is null at this stage — it is created during ActivateAppContractUseCase
     return new AppContractResult(contract, null);
   }
 

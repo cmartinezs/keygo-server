@@ -75,7 +75,7 @@ public class ExchangeAuthorizationCodeUseCase {
 
     // Validar que el código no ha expirado
     if (!authorizationCode.isNotExpired()) {
-      throw new AuthorizationCodeExpiredException("Authorization code has expired");
+      throw new AuthorizationCodeExpiredException();
     }
 
     // Validar que el código aún no fue usado

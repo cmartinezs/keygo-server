@@ -45,7 +45,7 @@ public class ResetUserPasswordUseCase {
         .orElseThrow(() -> new TenantNotFoundException(command.tenantSlug()));
 
     User user = userRepositoryPort.findByIdAndTenantId(UserId.of(command.userId()), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException(command.userId()));
+        .orElseThrow(() -> new UserNotFoundException("id", String.valueOf(command.userId())));
 
     String hashedPassword = passwordHasherPort.hash(command.newRawPassword());
     user.updatePassword(PasswordHash.of(hashedPassword));

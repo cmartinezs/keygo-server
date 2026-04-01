@@ -81,7 +81,7 @@ public class GetUserInfoUseCase {
     }
 
     var user = userRepository.findByIdAndTenantId(new UserId(userId), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException("User not found: " + sub));
+        .orElseThrow(() -> new UserNotFoundException("id", sub));
 
     // 6. Construir resultado
     String fullName = buildName(user.getFirstName(), user.getLastName());

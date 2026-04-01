@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.auth.usecase;
 
 import io.cmartinezs.keygo.app.auth.command.RotateRefreshTokenCommand;
+import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
@@ -116,7 +117,7 @@ public class RotateRefreshTokenUseCase {
       throw new InvalidRefreshTokenException("Refresh token has been revoked");
     }
     if (refreshToken.getStatus() == RefreshTokenStatus.EXPIRED || refreshToken.isExpired()) {
-      throw new RefreshTokenExpiredException("Refresh token has expired");
+      throw new RefreshTokenExpiredException();
     }
 
     // 3. Validar pertenencia al tenant y cliente
@@ -151,7 +152,7 @@ public class RotateRefreshTokenUseCase {
 
     // 5. Firmar nuevos tokens
     SigningKey signingKey = signingKeyRepository.findActiveKey()
-        .orElseThrow(() -> new NoActiveSigningKeyException("No active signing key found"));
+        .orElseThrow(NoActiveSigningKeyException::new);
 
     Instant expiresAt = now.plus(ACCESS_TOKEN_TTL);
     String accessJti = UUID.randomUUID().toString();
@@ -223,7 +224,7 @@ public class RotateRefreshTokenUseCase {
       }
       return sb.toString();
     } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 not available", e);
+      throw new HashingUnavailableException("SHA-256", e);
     }
   }
 

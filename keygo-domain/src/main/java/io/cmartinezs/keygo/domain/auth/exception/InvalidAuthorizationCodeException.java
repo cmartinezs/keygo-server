@@ -1,15 +1,17 @@
 package io.cmartinezs.keygo.domain.auth.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
- * Excepción lanzada cuando un código de autorización no existe.
+ * Thrown when an authorization code is invalid, already used, or does not exist.
  */
-public class InvalidAuthorizationCodeException extends RuntimeException {
-  public InvalidAuthorizationCodeException(String message) {
-    super(message);
+public class InvalidAuthorizationCodeException extends DomainException {
+
+  public InvalidAuthorizationCodeException(String reason) {
+    super("Authorization code is invalid: %s".formatted(reason));
   }
 
-  public InvalidAuthorizationCodeException(String message, Throwable cause) {
-    super(message, cause);
+  public InvalidAuthorizationCodeException(String reason, Throwable cause) {
+    super("Authorization code is invalid: %s".formatted(reason), cause);
   }
 }
-

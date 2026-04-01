@@ -88,7 +88,7 @@ public class UpdateUserProfileUseCase {
 
     // 6. Buscar usuario
     var user = userRepository.findByIdAndTenantId(new UserId(userId), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException("User not found: " + sub));
+        .orElseThrow(() -> new UserNotFoundException("id", sub));
 
     // 7. Actualizar perfil (solo campos no-nulos — PATCH semántica)
     user.updateProfile(

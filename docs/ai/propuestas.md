@@ -52,6 +52,7 @@
 | T-095 | Validar en `CreateAppPlanCommand` que si `billingOptions` no está vacía, al menos una opción tenga `isDefault=true`; lanzar `IllegalArgumentException` si ninguna es default | 🔲 Pendiente |
 | T-096 | Añadir `@NotNull` y `@Valid` en `CreateAppPlanRequest.billingOptions`, `@NotNull` en `billingPeriod` y `basePrice` de `BillingOptionRequest`; agregar test de validación Bean Validation | 🔲 Pendiente |
 | T-103 | Bloquear login cuando `status = RESET_PASSWORD` en `ValidateUserCredentialsUseCase` → `UserPasswordResetRequiredException`; `GlobalExceptionHandler` responde `403 RESET_PASSWORD_REQUIRED`; el frontend redirige al flujo de cambio de contraseña | 🔲 Pendiente |
+| ~~T-106~~ | ~~Jerarquía de excepciones tipadas por capa + `ErrorData.layer`: `KeyGoException` → `DomainException` / `UseCaseException` / `PortException`; mensajes en la clase con constructores de valores. Ver [`docs/design/EXCEPTION_HIERARCHY.md`](../../docs/design/EXCEPTION_HIERARCHY.md)~~ | ✅ Completada 2026-04-01 |
 
 ---
 

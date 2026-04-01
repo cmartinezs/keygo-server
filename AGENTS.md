@@ -105,7 +105,7 @@ return ResponseEntity.status(HttpStatus.OK).body(response);
 
 ### Error handling — GlobalExceptionHandler
 
-`keygo-api` has a `@RestControllerAdvice` (`GlobalExceptionHandler`) that wraps exceptions into `BaseResponse<Void>`:
+`keygo-api` has a `@RestControllerAdvice` (`GlobalExceptionHandler`) that wraps exceptions into `BaseResponse<ErrorData>`:
 
 | Exception | HTTP | ResponseCode |
 |---|---|---|
@@ -115,6 +115,11 @@ return ResponseEntity.status(HttpStatus.OK).body(response);
 | `Exception` (catch-all) | 500 | `OPERATION_FAILED` |
 
 To signal an auth error from any layer, throw `UnauthorizedException` (located in `keygo-api/error/`).
+
+> **T-106 — Jerarquía de excepciones tipadas por capa (pendiente):**
+> `ErrorData` incluirá campo `layer` (`DOMAIN` / `USE_CASE` / `PORT` / `CONTROLLER`) siempre visible al consumer.
+> Las excepciones base `KeyGoException` / `DomainException` / `UseCaseException` / `PortException` estandarizan mensajes.
+> Ver diseño completo en [`docs/design/EXCEPTION_HIERARCHY.md`](docs/design/EXCEPTION_HIERARCHY.md).
 
 ## Hexagonal flow: adding a feature
 

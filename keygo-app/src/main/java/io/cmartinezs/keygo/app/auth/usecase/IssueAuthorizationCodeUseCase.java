@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.auth.usecase;
 
 import io.cmartinezs.keygo.app.auth.command.IssueAuthorizationCodeCommand;
+import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
 import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
 import io.cmartinezs.keygo.app.auth.result.AuthorizationCodeIssuedResult;
@@ -85,8 +86,7 @@ public class IssueAuthorizationCodeUseCase {
             .findByIdAndTenantId(userId, tenantId)
             .orElseThrow(
                 () ->
-                    new UserNotFoundException(
-                        "User not found: " + userId + " in tenant " + tenantId));
+                    new UserNotFoundException("id", String.valueOf(userId)));
 
     // Validar app cliente
     ClientAppId clientAppId =
@@ -121,8 +121,7 @@ public class IssueAuthorizationCodeUseCase {
     } else if ("plain".equals(command.codeChallengeMethod())) {
       codeChallenge = CodeChallenge.plain(command.codeChallenge());
     } else {
-      throw new IllegalArgumentException(
-          "Unsupported PKCE method: " + command.codeChallengeMethod());
+      throw new UnsupportedPkceMethodException(command.codeChallengeMethod());
     }
 
     // Generar código aleatorio

@@ -1,19 +1,13 @@
 package io.cmartinezs.keygo.domain.membership.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
- * Exception thrown when a membership is inactive and operation requires active status.
- * <p>Excepción lanzada cuando una membresía está inactiva y la operación requiere estatus activo.
- * @author cmartinezs
- * @version 1.0
+ * Thrown when an operation requires an active membership but it is inactive.
  */
-public class MembershipInactiveException extends RuntimeException {
+public class MembershipInactiveException extends DomainException {
 
-  public MembershipInactiveException(String message) {
-    super(message);
-  }
-
-  public MembershipInactiveException(String message, Throwable cause) {
-    super(message, cause);
+  public MembershipInactiveException(String reason) {
+    super("Membership is inactive: %s".formatted(reason));
   }
 }
-

@@ -68,7 +68,7 @@ public class VerifyEmailUseCase {
     // 2. Find user by email
     EmailAddress email = EmailAddress.of(command.email());
     User user = userRepositoryPort.findByTenantIdAndEmail(tenant.getId(), email)
-        .orElseThrow(() -> new UserNotFoundException(command.email()));
+        .orElseThrow(() -> new UserNotFoundException("email", command.email()));
 
     // 3. Retrieve latest verification
     EmailVerification verification = emailVerificationRepositoryPort

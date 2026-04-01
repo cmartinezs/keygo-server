@@ -1,15 +1,13 @@
 package io.cmartinezs.keygo.domain.auth.exception;
 
-/**
- * Excepción lanzada cuando un scope solicitado no ha sido otorgado al usuario.
- */
-public class ScopeNotGrantedException extends RuntimeException {
-  public ScopeNotGrantedException(String message) {
-    super(message);
-  }
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
 
-  public ScopeNotGrantedException(String message, Throwable cause) {
-    super(message, cause);
+/**
+ * Thrown when a requested scope has not been granted.
+ */
+public class ScopeNotGrantedException extends DomainException {
+
+  public ScopeNotGrantedException(String scope) {
+    super("Scope not granted: %s".formatted(scope));
   }
 }
-

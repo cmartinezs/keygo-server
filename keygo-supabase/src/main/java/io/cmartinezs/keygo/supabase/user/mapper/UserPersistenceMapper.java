@@ -22,7 +22,6 @@ public class UserPersistenceMapper {
         ? LocalDate.parse(user.getBirthdate())
         : null;
     return TenantUserEntity.builder()
-        .id(user.getId().value())
         .tenant(tenantProxy)
         .username(user.getUsername().value())
         .email(user.getEmail().value())

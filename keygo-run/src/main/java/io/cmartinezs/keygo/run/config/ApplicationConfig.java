@@ -591,11 +591,13 @@ public class ApplicationConfig {
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepo,
       ContractorRepositoryPort contractorRepositoryPort,
+      MembershipRepositoryPort membershipRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort,
       PasswordHasherPort passwordHasherPort,
       EmailNotificationPort emailNotificationPort) {
     return new VerifyContractEmailUseCase(
         contractRepo, clientAppRepositoryPort, userRepo, contractorRepositoryPort,
-        passwordHasherPort, emailNotificationPort);
+        membershipRepositoryPort, appRoleRepositoryPort, passwordHasherPort, emailNotificationPort);
   }
 
   @Bean

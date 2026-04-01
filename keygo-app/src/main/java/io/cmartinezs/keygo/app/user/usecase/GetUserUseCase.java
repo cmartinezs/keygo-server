@@ -40,7 +40,7 @@ public class GetUserUseCase {
         .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
 
     return userRepositoryPort.findByIdAndTenantId(UserId.of(userId), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException(userId));
+        .orElseThrow(() -> new UserNotFoundException("id", String.valueOf(userId)));
   }
 }
 

@@ -122,7 +122,7 @@ public class IssueClientCredentialsTokenUseCase {
     // 6. Obtener clave activa
     SigningKey signingKey = signingKeyRepository
         .findActiveKey()
-        .orElseThrow(() -> new NoActiveSigningKeyException("No active signing key found"));
+        .orElseThrow(NoActiveSigningKeyException::new);
 
     // 7. Resolver scopes
     String scope = resolveScope(command.scope(), clientApp);

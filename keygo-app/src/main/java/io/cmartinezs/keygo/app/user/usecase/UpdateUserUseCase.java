@@ -40,7 +40,7 @@ public class UpdateUserUseCase {
         .orElseThrow(() -> new TenantNotFoundException(command.tenantSlug()));
 
     User user = userRepositoryPort.findByIdAndTenantId(UserId.of(command.userId()), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException(command.userId()));
+        .orElseThrow(() -> new UserNotFoundException("id", String.valueOf(command.userId())));
 
     user.updateProfile(
         command.firstName(),

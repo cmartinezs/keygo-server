@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.billing.catalog.usecase;
 
 import io.cmartinezs.keygo.app.billing.catalog.command.CreateAppPlanCommand;
+import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
@@ -181,7 +182,7 @@ class CreateAppPlanUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(cmd))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(DuplicatePlanCodeException.class)
         .hasMessageContaining("STARTER");
 
     verify(planRepo, never()).save(any());

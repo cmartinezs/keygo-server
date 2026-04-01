@@ -1,19 +1,13 @@
 package io.cmartinezs.keygo.domain.auth.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
- * Excepción lanzada cuando no existe ninguna clave de firma activa en el sistema.
- *
- * <p>Indica que el servidor no puede emitir tokens JWT porque no hay una {@code SigningKey} con
- * estado {@code ACTIVE} disponible.
+ * Thrown when no active signing key is available to issue JWT tokens.
  */
-public class NoActiveSigningKeyException extends RuntimeException {
+public class NoActiveSigningKeyException extends DomainException {
 
-  public NoActiveSigningKeyException(String message) {
-    super(message);
-  }
-
-  public NoActiveSigningKeyException(String message, Throwable cause) {
-    super(message, cause);
+  public NoActiveSigningKeyException() {
+    super("No active signing key available");
   }
 }
-

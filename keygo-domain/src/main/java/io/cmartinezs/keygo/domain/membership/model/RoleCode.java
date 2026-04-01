@@ -10,6 +10,7 @@ public record RoleCode(String value) {
 
   /* Standard role codes for applications */
   public static final String ADMIN = "admin";
+  public static final String ADMIN_TENANT = "admin_tenant";
   public static final String EDITOR = "editor";
   public static final String VIEWER = "viewer";
   public static final String OPERATOR = "operator";
@@ -31,6 +32,10 @@ public record RoleCode(String value) {
 
   public static RoleCode adminRole() {
     return new RoleCode(ADMIN);
+  }
+
+  public static RoleCode adminTenantRole() {
+    return new RoleCode(ADMIN_TENANT);
   }
 
   public static RoleCode editorRole() {

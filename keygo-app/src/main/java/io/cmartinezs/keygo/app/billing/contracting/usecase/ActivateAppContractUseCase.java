@@ -2,6 +2,9 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
@@ -50,7 +53,7 @@ public class ActivateAppContractUseCase {
 
   public AppContractResult execute(UUID contractId) {
     AppContract contract = contractRepo.findById(contractId)
-        .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + contractId));
+        .orElseThrow(() -> new ContractNotFoundException(contractId));
 
     // Idempotent — already active
     if (ContractStatus.ACTIVE.equals(contract.getStatus())) {
@@ -61,17 +64,17 @@ public class ActivateAppContractUseCase {
     }
 
     if (!ContractStatus.READY_TO_ACTIVATE.equals(contract.getStatus())) {
-      throw new IllegalStateException("Contract is not ready to activate. Current status: " + contract.getStatus());
+      throw new ContractInvalidStateException(contractId, contract.getStatus(), "not ready to activate");
     }
     if (!contract.isPaymentVerified()) {
-      throw new IllegalStateException("Payment has not been verified for contract: " + contractId);
+      throw new ContractInvalidStateException(contractId, contract.getStatus(), "payment not verified");
     }
     if (contract.getContractorId() == null) {
-      throw new IllegalStateException("Contract has no linked Contractor: " + contractId);
+      throw new ContractInvalidStateException(contractId, contract.getStatus(), "no linked contractor");
     }
 
     AppPlanVersion planVersion = versionRepo.findById(contract.getSelectedPlanVersionId())
-        .orElseThrow(() -> new IllegalStateException("Plan version not found"));
+        .orElseThrow(() -> new PlanVersionNotFoundException(contract.getSelectedPlanVersionId()));
 
     BillingPeriod chosenPeriod = contract.getBillingPeriod() != null
         ? BillingPeriod.valueOf(contract.getBillingPeriod())

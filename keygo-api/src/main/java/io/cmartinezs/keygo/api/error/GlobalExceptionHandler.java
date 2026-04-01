@@ -3,6 +3,26 @@ package io.cmartinezs.keygo.api.error;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import jakarta.validation.ConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
+import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
+import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
+import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionInvalidStateException;
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionNotFoundException;
+import io.cmartinezs.keygo.app.clientapp.exception.ClientAppInactiveException;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
+import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
+import io.cmartinezs.keygo.app.shared.exception.PortException;
+import io.cmartinezs.keygo.app.shared.exception.UseCaseException;
+import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
+import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidPkceVerificationException;
@@ -100,13 +120,69 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Handles @Valid validation errors - returns 400 Bad Request.
-   * Maneja errores de validación @Valid - retorna 400 Bad Request.
+   * Handles @Valid validation errors on request bodies - returns 400 Bad Request.
+   * Extracts per-field validation messages from BindingResult.
    */
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<BaseResponse<ErrorData>> handleValidationException(MethodArgumentNotValidException ex) {
     log.error("Validation failed: {}", ex.getMessage());
-    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+    boolean techDetails = includeTechnicalDetails();
+    List<FieldValidationError> fieldErrors = new ArrayList<>();
+
+    ex.getBindingResult().getFieldErrors().forEach(fe ->
+        fieldErrors.add(FieldValidationError.builder()
+            .field(fe.getField())
+            .message(fe.getDefaultMessage())
+            .rejectedValue(techDetails ? fe.getRejectedValue() : null)
+            .build())
+    );
+
+    ex.getBindingResult().getGlobalErrors().forEach(ge ->
+        fieldErrors.add(FieldValidationError.builder()
+            .field(ge.getObjectName())
+            .message(ge.getDefaultMessage())
+            .build())
+    );
+
+    ErrorData errorData = ApiErrorDataFactory.fromValidationErrors(
+        ResponseCode.INVALID_INPUT, fieldErrors, techDetails);
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(BaseResponse.<ErrorData>builder()
+            .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+            .data(errorData)
+            .build());
+  }
+
+  /**
+   * Handles @Validated constraint violations on method parameters (query params, path vars, headers).
+   * Returns 400 Bad Request with per-parameter violation details.
+   */
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleConstraintViolationException(ConstraintViolationException ex) {
+    log.error("Constraint violation: {}", ex.getMessage());
+    boolean techDetails = includeTechnicalDetails();
+    List<FieldValidationError> fieldErrors = new ArrayList<>();
+
+    ex.getConstraintViolations().forEach(cv -> {
+      String path = cv.getPropertyPath().toString();
+      // Strip method name prefix: "methodName.paramName" → "paramName"
+      String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+      fieldErrors.add(FieldValidationError.builder()
+          .field(field)
+          .message(cv.getMessage())
+          .rejectedValue(techDetails ? cv.getInvalidValue() : null)
+          .build());
+    });
+
+    ErrorData errorData = ApiErrorDataFactory.fromValidationErrors(
+        ResponseCode.INVALID_INPUT, fieldErrors, techDetails);
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(BaseResponse.<ErrorData>builder()
+            .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+            .data(errorData)
+            .build());
   }
 
   /**
@@ -385,6 +461,159 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleAccessDeniedException(AccessDeniedException ex) {
     log.warn("Access denied: {}", ex.getMessage());
     return error(HttpStatus.FORBIDDEN, ResponseCode.INSUFFICIENT_PERMISSIONS, ex);
+  }
+
+  /**
+   * Handles ContractNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(ContractNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractNotFoundException(ContractNotFoundException ex) {
+    log.error("Contract not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.CONTRACT_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles ProviderAppNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(ProviderAppNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleProviderAppNotFoundException(ProviderAppNotFoundException ex) {
+    log.error("Provider app not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.PROVIDER_APP_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles ContractInvalidStateException - returns 422 Unprocessable Entity.
+   */
+  @ExceptionHandler(ContractInvalidStateException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractInvalidStateException(ContractInvalidStateException ex) {
+    log.error("Contract invalid state: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.CONTRACT_INVALID_STATE, ex);
+  }
+
+  /**
+   * Handles PlanVersionNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(PlanVersionNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePlanVersionNotFoundException(PlanVersionNotFoundException ex) {
+    log.error("Plan version not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.PLAN_VERSION_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles DuplicatePlanCodeException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicatePlanCodeException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicatePlanCodeException(DuplicatePlanCodeException ex) {
+    log.error("Duplicate plan code: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles SubscriptionNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(SubscriptionNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSubscriptionNotFoundException(SubscriptionNotFoundException ex) {
+    log.error("Subscription not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.SUBSCRIPTION_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles SubscriptionInvalidStateException - returns 422 Unprocessable Entity.
+   */
+  @ExceptionHandler(SubscriptionInvalidStateException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSubscriptionInvalidStateException(SubscriptionInvalidStateException ex) {
+    log.error("Subscription invalid state: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.SUBSCRIPTION_INVALID_STATE, ex);
+  }
+
+  /**
+   * Handles UnsupportedPkceMethodException - returns 400 Bad Request.
+   */
+  @ExceptionHandler(UnsupportedPkceMethodException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUnsupportedPkceMethodException(UnsupportedPkceMethodException ex) {
+    log.error("Unsupported PKCE method: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.UNSUPPORTED_PKCE_METHOD, ex);
+  }
+
+  /**
+   * Handles HashingUnavailableException - returns 503 Service Unavailable.
+   */
+  @ExceptionHandler(HashingUnavailableException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleHashingUnavailableException(HashingUnavailableException ex) {
+    log.error("Hashing unavailable: {}", ex.getMessage(), ex);
+    return error(HttpStatus.SERVICE_UNAVAILABLE, ResponseCode.EXTERNAL_SERVICE_ERROR, ex);
+  }
+
+  /**
+   * Handles DuplicateAppRoleException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateAppRoleException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateAppRoleException(DuplicateAppRoleException ex) {
+    log.error("Duplicate app role: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles DuplicateMembershipException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateMembershipException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateMembershipException(DuplicateMembershipException ex) {
+    log.error("Duplicate membership: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles InvalidCommandFieldException - returns 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidCommandFieldException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidCommandFieldException(InvalidCommandFieldException ex) {
+    log.error("Invalid command field: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles ClientAppInactiveException - returns 422 Unprocessable Entity.
+   */
+  @ExceptionHandler(ClientAppInactiveException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppInactiveException(ClientAppInactiveException ex) {
+    log.error("Client app inactive: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.CLIENT_APP_INACTIVE, ex);
+  }
+
+  /**
+   * Handles DuplicateTenantException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateTenantException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateTenantException(DuplicateTenantException ex) {
+    log.error("Duplicate tenant: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_TENANT, ex);
+  }
+
+  /**
+   * Handles InvalidPaginationParamException - returns 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidPaginationParamException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPaginationParamException(InvalidPaginationParamException ex) {
+    log.error("Invalid pagination param: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Catch-all for UseCaseException not handled by a specific handler - returns 500.
+   */
+  @ExceptionHandler(UseCaseException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUseCaseException(UseCaseException ex) {
+    log.error("Use case error: {}", ex.getMessage(), ex);
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
+  }
+
+  /**
+   * Handles PortException (outbound port failure) - returns 503 Service Unavailable.
+   */
+  @ExceptionHandler(PortException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePortException(PortException ex) {
+    log.error("Port error: {}", ex.getMessage(), ex);
+    return error(HttpStatus.SERVICE_UNAVAILABLE, ResponseCode.EXTERNAL_SERVICE_ERROR, ex);
   }
 
   /**

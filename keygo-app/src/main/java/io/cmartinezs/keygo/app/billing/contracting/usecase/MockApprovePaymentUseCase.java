@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
@@ -33,11 +35,11 @@ public class MockApprovePaymentUseCase {
     }
 
     var contract = contractRepo.findById(contractId)
-        .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + contractId));
+        .orElseThrow(() -> new ContractNotFoundException(contractId));
 
     if (ContractStatus.ACTIVE.equals(contract.getStatus())
         || ContractStatus.CANCELLED.equals(contract.getStatus())) {
-      throw new IllegalStateException("Contract cannot be approved in current state: " + contract.getStatus());
+      throw new ContractInvalidStateException(contractId, contract.getStatus());
     }
 
     contract.markPaymentApproved(OffsetDateTime.now());

@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.domain.clientapp.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
  * Exception thrown when client authentication fails during the client_credentials grant.
  *
@@ -13,10 +15,10 @@ package io.cmartinezs.keygo.domain.clientapp.exception;
  * @author cmartinezs
  * @version 1.0
  */
-public class ClientAuthenticationException extends RuntimeException {
+public class ClientAuthenticationException extends DomainException {
 
-  public ClientAuthenticationException(String message) {
-    super(message);
+  public ClientAuthenticationException(String reason) {
+    super("Client authentication failed: %s".formatted(reason));
   }
 }
 

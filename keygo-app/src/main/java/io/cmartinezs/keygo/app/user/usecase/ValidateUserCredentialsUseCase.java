@@ -60,7 +60,7 @@ public class ValidateUserCredentialsUseCase {
       userOpt = tryFindByUsername(tenant, credential);
     }
 
-    User user = userOpt.orElseThrow(() -> new UserNotFoundException(credential));
+    User user = userOpt.orElseThrow(() -> new UserNotFoundException("credential", credential));
 
     if (user.isPending()) {
       throw new UserPendingVerificationException(user.getEmail().value());

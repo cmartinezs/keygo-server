@@ -22,6 +22,24 @@
 
 ## Registro
 
+### [2026-04-01] Cobertura completa de excepciones tipadas en todos los use cases
+**Síntoma:** 16 lanzamientos de `IllegalArgumentException`/`IllegalStateException` quedaron en keygo-app después de la implementación inicial de T-106. Los tests de los use cases afectados seguían asertando `IllegalArgumentException.class`.
+**Causa:** La primera fase de T-106 cubrió solo billing/contracting y algunos dominio. Módulos auth, membership, clientapp, tenant, billing/catalog y billing/subscription no se actualizaron.
+**Solución:** Crear excepción concreta por contexto (`DuplicatePlanCodeException`, `ContractInvalidStateException`, `SubscriptionNotFoundException`, `SubscriptionInvalidStateException`, `UnsupportedPkceMethodException`, `HashingUnavailableException`, `DuplicateAppRoleException`, `DuplicateMembershipException`, `InvalidCommandFieldException`, `ClientAppInactiveException`, `DuplicateTenantException`, `InvalidPaginationParamException`). Actualizar tests para asertarlas directamente. Para instalar keygo-app con JaCoCo bloqueando: `mvnw install -Djacoco.skip=true`.
+
+### [2026-04-01] Jerarquía de excepciones por capa — patrón de constructores estructurados
+**Síntoma:** Los consumers de la API no podían identificar la capa arquitectónica del error ni el tipo específico de excepción. Los use cases lanzaban `IllegalArgumentException`/`IllegalStateException` genéricas.
+**Causa:** Sin jerarquía base, todas las excepciones extendían `RuntimeException` directamente; sin campo `layer` en `ErrorData`.
+**Solución:** `KeyGoException(layer, msg)` → `DomainException` / `UseCaseException` / `PortException` / `CONTROLLER` en `UnauthorizedException`. Constructores con valores tipados, nunca strings construidos por el caller. `ErrorData.layer` siempre visible. Ver `docs/design/EXCEPTION_HIERARCHY.md` (T-106). Al instalar nuevas clases de `keygo-domain` en módulos dependientes, usar `mvnw install -DskipTests` antes de `test` en el módulo hijo.
+
+### [2026-04-01] Falta de membership al crear TenantUser durante onboarding de billing
+**Síntoma:** Al completar el onboarding de billing (verificación de email del contrato) el sistema notificaba correctamente el username y contraseña temporal, pero al intentar hacer login con esas credenciales el flujo OAuth2 respondía "usuario no relacionado a la app".
+**Causa:** `VerifyContractEmailUseCase.execute()` creaba el `TenantUser` en el tenant del proveedor y su `Contractor`, pero **nunca creaba el `Membership`** que vincula a ese usuario con la `clientApp` del proveedor. `IssueAuthorizationCodeUseCase` llama `membershipRepository.findByUserAndClientApp(userId, clientAppId)` y al no encontrar nada lanza `MembershipInactiveException`.
+**Solución:** Inyectar `MembershipRepositoryPort` en `VerifyContractEmailUseCase`. Después de resolver el `TenantUser` (nuevo o existente), verificar con `existsByUserAndClientApp` y, si no existe, crear `Membership` con status `ACTIVE`. Actualizar `ApplicationConfig` (bean) y el test (`@Mock MembershipRepositoryPort`, stubs `lenient()` para evitar `UnnecessaryStubbingException` en tests que lanzan excepción antes de llegar al membership).
+`VerifyContractEmailUseCase.java`, `ApplicationConfig.java`, `VerifyContractEmailUseCaseTest.java`
+
+---
+
 ### [2026-03-31] Email de contrato billing debe incluir el contractId para resumir onboarding
 **Síntoma:** El correo de verificación enviado al iniciar un contrato de billing (`POST /billing/contracts`) no incluía el `contractId`, impidiendo que el usuario retomara el proceso con `GET /billing/contracts/{contractId}/resume` si cerraba el navegador.
 **Causa:** `EmailNotificationPort.sendVerificationEmail()` solo aceptaba `toEmail`, `username` y `verificationCode` — sin noción de contexto de contrato.

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.command.CreateAppRoleCommand;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
@@ -85,7 +86,7 @@ class CreateAppRoleUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(DuplicateAppRoleException.class)
         .hasMessageContaining("already exists");
     verify(appRoleRepositoryPort, never()).save(any());
   }

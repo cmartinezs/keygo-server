@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.membership.command;
 
+import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
 import java.util.UUID;
 
 /**
@@ -18,13 +19,13 @@ public record CreateAppRoleCommand(
 
   public CreateAppRoleCommand {
     if (tenantSlug == null || tenantSlug.isBlank()) {
-      throw new IllegalArgumentException("tenantSlug cannot be null or blank");
+      throw new InvalidCommandFieldException("tenantSlug");
     }
     if (clientAppId == null) {
-      throw new IllegalArgumentException("clientAppId cannot be null");
+      throw new InvalidCommandFieldException("clientAppId");
     }
     if (code == null || code.isBlank()) {
-      throw new IllegalArgumentException("code cannot be null or blank");
+      throw new InvalidCommandFieldException("code");
     }
   }
 }

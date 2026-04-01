@@ -29,8 +29,7 @@ public class RevokeMembershipUseCase {
    */
   public void execute(MembershipId membershipId, String tenantSlug) {
     membershipRepositoryPort.findByIdAndTenantSlug(membershipId, tenantSlug)
-        .orElseThrow(() -> new MembershipNotFoundException(
-            "Membership not found or does not belong to tenant: " + membershipId));
+        .orElseThrow(() -> new MembershipNotFoundException("id", String.valueOf(membershipId)));
     membershipRepositoryPort.deleteById(membershipId);
   }
 }

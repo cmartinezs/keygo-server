@@ -1,15 +1,13 @@
 package io.cmartinezs.keygo.domain.auth.exception;
 
-/**
- * Excepción lanzada cuando un código de autorización ha expirado.
- */
-public class AuthorizationCodeExpiredException extends RuntimeException {
-  public AuthorizationCodeExpiredException(String message) {
-    super(message);
-  }
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
 
-  public AuthorizationCodeExpiredException(String message, Throwable cause) {
-    super(message, cause);
+/**
+ * Thrown when an authorization code has expired.
+ */
+public class AuthorizationCodeExpiredException extends DomainException {
+
+  public AuthorizationCodeExpiredException() {
+    super("Authorization code has expired");
   }
 }
-

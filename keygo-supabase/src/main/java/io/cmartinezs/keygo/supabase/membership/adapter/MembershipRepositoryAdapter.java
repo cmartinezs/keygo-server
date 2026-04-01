@@ -86,7 +86,6 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
   @Override
   public Membership save(Membership membership) {
     MembershipEntity entity = new MembershipEntity();
-    entity.setId(membership.getId().value());
 
     // Set FK references (non-managed entities, only IDs)
     TenantUserEntity userRef = new TenantUserEntity();

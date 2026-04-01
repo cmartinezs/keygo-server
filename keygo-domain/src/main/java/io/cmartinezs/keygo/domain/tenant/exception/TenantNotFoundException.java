@@ -1,15 +1,13 @@
 package io.cmartinezs.keygo.domain.tenant.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
  * Thrown when a tenant cannot be found by its slug.
- * <p>Se lanza cuando no se puede encontrar un tenant por su slug.
- * @author cmartinezs
- * @version 1.0
  */
-public class TenantNotFoundException extends RuntimeException {
+public class TenantNotFoundException extends DomainException {
 
   public TenantNotFoundException(String slug) {
-    super("Tenant not found with slug: " + slug);
+    super("Tenant not found by slug: %s".formatted(slug));
   }
 }
-

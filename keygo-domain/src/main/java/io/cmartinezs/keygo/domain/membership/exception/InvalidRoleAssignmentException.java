@@ -1,19 +1,13 @@
 package io.cmartinezs.keygo.domain.membership.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
- * Exception thrown when an invalid role assignment is attempted.
- * <p>Excepción lanzada cuando se intenta una asignación de rol inválida.
- * @author cmartinezs
- * @version 1.0
+ * Thrown when an invalid role assignment is attempted.
  */
-public class InvalidRoleAssignmentException extends RuntimeException {
+public class InvalidRoleAssignmentException extends DomainException {
 
-  public InvalidRoleAssignmentException(String message) {
-    super(message);
-  }
-
-  public InvalidRoleAssignmentException(String message, Throwable cause) {
-    super(message, cause);
+  public InvalidRoleAssignmentException(String reason) {
+    super("Invalid role assignment: %s".formatted(reason));
   }
 }
-

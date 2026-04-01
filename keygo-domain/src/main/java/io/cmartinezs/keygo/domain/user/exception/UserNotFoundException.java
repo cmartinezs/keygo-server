@@ -1,15 +1,13 @@
 package io.cmartinezs.keygo.domain.user.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
  * Thrown when a user cannot be found within a tenant.
- * <p>Se lanza cuando no se puede encontrar un usuario dentro de un tenant.
- * @author cmartinezs
- * @version 1.0
  */
-public class UserNotFoundException extends RuntimeException {
+public class UserNotFoundException extends DomainException {
 
-  public UserNotFoundException(String identifier) {
-    super("User not found: " + identifier);
+  public UserNotFoundException(String field, String value) {
+    super("User not found by %s: %s".formatted(field, value));
   }
 }
-

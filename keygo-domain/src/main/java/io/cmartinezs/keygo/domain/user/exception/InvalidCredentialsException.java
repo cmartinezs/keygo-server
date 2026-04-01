@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.domain.user.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
  * Thrown when credential validation fails (wrong password or user not found by credential).
  * <p>Se lanza cuando la validación de credenciales falla (contraseña incorrecta).
@@ -8,7 +10,7 @@ package io.cmartinezs.keygo.domain.user.exception;
  * @author cmartinezs
  * @version 1.0
  */
-public class InvalidCredentialsException extends RuntimeException {
+public class InvalidCredentialsException extends DomainException {
 
   public InvalidCredentialsException() {
     super("Invalid credentials provided");

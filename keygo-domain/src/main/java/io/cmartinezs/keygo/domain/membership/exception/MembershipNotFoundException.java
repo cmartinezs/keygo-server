@@ -1,19 +1,13 @@
 package io.cmartinezs.keygo.domain.membership.exception;
 
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
+
 /**
- * Exception thrown when a membership is not found.
- * <p>Excepción lanzada cuando no se encuentra una membresía.
- * @author cmartinezs
- * @version 1.0
+ * Thrown when a membership cannot be found.
  */
-public class MembershipNotFoundException extends RuntimeException {
+public class MembershipNotFoundException extends DomainException {
 
-  public MembershipNotFoundException(String message) {
-    super(message);
-  }
-
-  public MembershipNotFoundException(String message, Throwable cause) {
-    super(message, cause);
+  public MembershipNotFoundException(String field, String value) {
+    super("Membership not found by %s: %s".formatted(field, value));
   }
 }
-

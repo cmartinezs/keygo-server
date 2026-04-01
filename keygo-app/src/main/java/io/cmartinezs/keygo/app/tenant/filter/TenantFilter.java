@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.tenant.filter;
 
+import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 
 /**
@@ -24,8 +25,8 @@ public class TenantFilter {
   private final int size;
 
   private TenantFilter(TenantStatus status, String nameLike, int page, int size) {
-    if (page < 0) throw new IllegalArgumentException("Page must be >= 0");
-    if (size < 1 || size > 200) throw new IllegalArgumentException("Size must be between 1 and 200");
+    if (page < 0) throw new InvalidPaginationParamException("page", "must be >= 0");
+    if (size < 1 || size > 200) throw new InvalidPaginationParamException("size", "must be between 1 and 200");
     this.status = status;
     this.nameLike = (nameLike != null && nameLike.isBlank()) ? null : nameLike;
     this.page = page;

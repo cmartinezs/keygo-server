@@ -1,24 +1,22 @@
 package io.cmartinezs.keygo.api.error;
 
+import io.cmartinezs.keygo.domain.shared.exception.ExceptionLayer;
+import io.cmartinezs.keygo.domain.shared.exception.KeyGoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Exception thrown when authentication is required or invalid
- * Excepción lanzada cuando la autenticación es requerida o inválida
- *
- * @author cmartinezs
- * @version 1.0
+ * Thrown when authentication is required or invalid.
+ * Sets {@link ExceptionLayer#CONTROLLER} as the originating layer.
  */
 @ResponseStatus(HttpStatus.UNAUTHORIZED)
-public class UnauthorizedException extends RuntimeException {
+public class UnauthorizedException extends KeyGoException {
 
-  public UnauthorizedException(String message) {
-    super(message);
+  public UnauthorizedException(String reason) {
+    super(ExceptionLayer.CONTROLLER, reason);
   }
 
-  public UnauthorizedException(String message, Throwable cause) {
-    super(message, cause);
+  public UnauthorizedException(String reason, Throwable cause) {
+    super(ExceptionLayer.CONTROLLER, reason, cause);
   }
 }
-

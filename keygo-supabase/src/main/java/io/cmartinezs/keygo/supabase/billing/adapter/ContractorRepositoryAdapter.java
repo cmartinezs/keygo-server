@@ -2,7 +2,6 @@ package io.cmartinezs.keygo.supabase.billing.adapter;
 
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
-import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
 import io.cmartinezs.keygo.supabase.billing.entity.ContractorEntity;
 import io.cmartinezs.keygo.supabase.billing.repository.ContractorJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
@@ -47,7 +46,6 @@ public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
 
   private ContractorEntity toEntity(Contractor c) {
     return ContractorEntity.builder()
-        .id(c.getId())
         .tenantUser(tenantUserRepo.getReferenceById(c.getTenantUserId()))
         .status(c.getStatus())
         .build();

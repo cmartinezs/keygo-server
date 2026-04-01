@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.auth.usecase;
 
 import io.cmartinezs.keygo.app.auth.command.RevokeTokenCommand;
+import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.model.RefreshTokenStatus;
 
@@ -77,7 +78,7 @@ public class RevokeTokenUseCase {
       }
       return sb.toString();
     } catch (java.security.NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 not available", e);
+      throw new HashingUnavailableException("SHA-256", e);
     }
   }
 }

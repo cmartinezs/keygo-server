@@ -1,15 +1,13 @@
 package io.cmartinezs.keygo.domain.auth.exception;
 
-/**
- * Excepción lanzada cuando un refresh token existe pero su tiempo de expiración ya pasó.
- */
-public class RefreshTokenExpiredException extends RuntimeException {
-  public RefreshTokenExpiredException(String message) {
-    super(message);
-  }
+import io.cmartinezs.keygo.domain.shared.exception.DomainException;
 
-  public RefreshTokenExpiredException(String message, Throwable cause) {
-    super(message, cause);
+/**
+ * Thrown when a refresh token exists but its expiration time has passed.
+ */
+public class RefreshTokenExpiredException extends DomainException {
+
+  public RefreshTokenExpiredException() {
+    super("Refresh token has expired");
   }
 }
-

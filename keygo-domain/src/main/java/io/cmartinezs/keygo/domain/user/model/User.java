@@ -54,7 +54,6 @@ public class User {
       String profilePictureUrl,
       String birthdate,
       String website) {
-    if (id == null) throw new IllegalArgumentException("User id cannot be null");
     if (tenantId == null) throw new IllegalArgumentException("User tenantId cannot be null");
     if (username == null) throw new IllegalArgumentException("User username cannot be null");
     if (email == null) throw new IllegalArgumentException("User email cannot be null");

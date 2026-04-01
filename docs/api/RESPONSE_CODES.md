@@ -1,5 +1,8 @@
 # Guía de Códigos de Respuesta / Response Codes Guide
 
+> Para el diseño de la jerarquía de excepciones que genera estos códigos, ver
+> [`docs/design/EXCEPTION_HIERARCHY.md`](../design/EXCEPTION_HIERARCHY.md) (T-106).
+
 ## Filosofía / Philosophy
 
 Los códigos de respuesta en KeyGo Server son **códigos de negocio/endpoint específicos**, no duplican la semántica HTTP:

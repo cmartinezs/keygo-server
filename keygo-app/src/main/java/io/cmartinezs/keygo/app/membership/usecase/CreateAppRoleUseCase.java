@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.app.membership.usecase;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.command.CreateAppRoleCommand;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
@@ -56,8 +57,7 @@ public class CreateAppRoleUseCase {
 
     RoleCode roleCode = RoleCode.of(command.code());
     if (appRoleRepositoryPort.existsByClientAppAndCode(command.clientAppId(), roleCode)) {
-      throw new IllegalArgumentException(
-          "Role code '" + command.code() + "' already exists in app " + command.clientAppId());
+      throw new DuplicateAppRoleException(command.code(), command.clientAppId());
     }
 
     AppRole role = AppRole.builder()
