@@ -51,7 +51,7 @@ public class OidcMetadataController {
           + "supported capabilities required for automatic client configuration.")
   @ApiResponse(responseCode = "200", description = "OIDC discovery document — raw JSON per OIDC Discovery 1.0 spec",
       content = @Content(mediaType = "application/json"))
-  @ApiResponse(responseCode = "404", description = "Tenant not found")
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)")
   public ResponseEntity<Map<String, Object>> getOidcConfiguration(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
     OidcConfigurationResult result = getOidcConfigurationUseCase.execute(tenantSlug);

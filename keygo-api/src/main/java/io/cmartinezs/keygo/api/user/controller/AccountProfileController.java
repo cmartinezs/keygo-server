@@ -66,10 +66,10 @@ public class AccountProfileController {
       summary = "Get own profile",
       description = "Returns the complete profile of the authenticated user (all OIDC extended fields). "
                     + "Requires Authorization: Bearer <access_token>.")
-  @ApiResponse(responseCode = "200", description = "Profile retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "200", description = "Profile retrieved successfully (code: USER_PROFILE_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserProfileData>> getProfile(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -104,10 +104,10 @@ public class AccountProfileController {
       description = "Partially updates the profile of the authenticated user. "
                     + "Only non-null fields are updated (PATCH semantics). "
                     + "Requires Authorization: Bearer <access_token>.")
-  @ApiResponse(responseCode = "200", description = "Profile updated successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "200", description = "Profile updated successfully (code: USER_PROFILE_UPDATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserProfileData>> updateProfile(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,

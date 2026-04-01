@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.tenant.request.CreateTenantRequest;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.command.CreateTenantCommand;
+import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
@@ -195,8 +196,8 @@ class PlatformTenantControllerTest {
   void shouldPropagateIllegalArgumentExceptionOnInvalidParams() {
     // When / Then
     assertThatThrownBy(() -> controller.listTenants(null, null, -1, 20))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Page must be >= 0");
+        .isInstanceOf(InvalidPaginationParamException.class)
+        .hasMessageContaining("Pagination parameter 'page' is invalid: must be >= 0");
   }
 }
 

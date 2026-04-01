@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.run.config;
 
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import io.swagger.v3.core.converter.ModelConverter;
 import io.swagger.v3.oas.models.Components;
@@ -7,7 +8,12 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -220,6 +226,35 @@ public class OpenApiConfig {
             "/api/v1/billing/**",
             "/api/v1/tenants/*/apps/*/billing/**")
         .build();
+  }
+
+  /**
+   * Global OpenAPI customizer that adds standard server-error responses to every operation.
+   * <p>Agrega automáticamente las respuestas 500 y 503 a todos los endpoints para evitar
+   * repetirlas en cada controller.
+   *
+   * @return the customizer bean
+   */
+  @Bean
+  public OpenApiCustomizer globalErrorResponsesCustomizer() {
+    Schema<?> errorSchema = new Schema<>().$ref("#/components/schemas/ErrorResponse");
+    Content errorContent = new Content().addMediaType(
+        "application/json", new MediaType().schema(errorSchema));
+
+    ApiResponse response500 = new ApiResponse()
+        .description("Internal server error — code: OPERATION_FAILED")
+        .content(errorContent);
+    ApiResponse response503 = new ApiResponse()
+        .description("External service unavailable — code: EXTERNAL_SERVICE_ERROR")
+        .content(errorContent);
+
+    return openApi -> openApi.getPaths().values().forEach(pathItem ->
+        pathItem.readOperations().forEach(operation -> {
+          var responses = operation.getResponses();
+          responses.addApiResponse("500", response500);
+          responses.addApiResponse("503", response503);
+        })
+    );
   }
 
   /**

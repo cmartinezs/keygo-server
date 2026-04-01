@@ -27,6 +27,16 @@
 **Causa:** La primera fase de T-106 cubrió solo billing/contracting y algunos dominio. Módulos auth, membership, clientapp, tenant, billing/catalog y billing/subscription no se actualizaron.
 **Solución:** Crear excepción concreta por contexto (`DuplicatePlanCodeException`, `ContractInvalidStateException`, `SubscriptionNotFoundException`, `SubscriptionInvalidStateException`, `UnsupportedPkceMethodException`, `HashingUnavailableException`, `DuplicateAppRoleException`, `DuplicateMembershipException`, `InvalidCommandFieldException`, `ClientAppInactiveException`, `DuplicateTenantException`, `InvalidPaginationParamException`). Actualizar tests para asertarlas directamente. Para instalar keygo-app con JaCoCo bloqueando: `mvnw install -Djacoco.skip=true`.
 
+### [2026-04-01] Swagger: `Content`/`Schema` faltantes en controllers al agregar `@ApiResponse` con body de error
+**Síntoma:** `mvnw compile` falla con `cannot find symbol: class Content / class Schema` en controllers que se actualizaron para incluir `@ApiResponse` con `content = @Content(schema = @Schema(...))`.
+**Causa:** Los controllers existentes no tenían `import io.swagger.v3.oas.annotations.media.Content` ni `import io.swagger.v3.oas.annotations.media.Schema` — solo `@ApiResponse` sin body no los requería.
+**Solución:** Al agregar cualquier `@ApiResponse` con cuerpo de error, agregar ambos imports al inicio del archivo.
+
+### [2026-04-01] Swagger: convención de descripción con código de respuesta
+**Síntoma:** Swagger no indicaba qué `ResponseCode` correspondía a cada HTTP status, dificultando la integración frontend.
+**Causa:** Las descripciones de `@ApiResponse` eran texto libre sin referencia al enum `ResponseCode`.
+**Solución:** Sufijo `(code: NOMBRE_ENUM)` en cada descripción de `@ApiResponse`. Ejemplo: `"Tenant not found (code: RESOURCE_NOT_FOUND)"`. Para 400 de validación usar: `"... (code: INVALID_INPUT). data.field_errors lists each invalid field."`.
+
 ### [2026-04-01] Jerarquía de excepciones por capa — patrón de constructores estructurados
 **Síntoma:** Los consumers de la API no podían identificar la capa arquitectónica del error ni el tipo específico de excepción. Los use cases lanzaban `IllegalArgumentException`/`IllegalStateException` genéricas.
 **Causa:** Sin jerarquía base, todas las excepciones extendían `RuntimeException` directamente; sin campo `layer` en `ErrorData`.

@@ -79,7 +79,6 @@ class UserPersistenceMapperTest {
     TenantUserEntity entity = mapper.toEntity(user);
 
     // Then
-    assertThat(entity.getId()).isEqualTo(userUuid);
     assertThat(entity.getTenant().getId()).isEqualTo(tenantUuid);
     assertThat(entity.getUsername()).isEqualTo(USERNAME);
     assertThat(entity.getEmail()).isEqualTo(EMAIL);

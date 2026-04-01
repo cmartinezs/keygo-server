@@ -72,8 +72,10 @@ public class PlatformDashboardController {
       description = "Returns a full aggregated view of the platform: service status, "
           + "security metrics, tenant/user/app/membership counts, rankings, "
           + "pending actions and recent activity. Requires ADMIN role.")
-  @ApiResponse(responseCode = "200", description = "Platform dashboard retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "200", description = "Platform dashboard retrieved successfully (code: PLATFORM_DASHBOARD_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "Insufficient permissions — ADMIN role required (code: INSUFFICIENT_PERMISSIONS)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<PlatformDashboardData>> getDashboard() {
     PlatformDashboardResult result = getDashboardUseCase.execute();

@@ -78,12 +78,12 @@ public class TenantClientAppController {
       summary = "Create a client application",
       description = "Registers a new OAuth2 client application under the specified tenant. "
                     + "Returns the `clientId` and a one-time visible `clientSecret` — store it securely.")
-  @ApiResponse(responseCode = "201", description = "Client app created successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "201", description = "Client app created successfully (code: CLIENT_APP_CREATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppSecretData>> createClientApp(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -122,10 +122,10 @@ public class TenantClientAppController {
   @Operation(
       summary = "List client applications",
       description = "Returns all OAuth2 client applications registered under the specified tenant.")
-  @ApiResponse(responseCode = "200", description = "Client apps retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "Client apps retrieved successfully (code: CLIENT_APP_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<List<ClientAppData>>> listClientApps(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
@@ -155,10 +155,10 @@ public class TenantClientAppController {
   @Operation(
       summary = "Get client application",
       description = "Retrieves details of a specific OAuth2 client application by its `clientId`.")
-  @ApiResponse(responseCode = "200", description = "Client app retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "Client app retrieved successfully (code: CLIENT_APP_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
+  @ApiResponse(responseCode = "404", description = "Client app or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppData>> getClientApp(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -186,12 +186,12 @@ public class TenantClientAppController {
   @Operation(
       summary = "Update client application",
       description = "Updates name, description, redirect URIs, grants or scopes of an existing client app.")
-  @ApiResponse(responseCode = "200", description = "Client app updated successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "200", description = "Client app updated successfully (code: CLIENT_APP_UPDATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
+  @ApiResponse(responseCode = "404", description = "Client app or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppData>> updateClientApp(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -228,10 +228,10 @@ public class TenantClientAppController {
       summary = "Rotate client secret",
       description = "Generates a new `clientSecret` for a confidential client app, invalidating the previous one. "
                     + "The new secret is returned once — store it securely.")
-  @ApiResponse(responseCode = "200", description = "Client secret rotated successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "Client secret rotated successfully (code: CLIENT_APP_SECRET_ROTATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Client app or tenant not found",
+  @ApiResponse(responseCode = "404", description = "Client app or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<ClientAppSecretData>> rotateClientSecret(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,

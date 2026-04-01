@@ -13,6 +13,8 @@ import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,9 +56,17 @@ public class TenantMembershipController {
   @Operation(
       summary = "Create a membership",
       description = "Grant user access to an application with specified roles")
-  @ApiResponse(responseCode = "201", description = "Membership created")
-  @ApiResponse(responseCode = "400", description = "Invalid input")
-  @ApiResponse(responseCode = "404", description = "User, app, or tenant not found")
+  @ApiResponse(responseCode = "201", description = "Membership created (code: MEMBERSHIP_CREATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "Tenant suspended or membership inactive (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "Membership already exists for this user + app (code: DUPLICATE_RESOURCE)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<MembershipData>> createMembership(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Valid @RequestBody CreateMembershipRequest request) {
@@ -92,8 +102,9 @@ public class TenantMembershipController {
   @Operation(
       summary = "List memberships",
       description = "List all memberships for a user or app (query params determine filter)")
-  @ApiResponse(responseCode = "200", description = "Memberships retrieved")
-  @ApiResponse(responseCode = "400", description = "Invalid query parameters")
+  @ApiResponse(responseCode = "200", description = "Memberships retrieved (code: MEMBERSHIP_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<List<MembershipData>>> listMemberships(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Filter by user ID") @RequestParam(name = "user_id", required = false) UUID userId,
@@ -132,8 +143,11 @@ public class TenantMembershipController {
   @Operation(
       summary = "Revoke membership",
       description = "Remove user access to an application")
-  @ApiResponse(responseCode = "200", description = "Membership revoked")
-  @ApiResponse(responseCode = "404", description = "Membership not found")
+  @ApiResponse(responseCode = "200", description = "Membership revoked (code: MEMBERSHIP_REVOKED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Membership not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<Void>> revokeMembership(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Membership ID") @PathVariable UUID membershipId) {

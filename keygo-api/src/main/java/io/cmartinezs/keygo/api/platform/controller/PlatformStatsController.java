@@ -50,8 +50,10 @@ public class PlatformStatsController {
       summary = "Get platform statistics",
       description = "Returns aggregated counts of tenants (by status), users (by status), "
                     + "client apps and active signing keys. Requires ADMIN role.")
-  @ApiResponse(responseCode = "200", description = "Platform statistics retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "200", description = "Platform statistics retrieved successfully (code: PLATFORM_STATS_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "Insufficient permissions — ADMIN role required (code: INSUFFICIENT_PERMISSIONS)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<PlatformStatsData>> getStats() {
     PlatformStatsResult result = getPlatformStatsUseCase.execute();

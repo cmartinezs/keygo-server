@@ -77,14 +77,14 @@ public class TenantUserController {
       summary = "Create a user",
       description = "Creates a new user account scoped to the specified tenant. "
                     + "Username and email must be unique within the tenant.")
-  @ApiResponse(responseCode = "201", description = "User created successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "201", description = "User created successfully (code: USER_CREATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "409", description = "Email or username already exists in this tenant",
+  @ApiResponse(responseCode = "409", description = "Email or username already exists in this tenant (code: DUPLICATE_RESOURCE)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserData>> createUser(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -113,10 +113,10 @@ public class TenantUserController {
   @Operation(
       summary = "List users",
       description = "Returns all user accounts registered under the specified tenant.")
-  @ApiResponse(responseCode = "200", description = "User list retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "User list retrieved successfully (code: USER_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<List<UserData>>> listUsers(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
@@ -140,10 +140,10 @@ public class TenantUserController {
   @Operation(
       summary = "Get a user",
       description = "Retrieves details of a specific user by its UUID within the tenant.")
-  @ApiResponse(responseCode = "200", description = "User retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "User retrieved successfully (code: USER_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserData>> getUser(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -166,10 +166,10 @@ public class TenantUserController {
   @Operation(
       summary = "Update a user",
       description = "Updates the firstName and lastName of an existing user.")
-  @ApiResponse(responseCode = "200", description = "User updated successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "User updated successfully (code: USER_UPDATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserData>> updateUser(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -197,12 +197,12 @@ public class TenantUserController {
   @Operation(
       summary = "Reset user password",
       description = "Administratively resets the password of a user within the tenant.")
-  @ApiResponse(responseCode = "200", description = "Password reset successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "200", description = "Password reset successfully (code: USER_PASSWORD_RESET)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserData>> resetPassword(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
@@ -228,14 +228,14 @@ public class TenantUserController {
       summary = "Validate credentials",
       description = "Validates a user's credentials (email or username + password) within the tenant. "
                     + "Returns user data on success.")
-  @ApiResponse(responseCode = "200", description = "Credentials valid")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "200", description = "Credentials valid (code: CREDENTIALS_VALID)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Invalid credentials or admin key missing",
+  @ApiResponse(responseCode = "401", description = "Invalid credentials or Bearer token missing (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "403", description = "User account is suspended",
+  @ApiResponse(responseCode = "403", description = "User account is suspended (code: BUSINESS_RULE_VIOLATION)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserData>> validateCredentials(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,

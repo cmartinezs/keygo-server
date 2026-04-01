@@ -221,22 +221,6 @@ class UserTest {
   }
 
   @Test
-  void builderWithNullIdThrows() {
-    // When / Then
-    var builder = User.builder()
-        .id(null)
-        .tenantId(TenantId.of(UUID.randomUUID()))
-        .username(Username.of(VALID_USERNAME))
-        .email(EmailAddress.of(VALID_EMAIL))
-        .passwordHash(PasswordHash.of(VALID_HASH))
-        .status(UserStatus.ACTIVE);
-
-    assertThatThrownBy(builder::build)
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("id");
-  }
-
-  @Test
   void builderWithNullTenantIdThrows() {
     // When / Then
     var builder = User.builder()

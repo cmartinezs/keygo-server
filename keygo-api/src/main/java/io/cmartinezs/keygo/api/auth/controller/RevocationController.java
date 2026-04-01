@@ -53,8 +53,8 @@ public class RevocationController {
       description = "Revokes a refresh token per RFC 7009. The endpoint is **idempotent** — "
           + "if the token does not exist or has already been revoked, 200 OK is returned anyway "
           + "to prevent token existence enumeration. No authentication header required.")
-  @ApiResponse(responseCode = "200", description = "Token revoked (or silently ignored if unknown)")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "200", description = "Token revoked — or silently ignored if unknown (code: TOKEN_REVOKED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<Void>> revoke(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,

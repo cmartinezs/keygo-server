@@ -78,10 +78,10 @@ public class PlatformTenantController {
       summary = "List all tenants",
       description = "Returns a paginated list of all tenants. Supports optional filtering by "
                     + "status and partial name match. Requires ADMIN role.")
-  @ApiResponse(responseCode = "200", description = "Tenant list retrieved successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid query parameters",
+  @ApiResponse(responseCode = "200", description = "Tenant list retrieved successfully (code: TENANT_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<PagedData<TenantData>>> listTenants(
       @Parameter(description = "Filter by tenant status (ACTIVE, SUSPENDED, PENDING)")
@@ -129,10 +129,12 @@ public class PlatformTenantController {
       summary = "Create a new tenant",
       description = "Creates a new tenant with the given name and owner email. "
                     + "A URL-friendly slug is automatically generated from the name.")
-  @ApiResponse(responseCode = "201", description = "Tenant created successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid request body",
+  @ApiResponse(responseCode = "201", description = "Tenant created successfully (code: TENANT_CREATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "A tenant with the derived slug already exists (code: DUPLICATE_TENANT)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<TenantData>> createTenant(
       @Valid @RequestBody CreateTenantRequest request) {
@@ -159,10 +161,10 @@ public class PlatformTenantController {
   @Operation(
       summary = "Get tenant by slug",
       description = "Retrieves tenant details by its unique slug identifier.")
-  @ApiResponse(responseCode = "200", description = "Tenant retrieved successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "Tenant retrieved successfully (code: TENANT_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<TenantData>> getTenantBySlug(
       @Parameter(description = "Unique slug identifier of the tenant", example = "my-company")
@@ -189,12 +191,12 @@ public class PlatformTenantController {
   @Operation(
       summary = "Suspend a tenant",
       description = "Suspends an active tenant. A suspended tenant cannot be used for authentication.")
-  @ApiResponse(responseCode = "200", description = "Tenant suspended successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid admin key",
+  @ApiResponse(responseCode = "200", description = "Tenant suspended successfully (code: TENANT_SUSPENDED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "403", description = "Tenant is already suspended",
+  @ApiResponse(responseCode = "403", description = "Tenant is already suspended (code: BUSINESS_RULE_VIOLATION)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<TenantData>> suspendTenant(
       @Parameter(description = "Unique slug identifier of the tenant", example = "my-company")
@@ -218,10 +220,10 @@ public class PlatformTenantController {
   @Operation(
       summary = "Activate a tenant",
       description = "Reactivates a suspended or pending tenant, allowing it to process authentication requests again.")
-  @ApiResponse(responseCode = "200", description = "Tenant activated successfully")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "200", description = "Tenant activated successfully (code: TENANT_ACTIVATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant not found",
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<TenantData>> activateTenant(
       @Parameter(description = "Unique slug identifier of the tenant", example = "my-company")

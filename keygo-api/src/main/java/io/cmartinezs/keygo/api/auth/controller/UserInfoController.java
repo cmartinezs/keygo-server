@@ -55,10 +55,10 @@ public class UserInfoController {
       description = "Returns identity claims of the authenticated user per OIDC Core 1.0 §5.3. "
           + "Requires `Authorization: Bearer <access_token>` — the token must have been issued by "
           + "the `POST /oauth2/token` endpoint with `openid` scope.")
-  @ApiResponse(responseCode = "200", description = "User info claims retrieved")
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "200", description = "User info claims retrieved (code: USER_INFO_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "User or tenant not found",
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserInfoResult>> userInfo(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,

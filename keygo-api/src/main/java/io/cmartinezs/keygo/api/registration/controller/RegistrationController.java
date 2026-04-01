@@ -16,6 +16,8 @@ import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -63,9 +65,13 @@ public class RegistrationController {
       summary = "Register a new user",
       description = "Creates a new user with PENDING status and sends a 6-digit verification "
                     + "code to the provided email. The code is valid for 30 minutes.")
-  @ApiResponse(responseCode = "201", description = "User registered — verification email sent")
-  @ApiResponse(responseCode = "400", description = "Invalid request body or duplicate email/username")
-  @ApiResponse(responseCode = "404", description = "Tenant or client app not found")
+  @ApiResponse(responseCode = "201", description = "User registered — verification email sent (code: USER_REGISTERED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "Email or username already exists in this tenant (code: DUPLICATE_RESOURCE)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<RegistrationData>> register(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Client app ID") @PathVariable String clientId,
@@ -101,9 +107,13 @@ public class RegistrationController {
       summary = "Verify email address",
       description = "Validates the 6-digit code received by email. If valid, the user is "
                     + "activated (status → ACTIVE). If expired, a new code must be requested.")
-  @ApiResponse(responseCode = "200", description = "Email verified — user is now active")
-  @ApiResponse(responseCode = "400", description = "Invalid or already-used verification code")
-  @ApiResponse(responseCode = "422", description = "Verification code has expired — request a new one")
+  @ApiResponse(responseCode = "200", description = "Email verified — user is now active (code: EMAIL_VERIFIED)")
+  @ApiResponse(responseCode = "400", description = "Invalid or already-used verification code (code: INVALID_INPUT)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or client app not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "422", description = "Verification code has expired — request a new one (code: EMAIL_VERIFICATION_EXPIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<Void>> verifyEmail(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Client app ID") @PathVariable String clientId,
@@ -130,9 +140,11 @@ public class RegistrationController {
       summary = "Resend verification email",
       description = "Generates and sends a new verification code. Only allowed once the "
                     + "previous code has expired (30-minute window).")
-  @ApiResponse(responseCode = "200", description = "New verification email sent")
-  @ApiResponse(responseCode = "409", description = "Current code is still active — wait until it expires")
-  @ApiResponse(responseCode = "404", description = "User not found")
+  @ApiResponse(responseCode = "200", description = "New verification email sent (code: EMAIL_VERIFICATION_RESENT)")
+  @ApiResponse(responseCode = "404", description = "User not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "Current code is still active — wait until it expires (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<Void>> resendVerification(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Client app ID") @PathVariable String clientId,

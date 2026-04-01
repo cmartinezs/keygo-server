@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.api.shared.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.cmartinezs.keygo.api.error.ErrorData;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +33,11 @@ public class BaseResponse<T> {
   @Setter private MessageResponse debug;
   @Setter private String throwable;
 
-  /** Schema reference for error responses (400, 401, 404, 500) — do not instantiate in business logic. */
-  public static final class ErrorResponse extends BaseResponse<Void> {}
+  /**
+   * Schema reference for all error responses (4xx, 5xx) — do not instantiate in business logic.
+   * Extends {@code BaseResponse<ErrorData>} so Swagger correctly shows the {@code data} field
+   * with its full structure, including {@code field_errors} for validation failures.
+   */
+  public static final class ErrorResponse extends BaseResponse<ErrorData> {}
 }
 

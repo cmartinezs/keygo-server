@@ -79,8 +79,8 @@ public class AppBillingPlanController {
       description = "Returns all active public plans for the specified client app. "
                     + "No authentication required. Each entry includes the plan metadata, "
                     + "its active version (price, billing period, trial days) and the associated entitlements.")
-  @ApiResponse(responseCode = "200", description = "Plan catalog retrieved successfully")
-  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+  @ApiResponse(responseCode = "200", description = "Plan catalog retrieved successfully (code: APP_PLAN_CATALOG_RETRIEVED)")
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<List<AppPlanData>>> getCatalog(
       @Parameter(description = "Tenant slug", example = "keygo") @PathVariable String tenantSlug,
@@ -110,8 +110,8 @@ public class AppBillingPlanController {
       description = "Returns a single active public plan identified by its code, including the "
                     + "active version (price, billing period, trial days) and its full entitlements list. "
                     + "No authentication required.")
-  @ApiResponse(responseCode = "200", description = "Plan detail retrieved successfully")
-  @ApiResponse(responseCode = "404", description = "Tenant, client app or plan not found",
+  @ApiResponse(responseCode = "200", description = "Plan detail retrieved successfully (code: APP_PLAN_RETRIEVED)")
+  @ApiResponse(responseCode = "404", description = "Tenant, client app or plan not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppPlanData>> getPlanPublic(
       @Parameter(description = "Tenant slug", example = "keygo") @PathVariable String tenantSlug,
@@ -143,14 +143,14 @@ public class AppBillingPlanController {
                     + "and an optional list of entitlements (feature flags and usage quotas). "
                     + "The plan code must be unique within the client app. "
                     + "Requires Bearer JWT with ADMIN_TENANT role.")
-  @ApiResponse(responseCode = "201", description = "Plan created successfully")
-  @ApiResponse(responseCode = "400", description = "Invalid request body or missing required fields",
+  @ApiResponse(responseCode = "201", description = "Plan created successfully (code: APP_PLAN_CREATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token",
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Tenant or client app not found",
+  @ApiResponse(responseCode = "404", description = "Tenant or client app not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "409", description = "A plan with the same code already exists for this client app",
+  @ApiResponse(responseCode = "409", description = "A plan with the same code already exists for this client app (code: DUPLICATE_RESOURCE)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppPlanData>> createPlan(
       @Parameter(description = "Tenant slug", example = "keygo") @PathVariable String tenantSlug,

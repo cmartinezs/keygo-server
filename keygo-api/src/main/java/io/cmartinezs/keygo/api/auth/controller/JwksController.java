@@ -49,7 +49,7 @@ public class JwksController {
           + "Used by relying parties to verify token signatures.")
   @ApiResponse(responseCode = "200", description = "JWK Set retrieved — raw JSON `{\"keys\": [...]}`",
       content = @Content(mediaType = "application/json"))
-  @ApiResponse(responseCode = "404", description = "Tenant not found")
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)")
   public ResponseEntity<Map<String, Object>> getJwks(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
     return ResponseEntity.ok(getJwksUseCase.execute());
