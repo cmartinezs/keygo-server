@@ -1337,16 +1337,35 @@ Tokens de métodos de pago por Tenant. **Nunca almacena datos crudos de tarjeta 
 
 ---
 
-**Última actualización:** 2026-03-30 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V17 + diseño de datos v2
+---
+
+## Tabla: `user_notification_preferences` (V21)
+
+**Contexto:** Preferencias de notificación self-service. Un registro por par `(user_id, tenant_id)`.  
+Si no hay registro para un usuario, el backend retorna valores por defecto (`security_alerts_email=true`, `security_alerts_in_app=true`, `billing_alerts_email=true`, demás `false`).
+
+| Columna | Tipo | Nullable | Default | Descripción |
+|---|---|---|---|---|
+| `id` | UUID PK | NO | `gen_random_uuid()` | Identificador único |
+| `user_id` | UUID FK → `tenant_users(id)` | NO | — | Usuario propietario (ON DELETE CASCADE) |
+| `tenant_id` | UUID FK → `tenants(id)` | NO | — | Tenant de contexto (ON DELETE CASCADE) |
+| `security_alerts_email` | BOOLEAN | NO | `TRUE` | Alertas de seguridad por email |
+| `security_alerts_in_app` | BOOLEAN | NO | `TRUE` | Alertas de seguridad in-app |
+| `billing_alerts_email` | BOOLEAN | NO | `TRUE` | Alertas de billing por email |
+| `product_updates_email` | BOOLEAN | NO | `FALSE` | Actualizaciones de producto por email |
+| `weekly_digest` | BOOLEAN | NO | `FALSE` | Resumen semanal por email |
+| `created_at` | TIMESTAMPTZ | NO | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | NO | `NOW()` | Timestamp de última modificación |
+
+**Constraints:**
+- UNIQUE `(user_id, tenant_id)` — un registro por par usuario+tenant
+- Índice `idx_notif_prefs_user_tenant` sobre `(user_id, tenant_id)`
+
+**Entidad JPA:** `UserNotificationPreferencesEntity` (`keygo-supabase/user/entity/`)  
+**Puerto:** `NotificationPreferencesRepositoryPort` (`keygo-app/user/port/`)  
+**Adaptador:** `NotificationPreferencesRepositoryAdapter` (`keygo-supabase/user/adapter/`)
 
 ---
 
-## Próximas migraciones
-
-| Migración | Descripción | Estado |
-|---|---|---|
-| `V19__...` | **Modelo v2 billing:** nueva tabla `contractors`; modificar `app_contracts` (add `contractor_id`, drop `subscriber_*`, drop `company_slug`, nuevos estados); modificar `app_subscriptions` (add `contractor_id`, drop `subscriber_*`); modificar `usage_counters` (add `contractor_id`, drop `subscriber_*`); modificar `tenants` (add `contractor_id`, add estado `DELETED`) | 🔜 Pendiente de implementación |
-| `V20__...` | Seed actualizado del tenant `keygo` y contratante base tras la reestructuración | 🔜 Pendiente |
-
-> **Regla:** Nunca reutilizar ni editar migraciones aplicadas. La siguiente libre es `V19`.
+**Última actualización:** 2026-04-02 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V21
 

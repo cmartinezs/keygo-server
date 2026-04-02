@@ -360,6 +360,51 @@ class BootstrapAdminKeyFilterTest {
     assertThat(payload.getData().getException()).isEqualTo("BootstrapAdminKeyFilter");
   }
 
+  // ─── Account self-service public paths ────────────────────────────────────
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/api/v1/tenants/keygo/account/change-password",
+      "/api/v1/tenants/keygo/account/notification-preferences",
+      "/api/v1/tenants/keygo/account/access"
+  })
+  void doFilterInternal_shouldAllowAccountSelfServiceSuffixPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getAccountChangePasswordPathSuffix()).thenReturn("/account/change-password");
+    lenient().when(bootstrapProperties.getAccountNotificationPreferencesPathSuffix()).thenReturn("/account/notification-preferences");
+    lenient().when(bootstrapProperties.getAccountAccessPathSuffix()).thenReturn("/account/access");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/api/v1/tenants/keygo/account/sessions",
+      "/api/v1/tenants/keygo/account/sessions/550e8400-e29b-41d4-a716-446655440000"
+  })
+  void doFilterInternal_shouldAllowAccountSessionsPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getAccountSessionsPathSuffix()).thenReturn("/account/sessions");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
   // ─── Non-API paths ─────────────────────────────────────────────────────────
 
   @Test

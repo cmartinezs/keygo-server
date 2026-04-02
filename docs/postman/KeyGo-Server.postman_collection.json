@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "col-keygo-server-v1",
     "name": "KeyGo Server API",
-    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, `/billing/catalog`, etc.) no requieren autenticación.\n\n## Folders\n- **🏠 Platform** — service/info, response-codes, stats, dashboard\n- **🏥 Actuator** — health check\n- **🏢 Tenants** — CRUD + suspend/activate\n- **⚠️ Escenarios de Error** — casos de error comunes\n- **📦 Client Apps** — CRUD + rotate-secret + roles\n- **👤 Users** — CRUD + reset-password + validate-credentials\n- **🔐 OAuth2 Authorization** — authorize → login → token\n- **🔑 OIDC & JWKS** — discovery, jwks, refresh, client_credentials, revoke, userinfo\n- **Registration** — register, verify-email, resend-verification\n- **👤 Account Profile** — GET/PATCH perfil propio (Bearer)\n- **💳 Billing — Contracts** — initiate, status, resume, verify-email, resend, mock-payment, activate\n- **💳 Billing — Catalog** — GET catalog, GET plan detail, POST create plan\n- **💳 Billing — Subscription** — GET active subscription, POST cancel, GET invoices",
+    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, `/billing/catalog`, etc.) no requieren autenticación.\n\n## Folders\n- **🏠 Platform** — service/info, response-codes, stats, dashboard\n- **🏥 Actuator** — health check\n- **🏢 Tenants** — CRUD + suspend/activate\n- **⚠️ Escenarios de Error** — casos de error comunes\n- **📦 Client Apps** — CRUD + rotate-secret + roles\n- **👤 Users** — CRUD + reset-password + validate-credentials\n- **🔐 OAuth2 Authorization** — authorize → login → token\n- **🔑 OIDC & JWKS** — discovery, jwks, refresh, client_credentials, revoke, userinfo\n- **Registration** — register, verify-email, resend-verification\n- **👤 Account Profile** — GET/PATCH perfil propio (Bearer)\n- **⚙️ Account Settings** — change-password, sessions, notification-preferences, access\n- **💳 Billing — Contracts** — initiate, status, resume, verify-email, resend, mock-payment, activate\n- **💳 Billing — Catalog** — GET catalog, GET plan detail, POST create plan\n- **💳 Billing — Subscription** — GET active subscription, POST cancel, GET invoices",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -3338,6 +3338,302 @@
                   "  const data = pm.response.json().data;",
                   "  pm.expect(data.firstName).to.equal(\"Juan\");",
                   "  pm.expect(data.locale).to.equal(\"es-MX\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Account Settings",
+      "item": [
+        {
+          "name": "POST Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"OldPassword1!\",\n  \"new_password\": \"NewStr0ng!Pass#24\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/change-password",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "change-password"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Password changed\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_PASSWORD_CHANGED\");",
+                  "  pm.expect(body.data.changed).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET List Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/sessions",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "sessions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Sessions retrieved\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_SESSIONS_RETRIEVED\");",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "});",
+                  "const sessions = pm.response.json().data;",
+                  "if (Array.isArray(sessions) && sessions.length > 0) {",
+                  "  pm.collectionVariables.set(\"sessionId\", sessions[0]?.session_id ?? \"\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE Revoke Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/sessions/{{sessionId}}",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Session revoked or already closed\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect([\"ACCOUNT_SESSION_REVOKED\", \"ACCOUNT_SESSION_ALREADY_CLOSED\"]).to.include(body.success.code);",
+                  "  pm.expect(body.data).to.have.property(\"session_id\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/notification-preferences",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "notification-preferences"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Notification preferences retrieved\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_NOTIFICATION_PREFERENCES_RETRIEVED\");",
+                  "  const data = body.data;",
+                  "  pm.expect(data).to.have.property(\"security_alerts_email\");",
+                  "  pm.expect(data).to.have.property(\"security_alerts_in_app\");",
+                  "  pm.expect(data).to.have.property(\"billing_alerts_email\");",
+                  "  pm.expect(data).to.have.property(\"product_updates_email\");",
+                  "  pm.expect(data).to.have.property(\"weekly_digest\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH Notification Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"security_alerts_email\": true,\n  \"security_alerts_in_app\": true,\n  \"billing_alerts_email\": true,\n  \"product_updates_email\": false,\n  \"weekly_digest\": false\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/notification-preferences",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "notification-preferences"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Notification preferences updated\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_NOTIFICATION_PREFERENCES_UPDATED\");",
+                  "  const data = body.data;",
+                  "  pm.expect(data).to.have.property(\"security_alerts_email\");",
+                  "  pm.expect(data).to.have.property(\"security_alerts_in_app\");",
+                  "  pm.expect(data).to.have.property(\"billing_alerts_email\");",
+                  "  pm.expect(data).to.have.property(\"product_updates_email\");",
+                  "  pm.expect(data).to.have.property(\"weekly_digest\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Account Access",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/access",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "access"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Account access retrieved\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_ACCESS_RETRIEVED\");",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
                   "});"
                 ],
                 "type": "text/javascript"

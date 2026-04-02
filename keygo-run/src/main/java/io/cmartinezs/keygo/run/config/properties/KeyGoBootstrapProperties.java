@@ -108,6 +108,22 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de contratos de billing que es público. */
   private String billingContractsPathSuffix;
 
+  /* Account change-password path suffix that is public (Bearer validated inside controller).
+   * Sufijo de ruta de cambio de contraseña que es público (Bearer validado en el controller). */
+  private String accountChangePasswordPathSuffix;
+
+  /* Account sessions path segment that is public (covers /account/sessions and /account/sessions/{id}).
+   * Segmento de ruta de sesiones de cuenta que es público (cubre /account/sessions y /account/sessions/{id}). */
+  private String accountSessionsPathSuffix;
+
+  /* Account notification-preferences path suffix that is public (Bearer validated inside controller).
+   * Sufijo de ruta de preferencias de notificación que es público (Bearer validado en el controller). */
+  private String accountNotificationPreferencesPathSuffix;
+
+  /* Account access path suffix that is public (Bearer validated inside controller).
+   * Sufijo de ruta de acceso de cuenta que es público (Bearer validado en el controller). */
+  private String accountAccessPathSuffix;
+
 }
 
 

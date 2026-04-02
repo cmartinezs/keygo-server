@@ -19,6 +19,7 @@ import io.cmartinezs.keygo.app.clientapp.exception.ClientAppInactiveException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
 import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
+import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
 import io.cmartinezs.keygo.app.shared.exception.PortException;
 import io.cmartinezs.keygo.app.shared.exception.UseCaseException;
 import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
@@ -560,6 +561,29 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateMembershipException(DuplicateMembershipException ex) {
     log.error("Duplicate membership: {}", ex.getMessage());
     return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles IncorrectCurrentPasswordException - returns 403 Forbidden.
+   * Lanzada cuando el usuario proporciona una contraseña actual incorrecta al hacer self-service
+   * de cambio de contraseña.
+   */
+  @ExceptionHandler(IncorrectCurrentPasswordException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleIncorrectCurrentPasswordException(
+      IncorrectCurrentPasswordException ex) {
+    log.warn("Incorrect current password attempt: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles SecurityException - returns 403 Forbidden.
+   * Lanzada cuando un usuario intenta operar sobre un recurso que no le pertenece
+   * (p.ej. revocar una sesión de otro usuario).
+   */
+  @ExceptionHandler(SecurityException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSecurityException(SecurityException ex) {
+    log.warn("Security violation: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**

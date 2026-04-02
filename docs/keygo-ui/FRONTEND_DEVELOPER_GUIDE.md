@@ -158,8 +158,10 @@ keygo-ui/
 │   │   │   └── DashboardPage.tsx    # Dashboard para USER_TENANT
 │   │   └── shared/                  # Todos los roles autenticados
 │   │       ├── ProfilePage.tsx
-│   │       ├── ChangePasswordPage.tsx  # ⏳ pendiente
-│   │       └── SessionsPage.tsx        # ⏳ pendiente
+│   │       ├── ChangePasswordPage.tsx  # ✅ backend listo
+│   │       ├── SessionsPage.tsx        # ✅ backend listo
+│   │       ├── NotificationPreferencesPage.tsx  # ✅ backend listo
+│   │       └── AccessPage.tsx          # ✅ backend listo
 │   │
 │   ├── components/
 │   │   ├── BaseResponseHandler.tsx   # Manejo centralizado de BaseResponse<T>
@@ -841,8 +843,10 @@ export const router = createBrowserRouter([
     children: [
       // Compartidas por todos los roles
       { path: 'profile',         element: <ProfilePage /> },
-      { path: 'change-password', element: <ChangePasswordPage /> },   // ⏳
-      { path: 'sessions',        element: <SessionsPage /> },          // ⏳
+      { path: 'change-password', element: <ChangePasswordPage /> },   // ✅ backend listo
+      { path: 'sessions',        element: <SessionsPage /> },          // ✅ backend listo
+      { path: 'notification-preferences', element: <NotificationPreferencesPage /> }, // ✅ backend listo
+      { path: 'access',          element: <AccessPage /> },             // ✅ backend listo
       { path: 'dashboard',       element: <UserLayout><UserDashboard /></UserLayout> },
 
       // ── Rol ADMIN ────────────────────────────────────────────────────────
@@ -908,6 +912,8 @@ export function RoleAwareNav() {
       <NavLink to="/profile">Mi Perfil</NavLink>
       <NavLink to="/change-password">Cambiar contraseña</NavLink>
       <NavLink to="/sessions">Mis sesiones</NavLink>
+      <NavLink to="/notification-preferences">Preferencias de notificación</NavLink>
+      <NavLink to="/access">Mis accesos</NavLink>
 
       {/* ADMIN o ADMIN_TENANT */}
       {isTenantAdmin && (
@@ -938,7 +944,7 @@ export function RoleAwareNav() {
 
 El `ADMIN` tiene acceso completo: puede gestionar cualquier tenant (accediendo a las vistas de
 `tenant-admin` con cualquier slug), y tiene además las vistas de control de plataforma.
-> `POST /api/v1/tenants/keygo/account/change-password` — No implementado (**F-030**)  
+> `POST /api/v1/tenants/keygo/account/change-password` — ✅ Implementado  
 ### 8.1. Dashboard Global — `GET /service/info` ✅
 
 ```typescript
@@ -1240,7 +1246,7 @@ export const resetPassword = (slug: string, userId: string, newPassword: string)
 ```
 
 **Disponibles ✅:** `GET`, `POST`, `GET/{userId}`, `PUT/{userId}`, `POST/{userId}/reset-password`  
-**Pendientes ⏳:** `PUT/{userId}/suspend` (T-033) · `PUT/{userId}/activate` (T-033) · `GET/{userId}/sessions` (T-037)
+**Pendientes ⏳:** `PUT/{userId}/suspend` (T-033) · `PUT/{userId}/activate` (T-033) · `GET/{userId}/sessions` (T-072)
 
 ---
 
@@ -1293,8 +1299,10 @@ export function UserDashboard() {
       <h1>Bienvenido, {user?.name ?? user?.preferred_username}</h1>
       <QuickLinks items={[
         { href: '/profile',         label: 'Mi Perfil',          icon: '👤' },
-        { href: '/change-password', label: 'Cambiar contraseña', icon: '🔑', disabled: true },
-        { href: '/sessions',        label: 'Mis sesiones',       icon: '🖥️', disabled: true },
+        { href: '/change-password',           label: 'Cambiar contraseña',         icon: '🔑' },
+        { href: '/sessions',                  label: 'Mis sesiones',               icon: '🖥️' },
+        { href: '/notification-preferences',  label: 'Preferencias de notificación', icon: '🔔' },
+        { href: '/access',                    label: 'Mis accesos',                icon: '🔐' },
       ]} />
     </div>
   );
@@ -1352,8 +1360,8 @@ const resendVerification = (email: string) =>
 ### 10.4. Olvidé mi contraseña ⏳ PENDIENTE BACKEND
 
 > **Endpoints esperados:**
-> - `POST /api/v1/tenants/keygo/account/forgot-password` (**F-030**)
-> - `POST /api/v1/tenants/keygo/account/reset-password` (**F-030**)
+> - `POST /api/v1/tenants/keygo/account/forgot-password` (**pendiente**)
+> - `POST /api/v1/tenants/keygo/account/reset-password` (**pendiente**)
 >
 > Mostrar link en `/login` pero redirigir a una página con mensaje "Disponible próximamente".
 
@@ -1431,11 +1439,17 @@ export function ProfilePage() {
         </dl>
       </section>
       <section className="card space-y-2">
-        <a href="/change-password" className="btn btn-secondary" aria-disabled>
-          Cambiar contraseña <PendingFeatureBadge />
+        <a href="/change-password" className="btn btn-secondary">
+          Cambiar contraseña
         </a>
-        <a href="/sessions" className="btn btn-secondary" aria-disabled>
-          Mis sesiones <PendingFeatureBadge />
+        <a href="/sessions" className="btn btn-secondary">
+          Mis sesiones
+        </a>
+        <a href="/notification-preferences" className="btn btn-secondary">
+          Preferencias de notificación
+        </a>
+        <a href="/access" className="btn btn-secondary">
+          Mis accesos
         </a>
         {isTenantAdmin && <a href="/tenant-admin/dashboard" className="btn btn-outline">Ir a administración →</a>}
         {isAdmin       && <a href="/admin/dashboard"        className="btn btn-outline">Ir al panel global →</a>}
@@ -1447,10 +1461,14 @@ export function ProfilePage() {
 
 ---
 
-### 11.3. Cambiar contraseña ⏳ / Mis sesiones ⏳
+### 11.3. Cambiar contraseña / Mis sesiones / Preferencias / Acceso
 
-> `POST /api/v1/tenants/keygo/account/change-password` — No implementado (**F-030**)  
-> `GET /api/v1/tenants/keygo/account/sessions` — No implementado (**T-037**)
+> `POST /api/v1/tenants/keygo/account/change-password` — ✅ Implementado (Bearer token requerido; 403 si contraseña actual incorrecta)  
+> `GET /api/v1/tenants/keygo/account/sessions` — ✅ Implementado (`is_current` por User-Agent+IP; solo sesiones ACTIVE)  
+> `DELETE /api/v1/tenants/keygo/account/sessions/{sessionId}` — ✅ Implementado (idempotente; 200 siempre)  
+> `GET /api/v1/tenants/keygo/account/notification-preferences` — ✅ Implementado (defaults si no existe registro)  
+> `PATCH /api/v1/tenants/keygo/account/notification-preferences` — ✅ Implementado (upsert; rechaza campos desconocidos)  
+> `GET /api/v1/tenants/keygo/account/access` — ✅ Implementado (membresías + roles por app)
 
 ---
 
@@ -1738,11 +1756,15 @@ El `GlobalExceptionHandler` del backend convierte cada excepción a un `BaseResp
 | Reenviar código | POST | `/api/v1/tenants/keygo/apps/keygo-ui/resend-verification` | ✅ |
 | Ver mi perfil | GET | `/api/v1/tenants/keygo/account/profile` | ✅ — Bearer token, NO X-KEYGO-ADMIN |
 | Editar mi perfil | PATCH | `/api/v1/tenants/keygo/account/profile` | ✅ — Bearer token, PATCH semántica, NO X-KEYGO-ADMIN |
-| Olvidé contraseña | POST | `/api/v1/tenants/keygo/account/forgot-password` | ⏳ F-030 |
-| Reset contraseña | POST | `/api/v1/tenants/keygo/account/reset-password` | ⏳ F-030 |
-| Cambiar contraseña | POST | `/api/v1/tenants/keygo/account/change-password` | ⏳ F-030 |
-| Mis sesiones | GET | `/api/v1/tenants/keygo/account/sessions` | ⏳ T-037 |
-| Cerrar sesión remota | DELETE | `/api/v1/tenants/keygo/account/sessions/{id}` | ⏳ T-037 |
+| Olvidé contraseña | POST | `/api/v1/tenants/keygo/account/forgot-password` | ⏳ Pendiente |
+| Reset contraseña | POST | `/api/v1/tenants/keygo/account/reset-password` | ⏳ Pendiente |
+| Cambiar contraseña | POST | `/api/v1/tenants/keygo/account/change-password` | ✅ — Bearer token; 403 si contraseña actual incorrecta |
+| Mis sesiones | GET | `/api/v1/tenants/keygo/account/sessions` | ✅ — Lista ACTIVE; `is_current` por User-Agent+IP; parser UA básico |
+| Cerrar sesión remota | DELETE | `/api/v1/tenants/keygo/account/sessions/{id}` | ✅ — Idempotente; 200 siempre; ownership check (403 si otro usuario) |
+| Preferencias de notificación | GET | `/api/v1/tenants/keygo/account/notification-preferences` | ✅ — Defaults si no existe registro; sin crear fila |
+| Actualizar preferencias | PATCH | `/api/v1/tenants/keygo/account/notification-preferences` | ✅ — Upsert; rechaza campos desconocidos (400) |
+| Vista de acceso | GET | `/api/v1/tenants/keygo/account/access` | ✅ — Membresías del usuario con roles por app; lista vacía si sin membresías |
+| Conexiones vinculadas | GET | `/api/v1/tenants/keygo/account/connections` | ⏳ F-042 |
 
 ### 14.1.1. Patron recomendado: login central de `keygo-ui` para apps de otros tenants
 
@@ -2092,7 +2114,7 @@ Reglas rápidas de interpretación en frontend:
 | Reset contraseña | POST | `/api/v1/tenants/{slug}/users/{userId}/reset-password` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Suspender usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/suspend` | Bearer ADMIN/ADMIN_TENANT | ⏳ T-033 |
 | Activar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/activate` | Bearer ADMIN/ADMIN_TENANT | ⏳ T-033 |
-| Ver sesiones del usuario | GET | `/api/v1/tenants/{slug}/users/{userId}/sessions` | Bearer ADMIN/ADMIN_TENANT | ⏳ T-037 |
+| Ver sesiones del usuario | GET | `/api/v1/tenants/{slug}/users/{userId}/sessions` | Bearer ADMIN/ADMIN_TENANT | ⏳ Pendiente (T-072) |
 
 ---
 
@@ -2609,19 +2631,19 @@ export const handlers = [
     data: { status: 'ACTIVE' },
   })),
 
-  // Cambiar contraseña (F-030)
+  // Cambiar contraseña (✅ implementado)
   http.post(`${B}/tenants/:slug/account/change-password`, () => HttpResponse.json({
     date: new Date().toISOString(),
     success: { code: 'OPERATION_SUCCESSFUL', message: 'Password changed' },
   })),
 
-  // Olvidé contraseña (F-030)
+  // Olvidé contraseña (⏳ pendiente backend)
   http.post(`${B}/tenants/:slug/account/forgot-password`, () => HttpResponse.json({
     date: new Date().toISOString(),
     success: { code: 'OPERATION_SUCCESSFUL', message: 'Recovery email sent' },
   })),
 
-  // Mis sesiones (T-037)
+  // Mis sesiones (✅ implementado)
   http.get(`${B}/tenants/:slug/account/sessions`, () => HttpResponse.json({
     date: new Date().toISOString(),
     success: { code: 'RESOURCE_RETRIEVED', message: 'OK' },

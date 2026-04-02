@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-03-30  
+> **Última actualización:** 2026-04-02  
 > **Reestructuración total (2026-03-30):** V1–V17 reemplazadas por **V1–V18** con modelo v2 de billing integrado desde el origen. Backup en `backup_20260330/`.  
-> **Próxima migración:** `V19__...`
+> **Próxima migración:** `V22__...`
 
 ---
 
@@ -296,6 +296,51 @@ Incluye los 6 campos de perfil OIDC 5.3 desde el inicio:
 
 ---
 
+### V19 — User Status: Reset Password + Password Reset Tokens
+
+**Tablas creadas/modificadas:** `tenant_users` (nuevo estado), `password_reset_tokens`
+
+| Elemento | Descripción |
+|---|---|
+| `tenant_users.status` | Nuevo valor `RESET_PASSWORD` — bloquea login, obliga a flujo de cambio de contraseña |
+| `password_reset_tokens` | Tabla para tokens temporales de reset; `user_id → tenant_users(id)`, `expires_at`, `used_at` |
+
+---
+
+### V20 — App Role Hierarchy
+
+**Tablas creadas:** `app_role_hierarchy`
+
+| Tabla | Descripción |
+|---|---|
+| `app_role_hierarchy` | Relación parent/child entre roles de la misma app. Restricción de ciclo y profundidad ≤ 5. PK compuesta `(parent_role_id, child_role_id)`. Índice `idx_role_hierarchy_child`. |
+
+**CTE recursiva** — usada en `MembershipRepositoryAdapter.findEffectiveRoleCodesByUserAndClientApp()` para expandir roles heredados al emitir JWT.
+
+---
+
+### V21 — User Notification Preferences
+
+**Tablas creadas:** `user_notification_preferences`
+
+| Columna | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `user_id` | UUID FK → `tenant_users(id)` ON DELETE CASCADE | — | Usuario propietario |
+| `tenant_id` | UUID FK → `tenants(id)` ON DELETE CASCADE | — | Tenant de contexto |
+| `security_alerts_email` | BOOLEAN NOT NULL | `TRUE` | Alertas de seguridad por email |
+| `security_alerts_in_app` | BOOLEAN NOT NULL | `TRUE` | Alertas de seguridad in-app |
+| `billing_alerts_email` | BOOLEAN NOT NULL | `TRUE` | Alertas de billing por email |
+| `product_updates_email` | BOOLEAN NOT NULL | `FALSE` | Actualizaciones de producto por email |
+| `weekly_digest` | BOOLEAN NOT NULL | `FALSE` | Resumen semanal por email |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de última modificación |
+
+- UNIQUE `(user_id, tenant_id)` — un registro por par usuario+tenant
+- Índice `idx_notif_prefs_user_tenant` sobre `(user_id, tenant_id)`
+
+---
+
 ## 3. Historial de reestructuraciones
 
 | Fecha | Acción |
@@ -308,8 +353,8 @@ Incluye los 6 campos de perfil OIDC 5.3 desde el inicio:
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V19)
-touch keygo-supabase/src/main/resources/db/migration/V19__nombre_descriptivo.sql
+# 1. Crear el archivo (próxima es V22)
+touch keygo-supabase/src/main/resources/db/migration/V22__nombre_descriptivo.sql
 
 # 2. Escribir SQL limpio (estado final, no parches)
 # 3. Levantar DB local

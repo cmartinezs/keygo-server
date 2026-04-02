@@ -139,3 +139,14 @@
 - `@PreAuthorize` en todos los controllers admin; `TenantAuthorizationEvaluator` para aislamiento por tenant
 - `OpenApiConfig`: esquema migrado a `BearerAuth`
 - Claim `tenant_slug` emitido en access tokens (auth code, refresh, client_credentials)
+
+---
+
+### [2026-04-02] RFC Account & Settings — Phase 6 documentation
+
+- Added 7 new endpoints to "REST API — Account Settings" section:
+  - `POST /account/change-password`, `GET /account/sessions`, `DELETE /account/sessions/{sessionId}`,
+    `GET /account/notification-preferences`, `PATCH /account/notification-preferences`, `GET /account/access`
+- Added V19 (billing seeds), V20 (role hierarchy), V21 (user_notification_preferences) migration descriptions
+- Updated "Próxima migración" from V19 → V22
+- Added 4 bootstrap property rows: `accountChangePasswordPathSuffix`, `accountSessionsPathSuffix`, `accountNotificationPreferencesPathSuffix`, `accountAccessPathSuffix`

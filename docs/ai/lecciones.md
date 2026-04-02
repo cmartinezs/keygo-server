@@ -572,3 +572,31 @@
 **Causa:** `getRequestURI()` incluye el context-path (`/keygo-server/api/...`); prefijos configurados (`/api/`) nunca coincidían.
 **Solución:** Usar `request.getServletPath()` (relativa al context-path). En tests: `setServletPath()` en lugar de `setRequestURI()`.
 `BootstrapAdminKeyFilter.java`, `BootstrapAdminKeyFilterTest.java`
+
+---
+
+### [2026-04-02] Jackson annotations: `tools.jackson.annotation` no existe
+**Síntoma:** `package tools.jackson.annotation does not exist` al compilar.
+**Causa:** El proyecto usa `tools.jackson.core:jackson-databind:3.1.0` para databind (Jackson 3.x), pero `com.fasterxml.jackson.core:jackson-annotations:2.21` para anotaciones — que siguen en el namespace original.
+**Solución:** Siempre importar anotaciones desde `com.fasterxml.jackson.annotation.*`. Solo `tools.jackson.databind.*` está en el namespace nuevo.
+
+---
+
+### [2026-04-02] `is_current` en listado de sesiones sin `session_id` en JWT
+**Síntoma:** RFC pedía marcar sesión actual comparando `session_id` en claims del JWT; el claim no existe.
+**Causa:** `StandardTokenClaimsFactory` no emite `session_id` en el access token.
+**Solución:** Determinar sesión actual comparando `userAgent` + `ipAddress` del request HTTP con los campos `user_agent` + `ip_address` almacenados en la sesión.
+
+---
+
+### [2026-04-02] DELETE idempotente para sesiones — 200 siempre
+**Síntoma:** Necesidad de decidir qué retornar si la sesión no existe o ya está cerrada al hacer DELETE.
+**Causa:** RFC §3.5 establece que DELETE debe ser idempotente.
+**Solución:** Si la sesión no existe, ya está TERMINATED o EXPIRED → retornar `alreadyClosed=true` con HTTP 200. Solo lanzar SecurityException si el ownership falla (sesión de otro usuario).
+
+---
+
+### [2026-04-02] `@JsonIgnoreProperties(ignoreUnknown=false)` sobrescribe config global
+**Síntoma:** PATCH de preferencias aceptaba campos desconocidos a pesar de querer rechazarlos.
+**Causa:** `application.yml` configura `FAIL_ON_UNKNOWN_PROPERTIES=false` globalmente.
+**Solución:** Anotar el record de request con `@JsonIgnoreProperties(ignoreUnknown = false)` de `com.fasterxml.jackson.annotation` — sobrescribe la config global para esa clase.

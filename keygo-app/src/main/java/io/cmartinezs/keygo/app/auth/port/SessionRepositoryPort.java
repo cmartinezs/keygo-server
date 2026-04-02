@@ -2,6 +2,9 @@ package io.cmartinezs.keygo.app.auth.port;
 
 import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import io.cmartinezs.keygo.domain.user.model.UserId;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -31,5 +34,14 @@ public interface SessionRepositoryPort {
    * @param session sesión con datos actualizados
    */
   void update(Session session);
+
+  /**
+   * Devuelve todas las sesiones de un usuario en un tenant (sin filtro de estado).
+   *
+   * @param userId   ID del usuario
+   * @param tenantId ID del tenant
+   * @return lista de sesiones, ordenada por lastAccessedAt DESC
+   */
+  List<Session> findAllByUserIdAndTenantId(UserId userId, TenantId tenantId);
 }
 

@@ -68,7 +68,10 @@
 | T-025 | Tests de integración con Testcontainers para flujo completo de Tenant | 🔲 Pendiente |
 | T-031 | Automatizar verificación de links Markdown rotos en CI (p. ej. `markdown-link-check` o `lychee`) | 🔲 Pendiente |
 | T-036 | TTL configurable para refresh tokens y sesiones vía `application.yml` (actualmente fijo a 30 días en `AuthorizationController`) | 🔲 Pendiente |
-| T-037 | Endpoint `GET /api/v1/tenants/{slug}/sessions` + `DELETE /…/{sessionId}` para que el administrador pueda listar y terminar sesiones activas de usuarios | 🔲 Pendiente |
+| ~~T-037~~ | ~~Endpoints self-service de sesiones: `GET /account/sessions` + `DELETE /account/sessions/{id}`, idempotente, `is_current` por UA+IP~~ | ✅ Completada 2026-04-02 |
+| ~~F-030~~ | ~~RFC Account & Settings: 6 endpoints self-service (change-password, sessions, notification-preferences, access)~~ | ✅ Completada 2026-04-02 |
+| T-108 | Enriquecer sesiones con geolocalización por IP: `GeoIpPort` + adapter (MaxMind/ip-api); campo `location` en `AccountSessionData`; feature flag `keygo.session.geoip.enabled=false` | 🔲 Pendiente |
+| T-109 | Job `@Scheduled` de limpieza de sesiones expiradas/terminadas: TTL configurable, lock transaccional, métrica `keygo_sessions_cleaned_total` | 🔲 Pendiente |
 | T-044 | Crear tabla `membership_attributes` (V14) + `MembershipAttributeEntity` + port + use cases para leer/escribir metadata app-específica del usuario | 🔲 Pendiente |
 | T-045 | Implementar claim mappers por `ClientApp`: configurar qué claims incluir en `id_token` y `access_token` desde `membership_attributes` | 🔲 Pendiente |
 | T-046 | Agregar scope `profile:write` explícito y validarlo en PATCH `/account/profile` contra los scopes del access token | 🔲 Pendiente |
@@ -126,6 +129,7 @@
 | T-105 | Política de expiración de contraseñas temporales (TTL 24 h): campo `temp_password_expires_at` en `tenant_users`; job `@Scheduled` que detecta usuarios `RESET_PASSWORD` con TTL vencido, genera nueva contraseña y la reenvía por email; config `keygo.security.temp-password-ttl-hours` | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
+| F-042 | **Account connections (RFC §5.5)** — `GET /account/connections`: lista de apps externas/integraciones vinculadas; modelo `UserConnection`; tabla `connections` (V22+) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
 | ~~F-025~~ | ~~`client_credentials` grant M2M sin usuario final~~ | ✅ Completada 2026-03-23 (Fase 8) |
 | ~~F-027~~ | ~~Refresh tokens con rotación + SHA-256 hash~~ | ✅ Completada 2026-03-22 (Fase 7) |
@@ -140,4 +144,4 @@
 
 ---
 
-**Última actualización:** 2026-04-02 (T-107 implementada y completada: jerarquía de roles, `app_role_hierarchy` V20, CTE recursiva, expansión en JWT, endpoints POST/DELETE parent) | **Responsable:** AI Agent
+**Última actualización:** 2026-04-02 (RFC Account & Settings completado: T-037 + F-030 ✅; T-108, T-109, F-042 agregadas; T-107 completada) | **Responsable:** AI Agent

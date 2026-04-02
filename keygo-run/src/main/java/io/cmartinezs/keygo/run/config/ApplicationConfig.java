@@ -67,6 +67,13 @@ import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListUserSessionsUseCase;
+import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetNotificationPreferencesUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetUserAccessUseCase;
+import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.GetUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
@@ -515,6 +522,77 @@ public class ApplicationConfig {
     return new GetUserInfoUseCase(
         signingKeyRepositoryPort, accessTokenVerifierPort,
         userRepositoryPort, tenantRepositoryPort);
+  }
+
+  // ─── Account Settings self-service ───────────────────────────────────────
+
+  @Bean
+  public ChangePasswordUseCase changePasswordUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new ChangePasswordUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public ListUserSessionsUseCase listUserSessionsUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      SessionRepositoryPort sessionRepositoryPort) {
+    return new ListUserSessionsUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        tenantRepositoryPort, sessionRepositoryPort);
+  }
+
+  @Bean
+  public RevokeUserSessionUseCase revokeUserSessionUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      SessionRepositoryPort sessionRepositoryPort,
+      RefreshTokenRepositoryPort refreshTokenRepositoryPort) {
+    return new RevokeUserSessionUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        tenantRepositoryPort, sessionRepositoryPort, refreshTokenRepositoryPort);
+  }
+
+  @Bean
+  public GetNotificationPreferencesUseCase getNotificationPreferencesUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      NotificationPreferencesRepositoryPort notificationPreferencesRepositoryPort) {
+    return new GetNotificationPreferencesUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        tenantRepositoryPort, notificationPreferencesRepositoryPort);
+  }
+
+  @Bean
+  public UpdateNotificationPreferencesUseCase updateNotificationPreferencesUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      NotificationPreferencesRepositoryPort notificationPreferencesRepositoryPort) {
+    return new UpdateNotificationPreferencesUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        tenantRepositoryPort, notificationPreferencesRepositoryPort);
+  }
+
+  @Bean
+  public GetUserAccessUseCase getUserAccessUseCase(
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      AccessTokenVerifierPort accessTokenVerifierPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      MembershipRepositoryPort membershipRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort) {
+    return new GetUserAccessUseCase(
+        signingKeyRepositoryPort, accessTokenVerifierPort,
+        tenantRepositoryPort, membershipRepositoryPort, clientAppRepositoryPort);
   }
 
   // ─── Perfil de usuario self-service ──────────────────────────────────────

@@ -174,6 +174,12 @@ All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/login` (POST — login + issue code)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (GET — **público con Bearer** — perfil propio del usuario autenticado)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/profile` (PATCH — **público con Bearer** — editar perfil propio, PATCH semántica)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/change-password` (POST — **público con Bearer** — cambiar contraseña propia)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/sessions` (GET — **público con Bearer** — listar sesiones activas propias)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/sessions/{sessionId}` (DELETE — **público con Bearer** — revocar sesión propia, idempotente)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/notification-preferences` (GET — **público con Bearer** — preferencias de notificación, retorna defaults si no hay registro)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/notification-preferences` (PATCH — **público con Bearer** — actualizar preferencias de notificación, upsert)
+- `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/account/access` (GET — **público con Bearer** — apps y roles propios del usuario autenticado)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{providerClientId}/billing/catalog` (GET — **público** — catálogo de planes públicos, filtro opcional `?subscriberType=TENANT|TENANT_USER`)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{providerClientId}/billing/catalog/{planCode}` (GET — **público** — detalle de un plan público con entitlements)
 - `http://localhost:8080/keygo-server/api/v1/tenants/{slug}/apps/{clientId}/billing/plans` (POST — **Bearer ADMIN_TENANT** — crear plan con versión inicial y entitlements)
@@ -220,6 +226,10 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.verify-email-path-suffix` | `/verify-email` | Public — email verification endpoint |
 | `keygo.bootstrap.resend-verification-path-suffix` | `/resend-verification` | Public — resend verification code endpoint |
 | `keygo.bootstrap.account-profile-path-suffix` | `/account/profile` | Public — Bearer token validated inside controller (GET + PATCH self-service) |
+| `keygo.bootstrap.account-change-password-path-suffix` | `/account/change-password` | Public — Bearer token validated inside `ChangePasswordUseCase` |
+| `keygo.bootstrap.account-sessions-path-suffix` | `/account/sessions` | Public — uses `hasSegment` to cover `/sessions` and `/sessions/{uuid}` |
+| `keygo.bootstrap.account-notification-preferences-path-suffix` | `/account/notification-preferences` | Public — Bearer token validated inside use cases |
+| `keygo.bootstrap.account-access-path-suffix` | `/account/access` | Public — Bearer token validated inside `GetUserAccessUseCase` |
 | `keygo.bootstrap.authorize-path-suffix` | `/oauth2/authorize` | Public — browser navigates here to start the OAuth2 flow |
 | `keygo.bootstrap.login-path-suffix` | `/account/login` | Public — user POSTs credentials during the authorization code flow |
 | `keygo.bootstrap.token-path-suffix` | `/oauth2/token` | Public — code exchange (PKCE-protected) and token rotation |
@@ -292,7 +302,11 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V17__seed_billing_plans.sql` — Seed: planes FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE + versiones v1.0 + billing options + entitlements (escalera completa)
 - `V18__seed_contractors.sql` — Seed: `keygo_contractor` (TenantUser en keygo), `contractors` record ACTIVE, contrato ACTIVE plan PERSONAL, suscripción ACTIVE, tenant `acme` vinculado
 
-Next migration must be `V19__...`. **Never reuse or edit existing migration files.**
+- `V19__user_status_reset_password.sql` — Columna `status=RESET_PASSWORD` en `tenant_users`; tabla `password_reset_tokens`
+- `V20__add_app_role_hierarchy.sql` — Tabla `app_role_hierarchy` (parent/child, restricciones de ciclo, profundidad ≤5), índices, CTE recursiva para expansión de roles en JWT
+- `V21__user_notification_preferences.sql` — Tabla `user_notification_preferences` (5 flags boolean, UNIQUE `user_id+tenant_id`)
+
+Next migration must be `V22__...`. **Never reuse or edit existing migration files.**
 
 **Seed convention — foreign keys via subquery (mandatory):**  
 When a seed row references a parent table's PK, **never hardcode the UUID**. Always use a `SELECT` subquery with a `WHERE` on a unique, human-readable field:

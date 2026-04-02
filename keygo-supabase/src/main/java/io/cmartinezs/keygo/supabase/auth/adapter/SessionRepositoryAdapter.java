@@ -3,12 +3,15 @@ package io.cmartinezs.keygo.supabase.auth.adapter;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.supabase.auth.entity.SessionEntity;
 import io.cmartinezs.keygo.supabase.auth.mapper.SessionPersistenceMapper;
 import io.cmartinezs.keygo.supabase.auth.repository.SessionJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
 import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -61,6 +64,15 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
       entity.setLastAccessedAt(session.getLastAccessedAt());
       sessionJpaRepository.save(entity);
     });
+  }
+
+  @Override
+  public List<Session> findAllByUserIdAndTenantId(UserId userId, TenantId tenantId) {
+    return sessionJpaRepository
+        .findAllByUserIdAndTenantId(userId.value(), tenantId.value())
+        .stream()
+        .map(SessionPersistenceMapper::toDomain)
+        .toList();
   }
 }
 

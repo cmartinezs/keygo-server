@@ -28,6 +28,15 @@ public enum ResponseCode {
   TENANT_SUSPENDED("TENANT_SUSPENDED", "Tenant suspended successfully"),
   TENANT_ACTIVATED("TENANT_ACTIVATED", "Tenant activated successfully"),
 
+  // Account Self-Service Operations
+  ACCOUNT_PASSWORD_CHANGED("ACCOUNT_PASSWORD_CHANGED", "Account password changed successfully"),
+  ACCOUNT_SESSIONS_RETRIEVED("ACCOUNT_SESSIONS_RETRIEVED", "Account sessions retrieved successfully"),
+  ACCOUNT_SESSION_REVOKED("ACCOUNT_SESSION_REVOKED", "Account session revoked successfully"),
+  ACCOUNT_SESSION_ALREADY_CLOSED("ACCOUNT_SESSION_ALREADY_CLOSED", "Account session was already closed"),
+  ACCOUNT_NOTIFICATION_PREFERENCES_RETRIEVED("ACCOUNT_NOTIFICATION_PREFERENCES_RETRIEVED", "Account notification preferences retrieved successfully"),
+  ACCOUNT_NOTIFICATION_PREFERENCES_UPDATED("ACCOUNT_NOTIFICATION_PREFERENCES_UPDATED", "Account notification preferences updated successfully"),
+  ACCOUNT_ACCESS_RETRIEVED("ACCOUNT_ACCESS_RETRIEVED", "Account access retrieved successfully"),
+
   // User Operations
   USER_CREATED("USER_CREATED", "User created successfully"),
   USER_REGISTERED("USER_REGISTERED", "User registered successfully. Verification email sent."),

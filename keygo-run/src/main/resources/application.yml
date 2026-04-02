@@ -38,6 +38,10 @@ keygo:
     token-path-suffix: "/oauth2/token"
     billing-catalog-path-suffix: "/billing/catalog"
     billing-contracts-path-suffix: "/billing/contracts"
+    account-change-password-path-suffix: "/account/change-password"
+    account-sessions-path-suffix: "/account/sessions"
+    account-notification-preferences-path-suffix: "/account/notification-preferences"
+    account-access-path-suffix: "/account/access"
   billing:
     mock-payment-enabled: true
     contract-expiry-hours: 48

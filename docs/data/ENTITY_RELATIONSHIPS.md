@@ -1116,6 +1116,50 @@ WHERE contractor_id = :contractorId
 
 ---
 
-**Última actualización:** 2026-03-30 | **Responsable:** AI Agent | **Estado:** ✅ Sincronizado con migraciones V1–V17 + diseño de datos v2
+---
+
+### Contexto 12: Preferencias de notificación de usuario (V21)
+
+```mermaid
+classDiagram
+    class TenantUser {
+        UUID id
+        UUID tenantId
+        String username
+        String email
+        Status status
+    }
+
+    class Tenant {
+        UUID id
+        String slug
+        String name
+    }
+
+    class UserNotificationPreferences {
+        UUID id
+        UUID userId FK
+        UUID tenantId FK
+        Boolean securityAlertsEmail
+        Boolean securityAlertsInApp
+        Boolean billingAlertsEmail
+        Boolean productUpdatesEmail
+        Boolean weeklyDigest
+        Timestamp createdAt
+        Timestamp updatedAt
+        UNIQUE(userId, tenantId)
+    }
+
+    TenantUser "1" --> "0..1" UserNotificationPreferences : configura
+    Tenant "1" --> "0..*" UserNotificationPreferences : tiene
+```
+
+> Tabla: `user_notification_preferences` — creada en migración `V21__user_notification_preferences.sql`.  
+> La constraint `UNIQUE(user_id, tenant_id)` garantiza una fila por usuario/tenant.  
+> El GET retorna defaults si no existe registro (sin crear fila); el PATCH crea o actualiza (upsert).
+
+---
+
+**Última actualización:** 2026-04-02 | **Responsable:** AI Agent | **Estado:** ✅ Sincronizado con migraciones V1–V21
 
 
