@@ -86,7 +86,7 @@ class RotateRefreshTokenUseCaseTest {
         .thenReturn(Optional.of(clientApp));
 
     when(userRepository.findByIdAndTenantId(userId, tenantId)).thenReturn(Optional.empty());
-    when(membershipRepository.findRoleCodesByUserAndClientApp(any(), any())).thenReturn(List.of());
+    when(membershipRepository.findEffectiveRoleCodesByUserAndClientApp(any(), any())).thenReturn(List.of());
 
     SigningKey key = SigningKey.builder()
         .id(new SigningKeyId("k1")).kid("kid1")

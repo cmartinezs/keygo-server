@@ -8,6 +8,13 @@
 
 ---
 
+### [2026-04-02] Jerarquía de roles — stub Mockito obsoleto al cambiar nombre de método de puerto
+**Síntoma:** `UnnecessaryStubbingException` en `RotateRefreshTokenUseCaseTest` tras cambiar `findRoleCodesByUserAndClientApp` → `findEffectiveRoleCodesByUserAndClientApp` en `MembershipRepositoryPort`.
+**Causa:** Al renombrar un método de un puerto (interface), los stubs de Mockito en los tests de los use cases que lo inyectan quedan obsoletos y Mockito strict-mode los detecta.
+**Solución:** Buscar con grep el nombre del método antiguo en los directorios de test y actualizar cada `when(mock.oldMethod(...))` al nuevo nombre.
+
+---
+
 ### [2026-04-02] Excepciones nativas de Java reemplazadas por excepciones propias de KeyGo
 **Síntoma:** `IllegalStateException` / `IllegalArgumentException` / `RuntimeException` lanzadas desde modelos de dominio, use cases e infra.
 **Causa:** Continuación de T-106; varios archivos quedaron sin migrar, incluyendo `VerifyContractEmailUseCase:151`, modelos de dominio y adaptadores de infra.

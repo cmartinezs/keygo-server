@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.supabase.membership.adapter;
 
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
@@ -118,7 +119,7 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
         jpaRepository
             .findById(membership.getId().value())
             .orElseThrow(
-                () -> new IllegalArgumentException("Membership not found: " + membership.getId()));
+                () -> new MembershipNotFoundException("id", membership.getId().value().toString()));
 
     entity.setStatus(membership.getStatus());
     MembershipEntity updated = jpaRepository.save(entity);
@@ -133,5 +134,10 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
   @Override
   public List<String> findRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId) {
     return jpaRepository.findRoleCodesByUserIdAndClientAppId(userId, clientAppId);
+  }
+
+  @Override
+  public List<String> findEffectiveRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId) {
+    return jpaRepository.findEffectiveRoleCodesByUserIdAndClientAppId(userId, clientAppId);
   }
 }

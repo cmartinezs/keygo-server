@@ -1,13 +1,17 @@
 package io.cmartinezs.keygo.api.membership.controller;
 
+import io.cmartinezs.keygo.api.membership.request.AssignRoleParentRequest;
 import io.cmartinezs.keygo.api.membership.request.CreateAppRoleRequest;
 import io.cmartinezs.keygo.api.membership.response.AppRoleData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.app.membership.command.AssignRoleParentCommand;
 import io.cmartinezs.keygo.app.membership.command.CreateAppRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.AssignRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.RemoveRoleParentUseCase;
 import io.cmartinezs.keygo.domain.membership.model.AppRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,12 +43,18 @@ public class TenantAppRoleController {
 
   private final CreateAppRoleUseCase createAppRoleUseCase;
   private final ListAppRolesUseCase listAppRolesUseCase;
+  private final AssignRoleParentUseCase assignRoleParentUseCase;
+  private final RemoveRoleParentUseCase removeRoleParentUseCase;
 
   public TenantAppRoleController(
       CreateAppRoleUseCase createAppRoleUseCase,
-      ListAppRolesUseCase listAppRolesUseCase) {
+      ListAppRolesUseCase listAppRolesUseCase,
+      AssignRoleParentUseCase assignRoleParentUseCase,
+      RemoveRoleParentUseCase removeRoleParentUseCase) {
     this.createAppRoleUseCase = createAppRoleUseCase;
     this.listAppRolesUseCase = listAppRolesUseCase;
+    this.assignRoleParentUseCase = assignRoleParentUseCase;
+    this.removeRoleParentUseCase = removeRoleParentUseCase;
   }
 
   @PostMapping
@@ -120,6 +130,57 @@ public class TenantAppRoleController {
     BaseResponse<List<AppRoleData>> response = BaseResponse.<List<AppRoleData>>builder()
         .data(data)
         .success(ResponseHelper.message(ResponseCode.ROLE_LIST_RETRIEVED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @PostMapping("/{roleCode}/parent")
+  @Operation(
+      summary = "Assign parent role",
+      description = "Set a parent role for the given child role. Replaces any existing parent. "
+          + "Enforces cycle-free assignment and max depth of 5 levels.")
+  @ApiResponse(responseCode = "200", description = "Parent assigned (code: ROLE_PARENT_ASSIGNED)")
+  @ApiResponse(responseCode = "400", description = "Cycle detected or depth exceeded (code: INVALID_INPUT)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant, app or role not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<Void>> assignParent(
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app ID") @PathVariable UUID clientAppId,
+      @Parameter(description = "Child role code") @PathVariable String roleCode,
+      @Valid @RequestBody AssignRoleParentRequest request) {
+
+    assignRoleParentUseCase.execute(
+        new AssignRoleParentCommand(tenantSlug, clientAppId, roleCode, request.parentRoleCode()));
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .success(ResponseHelper.message(ResponseCode.ROLE_PARENT_ASSIGNED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @DeleteMapping("/{roleCode}/parent")
+  @Operation(
+      summary = "Remove parent role",
+      description = "Remove the parent assignment from the given role. No-op if it has no parent.")
+  @ApiResponse(responseCode = "200", description = "Parent removed (code: ROLE_PARENT_REMOVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant, app or role not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<Void>> removeParent(
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Client app ID") @PathVariable UUID clientAppId,
+      @Parameter(description = "Role code") @PathVariable String roleCode) {
+
+    removeRoleParentUseCase.execute(tenantSlug, clientAppId, roleCode);
+
+    BaseResponse<Void> response = BaseResponse.<Void>builder()
+        .success(ResponseHelper.message(ResponseCode.ROLE_PARENT_REMOVED))
         .build();
 
     return ResponseEntity.status(HttpStatus.OK).body(response);

@@ -6,6 +6,7 @@ import io.cmartinezs.keygo.domain.membership.model.AppRoleId;
 import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.membership.entity.AppRoleEntity;
+import io.cmartinezs.keygo.supabase.membership.exception.AppRolePersistenceException;
 import io.cmartinezs.keygo.supabase.membership.mapper.MembershipPersistenceMapper;
 import io.cmartinezs.keygo.supabase.membership.repository.AppRoleJpaRepository;
 import java.util.List;
@@ -73,7 +74,7 @@ public class AppRoleRepositoryAdapter implements AppRoleRepositoryPort {
   @Override
   public AppRole update(AppRole role) {
     AppRoleEntity entity = jpaRepository.findById(role.getId().value())
-        .orElseThrow(() -> new IllegalArgumentException("AppRole not found: " + role.getId()));
+        .orElseThrow(() -> new AppRolePersistenceException(role.getId().value()));
 
     entity.setDisplayName(role.getDisplayName());
     entity.setDescription(role.getDescription());

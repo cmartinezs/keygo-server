@@ -66,6 +66,8 @@ public enum ResponseCode {
   ROLE_UPDATED("ROLE_UPDATED", "Role updated successfully"),
   ROLE_DELETED("ROLE_DELETED", "Role deleted successfully"),
   ROLE_ASSIGNED("ROLE_ASSIGNED", "Role assigned successfully"),
+  ROLE_PARENT_ASSIGNED("ROLE_PARENT_ASSIGNED", "Role parent assigned successfully"),
+  ROLE_PARENT_REMOVED("ROLE_PARENT_REMOVED", "Role parent removed successfully"),
 
   // OAuth2 / Authorization Operations
   AUTHORIZATION_INITIATED("AUTHORIZATION_INITIATED", "Authorization flow initiated successfully"),

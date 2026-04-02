@@ -118,5 +118,17 @@ public interface MembershipRepositoryPort {
    * @return list of role code strings (e.g. ["ADMIN", "USER_TENANT"])
    */
   List<String> findRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId);
+
+  /**
+   * Find effective role codes (direct + all inherited via hierarchy) for a user in a client app.
+   * <p>Retorna los códigos de rol efectivos del usuario: los directamente asignados más todos
+   * los roles ancestros en la jerarquía de roles de la app. Los duplicados se eliminan.
+   * Uses a recursive CTE to traverse the {@code app_role_hierarchy} table.
+   *
+   * @param userId      the tenant user ID
+   * @param clientAppId the client app ID
+   * @return deduplicated list of effective role code strings
+   */
+  List<String> findEffectiveRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId);
 }
 

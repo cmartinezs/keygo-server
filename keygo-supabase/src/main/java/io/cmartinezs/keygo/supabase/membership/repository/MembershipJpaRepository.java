@@ -84,6 +84,34 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
       @Param("userId") UUID userId,
       @Param("clientAppId") UUID clientAppId);
 
+  /**
+   * Find effective role codes (direct + inherited via role hierarchy) for a user in a client app.
+   * Uses a recursive CTE to traverse app_role_hierarchy starting from the user's direct roles.
+   */
+  @Query(value = """
+      WITH RECURSIVE direct_roles AS (
+        SELECT ar.id, ar.code
+        FROM   app_roles ar
+        JOIN   membership_roles mr ON ar.id = mr.role_id
+        JOIN   memberships m       ON mr.membership_id = m.id
+        WHERE  m.user_id = :userId
+          AND  m.client_app_id = :clientAppId
+          AND  m.status = 'ACTIVE'
+      ),
+      role_ancestors AS (
+        SELECT id, code FROM direct_roles
+        UNION
+        SELECT ar.id, ar.code
+        FROM   app_roles ar
+        JOIN   app_role_hierarchy arh ON ar.id = arh.parent_role_id
+        JOIN   role_ancestors ra      ON arh.child_role_id = ra.id
+      )
+      SELECT DISTINCT code FROM role_ancestors
+      """, nativeQuery = true)
+  List<String> findEffectiveRoleCodesByUserIdAndClientAppId(
+      @Param("userId") UUID userId,
+      @Param("clientAppId") UUID clientAppId);
+
   /** Count memberships with the given status. */
   long countByStatus(MembershipStatus status);
 

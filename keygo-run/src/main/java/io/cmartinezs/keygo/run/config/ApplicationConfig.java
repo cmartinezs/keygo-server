@@ -32,12 +32,15 @@ import io.cmartinezs.keygo.app.clientapp.usecase.ListClientAppsUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.ResolveClientAppForAuthorizationUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.RotateClientSecretUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.UpdateClientAppUseCase;
+import io.cmartinezs.keygo.app.membership.port.AppRoleHierarchyPort;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.app.membership.usecase.AssignRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.RemoveRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
 import io.cmartinezs.keygo.app.platform.port.PlatformDashboardPort;
 import io.cmartinezs.keygo.app.platform.port.PlatformStatsPort;
@@ -349,6 +352,25 @@ public class ApplicationConfig {
       ClientAppRepositoryPort clientAppRepositoryPort,
       AppRoleRepositoryPort appRoleRepositoryPort) {
     return new ListAppRolesUseCase(tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
+  }
+
+  @Bean
+  public AssignRoleParentUseCase assignRoleParentUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort,
+      AppRoleHierarchyPort appRoleHierarchyPort) {
+    return new AssignRoleParentUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort, appRoleHierarchyPort);
+  }
+
+  @Bean
+  public RemoveRoleParentUseCase removeRoleParentUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort,
+      AppRoleHierarchyPort appRoleHierarchyPort) {
+    return new RemoveRoleParentUseCase(
+        tenantRepositoryPort, appRoleRepositoryPort, appRoleHierarchyPort);
   }
 
   @Bean

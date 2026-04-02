@@ -90,6 +90,7 @@
 | T-098 | Filtro `?subscriberType=TENANT\|TENANT_USER` en `GET /billing/catalog`: la tabla `app_plans` ya tiene la columna; filtrar por ella si se especifica, retornar todos si no | 🔲 Pendiente |
 | T-099 | Caché `@Cacheable` + Caffeine TTL 5 min en `GetAppPlanCatalogUseCase` y `GetAppPlanUseCase`; invalidar al crear plan o actualizar billing options (T-097) | 🔲 Pendiente |
 | T-104 | Endpoint `POST /api/v1/tenants/{slug}/account/reset-password` — recibe `temporaryPassword` + `newPassword`; `ResetPasswordUseCase` verifica hash temporal (BCrypt), actualiza hash con nueva contraseña y cambia `status → ACTIVE`; validación de complejidad mínima; depende de T-103 | 🔲 Pendiente |
+| ~~T-107~~ | ~~**Jerarquía de roles en apps de tenant:** tabla `app_role_hierarchy` (V20), restricciones de ciclo y profundidad ≤5, CTE recursiva para expansión en JWT, use cases `AssignRoleParentUseCase`/`RemoveRoleParentUseCase`, endpoints `POST/DELETE …/roles/{roleCode}/parent`~~ | ✅ Completada 2026-04-02 |
 
 ---
 
@@ -139,4 +140,4 @@
 
 ---
 
-**Última actualización:** 2026-03-30 (T-094/T-095/T-096/T-097/T-098/T-099/T-100/T-101/T-102 agregadas tras refactor de modelo de billing: `billing_period` como lista en `app_plan_billing_options`, `sort_order` en `app_plans`, plan gratuito = sin opciones de billing) | **Responsable:** AI Agent
+**Última actualización:** 2026-04-02 (T-107 implementada y completada: jerarquía de roles, `app_role_hierarchy` V20, CTE recursiva, expansión en JWT, endpoints POST/DELETE parent) | **Responsable:** AI Agent

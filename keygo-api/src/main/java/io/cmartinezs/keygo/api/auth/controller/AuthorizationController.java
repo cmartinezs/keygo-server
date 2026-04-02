@@ -423,7 +423,7 @@ public class AuthorizationController {
           new ClientId(exchangeResult.clientId()), tenantId);
       if (clientAppOpt.isPresent()) {
         UUID clientAppUUID = clientAppOpt.get().getId().value();
-        roles = membershipRepository.findRoleCodesByUserAndClientApp(userUUID, clientAppUUID);
+        roles = membershipRepository.findEffectiveRoleCodesByUserAndClientApp(userUUID, clientAppUUID);
       }
     }
 

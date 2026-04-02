@@ -146,8 +146,8 @@ public class RotateRefreshTokenUseCase {
         ? buildName(user.getFirstName(), user.getLastName())
         : null;
 
-    // 4b. Obtener roles del usuario en la app para incluirlos en el JWT
-    List<String> roles = membershipRepository.findRoleCodesByUserAndClientApp(
+    // 4b. Obtener roles efectivos del usuario en la app (directos + heredados) para incluirlos en el JWT
+    List<String> roles = membershipRepository.findEffectiveRoleCodesByUserAndClientApp(
         userId.value(), clientApp.getId().value());
 
     // 5. Firmar nuevos tokens
