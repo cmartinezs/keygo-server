@@ -1082,10 +1082,10 @@
     },
     {
       "name": "⚠️ Escenarios de Error",
-      "description": "Casos negativos y de validación para verificar el manejo de errores del sistema.",
+      "description": "Casos negativos y de validación para verificar el manejo de errores del sistema.\n\n## Contrato de error (ErrorData) — actualizado 2026-04-01\n\nTodas las respuestas de error retornan `BaseResponse<ErrorData>` con el campo `data` siempre presente:\n```json\n{\n  \"date\": \"...\",\n  \"failure\": { \"code\": \"RESPONSE_CODE\", \"message\": \"...\" },\n  \"data\": {\n    \"code\": \"RESPONSE_CODE\",\n    \"layer\": \"DOMAIN | USE_CASE | PORT | null\",\n    \"origin\": \"CLIENT_REQUEST | BUSINESS_RULE | SERVER_PROCESSING\",\n    \"clientRequestCause\": \"USER_INPUT | CLIENT_TECHNICAL | null\",\n    \"clientMessage\": \"Mensaje en español para el usuario\",\n    \"fieldErrors\": [ { \"field\": \"...\", \"message\": \"...\" } ]\n  }\n}\n```\n- `fieldErrors` solo aparece en `400 INVALID_INPUT` con `@Valid`/`@Validated`.\n- `detail` y `exception` solo aparecen en perfiles `dev`/`local`.\n- `layer` solo aparece en excepciones tipadas de KeyGo (KeyGoException y subclases).",
       "item": [
         {
-          "name": "POST Create Tenant — Body vacío (400)",
+          "name": "POST Create Tenant — Body vacío (400 + fieldErrors)",
           "id": "req-create-tenant-empty",
           "request": {
             "method": "POST",
@@ -1115,7 +1115,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant con body vacío. Debe retornar 400 por validación de campos requeridos.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+            "description": "Intenta crear un tenant con body vacío. Dispara validación `@Valid` en el backend → retorna 400 con `fieldErrors` por campo.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.origin:** `CLIENT_REQUEST`\n**data.clientRequestCause:** `USER_INPUT`\n**data.fieldErrors:** lista con los campos faltantes (`name`, `ownerEmail`)"
           },
           "event": [
             {
@@ -1123,7 +1123,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400 Bad Request por validación', function () {",
+                  "pm.test('Status 400 Bad Request por validación @Valid', function () {",
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
@@ -1137,8 +1137,22 @@
                   "    pm.expect(body).to.not.have.property('success');",
                   "});",
                   "",
-                  "pm.test('No hay campo data en respuesta de error', function () {",
-                  "    pm.expect(body).to.not.have.property('data');",
+                  "pm.test('data está presente con estructura ErrorData', function () {",
+                  "    pm.expect(body).to.have.property('data');",
+                  "    pm.expect(body.data).to.have.property('code', 'INVALID_INPUT');",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "    pm.expect(body.data).to.have.property('clientRequestCause', 'USER_INPUT');",
+                  "    pm.expect(body.data).to.have.property('clientMessage');",
+                  "    pm.expect(body.data.clientMessage).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('data.fieldErrors contiene errores por campo', function () {",
+                  "    pm.expect(body.data).to.have.property('fieldErrors');",
+                  "    pm.expect(body.data.fieldErrors).to.be.an('array').and.not.empty;",
+                  "    body.data.fieldErrors.forEach(function(fe) {",
+                  "        pm.expect(fe).to.have.property('field');",
+                  "        pm.expect(fe).to.have.property('message');",
+                  "    });",
                   "});"
                 ]
               }
@@ -1146,7 +1160,7 @@
           ],
           "response": [
             {
-              "name": "400 Bad Request — Campos requeridos faltantes",
+              "name": "400 Bad Request — Campos requeridos faltantes (con fieldErrors)",
               "status": "Bad Request",
               "code": 400,
               "header": [
@@ -1155,67 +1169,13 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  },\n  \"data\": {\n    \"code\": \"INVALID_INPUT\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"Revisa los datos enviados e intenta otra vez.\",\n    \"fieldErrors\": [\n      { \"field\": \"name\", \"message\": \"must not be blank\" },\n      { \"field\": \"ownerEmail\", \"message\": \"must not be blank\" }\n    ]\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
         },
         {
-          "name": "POST Create Tenant — Nombre duplicado (400)",
-          "id": "req-create-tenant-duplicate-name",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"ownerEmail\": \"test@example.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{fullBaseUrl}}/api/v1/tenants",
-              "host": [
-                "{{fullBaseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants"
-              ]
-            },
-            "description": "Intenta crear un tenant cuyo nombre genera un slug ya existente.\nEjecutar después de 'POST Create Tenant' exitoso para reproducir el conflicto.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 400 Bad Request por slug duplicado', function () {",
-                  "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "const body = pm.response.json();",
-                  "",
-                  "pm.test('failure.code es INVALID_INPUT', function () {",
-                  "    pm.expect(body.failure).to.have.property('code', 'INVALID_INPUT');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "POST Create Tenant — Email inválido (400)",
+          "name": "POST Create Tenant — Email inválido (400 + fieldErrors)",
           "id": "req-create-tenant-invalid-email",
           "request": {
             "method": "POST",
@@ -1245,7 +1205,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant con un email mal formado. Debe fallar la validación de `@Email`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`"
+            "description": "Intenta crear un tenant con un email mal formado. Dispara validación `@Email` → retorna 400 con `fieldErrors`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.fieldErrors:** debe indicar `ownerEmail` inválido"
           },
           "event": [
             {
@@ -1261,12 +1221,113 @@
                   "",
                   "pm.test('failure.code es INVALID_INPUT', function () {",
                   "    pm.expect(body.failure).to.have.property('code', 'INVALID_INPUT');",
+                  "});",
+                  "",
+                  "pm.test('data.origin es CLIENT_REQUEST y clientRequestCause USER_INPUT', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "    pm.expect(body.data).to.have.property('clientRequestCause', 'USER_INPUT');",
+                  "});",
+                  "",
+                  "pm.test('data.fieldErrors referencia el campo ownerEmail', function () {",
+                  "    pm.expect(body.data.fieldErrors).to.be.an('array').and.not.empty;",
+                  "    const emailError = body.data.fieldErrors.find(function(e) { return e.field === 'ownerEmail'; });",
+                  "    pm.expect(emailError).to.not.be.undefined;",
                   "});"
                 ]
               }
             }
           ],
-          "response": []
+          "response": [
+            {
+              "name": "400 Bad Request — Email inválido (con fieldErrors)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  },\n  \"data\": {\n    \"code\": \"INVALID_INPUT\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"Revisa los datos enviados e intenta otra vez.\",\n    \"fieldErrors\": [\n      { \"field\": \"ownerEmail\", \"message\": \"must be a well-formed email address\" }\n    ]\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "POST Create Tenant — Nombre duplicado (409)",
+          "id": "req-create-tenant-duplicate-name",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"ownerEmail\": \"test@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants"
+              ]
+            },
+            "description": "Intenta crear un tenant cuyo nombre genera un slug ya existente → `DuplicateTenantException`.\nEjecutar después de 'POST Create Tenant' exitoso para reproducir el conflicto.\n\n**HTTP Status esperado:** `409 Conflict`\n**ResponseCode esperado:** `DUPLICATE_TENANT`\n**data.origin:** `BUSINESS_RULE`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 Conflict por tenant duplicado', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es DUPLICATE_TENANT', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'DUPLICATE_TENANT');",
+                  "});",
+                  "",
+                  "pm.test('data.origin es BUSINESS_RULE', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'BUSINESS_RULE');",
+                  "});",
+                  "",
+                  "pm.test('data.clientMessage está presente', function () {",
+                  "    pm.expect(body.data.clientMessage).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "409 Conflict — Tenant duplicado",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"DUPLICATE_TENANT\",\n    \"message\": \"Duplicate tenant\"\n  },\n  \"data\": {\n    \"code\": \"DUPLICATE_TENANT\",\n    \"origin\": \"BUSINESS_RULE\",\n    \"clientMessage\": \"Ya existe un tenant con ese identificador.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         },
         {
           "name": "GET Tenant — Slug inexistente (404)",
@@ -1286,7 +1347,7 @@
                 "no-existe-este-tenant"
               ]
             },
-            "description": "Intenta obtener un tenant con un slug que no existe en el sistema.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
+            "description": "Intenta obtener un tenant con un slug que no existe → `TenantNotFoundException`.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`\n**data.origin:** `CLIENT_REQUEST`\n**data.clientRequestCause:** `CLIENT_TECHNICAL`"
           },
           "event": [
             {
@@ -1304,8 +1365,16 @@
                   "    pm.expect(body.failure).to.have.property('code', 'RESOURCE_NOT_FOUND');",
                   "});",
                   "",
-                  "pm.test('No hay campo data en 404', function () {",
-                  "    pm.expect(body).to.not.have.property('data');",
+                  "pm.test('data está presente con ErrorData', function () {",
+                  "    pm.expect(body).to.have.property('data');",
+                  "    pm.expect(body.data).to.have.property('code', 'RESOURCE_NOT_FOUND');",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "    pm.expect(body.data).to.have.property('clientRequestCause', 'CLIENT_TECHNICAL');",
+                  "    pm.expect(body.data).to.have.property('clientMessage');",
+                  "});",
+                  "",
+                  "pm.test('data.fieldErrors ausente en error 404', function () {",
+                  "    pm.expect(body.data).to.not.have.property('fieldErrors');",
                   "});"
                 ]
               }
@@ -1322,7 +1391,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"RESOURCE_NOT_FOUND\",\n    \"message\": \"Requested resource was not found\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"RESOURCE_NOT_FOUND\",\n    \"message\": \"Requested resource was not found\"\n  },\n  \"data\": {\n    \"code\": \"RESOURCE_NOT_FOUND\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"CLIENT_TECHNICAL\",\n    \"clientMessage\": \"No encontramos el recurso solicitado.\"\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1346,7 +1415,7 @@
                 "suspend"
               ]
             },
-            "description": "Intenta suspender un tenant que no existe.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
+            "description": "Intenta suspender un tenant que no existe → `TenantNotFoundException`.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
           },
           "event": [
             {
@@ -1362,6 +1431,11 @@
                   "",
                   "pm.test('failure.code es RESOURCE_NOT_FOUND', function () {",
                   "    pm.expect(body.failure).to.have.property('code', 'RESOURCE_NOT_FOUND');",
+                  "});",
+                  "",
+                  "pm.test('data.origin es CLIENT_REQUEST', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "    pm.expect(body.data).to.have.property('clientRequestCause', 'CLIENT_TECHNICAL');",
                   "});"
                 ]
               }
@@ -1370,7 +1444,7 @@
           "response": []
         },
         {
-          "name": "PUT Suspend Tenant — Ya suspendido (403)",
+          "name": "PUT Suspend Tenant — Ya suspendido (403 BUSINESS_RULE)",
           "id": "req-suspend-tenant-already-suspended",
           "request": {
             "method": "PUT",
@@ -1388,7 +1462,7 @@
                 "suspend"
               ]
             },
-            "description": "Intenta suspender un tenant que ya fue suspendido previamente. Debe lanzar `TenantSuspendedException`.\n\n**Prerequisito:** Ejecutar primero **PUT Suspend Tenant** (carpeta Tenants).\n\n**HTTP Status esperado:** `403 Forbidden`\n**ResponseCode esperado:** `BUSINESS_RULE_VIOLATION`"
+            "description": "Intenta suspender un tenant que ya fue suspendido → `TenantSuspendedException`.\n\n**Prerequisito:** Ejecutar primero **PUT Suspend Tenant** (carpeta Tenants).\n\n**HTTP Status esperado:** `403 Forbidden`\n**ResponseCode esperado:** `BUSINESS_RULE_VIOLATION`\n**data.origin:** `BUSINESS_RULE` (no CLIENT_REQUEST)\n**data.clientMessage:** mensaje de negocio amigable"
           },
           "event": [
             {
@@ -1416,6 +1490,15 @@
                   "",
                   "pm.test('failure.code es BUSINESS_RULE_VIOLATION', function () {",
                   "    pm.expect(body.failure).to.have.property('code', 'BUSINESS_RULE_VIOLATION');",
+                  "});",
+                  "",
+                  "pm.test('data.origin es BUSINESS_RULE (no CLIENT_REQUEST)', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'BUSINESS_RULE');",
+                  "    pm.expect(body.data).to.not.have.property('clientRequestCause');",
+                  "});",
+                  "",
+                  "pm.test('data.clientMessage está presente', function () {",
+                  "    pm.expect(body.data.clientMessage).to.be.a('string').and.not.empty;",
                   "});"
                 ]
               }
@@ -1432,7 +1515,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"failure\": {\n    \"code\": \"BUSINESS_RULE_VIOLATION\",\n    \"message\": \"Business rule validation failed\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"BUSINESS_RULE_VIOLATION\",\n    \"message\": \"Business rule validation failed\"\n  },\n  \"data\": {\n    \"code\": \"BUSINESS_RULE_VIOLATION\",\n    \"layer\": \"DOMAIN\",\n    \"origin\": \"BUSINESS_RULE\",\n    \"clientMessage\": \"No se puede completar la operación con el estado actual.\"\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1457,7 +1540,7 @@
                 "ruta-que-no-existe"
               ]
             },
-            "description": "Accede a una ruta que no existe para verificar que el `GlobalExceptionHandler` devuelve `404` con `RESOURCE_NOT_FOUND`.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`"
+            "description": "Accede a una ruta que no existe para verificar que el `GlobalExceptionHandler` devuelve `404` con `RESOURCE_NOT_FOUND` y `ErrorData`.\n\n**HTTP Status esperado:** `404 Not Found`\n**ResponseCode esperado:** `RESOURCE_NOT_FOUND`\n**data.origin:** `CLIENT_REQUEST` / `CLIENT_TECHNICAL`"
           },
           "event": [
             {
@@ -1473,12 +1556,239 @@
                   "",
                   "pm.test('failure.code es RESOURCE_NOT_FOUND', function () {",
                   "    pm.expect(body.failure).to.have.property('code', 'RESOURCE_NOT_FOUND');",
+                  "});",
+                  "",
+                  "pm.test('data contiene ErrorData completo', function () {",
+                  "    pm.expect(body).to.have.property('data');",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "    pm.expect(body.data).to.have.property('clientMessage');",
                   "});"
                 ]
               }
             }
           ],
           "response": []
+        },
+        {
+          "name": "POST Account Login — Credenciales inválidas (401)",
+          "id": "req-login-invalid-credentials",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailOrUsername\": \"usuario-inexistente@test.com\",\n  \"password\": \"clave-incorrecta-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/account/login",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "account",
+                "login"
+              ]
+            },
+            "description": "Intenta hacer login con credenciales inválidas → `InvalidCredentialsException`.\n\n**HTTP Status esperado:** `401 Unauthorized`\n**ResponseCode esperado:** `AUTHENTICATION_REQUIRED`\n**data.origin:** `CLIENT_REQUEST`\n**data.clientRequestCause:** `USER_INPUT` ← el usuario cometió el error\n**Uso en frontend:** mostrar error inline en el formulario, NO como error de integración."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 Unauthorized por credenciales inválidas', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es AUTHENTICATION_REQUIRED', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'AUTHENTICATION_REQUIRED');",
+                  "});",
+                  "",
+                  "pm.test('data.origin es CLIENT_REQUEST', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "});",
+                  "",
+                  "pm.test('data.clientRequestCause es USER_INPUT (credenciales incorrectas)', function () {",
+                  "    pm.expect(body.data).to.have.property('clientRequestCause', 'USER_INPUT');",
+                  "});",
+                  "",
+                  "pm.test('data.clientMessage está presente para el usuario', function () {",
+                  "    pm.expect(body.data.clientMessage).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "401 Unauthorized — Credenciales inválidas",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"AUTHENTICATION_REQUIRED\",\n    \"message\": \"Authentication is required\"\n  },\n  \"data\": {\n    \"code\": \"AUTHENTICATION_REQUIRED\",\n    \"layer\": \"DOMAIN\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"No pudimos validar tu sesión. Inicia sesión nuevamente.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "POST Verify Email — Código incorrecto (400)",
+          "id": "req-verify-email-invalid-code",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"code\": \"000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/verify-email",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "verify-email"
+              ]
+            },
+            "description": "Intenta verificar email con código incorrecto → `EmailVerificationInvalidException`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.origin:** `CLIENT_REQUEST`\n**data.clientRequestCause:** `USER_INPUT`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 Bad Request por código inválido', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es INVALID_INPUT', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'INVALID_INPUT');",
+                  "});",
+                  "",
+                  "pm.test('data.origin CLIENT_REQUEST / USER_INPUT', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'CLIENT_REQUEST');",
+                  "    pm.expect(body.data).to.have.property('clientRequestCause', 'USER_INPUT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST Activate Contract — Estado incorrecto (422)",
+          "id": "req-activate-contract-invalid-state",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/billing/contracts/{{contractId}}/activate",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "billing",
+                "contracts",
+                "{{contractId}}",
+                "activate"
+              ]
+            },
+            "description": "Intenta activar un contrato que no está en estado `READY_TO_ACTIVATE` → `ContractInvalidStateException`.\n\n**Prerequisito:** Usar un `contractId` en estado `PENDING_EMAIL_VERIFICATION` (no completado).\n\n**HTTP Status esperado:** `422 Unprocessable Entity`\n**ResponseCode esperado:** `CONTRACT_INVALID_STATE`\n**data.origin:** `BUSINESS_RULE`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 Unprocessable Entity por estado inválido del contrato', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('failure.code es CONTRACT_INVALID_STATE', function () {",
+                  "    pm.expect(body.failure).to.have.property('code', 'CONTRACT_INVALID_STATE');",
+                  "});",
+                  "",
+                  "pm.test('data.origin es BUSINESS_RULE', function () {",
+                  "    pm.expect(body.data).to.have.property('origin', 'BUSINESS_RULE');",
+                  "    pm.expect(body.data).to.not.have.property('clientRequestCause');",
+                  "});",
+                  "",
+                  "pm.test('data.clientMessage está presente', function () {",
+                  "    pm.expect(body.data.clientMessage).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "422 Unprocessable Entity — Contrato en estado incorrecto",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"CONTRACT_INVALID_STATE\",\n    \"message\": \"Contract invalid state\"\n  },\n  \"data\": {\n    \"code\": \"CONTRACT_INVALID_STATE\",\n    \"origin\": \"BUSINESS_RULE\",\n    \"clientMessage\": \"El contrato no puede procesarse en su estado actual.\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },

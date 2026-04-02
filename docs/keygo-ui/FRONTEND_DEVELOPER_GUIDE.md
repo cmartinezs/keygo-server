@@ -1,8 +1,8 @@
 # Manual del Desarrollador Frontend — `keygo-ui`
 
 > * **Audiencia:** Desarrolladores frontend que implementan la interfaz de usuario de KeyGo usando React. 
-> * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9b + Billing completadas, modelo contractor v2, Fase 10 pendiente).
-> * **Fecha:** 2026-03-31
+> * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9b + Billing completadas, modelo contractor v2, respuestas de error mejoradas con `layer` + `fieldErrors`, Fase 10 pendiente).
+> * **Fecha:** 2026-04-01
 > * **Estado:** Documento vivo — se actualiza conforme avanza el backend.
 
 ---
@@ -316,22 +316,48 @@ export type ClientRequestCause =
   | 'CLIENT_TECHNICAL'; // Problema de integracion tecnica (cookie faltante, parametro mal construido)
 
 /**
+ * Error de validacion en un campo especifico.
+ * Solo aparece en errores 400 INVALID_INPUT cuando se usa @Valid / @Validated en el backend.
+ * El campo `rejectedValue` solo aparece en perfiles dev/local.
+ */
+export interface FieldValidationError {
+  /** Nombre del campo (o parametro) que fallo validacion */
+  field: string;
+  /** Mensaje de validacion legible (ej: "must not be blank", "must be >= 1") */
+  message: string;
+  /** Valor que fue rechazado — solo presente en perfiles dev/local */
+  rejectedValue?: unknown;
+}
+
+/**
  * Estructura del campo `data` en respuestas de error.
  * BaseResponse<ErrorData> — envelope de todos los errores de la API.
  *
  * Guia de uso:
  *  - origin === 'CLIENT_REQUEST' && clientRequestCause === 'USER_INPUT'
  *      → mostrar clientMessage junto al formulario/campo
+ *      → si hay fieldErrors, mostrar cada error inline en su campo
  *  - origin === 'CLIENT_REQUEST' && clientRequestCause === 'CLIENT_TECHNICAL'
  *      → revisar integracion tecnica; NO mostrar como culpa del usuario
  *  - origin === 'BUSINESS_RULE'
  *      → mostrar clientMessage; ofrecer accion alternativa si aplica
  *  - origin === 'SERVER_PROCESSING'
  *      → mostrar mensaje generico de reintento; loguear en monitoreo
+ *
+ * Nota sobre `layer`: indica la capa arquitectonica donde ocurrio el error.
+ *   Valores posibles: 'DOMAIN' | 'USE_CASE' | 'PORT' | 'CONTROLLER' | null
+ *   Util para telemetria y diagnostico — no mostrar al usuario final.
  */
 export interface ErrorData {
   /** ResponseCode del error (mismo valor que failure.code) */
   code: string;
+  /**
+   * Capa arquitectonica que origino el error.
+   * Valores: 'DOMAIN' | 'USE_CASE' | 'PORT' | 'CONTROLLER'
+   * Ausente si el error no proviene de una excepcion tipada KeyGo.
+   * Util para telemetria — no mostrar al usuario.
+   */
+  layer?: string;
   /** Origen del error */
   origin: ErrorOrigin;
   /** Sub-causa de errores de cliente (ausente si origin != 'CLIENT_REQUEST') */
@@ -342,11 +368,42 @@ export interface ErrorData {
   detail?: string;
   /** Nombre de la clase de excepcion — solo en perfiles dev/local */
   exception?: string;
+  /**
+   * Errores por campo — solo presente en errores 400 INVALID_INPUT con @Valid / @Validated.
+   * Usar para mostrar mensajes inline junto a cada campo del formulario.
+   */
+  fieldErrors?: FieldValidationError[];
 }
 
 /** Alias tipado para respuestas de error de la API */
 export type ErrorResponse = BaseResponse<ErrorData>;
 ```
+
+**Ejemplo de error `400 INVALID_INPUT` con validación de campos (`@Valid`):**
+
+```json
+{
+  "date": "2026-04-01T10:00:00Z",
+  "failure": {
+    "code": "INVALID_INPUT",
+    "message": "Invalid input data provided"
+  },
+  "data": {
+    "code": "INVALID_INPUT",
+    "origin": "CLIENT_REQUEST",
+    "clientRequestCause": "USER_INPUT",
+    "clientMessage": "Revisa los datos enviados e intenta otra vez.",
+    "fieldErrors": [
+      { "field": "name", "message": "must not be blank" },
+      { "field": "ownerEmail", "message": "must be a well-formed email address" }
+    ]
+  }
+}
+```
+
+> ℹ️ `detail` y `exception` solo aparecen en perfiles **dev** y **local**. En producción quedan omitidos.  
+> ℹ️ `layer` solo aparece si la excepción es una subclase de `KeyGoException` (excepciones tipadas del dominio/app). Para errores de Spring (`MethodArgumentNotValidException`, etc.) estará ausente.  
+> ℹ️ `rejectedValue` dentro de `fieldErrors` solo aparece en perfiles **dev/local**.
 
 ### 5.2. Roles — enum
 
@@ -1507,13 +1564,27 @@ apiClient.interceptors.response.use(
 
 ```typescript
 // src/components/BaseResponseHandler.tsx
-import type { BaseResponse, ErrorData } from '@/types/base';
+import type { BaseResponse, ErrorData, FieldValidationError } from '@/types/base';
 
 function formatUiError(errorData?: ErrorData, fallback?: string): string {
   if (!errorData) return fallback ?? 'No pudimos completar la solicitud.';
 
   // Mensaje canónico para UI, provisto por backend
   return errorData.clientMessage;
+}
+
+/** Renderiza los errores por campo si existen (validaciones @Valid del backend). */
+function FieldErrors({ errors }: { errors: FieldValidationError[] }) {
+  if (!errors.length) return null;
+  return (
+    <ul className="mt-1 space-y-0.5 text-xs">
+      {errors.map((e, i) => (
+        <li key={i} className="text-destructive">
+          <span className="font-medium">{e.field}:</span> {e.message}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function BaseResponseHandler<T>({ response, isLoading, children }:
@@ -1528,6 +1599,10 @@ export function BaseResponseHandler<T>({ response, isLoading, children }:
     return (
       <div className="alert-error">
         <p>{uiMessage}</p>
+        {/* Errores por campo (validaciones @Valid) */}
+        {errorData?.fieldErrors && errorData.fieldErrors.length > 0 && (
+          <FieldErrors errors={errorData.fieldErrors} />
+        )}
         {/* Ayuda al equipo dev sin exponer detalles técnicos en producción */}
         {errorData?.origin === 'CLIENT_REQUEST' && errorData?.clientRequestCause === 'CLIENT_TECHNICAL' && (
           <p className="text-xs opacity-80">Error de integración del cliente. Revisa sesión/cookies/parámetros.</p>
@@ -1541,11 +1616,106 @@ export function BaseResponseHandler<T>({ response, isLoading, children }:
 }
 ```
 
+**Patrón para formularios con validación por campo:**
+
+```typescript
+// Forma de integrar fieldErrors en un formulario React Hook Form
+import { useForm } from 'react-hook-form';
+import type { FieldValidationError } from '@/types/base';
+
+function applyServerErrors<T extends Record<string, unknown>>(
+  setError: ReturnType<typeof useForm>['setError'],
+  fieldErrors: FieldValidationError[]
+) {
+  fieldErrors.forEach(({ field, message }) => {
+    // setError acepta el nombre del campo y el mensaje del servidor
+    setError(field as Parameters<typeof setError>[0], {
+      type: 'server',
+      message,
+    });
+  });
+}
+
+// Uso típico tras recibir error 400 con fieldErrors:
+async function onSubmit(data: FormData) {
+  try {
+    await apiClient.post('/tenants', data);
+  } catch (err) {
+    const response = (err as AxiosError<ErrorResponse>).response?.data;
+    if (response?.data?.fieldErrors?.length) {
+      applyServerErrors(setError, response.data.fieldErrors);
+    }
+  }
+}
+```
+
 Reglas rápidas de interpretación en frontend:
-- `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → error del dato ingresado por el usuario.
-- `origin=CLIENT_REQUEST` + `clientRequestCause=CLIENT_TECHNICAL` → error técnico de integración UI/API.
-- `origin=BUSINESS_RULE` → regla de negocio bloquea operación válida.
-- `origin=SERVER_PROCESSING` → falla interna del servidor.
+- `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → error del dato ingresado por el usuario. Si hay `fieldErrors`, mostrarlos inline en cada campo del formulario.
+- `origin=CLIENT_REQUEST` + `clientRequestCause=CLIENT_TECHNICAL` → error técnico de integración UI/API. No culpar al usuario.
+- `origin=BUSINESS_RULE` → regla de negocio bloquea operación válida. Mostrar `clientMessage` + CTA contextual.
+- `origin=SERVER_PROCESSING` → falla interna del servidor. Mostrar mensaje genérico + reintento.
+- `layer` → útil solo para telemetría (`DOMAIN`, `USE_CASE`, `PORT`). **Nunca mostrar al usuario.**
+
+---
+
+### 13.3. Mapeo completo de errores — excepción → HTTP → ResponseCode
+
+El `GlobalExceptionHandler` del backend convierte cada excepción a un `BaseResponse<ErrorData>` con un ResponseCode específico. Esta tabla es la referencia definitiva para implementar manejo de errores en el frontend:
+
+| Excepción backend | HTTP | `failure.code` | `data.origin` | `data.clientRequestCause` | Cuándo ocurre |
+|---|---|---|---|---|---|
+| `UnauthorizedException` | 401 | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Token ausente o inválido en el filtro |
+| `InvalidCredentialsException` | 401 | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `USER_INPUT` | Credenciales incorrectas en login |
+| `ClientAuthenticationException` | 401 | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | `client_secret` incorrecto o app PUBLIC en M2M |
+| `InvalidRefreshTokenException` | 401 | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Refresh token inválido |
+| `RefreshTokenExpiredException` | 401 | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Refresh token expirado |
+| `AccessDeniedException` | 403 | `INSUFFICIENT_PERMISSIONS` | `BUSINESS_RULE` | — | Rol insuficiente (`@PreAuthorize`) |
+| `ScopeNotGrantedException` | 403 | `INSUFFICIENT_PERMISSIONS` | `BUSINESS_RULE` | — | Scope no otorgado al cliente |
+| `TenantSuspendedException` | 403 | `BUSINESS_RULE_VIOLATION` | `BUSINESS_RULE` | — | Tenant suspendido |
+| `UserSuspendedException` | 403 | `BUSINESS_RULE_VIOLATION` | `BUSINESS_RULE` | — | Usuario suspendido |
+| `MembershipInactiveException` | 403 | `BUSINESS_RULE_VIOLATION` | `BUSINESS_RULE` | — | Membership inactivo |
+| `UserPendingVerificationException` | 403 | `EMAIL_NOT_VERIFIED` | `BUSINESS_RULE` | — | Usuario aún no verificó email |
+| `NoResourceFoundException` | 404 | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | URL no encontrada (Spring) |
+| `TenantNotFoundException` | 404 | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Tenant no existe |
+| `ClientAppNotFoundException` | 404 | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | ClientApp no existe |
+| `UserNotFoundException` | 404 | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Usuario no encontrado |
+| `MembershipNotFoundException` | 404 | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Membership no encontrado |
+| `ContractNotFoundException` | 404 | `CONTRACT_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Contrato de billing no existe |
+| `ProviderAppNotFoundException` | 404 | `PROVIDER_APP_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | App proveedora no encontrada |
+| `PlanVersionNotFoundException` | 404 | `PLAN_VERSION_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Versión de plan no encontrada |
+| `SubscriptionNotFoundException` | 404 | `SUBSCRIPTION_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Suscripción no encontrada |
+| `IllegalArgumentException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | Argumento inválido (genérico) |
+| `MethodArgumentNotValidException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | Validación `@Valid` → incluye `fieldErrors` |
+| `ConstraintViolationException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | Validación `@Validated` en params → incluye `fieldErrors` |
+| `MissingServletRequestParameterException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Query param requerido ausente |
+| `HttpMessageNotReadableException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | JSON malformado |
+| `InvalidRedirectUriException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | `redirect_uri` no registrado |
+| `UnsupportedGrantTypeException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Grant type no soportado |
+| `InvalidRoleAssignmentException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Rol inválido en asignación |
+| `InvalidAuthorizationCodeException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Authorization code inválido |
+| `AuthorizationCodeExpiredException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Authorization code expirado |
+| `InvalidPkceVerificationException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | PKCE `code_verifier` no coincide |
+| `EmailVerificationInvalidException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | Código de verificación incorrecto o ya usado |
+| `InvalidCommandFieldException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | Campo de comando inválido |
+| `InvalidPaginationParamException` | 400 | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | Parámetros de paginación inválidos |
+| `UnsupportedPkceMethodException` | 400 | `UNSUPPORTED_PKCE_METHOD` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Método PKCE no `S256` |
+| `DuplicateUserException` | 409 | `DUPLICATE_RESOURCE` | `BUSINESS_RULE` | — | Email o username ya existe en el tenant |
+| `DuplicateAppRoleException` | 409 | `DUPLICATE_RESOURCE` | `BUSINESS_RULE` | — | Código de rol ya existe en la app |
+| `DuplicateMembershipException` | 409 | `DUPLICATE_RESOURCE` | `BUSINESS_RULE` | — | Membership ya existe |
+| `DuplicatePlanCodeException` | 409 | `DUPLICATE_RESOURCE` | `BUSINESS_RULE` | — | Código de plan ya existe |
+| `DuplicateTenantException` | 409 | `DUPLICATE_TENANT` | `BUSINESS_RULE` | — | Tenant con ese slug ya existe |
+| `EmailVerificationStillActiveException` | 409 | `EMAIL_VERIFICATION_STILL_ACTIVE` | `BUSINESS_RULE` | — | Código de verificación vigente (resend prematuro) |
+| `EmailVerificationExpiredException` | 422 | `EMAIL_VERIFICATION_EXPIRED` | `BUSINESS_RULE` | — | Código de verificación expirado |
+| `ContractInvalidStateException` | 422 | `CONTRACT_INVALID_STATE` | `BUSINESS_RULE` | — | Contrato en estado incorrecto para la operación |
+| `SubscriptionInvalidStateException` | 422 | `SUBSCRIPTION_INVALID_STATE` | `BUSINESS_RULE` | — | Suscripción no activa para cancelar |
+| `ClientAppInactiveException` | 422 | `CLIENT_APP_INACTIVE` | `BUSINESS_RULE` | — | App cliente inactiva |
+| `NoActiveSigningKeyException` | 503 | `OPERATION_FAILED` | `SERVER_PROCESSING` | — | Sin clave de firma activa |
+| `HashingUnavailableException` | 503 | `EXTERNAL_SERVICE_ERROR` | `SERVER_PROCESSING` | — | Algoritmo de hash no disponible |
+| `PortException` | 503 | `EXTERNAL_SERVICE_ERROR` | `SERVER_PROCESSING` | — | Fallo en puerto de salida (DB, SMTP, etc.) |
+| `UseCaseException` | 500 | `OPERATION_FAILED` | `SERVER_PROCESSING` | — | Error en capa de use case |
+| `Exception` (catch-all) | 500 | `OPERATION_FAILED` | `SERVER_PROCESSING` | — | Error inesperado |
+
+> **Nota sobre `data.layer`:** para las excepciones tipadas de KeyGo (`KeyGoException`, `DomainException`, `UseCaseException`, `PortException`), el campo `layer` indica la capa: `DOMAIN`, `USE_CASE`, o `PORT`. Para excepciones de Spring (`MethodArgumentNotValidException`, `AccessDeniedException`, etc.) `layer` estará ausente.
 
 ---
 
@@ -2776,6 +2946,6 @@ cd keygo-ui && pnpm install && pnpm dev   # http://localhost:5173
 
 ---
 
-*Manual actualizado por AI Agent — KeyGo Server 2026-03-31 — Billing model v2 (contractor-centric): paths de contratos simplificados a `/api/v1/billing/contracts`, `contractorId` reemplaza `subscriberTenantId/subscriberType`, estado `ACTIVE` (era `ACTIVATED`), nuevos estados `SUPERSEDED`/`FINALIZED`.*
+*Manual actualizado por AI Agent — KeyGo Server 2026-04-01 — Respuestas de error mejoradas: `ErrorData` ahora incluye `layer` (capa arquitectónica) y `fieldErrors` (errores por campo de validación `@Valid`). Tabla completa excepción→HTTP→ResponseCode en §13.3. Tipos TypeScript actualizados en §5.1. Billing model v2 (contractor-centric): paths de contratos simplificados a `/api/v1/billing/contracts`, `contractorId` reemplaza `subscriberTenantId/subscriberType`, estado `ACTIVE` (era `ACTIVATED`), nuevos estados `SUPERSEDED`/`FINALIZED`.*
 *Actualizar cuando se implementen endpoints marcados ⏳ o cuando cambien la estructura de roles/claims.*
 

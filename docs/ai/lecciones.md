@@ -22,6 +22,24 @@
 
 ## Registro
 
+### [2026-04-01] Postman: tests de error desactualizados negaban la existencia de `data` en respuestas de error
+**Contexto:** Actualización de guía frontend y Postman collection para reflejar mejoras en `ErrorData` (campo `layer` y `fieldErrors`).
+**Problema:** La carpeta "⚠️ Escenarios de Error" en el Postman collection tenía dos tests con aserción incorrecta: `pm.expect(body).to.not.have.property('data')`. Desde la implementación de `ErrorData` en `GlobalExceptionHandler`, **todas** las respuestas de error incluyen `data` con la estructura `ErrorData`. Los tests fallaban en producción real.
+**Solución / Buena práctica:** Al agregar `ErrorData` al `GlobalExceptionHandler`, actualizar inmediatamente todos los tests de Postman que validen respuestas de error. El contrato correcto es: `data` siempre presente con `code`, `origin`, `clientMessage`; `fieldErrors` solo en `400 INVALID_INPUT` con `@Valid`/`@Validated`; `layer` presente si la excepción es subclase de `KeyGoException`.
+**Archivos clave:** `docs/postman/KeyGo-Server.postman_collection.json`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/GlobalExceptionHandler.java`
+
+### [2026-04-01] `ErrorData` tiene campo `layer` para capa arquitectónica — solo con excepciones tipadas KeyGo
+**Contexto:** Implementación de T-106 — jerarquía de excepciones tipadas por capa.
+**Problema:** El campo `layer` de `ErrorData` solo se popula cuando la excepción es instancia de `KeyGoException` (`throwable instanceof KeyGoException kge ? kge.getLayer().name() : null`). Para excepciones de Spring (`MethodArgumentNotValidException`, `AccessDeniedException`, `HttpMessageNotReadableException`, etc.), `layer` estará **ausente** (null → omitido por `@JsonInclude(NON_NULL)`).
+**Solución / Buena práctica:** En el frontend, tratar `layer` como **opcional** y usarlo solo para telemetría/diagnóstico. Nunca mostrarlo al usuario. En Postman, no hacer `pm.expect(body.data).to.have.property('layer')` a menos que se esté probando una excepción tipada KeyGo específica.
+**Archivos clave:** `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ApiErrorDataFactory.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/error/ErrorData.java`
+
+### [2026-04-01] `fieldErrors` en `ErrorData` — solo en validaciones `@Valid` / `@Validated`, no en todos los 400
+**Contexto:** Actualización de guía frontend para documentar el nuevo campo `fieldErrors`.
+**Problema:** Se podría asumir que `fieldErrors` aparece en todos los `400 INVALID_INPUT`. En realidad, solo se popula cuando el backend usa `@Valid` en el cuerpo (`MethodArgumentNotValidException`) o `@Validated` en parámetros (`ConstraintViolationException`). Para `IllegalArgumentException`, `InvalidRedirectUriException`, etc., el `400` no tiene `fieldErrors`.
+**Solución / Buena práctica:** En el frontend, usar `if (errorData.fieldErrors?.length)` antes de intentar mapear errores por campo. En el formulario React Hook Form, aplicar `setError` solo cuando `fieldErrors` está presente y poblado.
+**Archivos clave:** `keygo-api/.../GlobalExceptionHandler.java` (handlers `handleValidationException` y `handleConstraintViolationException`)
+
 ### [2026-04-01] Cobertura completa de excepciones tipadas en todos los use cases
 **Síntoma:** 16 lanzamientos de `IllegalArgumentException`/`IllegalStateException` quedaron en keygo-app después de la implementación inicial de T-106. Los tests de los use cases afectados seguían asertando `IllegalArgumentException.class`.
 **Causa:** La primera fase de T-106 cubrió solo billing/contracting y algunos dominio. Módulos auth, membership, clientapp, tenant, billing/catalog y billing/subscription no se actualizaron.
