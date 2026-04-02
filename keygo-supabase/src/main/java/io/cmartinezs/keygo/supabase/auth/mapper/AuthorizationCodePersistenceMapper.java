@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.auth.mapper;
 
+import io.cmartinezs.keygo.supabase.auth.exception.AuthorizationCodeMappingException;
 import io.cmartinezs.keygo.domain.auth.model.AuthorizationCode;
 import io.cmartinezs.keygo.domain.auth.model.AuthorizationCodeId;
 import io.cmartinezs.keygo.domain.auth.model.AuthorizationCodeStatus;
@@ -113,7 +114,7 @@ public class AuthorizationCodePersistenceMapper {
           params.expiresAt,
           params.usedAt);
     } catch (Exception e) {
-      throw new RuntimeException("Failed to reconstruct AuthorizationCode", e);
+      throw new AuthorizationCodeMappingException(e);
     }
   }
 

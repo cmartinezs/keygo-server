@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.tenant.model;
 
+import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -72,7 +73,7 @@ public class Tenant {
    */
   public void suspend() {
     if (TenantStatus.SUSPENDED.equals(this.status)) {
-      throw new IllegalStateException("Tenant '" + slug.value() + "' is already suspended");
+      throw new TenantSuspendedException(slug.value());
     }
     this.status = TenantStatus.SUSPENDED;
   }

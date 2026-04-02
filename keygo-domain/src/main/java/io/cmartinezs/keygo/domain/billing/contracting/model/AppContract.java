@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.domain.billing.contracting.model;
 
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -155,8 +157,7 @@ public class AppContract {
    */
   public void renewVerificationCode(String newCode, OffsetDateTime newExpiresAt, OffsetDateTime now) {
     if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
-      throw new IllegalStateException(
-          "Solo se puede renovar el código en estado PENDING_EMAIL_VERIFICATION, actual: " + this.status);
+      throw new ContractStateViolationException(this.id, this.status, "renewVerificationCode");
     }
     this.verificationCode = newCode;
     this.verificationCodeExpiresAt = newExpiresAt;
@@ -170,16 +171,16 @@ public class AppContract {
   public void verifyCode(String inputCode, UUID resolvedContractorId, OffsetDateTime now) {
     if (ContractStatus.ACTIVE.equals(this.status) || ContractStatus.CANCELLED.equals(this.status)
         || ContractStatus.EXPIRED.equals(this.status) || ContractStatus.FAILED.equals(this.status)) {
-      throw new IllegalStateException("El contrato está en estado terminal: " + this.status);
+      throw new ContractStateViolationException(this.id, this.status, "verifyCode");
     }
     if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
-      throw new IllegalStateException("El email ya fue verificado para el contrato: " + this.id);
+      throw new ContractStateViolationException(this.id, this.status, "verifyCode");
     }
     if (this.verificationCode == null || !this.verificationCode.equalsIgnoreCase(inputCode)) {
-      throw new IllegalArgumentException("Código de verificación inválido");
+      throw new ContractVerificationCodeInvalidException(this.id);
     }
     if (this.verificationCodeExpiresAt != null && now.isAfter(this.verificationCodeExpiresAt)) {
-      throw new IllegalStateException("El código de verificación ha expirado");
+      throw new ContractVerificationCodeInvalidException(this.id, "code has expired");
     }
     this.contractorId = resolvedContractorId;
     markEmailVerified(now);
@@ -201,10 +202,10 @@ public class AppContract {
 
   public void activate(OffsetDateTime activatedAt) {
     if (!isReadyToActivate()) {
-      throw new IllegalStateException("Contract is not in READY_TO_ACTIVATE state: " + this.status);
+      throw new ContractStateViolationException(this.id, this.status, "activate");
     }
     if (this.contractorId == null) {
-      throw new IllegalStateException("Contract cannot be activated without a linked Contractor");
+      throw new ContractStateViolationException(this.id, "cannot be activated without a linked contractor");
     }
     this.status = ContractStatus.ACTIVE;
     this.updatedAt = activatedAt;

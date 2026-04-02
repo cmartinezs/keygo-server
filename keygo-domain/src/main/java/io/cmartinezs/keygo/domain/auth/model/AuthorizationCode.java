@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.domain.auth.model;
 
+import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -154,13 +156,13 @@ public class AuthorizationCode {
    */
   public void markAsUsed(Instant usedAt) {
     if (status == AuthorizationCodeStatus.USED) {
-      throw new IllegalStateException("Authorization code has already been used");
+      throw new InvalidAuthorizationCodeException("already used");
     }
     if (status == AuthorizationCodeStatus.REVOKED) {
-      throw new IllegalStateException("Authorization code has been revoked");
+      throw new InvalidAuthorizationCodeException("revoked");
     }
     if (status == AuthorizationCodeStatus.EXPIRED) {
-      throw new IllegalStateException("Authorization code has expired");
+      throw new AuthorizationCodeExpiredException();
     }
 
     this.status = AuthorizationCodeStatus.USED;
@@ -174,10 +176,10 @@ public class AuthorizationCode {
    */
   public void revoke() {
     if (status == AuthorizationCodeStatus.USED) {
-      throw new IllegalStateException("Authorization code has already been used");
+      throw new InvalidAuthorizationCodeException("already used");
     }
     if (status == AuthorizationCodeStatus.REVOKED) {
-      throw new IllegalStateException("Authorization code is already revoked");
+      throw new InvalidAuthorizationCodeException("already revoked");
     }
 
     this.status = AuthorizationCodeStatus.REVOKED;
@@ -190,10 +192,10 @@ public class AuthorizationCode {
    */
   public void markAsExpired() {
     if (status == AuthorizationCodeStatus.USED) {
-      throw new IllegalStateException("Authorization code has already been used");
+      throw new InvalidAuthorizationCodeException("already used");
     }
     if (status == AuthorizationCodeStatus.REVOKED) {
-      throw new IllegalStateException("Authorization code is already revoked");
+      throw new InvalidAuthorizationCodeException("already revoked");
     }
 
     this.status = AuthorizationCodeStatus.EXPIRED;

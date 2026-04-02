@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.domain.clientapp.model;
 
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -105,7 +107,7 @@ class ClientAppTest {
 
     // When / Then
     assertThatThrownBy(app::suspend)
-        .isInstanceOf(IllegalStateException.class);
+        .isInstanceOf(ClientAppAlreadySuspendedException.class);
   }
 
   @Test
@@ -166,7 +168,7 @@ class ClientAppTest {
 
     // When / Then
     assertThatThrownBy(() -> app.rotateSecret("newHashedSecret"))
-        .isInstanceOf(IllegalStateException.class);
+        .isInstanceOf(ClientAppSecretRotationException.class);
   }
 
   @Test

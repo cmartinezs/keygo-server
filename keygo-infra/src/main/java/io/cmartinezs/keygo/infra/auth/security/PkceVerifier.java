@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.infra.auth.security;
 
+import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
+import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
 import lombok.experimental.UtilityClass;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -35,7 +37,7 @@ public class PkceVerifier {
       String verifierHash = hashAndEncode(verifier);
       return verifierHash.equals(challenge);
     } else {
-      throw new IllegalArgumentException("Unknown PKCE method: " + method);
+      throw new UnsupportedPkceMethodException(method);
     }
   }
 
@@ -53,7 +55,7 @@ public class PkceVerifier {
       byte[] hash = digest.digest(verifier.getBytes(StandardCharsets.US_ASCII));
       return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("SHA-256 not available", e);
+      throw new HashingUnavailableException("SHA-256", e);
     }
   }
 }

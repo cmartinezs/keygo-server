@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
+import io.cmartinezs.keygo.app.membership.exception.AppRoleNotFoundException;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
@@ -148,8 +149,7 @@ public class VerifyContractEmailUseCase {
 
       // Assign ADMIN_TENANT role so the contractor can manage their own tenant
       AppRole adminTenantRole = appRoleRepo.findByClientAppAndCode(clientAppId, RoleCode.adminTenantRole())
-          .orElseThrow(() -> new IllegalStateException(
-              "Role '" + RoleCode.ADMIN_TENANT + "' not found for clientApp: " + clientAppId));
+          .orElseThrow(() -> new AppRoleNotFoundException(clientAppId, RoleCode.adminTenantRole()));
       membership.assignRole(adminTenantRole);
 
       membershipRepo.save(membership);

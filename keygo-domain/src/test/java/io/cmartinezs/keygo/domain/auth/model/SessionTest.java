@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.auth.model;
 
+import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -75,7 +76,7 @@ class SessionTest {
 
     // When / Then
     assertThatThrownBy(session::terminate)
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(SessionInvalidStateException.class)
         .hasMessageContaining("TERMINATED");
   }
 
@@ -97,7 +98,7 @@ class SessionTest {
 
     // When / Then
     assertThatThrownBy(session::terminate)
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(SessionInvalidStateException.class)
         .hasMessageContaining("EXPIRED");
   }
 

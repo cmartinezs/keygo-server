@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.infra.auth.jwt;
 
+import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
 import io.cmartinezs.keygo.app.auth.port.TokenClaimsFactoryPort;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -98,7 +99,7 @@ public class StandardTokenClaimsFactory implements TokenClaimsFactoryPort {
       System.arraycopy(hash, 0, leftHalf, 0, 16);
       return Base64.getUrlEncoder().withoutPadding().encodeToString(leftHalf);
     } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 not available", e);
+      throw new HashingUnavailableException("SHA-256", e);
     }
   }
 }

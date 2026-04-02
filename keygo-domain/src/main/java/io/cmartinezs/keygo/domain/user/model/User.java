@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.domain.user.model;
 
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -125,7 +126,7 @@ public class User {
    */
   public void suspend() {
     if (UserStatus.SUSPENDED.equals(this.status)) {
-      throw new IllegalStateException("User '" + username.value() + "' is already suspended");
+      throw new UserSuspendedException(username.value());
     }
     this.status = UserStatus.SUSPENDED;
   }

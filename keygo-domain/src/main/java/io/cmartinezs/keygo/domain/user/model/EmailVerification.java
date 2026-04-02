@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.domain.user.model;
 
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -113,7 +114,7 @@ public class EmailVerification {
    */
   public void markUsed() {
     if (isUsed()) {
-      throw new IllegalStateException("Verification code has already been used");
+      throw new EmailVerificationInvalidException(this.userId.value().toString());
     }
     this.usedAt = Instant.now();
   }

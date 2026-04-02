@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.infra.email;
 
+import io.cmartinezs.keygo.app.user.exception.EmailNotificationException;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -45,7 +46,7 @@ public class SmtpEmailNotificationAdapter implements EmailNotificationPort {
       helper.setText(buildTemporaryPasswordBody(username, rawPassword), true);
       mailSender.send(message);
     } catch (MessagingException e) {
-      throw new IllegalStateException("Error al enviar el email de contraseña temporal a " + toEmail, e);
+      throw new EmailNotificationException(toEmail, "error al enviar email de contraseña temporal", e);
     }
   }
 
@@ -163,7 +164,7 @@ public class SmtpEmailNotificationAdapter implements EmailNotificationPort {
       helper.setText(buildVerificationBody(username, verificationCode), true);
       mailSender.send(message);
     } catch (MessagingException e) {
-      throw new IllegalStateException("Error al enviar el email de verificación a " + toEmail, e);
+      throw new EmailNotificationException(toEmail, "error al enviar email de verificación", e);
     }
   }
 
@@ -178,7 +179,7 @@ public class SmtpEmailNotificationAdapter implements EmailNotificationPort {
       helper.setText(buildContractVerificationBody(recipientName, verificationCode, contractId), true);
       mailSender.send(message);
     } catch (MessagingException e) {
-      throw new IllegalStateException("Error al enviar el email de verificación de contrato a " + toEmail, e);
+      throw new EmailNotificationException(toEmail, "error al enviar email de verificación de contrato", e);
     }
   }
 

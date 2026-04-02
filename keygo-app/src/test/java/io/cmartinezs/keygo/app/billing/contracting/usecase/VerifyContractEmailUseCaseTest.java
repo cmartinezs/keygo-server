@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
@@ -192,8 +194,8 @@ class VerifyContractEmailUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "999999"))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Código de verificación inválido");
+        .isInstanceOf(ContractVerificationCodeInvalidException.class)
+        .hasMessageContaining("invalid");
     verify(contractRepo, never()).save(any());
   }
 
@@ -206,8 +208,8 @@ class VerifyContractEmailUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("expirado");
+        .isInstanceOf(ContractVerificationCodeInvalidException.class)
+        .hasMessageContaining("expired");
     verify(contractRepo, never()).save(any());
   }
 
@@ -244,7 +246,7 @@ class VerifyContractEmailUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
-        .isInstanceOf(IllegalStateException.class);
+        .isInstanceOf(ContractStateViolationException.class);
   }
 
   // ── Tests: usuario nuevo (RESET_PASSWORD + envío de contraseña temporal) ──

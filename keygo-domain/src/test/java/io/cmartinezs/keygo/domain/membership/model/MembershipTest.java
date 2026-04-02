@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
+import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -96,7 +98,7 @@ class MembershipTest {
 
     // When / Then
     assertThatThrownBy(membership::suspend)
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(MembershipAlreadySuspendedException.class)
         .hasMessageContaining("already suspended");
   }
 
@@ -107,8 +109,8 @@ class MembershipTest {
 
     // When / Then
     assertThatThrownBy(() -> membership.assignRole(null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Role cannot be null");
+        .isInstanceOf(InvalidRoleAssignmentException.class)
+        .hasMessageContaining("cannot be null");
   }
 
   @Test
@@ -124,7 +126,7 @@ class MembershipTest {
 
     // When / Then
     assertThatThrownBy(() -> membership.assignRole(roleFromAnotherApp))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(InvalidRoleAssignmentException.class)
         .hasMessageContaining("same app");
   }
 

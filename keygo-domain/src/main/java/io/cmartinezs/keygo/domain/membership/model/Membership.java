@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.domain.membership.model;
 
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
+import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.util.HashSet;
 import java.util.Set;
@@ -62,8 +64,7 @@ public class Membership {
    */
   public void suspend() {
     if (MembershipStatus.SUSPENDED.equals(this.status)) {
-      throw new IllegalStateException(
-          "Membership for user " + userId + " in app " + clientAppId + " is already suspended");
+      throw new MembershipAlreadySuspendedException(userId.value(), clientAppId.value());
     }
     this.status = MembershipStatus.SUSPENDED;
   }
@@ -84,10 +85,10 @@ public class Membership {
    */
   public void assignRole(AppRole role) {
     if (role == null) {
-      throw new IllegalArgumentException("Role cannot be null");
+      throw new InvalidRoleAssignmentException("role cannot be null");
     }
     if (!role.getClientAppId().equals(this.clientAppId)) {
-      throw new IllegalArgumentException("Role must belong to the same app as the membership");
+      throw new InvalidRoleAssignmentException("role must belong to the same app as the membership");
     }
     this.roles.add(MembershipRole.of(role.getId()));
   }

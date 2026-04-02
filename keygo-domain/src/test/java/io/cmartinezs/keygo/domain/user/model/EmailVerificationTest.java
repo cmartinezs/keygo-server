@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -83,8 +84,8 @@ class EmailVerificationTest {
 
     // When / Then
     assertThatThrownBy(verification::markUsed)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already been used");
+        .isInstanceOf(EmailVerificationInvalidException.class)
+        .hasMessageContaining("already used");
   }
 }
 

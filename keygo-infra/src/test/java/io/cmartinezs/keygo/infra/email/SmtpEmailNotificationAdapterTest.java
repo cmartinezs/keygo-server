@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.infra.email;
 
+import io.cmartinezs.keygo.app.user.exception.EmailNotificationException;
 import jakarta.mail.Address;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -119,7 +120,7 @@ class SmtpEmailNotificationAdapterTest {
   }
 
   @Test
-  @DisplayName("sendVerificationEmail — lanza IllegalStateException si MessagingException")
+  @DisplayName("sendVerificationEmail — lanza EmailNotificationException si MessagingException")
   void sendVerificationEmail_throwsOnMessagingException() throws MessagingException {
     // Given — hacer que setFrom() lance MessagingException para forzar el bloque catch
     MimeMessage badMessage = mock(MimeMessage.class);
@@ -128,8 +129,8 @@ class SmtpEmailNotificationAdapterTest {
 
     // When / Then
     assertThatThrownBy(() -> adapter.sendVerificationEmail("fail@example.com", "usuario", "000000"))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Error al enviar el email de verificación");
+        .isInstanceOf(EmailNotificationException.class)
+        .hasMessageContaining("fail@example.com");
   }
 
   // ── sendTemporaryPasswordEmail ─────────────────────────────────────────────
@@ -149,7 +150,7 @@ class SmtpEmailNotificationAdapterTest {
   }
 
   @Test
-  @DisplayName("sendTemporaryPasswordEmail — lanza IllegalStateException si MessagingException")
+  @DisplayName("sendTemporaryPasswordEmail — lanza EmailNotificationException si MessagingException")
   void sendTemporaryPasswordEmail_throwsOnMessagingException() throws MessagingException {
     // Given
     MimeMessage badMessage = mock(MimeMessage.class);
@@ -159,8 +160,8 @@ class SmtpEmailNotificationAdapterTest {
     // When / Then
     assertThatThrownBy(
             () -> adapter.sendTemporaryPasswordEmail("fail@example.com", "usuario", "TmpPwd123!"))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Error al enviar el email de contraseña temporal");
+        .isInstanceOf(EmailNotificationException.class)
+        .hasMessageContaining("fail@example.com");
   }
 
   // ── buildTemporaryPasswordBody ─────────────────────────────────────────────

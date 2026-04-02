@@ -6,6 +6,7 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import io.cmartinezs.keygo.app.auth.exception.JwtSigningException;
 import io.cmartinezs.keygo.app.auth.port.TokenSignerPort;
 import io.cmartinezs.keygo.domain.auth.model.SigningKey;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyAlgorithm;
@@ -59,7 +60,7 @@ public class RsaJwtTokenSigner implements TokenSignerPort {
       return signedJWT.serialize();
 
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to sign JWT: " + e.getMessage(), e);
+      throw new JwtSigningException(e.getMessage(), e);
     }
   }
 

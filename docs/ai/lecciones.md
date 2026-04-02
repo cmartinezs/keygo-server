@@ -8,6 +8,13 @@
 
 ---
 
+### [2026-04-02] Excepciones nativas de Java reemplazadas por excepciones propias de KeyGo
+**Síntoma:** `IllegalStateException` / `IllegalArgumentException` / `RuntimeException` lanzadas desde modelos de dominio, use cases e infra.
+**Causa:** Continuación de T-106; varios archivos quedaron sin migrar, incluyendo `VerifyContractEmailUseCase:151`, modelos de dominio y adaptadores de infra.
+**Solución:** Crear excepciones concretas por capa y contexto: `DomainException` para modelos de dominio, `UseCaseException` para use cases, `PortException` para adaptadores. Los guards de constructores/value-objects (`IllegalArgumentException` en `.of()` y constructores) se mantienen como están — son invariantes de construcción, no reglas de negocio. Al migrar, actualizar los tests que asertan `.isInstanceOf(IllegalStateException.class)` a la nueva excepción concreta.
+
+---
+
 ## Formato de entrada
 
 ```markdown

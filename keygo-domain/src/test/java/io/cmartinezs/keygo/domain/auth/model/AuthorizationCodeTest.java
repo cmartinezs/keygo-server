@@ -3,6 +3,8 @@ package io.cmartinezs.keygo.domain.auth.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -272,8 +274,8 @@ class AuthorizationCodeTest {
 
     // When / Then
     assertThatThrownBy(() -> code.markAsUsed(secondUsedAt))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already been used");
+        .isInstanceOf(InvalidAuthorizationCodeException.class)
+        .hasMessageContaining("already used");
   }
 
   @Test
@@ -285,7 +287,7 @@ class AuthorizationCodeTest {
 
     // When / Then
     assertThatThrownBy(() -> code.markAsUsed(usedAt))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(InvalidAuthorizationCodeException.class)
         .hasMessageContaining("revoked");
   }
 
@@ -298,7 +300,7 @@ class AuthorizationCodeTest {
 
     // When / Then
     assertThatThrownBy(() -> code.markAsUsed(usedAt))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(AuthorizationCodeExpiredException.class)
         .hasMessageContaining("expired");
   }
 
@@ -322,7 +324,7 @@ class AuthorizationCodeTest {
 
     // When / Then
     assertThatThrownBy(code::revoke)
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(InvalidAuthorizationCodeException.class)
         .hasMessageContaining("already revoked");
   }
 
@@ -346,8 +348,8 @@ class AuthorizationCodeTest {
 
     // When / Then
     assertThatThrownBy(code::markAsExpired)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already been used");
+        .isInstanceOf(InvalidAuthorizationCodeException.class)
+        .hasMessageContaining("already used");
   }
 
   @Test

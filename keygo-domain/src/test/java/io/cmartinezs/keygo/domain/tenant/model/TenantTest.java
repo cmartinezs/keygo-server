@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.tenant.model;
 
+import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -63,8 +64,8 @@ class TenantTest {
 
     // When / Then
     assertThatThrownBy(tenant::suspend)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already suspended");
+        .isInstanceOf(TenantSuspendedException.class)
+        .hasMessageContaining("suspended");
   }
 
   @Test

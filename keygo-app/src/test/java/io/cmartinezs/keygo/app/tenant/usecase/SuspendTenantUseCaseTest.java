@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.app.tenant.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
+import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
@@ -73,7 +74,7 @@ class SuspendTenantUseCaseTest {
   }
 
   @Test
-  @DisplayName("should throw IllegalStateException when tenant is already suspended")
+  @DisplayName("should throw TenantSuspendedException when tenant is already suspended")
   void shouldThrowWhenAlreadySuspended() {
     // Given
     String slug = "already-suspended";
@@ -83,8 +84,8 @@ class SuspendTenantUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(slug))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already suspended");
+        .isInstanceOf(TenantSuspendedException.class)
+        .hasMessageContaining("suspended");
 
     verify(tenantRepositoryPort, never()).save(any());
   }

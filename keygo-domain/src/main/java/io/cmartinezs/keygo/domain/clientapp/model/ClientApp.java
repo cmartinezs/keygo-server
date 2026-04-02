@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.domain.clientapp.model;
 
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -89,7 +91,7 @@ public class ClientApp {
    */
   public void suspend() {
     if (ClientAppStatus.SUSPENDED.equals(this.status)) {
-      throw new IllegalStateException("Client app '" + clientId.value() + "' is already suspended");
+      throw new ClientAppAlreadySuspendedException(clientId.value());
     }
     this.status = ClientAppStatus.SUSPENDED;
   }
@@ -141,7 +143,7 @@ public class ClientApp {
    */
   public void rotateSecret(String newHashedSecret) {
     if (ClientType.PUBLIC.equals(this.type)) {
-      throw new IllegalStateException("Cannot rotate secret for a PUBLIC client app");
+      throw new ClientAppSecretRotationException(clientId.value());
     }
     if (newHashedSecret == null || newHashedSecret.isBlank()) {
       throw new IllegalArgumentException("New hashed secret cannot be null or blank");

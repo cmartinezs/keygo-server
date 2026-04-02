@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.domain.user.model;
 
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -61,8 +62,8 @@ class UserTest {
 
     // When / Then
     assertThatThrownBy(user::suspend)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already suspended");
+        .isInstanceOf(UserSuspendedException.class)
+        .hasMessageContaining("suspended");
   }
 
   @Test

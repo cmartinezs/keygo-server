@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.billing.contracting.model;
 
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -79,8 +80,8 @@ class AppContractTest {
     AppContract contract = validContract(ContractStatus.PENDING_PAYMENT);
     // When / Then
     assertThatThrownBy(() -> contract.activate(OffsetDateTime.now()))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("READY_TO_ACTIVATE");
+        .isInstanceOf(ContractStateViolationException.class)
+        .hasMessageContaining("activate");
   }
 
   @Test
@@ -102,8 +103,8 @@ class AppContractTest {
         .build();
     // When / Then
     assertThatThrownBy(() -> contract.activate(OffsetDateTime.now()))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Contractor");
+        .isInstanceOf(ContractStateViolationException.class)
+        .hasMessageContaining("contractor");
   }
 
   @Test
