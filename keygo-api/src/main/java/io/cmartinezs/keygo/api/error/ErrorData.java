@@ -11,6 +11,8 @@ import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 @RegisterReflectionForBinding
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorData {
+  /** Trace ID propagated from MDC — allows correlating this error with server logs. */
+  private final String traceId;
   private final String code;
   /** Architectural layer that originated the error. Always visible to API consumers. */
   private final String layer;

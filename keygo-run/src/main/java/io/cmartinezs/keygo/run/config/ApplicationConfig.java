@@ -110,12 +110,15 @@ import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
 import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
+import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.PropertyNamingStrategies;
@@ -771,6 +774,25 @@ public class ApplicationConfig {
       AppPlanEntitlementRepositoryPort entitlementRepo,
       UsageCounterRepositoryPort usageRepo) {
     return new CheckAppEntitlementUseCase(subscriptionRepo, versionRepo, entitlementRepo, usageRepo);
+  }
+
+  // ─── Trazabilidad: RequestTracingFilter ──────────────────────────────────
+
+  /**
+   * Registers {@link RequestTracingFilter} at the highest possible precedence so that every
+   * incoming request gets a {@code traceId} in the MDC before any other filter runs.
+   *
+   * <p>The filter is mapped to {@code /*} to cover all paths, including actuator and public
+   * endpoints. The trace ID is also added as the {@code X-Trace-ID} response header.
+   */
+  @Bean
+  public FilterRegistrationBean<RequestTracingFilter> requestTracingFilterRegistration() {
+    FilterRegistrationBean<RequestTracingFilter> registration = new FilterRegistrationBean<>();
+    registration.setFilter(new RequestTracingFilter());
+    registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+    registration.addUrlPatterns("/*");
+    registration.setName("requestTracingFilter");
+    return registration;
   }
 
     @Bean

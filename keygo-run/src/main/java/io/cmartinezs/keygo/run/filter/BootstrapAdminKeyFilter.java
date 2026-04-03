@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -112,11 +113,13 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         return;
       }
       log.debug("Authentication validated successfully for path: {}", requestPath);
+      enrichMdcWithUserId();
     }
     try {
       filterChain.doFilter(request, response);
     } finally {
       SecurityContextHolder.clearContext();
+      MDC.remove("userId");
     }
   }
   // ─── Public path detection ────────────────────────────────────────────────
@@ -209,6 +212,21 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
   }
 
   // ─── Bypass authentication (bootstrap disabled) ───────────────────────────
+
+  /**
+   * Reads {@code sub} from the JWT claims stored in the current SecurityContext
+   * and writes it to MDC as {@code userId} for log correlation.
+   * Called only after {@link #authenticateBearer} succeeds.
+   */
+  private void enrichMdcWithUserId() {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth != null && auth.getPrincipal() instanceof Map<?, ?> claims) {
+      Object sub = claims.get("sub");
+      if (sub != null && !sub.toString().isBlank()) {
+        MDC.put("userId", sub.toString());
+      }
+    }
+  }
 
   /**
    * Sets an all-access authentication in the SecurityContext when bootstrap is disabled.

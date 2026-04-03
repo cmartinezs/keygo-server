@@ -20,6 +20,20 @@
 
 ## Registro de cambios
 
+### [2026-04-02] Trazabilidad end-to-end: RequestTracingFilter + MDC enriquecido + logback-spring.xml
+
+- **Nuevo filtro:** `RequestTracingFilter` (`keygo-run/filter/`) — genera `traceId` UUID (o reutiliza `X-Request-ID` del cliente), pone en MDC `traceId`/`method`/`path`, agrega `X-Trace-ID` al response, limpia MDC en `finally`.
+- **`BootstrapAdminKeyFilter`:** agrega `MDC.put("userId", sub)` tras validar JWT, limpia en `finally`. Nuevo método privado `enrichMdcWithUserId()`.
+- **`TenantResolutionFilter`:** agrega `MDC.put("tenantSlug", ...)` tras resolver tenant, limpia en `finally`.
+- **`ErrorData.java`:** nuevo campo `traceId` (posición 0 del builder, `@JsonInclude(NON_NULL)` heredado).
+- **`ApiErrorDataFactory.java`:** lee `MDC.get("traceId")` en `fromDetail()` y `fromValidationErrors()`. Import `org.slf4j.MDC` agregado.
+- **`logback-spring.xml`:** creado en `keygo-run/src/main/resources/`. Perfil `local` → consola colorida con `[%X{traceId}] [%X{tenantSlug}] [%X{userId}]`. Perfil `!local` → `LogstashEncoder` JSON con todos los campos MDC y `customFields.app`.
+- **`ApplicationConfig.java`:** `FilterRegistrationBean<RequestTracingFilter>` con `Ordered.HIGHEST_PRECEDENCE` y `/*`. Imports `FilterRegistrationBean`, `Ordered` agregados.
+- **`keygo-run/pom.xml`:** `net.logstash.logback:logstash-logback-encoder:8.0` agregado.
+- **`application.yml`:** `management.metrics.web.server.request.autotime.enabled=true` activado.
+- **Tests:** `RequestTracingFilterTest` (9 casos): generación de UUID, reutilización de `X-Request-ID`, limpieza MDC en éxito y excepción, llamada a filterChain, propagación MDC/method/path.
+- **Docs:** plan movido de `plan-tracingTelemetryLogging.prompt.md` → `docs/design/TRACING_TELEMETRY.md`.
+
 ### [2026-03-31] Reorganización de /docs — compactación y limpieza
 
 - `docs/ai/lecciones.md`: 1.745 → 514 líneas. Nuevo formato compacto: **Síntoma / Causa / Solución**.

@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.domain.shared.exception.KeyGoException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import java.util.List;
+import org.slf4j.MDC;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -36,9 +37,11 @@ public final class ApiErrorDataFactory {
       String exceptionName,
       boolean includeTechnicalDetails,
       Throwable throwable) {
-    String layer = throwable instanceof KeyGoException kge ? kge.getLayer().name() : null;
+    String layer   = throwable instanceof KeyGoException kge ? kge.getLayer().name() : null;
+    String traceId = MDC.get("traceId");
 
     ErrorData.ErrorDataBuilder builder = ErrorData.builder()
+        .traceId(traceId)
         .code(responseCode.getCode())
         .layer(layer)
         .origin(origin(responseCode))
@@ -65,6 +68,7 @@ public final class ApiErrorDataFactory {
       boolean includeTechnicalDetails) {
 
     ErrorData.ErrorDataBuilder builder = ErrorData.builder()
+        .traceId(MDC.get("traceId"))
         .code(responseCode.getCode())
         .origin(ApiErrorOrigin.CLIENT_REQUEST)
         .clientRequestCause(ApiClientRequestCause.USER_INPUT)

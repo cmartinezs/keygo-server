@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback configuration for KeyGo Server.
+
+  Profiles:
+  ─────────
+  • local   → colored console output (human-readable during development)
+  • !local  → JSON structured output via logstash-logback-encoder (for ELK / cloud log aggregators)
+
+  MDC fields propagated in every log line:
+  ─────────────────────────────────────────
+  • traceId    — UUID per request (set by RequestTracingFilter)
+  • tenantSlug — resolved tenant (set by TenantResolutionFilter)
+  • userId     — JWT sub claim (set by BootstrapAdminKeyFilter after authentication)
+  • method     — HTTP method
+  • path       — servlet path (no context-path prefix)
+
+  Log levels:
+  ───────────
+  • Root:                INFO  (applies to all libraries)
+  • io.cmartinezs.keygo: DEBUG (own code — fine-grained traces per request/use-case/adapter)
+  • Configurable via application.yml: logging.level.io.cmartinezs.keygo=WARN for production
+-->
+<configuration>
+
+  <!-- Read the Spring application name to include it in JSON output -->
+  <springProperty scope="context" name="APP_NAME"
+      source="spring.application.name" defaultValue="keygo-server"/>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       APPENDER: CONSOLE — colorized, human-readable (perfil local)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <!--
+        Pattern:
+          HH:mm:ss.SSS  — timestamp
+          %-5level       — log level, left-padded to 5 chars
+          [traceId]      — MDC: trace ID (- when absent)
+          [tenantSlug]   — MDC: resolved tenant slug
+          [userId]       — MDC: authenticated user sub
+          %logger{36}    — logger class, truncated to 36 chars
+          %msg           — log message
+          %n             — newline
+       -->
+      <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%X{traceId:--}] [%X{tenantSlug:--}] [%X{userId:--}] %cyan(%logger{36}) - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       APPENDER: JSON_CONSOLE — structured JSON via Logstash encoder (prod)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <!--
+        LogstashEncoder includes ALL MDC fields by default.
+        The <customFields> block adds static metadata to every JSON line.
+      -->
+      <customFields>{"app":"${APP_NAME}"}</customFields>
+      <!-- Shorten the logger name in JSON output -->
+      <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+    </encoder>
+  </appender>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PROFILE: local — colorized console
+       ══════════════════════════════════════════════════════════════════════ -->
+  <springProfile name="local">
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+    <!-- Own code at DEBUG so every REQ_IN / REQ_OUT / use-case step is visible -->
+    <logger name="io.cmartinezs.keygo" level="DEBUG" additivity="false">
+      <appender-ref ref="CONSOLE"/>
+    </logger>
+  </springProfile>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PROFILE: !local (default / desa / prod) — JSON structured
+       ══════════════════════════════════════════════════════════════════════ -->
+  <springProfile name="!local">
+    <root level="INFO">
+      <appender-ref ref="JSON_CONSOLE"/>
+    </root>
+    <!-- Own code at DEBUG — override per-env via logging.level.* in application.yml -->
+    <logger name="io.cmartinezs.keygo" level="DEBUG" additivity="false">
+      <appender-ref ref="JSON_CONSOLE"/>
+    </logger>
+  </springProfile>
+
+</configuration>
+

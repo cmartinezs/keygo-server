@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -68,6 +69,7 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
       }
 
       TenantContextHolder.set(tenantSlug);
+      MDC.put("tenantSlug", tenantSlug);
       log.debug("Tenant context established for slug: {}", tenantSlug);
 
       filterChain.doFilter(request, response);
@@ -84,6 +86,7 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 
     } finally {
       TenantContextHolder.clear();
+      MDC.remove("tenantSlug");
     }
   }
 }

@@ -8,6 +8,30 @@
 
 ---
 
+### [2026-04-02] Trazabilidad MDC — `RequestTracingFilter` como primera capa del stack
+**Contexto:** Implementación de estrategia de trazabilidad end-to-end (plan en `docs/design/TRACING_TELEMETRY.md`).
+**Problema:** Los filtros de seguridad (`BootstrapAdminKeyFilter`) corrían antes que el tracing, perdiendo el contexto MDC en los logs de autenticación.
+**Solución / Buena práctica:** Registrar `RequestTracingFilter` con `Ordered.HIGHEST_PRECEDENCE` mediante `FilterRegistrationBean` en `ApplicationConfig`, de modo que corra **antes** de cualquier filtro Spring Security. Los filtros subsiguientes enriquecen el MDC sin borrar `traceId`: `BootstrapAdminKeyFilter` agrega `userId` y `TenantResolutionFilter` agrega `tenantSlug`. Todos limpian sus propias claves en `finally`.
+**Archivos clave:** `RequestTracingFilter`, `BootstrapAdminKeyFilter`, `TenantResolutionFilter`, `ApplicationConfig`, `logback-spring.xml`.
+
+---
+
+### [2026-04-02] `logstash-logback-encoder` 8.x — compatible con Spring Boot 4 / Logback 1.5.x
+**Contexto:** Configuración de logging estructurado JSON para ambientes distintos de `local`.
+**Problema:** Spring Boot 4 usa Logback 1.5.x y SLF4J 2.x; versiones anteriores de `logstash-logback-encoder` (<7.x) no eran compatibles.
+**Solución / Buena práctica:** Usar `net.logstash.logback:logstash-logback-encoder:8.0`. Por defecto `LogstashEncoder` incluye todos los campos MDC automáticamente, sin necesidad de listarlos explícitamente. Usar `logback-spring.xml` (no `logback.xml`) para poder usar `<springProfile>` con negación (`!local`).
+**Archivos clave:** `keygo-run/pom.xml`, `logback-spring.xml`.
+
+---
+
+### [2026-04-02] `traceId` en `ErrorData` — leído de MDC en `ApiErrorDataFactory`
+**Contexto:** Resolución de T-063 — `traceId` visible en respuestas de error para correlación desde la UI.
+**Problema:** Sin `traceId` en el body de error, el frontend no puede correlacionar errores con logs del servidor.
+**Solución / Buena práctica:** Agregar campo `traceId` a `ErrorData` (con `@JsonInclude(NON_NULL)` heredado de la clase). En `ApiErrorDataFactory.fromDetail()` y `fromValidationErrors()` leer `MDC.get("traceId")` — si el `RequestTracingFilter` corrió antes, siempre estará presente. Opción A elegida: `traceId` solo en errores + header `X-Trace-ID` en todas las respuestas (no rompe contratos de respuesta exitosa).
+**Archivos clave:** `ErrorData.java`, `ApiErrorDataFactory.java`.
+
+---
+
 ### [2026-04-02] Jerarquía de roles — stub Mockito obsoleto al cambiar nombre de método de puerto
 **Síntoma:** `UnnecessaryStubbingException` en `RotateRefreshTokenUseCaseTest` tras cambiar `findRoleCodesByUserAndClientApp` → `findEffectiveRoleCodesByUserAndClientApp` en `MembershipRepositoryPort`.
 **Causa:** Al renombrar un método de un puerto (interface), los stubs de Mockito en los tests de los use cases que lo inyectan quedan obsoletos y Mockito strict-mode los detecta.
