@@ -124,6 +124,18 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de acceso de cuenta que es público (Bearer validado en el controller). */
   private String accountAccessPathSuffix;
 
+  /* Account reset-password path suffix that is public (no Bearer — user has a temporary password).
+   * Sufijo de ruta de reset de contraseña que es público (sin Bearer — usuario tiene contraseña temporal). */
+  private String accountResetPasswordPathSuffix;
+
+  /* Account forgot-password path suffix that is public (no Bearer — anonymous request).
+   * Sufijo de ruta de olvidé contraseña que es público (sin Bearer — petición anónima). */
+  private String accountForgotPasswordPathSuffix;
+
+  /* Account recover-password path suffix that is public (no Bearer — uses recovery token).
+   * Sufijo de ruta de recuperación de contraseña que es público (sin Bearer — usa token de recuperación). */
+  private String accountRecoverPasswordPathSuffix;
+
 }
 
 

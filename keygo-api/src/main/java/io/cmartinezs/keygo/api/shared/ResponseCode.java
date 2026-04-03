@@ -30,12 +30,21 @@ public enum ResponseCode {
 
   // Account Self-Service Operations
   ACCOUNT_PASSWORD_CHANGED("ACCOUNT_PASSWORD_CHANGED", "Account password changed successfully"),
+  ACCOUNT_PASSWORD_RESET("ACCOUNT_PASSWORD_RESET", "Account password reset successfully"),
+  ACCOUNT_PASSWORD_RECOVERY_SENT("ACCOUNT_PASSWORD_RECOVERY_SENT", "Password recovery email sent successfully"),
+  ACCOUNT_PASSWORD_RECOVERED("ACCOUNT_PASSWORD_RECOVERED", "Account password recovered successfully"),
   ACCOUNT_SESSIONS_RETRIEVED("ACCOUNT_SESSIONS_RETRIEVED", "Account sessions retrieved successfully"),
   ACCOUNT_SESSION_REVOKED("ACCOUNT_SESSION_REVOKED", "Account session revoked successfully"),
   ACCOUNT_SESSION_ALREADY_CLOSED("ACCOUNT_SESSION_ALREADY_CLOSED", "Account session was already closed"),
   ACCOUNT_NOTIFICATION_PREFERENCES_RETRIEVED("ACCOUNT_NOTIFICATION_PREFERENCES_RETRIEVED", "Account notification preferences retrieved successfully"),
   ACCOUNT_NOTIFICATION_PREFERENCES_UPDATED("ACCOUNT_NOTIFICATION_PREFERENCES_UPDATED", "Account notification preferences updated successfully"),
   ACCOUNT_ACCESS_RETRIEVED("ACCOUNT_ACCESS_RETRIEVED", "Account access retrieved successfully"),
+
+  // User Admin Operations
+  USER_SUSPENDED("USER_SUSPENDED", "User account suspended successfully"),
+  USER_ACTIVATED("USER_ACTIVATED", "User account activated successfully"),
+  USER_SESSIONS_RETRIEVED("USER_SESSIONS_RETRIEVED", "User sessions retrieved successfully"),
+  RESET_PASSWORD_REQUIRED("RESET_PASSWORD_REQUIRED", "User must reset their password before logging in"),
 
   // User Operations
   USER_CREATED("USER_CREATED", "User created successfully"),

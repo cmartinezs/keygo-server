@@ -67,6 +67,10 @@ import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ForgotPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.RecoverPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ResetPasswordUseCase;
+import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUserSessionsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
@@ -528,6 +532,36 @@ public class ApplicationConfig {
   }
 
   // ─── Account Settings self-service ───────────────────────────────────────
+
+  @Bean
+  public ForgotPasswordUseCase forgotPasswordUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordRecoveryTokenRepositoryPort passwordRecoveryTokenRepositoryPort,
+      EmailNotificationPort emailNotificationPort) {
+    return new ForgotPasswordUseCase(
+        tenantRepositoryPort, userRepositoryPort,
+        passwordRecoveryTokenRepositoryPort, emailNotificationPort);
+  }
+
+  @Bean
+  public RecoverPasswordUseCase recoverPasswordUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordRecoveryTokenRepositoryPort passwordRecoveryTokenRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new RecoverPasswordUseCase(
+        tenantRepositoryPort, userRepositoryPort,
+        passwordRecoveryTokenRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public ResetPasswordUseCase resetPasswordUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordHasherPort passwordHasherPort) {
+    return new ResetPasswordUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
 
   @Bean
   public ChangePasswordUseCase changePasswordUseCase(

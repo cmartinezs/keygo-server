@@ -287,6 +287,111 @@ public class SmtpEmailNotificationAdapter implements EmailNotificationPort {
   }
 
 
+  @Override
+  public void sendPasswordRecoveryEmail(String toEmail, String username, String recoveryToken, String tenantSlug) {
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+      helper.setFrom(fromAddress);
+      helper.setTo(toEmail);
+      helper.setSubject(appName + " — Recupera tu contraseña");
+      helper.setText(buildPasswordRecoveryBody(username, recoveryToken, tenantSlug), true);
+      mailSender.send(message);
+    } catch (MessagingException e) {
+      throw new EmailNotificationException(toEmail, "error al enviar email de recuperación de contraseña", e);
+    }
+  }
+
+  String buildPasswordRecoveryBody(String username, String recoveryToken, String tenantSlug) {
+    return """
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Recupera tu contraseña — %1$s</title>
+        </head>
+        <body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:40px 0;">
+            <tr>
+              <td align="center">
+                <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%%;">
+
+                  <!-- ── Header ── -->
+                  <tr>
+                    <td style="background:linear-gradient(135deg,#4f46e5 0%%,#6366f1 100%%);border-radius:12px 12px 0 0;padding:36px 40px;text-align:center;">
+                      <div style="display:inline-flex;align-items:center;gap:10px;">
+                        <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
+                          <span style="font-size:20px;line-height:1;">🔑</span>
+                        </div>
+                        <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">%1$s</span>
+                      </div>
+                      <p style="margin:12px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Recuperación de contraseña</p>
+                    </td>
+                  </tr>
+
+                  <!-- ── Body ── -->
+                  <tr>
+                    <td style="background:#ffffff;padding:40px 40px 32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+
+                      <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a;">¡Hola, %2$s! 👋</p>
+                      <p style="margin:0 0 28px;font-size:15px;color:#475569;line-height:1.6;">
+                        Recibimos una solicitud para recuperar la contraseña de tu cuenta en
+                        <strong style="color:#4f46e5;">%1$s</strong>.
+                        Usa el token de recuperación a continuación para establecer una nueva contraseña:
+                      </p>
+
+                      <!-- Token de recuperación -->
+                      <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+                        <tr>
+                          <td style="background:#f8fafc;padding:14px 20px;">
+                            <span style="font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:0.5px;text-transform:uppercase;">Token de recuperación</span>
+                            <p style="margin:6px 0 0;font-size:14px;font-weight:600;color:#4338ca;font-family:'Courier New',Courier,monospace;word-break:break-all;">%3$s</p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Aviso de validez -->
+                      <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                        <tr>
+                          <td style="background:#f8fafc;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:14px 18px;">
+                            <p style="margin:0;font-size:13px;color:#475569;line-height:1.5;">
+                              ⏱ <strong>Este token es válido por 30 minutos.</strong>
+                              Si no lo usas en ese tiempo, deberás solicitar uno nuevo.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.5;">
+                        Si no solicitaste restablecer tu contraseña, puedes ignorar este mensaje con toda seguridad.
+                        Nadie podrá cambiar tu contraseña sin este token.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- ── Footer ── -->
+                  <tr>
+                    <td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px 40px;text-align:center;">
+                      <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;">
+                        Este correo fue enviado automáticamente por <strong style="color:#64748b;">%1$s</strong>.
+                        Por favor, no respondas a este mensaje.
+                      </p>
+                      <p style="margin:0;font-size:12px;color:#cbd5e1;">
+                        © 2026 %1$s · Todos los derechos reservados
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """.formatted(appName, username, recoveryToken);
+  }
+
   String buildVerificationBody(String username, String verificationCode) {
     return """
         <!DOCTYPE html>

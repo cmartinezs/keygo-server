@@ -42,5 +42,15 @@ public interface EmailNotificationPort {
    * @param rawPassword  the plain-text temporary password
    */
   void sendTemporaryPasswordEmail(String toEmail, String username, String rawPassword);
+
+  /**
+   * Send a password recovery email with a one-time token (self-service forgot-password flow).
+   * <p>Envía un email de recuperación de contraseña con token de un solo uso.
+   * @param toEmail      the recipient's email address
+   * @param username     the recipient's username (for personalization)
+   * @param recoveryToken the 32-char hex recovery token
+   * @param tenantSlug   the tenant slug (for building the reset URL)
+   */
+  void sendPasswordRecoveryEmail(String toEmail, String username, String recoveryToken, String tenantSlug);
 }
 

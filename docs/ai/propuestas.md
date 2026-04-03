@@ -51,7 +51,7 @@
 | T-094 | Agregar test unitario para `AppPlanBillingOptionRepositoryAdapter`: `findByAppPlanVersionId`, `findByAppPlanVersionIdAndBillingPeriod` y `saveAll` con Mockito | 🔲 Pendiente |
 | T-095 | Validar en `CreateAppPlanCommand` que si `billingOptions` no está vacía, al menos una opción tenga `isDefault=true`; lanzar `IllegalArgumentException` si ninguna es default | 🔲 Pendiente |
 | T-096 | Añadir `@NotNull` y `@Valid` en `CreateAppPlanRequest.billingOptions`, `@NotNull` en `billingPeriod` y `basePrice` de `BillingOptionRequest`; agregar test de validación Bean Validation | 🔲 Pendiente |
-| T-103 | Bloquear login cuando `status = RESET_PASSWORD` en `ValidateUserCredentialsUseCase` → `UserPasswordResetRequiredException`; `GlobalExceptionHandler` responde `403 RESET_PASSWORD_REQUIRED`; el frontend redirige al flujo de cambio de contraseña | 🔲 Pendiente |
+| ~~T-103~~ | ~~Bloquear login cuando `status = RESET_PASSWORD` en `ValidateUserCredentialsUseCase` → `UserPasswordResetRequiredException`; `GlobalExceptionHandler` responde `403 RESET_PASSWORD_REQUIRED`; el frontend redirige al flujo de cambio de contraseña~~ | ✅ Completada 2026-04-02 |
 | ~~T-106~~ | ~~Jerarquía de excepciones tipadas por capa + `ErrorData.layer`: `KeyGoException` → `DomainException` / `UseCaseException` / `PortException`; mensajes en la clase con constructores de valores. Ver [`docs/design/EXCEPTION_HIERARCHY.md`](../../docs/design/EXCEPTION_HIERARCHY.md)~~ | ✅ Completada 2026-04-01 |
 
 ---
@@ -92,7 +92,7 @@
 | T-097 | `PUT /billing/plans/{planCode}/billing-options` — añadir/actualizar opciones de pago de la versión activa sin crear nueva versión; valida que no se duplique `billing_period` | 🔲 Pendiente |
 | T-098 | Filtro `?subscriberType=TENANT\|TENANT_USER` en `GET /billing/catalog`: la tabla `app_plans` ya tiene la columna; filtrar por ella si se especifica, retornar todos si no | 🔲 Pendiente |
 | T-099 | Caché `@Cacheable` + Caffeine TTL 5 min en `GetAppPlanCatalogUseCase` y `GetAppPlanUseCase`; invalidar al crear plan o actualizar billing options (T-097) | 🔲 Pendiente |
-| T-104 | Endpoint `POST /api/v1/tenants/{slug}/account/reset-password` — recibe `temporaryPassword` + `newPassword`; `ResetPasswordUseCase` verifica hash temporal (BCrypt), actualiza hash con nueva contraseña y cambia `status → ACTIVE`; validación de complejidad mínima; depende de T-103 | 🔲 Pendiente |
+| ~~T-104~~ | ~~Endpoint `POST /account/reset-password` — recibe `email` + `temporaryPassword` + `newPassword`; `ResetPasswordUseCase` verifica hash temporal (BCrypt), actualiza hash con nueva contraseña y cambia `status → ACTIVE`; validación de complejidad mínima; depende de T-103~~ | ✅ Completada 2026-04-02 |
 | ~~T-107~~ | ~~**Jerarquía de roles en apps de tenant:** tabla `app_role_hierarchy` (V20), restricciones de ciclo y profundidad ≤5, CTE recursiva para expansión en JWT, use cases `AssignRoleParentUseCase`/`RemoveRoleParentUseCase`, endpoints `POST/DELETE …/roles/{roleCode}/parent`~~ | ✅ Completada 2026-04-02 |
 
 ---
@@ -127,8 +127,10 @@
 | T-101 | Soporte de múltiples monedas por opción de billing: tabla `app_plan_billing_option_prices` con overrides por moneda (`USD`, `MXN`, `EUR`); resolver moneda del suscriptor desde el contrato | 🔲 Pendiente |
 | T-102 | Precios dinámicos vía webhook externo: `DynamicPricingPort` + adapter configurable; precio base en `app_plan_billing_options` como fallback; integración con Stripe Price API | 🔲 Pendiente |
 | T-105 | Política de expiración de contraseñas temporales (TTL 24 h): campo `temp_password_expires_at` en `tenant_users`; job `@Scheduled` que detecta usuarios `RESET_PASSWORD` con TTL vencido, genera nueva contraseña y la reenvía por email; config `keygo.security.temp-password-ttl-hours` | 🔲 Pendiente |
+| T-115 | Incrementar cobertura JaCoCo en `keygo-supabase` desde 0.15 hasta 0.60: añadir tests unitarios para `UserRepositoryAdapter`, `EmailVerificationRepositoryAdapter`, `SessionRepositoryAdapter`, `MembershipRepositoryAdapter` y adapters de billing | 🔲 Pendiente |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
+| ~~F-043~~ | ~~**Flujo forgot/recover-password:** `POST /account/forgot-password` (anti-enumeración) + `POST /account/recover-password` (token 32-hex, TTL 30 min, upsert), tabla `V22__password_recovery_tokens.sql`, `PasswordRecoveryToken` domain model, `ForgotPasswordUseCase`, `RecoverPasswordUseCase`, email HTML~~ | ✅ Completada 2026-04-02 |
 | F-042 | **Account connections (RFC §5.5)** — `GET /account/connections`: lista de apps externas/integraciones vinculadas; modelo `UserConnection`; tabla `connections` (V22+) | 🔲 Pendiente |
 | F-010–F-016 | Core OAuth2/OIDC: authorize, token, JWKS, Auth Code + PKCE | ✅ Fases 5 y 6 completadas |
 | ~~F-025~~ | ~~`client_credentials` grant M2M sin usuario final~~ | ✅ Completada 2026-03-23 (Fase 8) |
@@ -144,4 +146,4 @@
 
 ---
 
-**Última actualización:** 2026-04-02 (RFC Account & Settings completado: T-037 + F-030 ✅; T-108, T-109, F-042 agregadas; T-107 completada) | **Responsable:** AI Agent
+**Última actualización:** 2026-04-02 (T-103 ✅, T-104 ✅, F-043 ✅ — flujo self-service reset+recover password; T-115 agregada) | **Responsable:** AI Agent

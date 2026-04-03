@@ -12,6 +12,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
@@ -210,6 +211,35 @@ class UpdateResetValidateUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> uc.execute(TENANT_SLUG, "john@acme.com", "wrong"))
         .isInstanceOf(InvalidCredentialsException.class);
+  }
+
+  @Test
+  void validateCredentialsThrowsWhenResetPasswordRequired() {
+    // Given — T-103: user has RESET_PASSWORD status and provides correct password
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    activeUser.requirePasswordReset();  // transitions status to RESET_PASSWORD
+    when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
+    when(passwordHasherPort.matches("secret", VALID_HASH)).thenReturn(true);  // password is correct
+
+    // When / Then — must throw after password validation (not before, to prevent timing oracle)
+    assertThatThrownBy(() -> uc.execute(TENANT_SLUG, "john@acme.com", "secret"))
+        .isInstanceOf(UserPasswordResetRequiredException.class);
+  }
+
+  @Test
+  void validateCredentialsWithResetPasswordStatus_stillThrowsInvalidCredentialsOnWrongPassword() {
+    // Given — T-103: timing oracle guard — wrong password must still yield InvalidCredentialsException
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    activeUser.requirePasswordReset();
+    when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
+    when(passwordHasherPort.matches("wrong", VALID_HASH)).thenReturn(false);
+
+    // When / Then — must NOT reveal RESET_PASSWORD status when password is wrong
+    assertThatThrownBy(() -> uc.execute(TENANT_SLUG, "john@acme.com", "wrong"))
+        .isInstanceOf(InvalidCredentialsException.class)
+        .isNotInstanceOf(UserPasswordResetRequiredException.class);
   }
 
   @Test

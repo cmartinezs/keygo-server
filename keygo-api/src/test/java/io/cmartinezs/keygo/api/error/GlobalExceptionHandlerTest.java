@@ -2,7 +2,11 @@ package io.cmartinezs.keygo.api.error;
 
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -226,6 +230,44 @@ class GlobalExceptionHandlerTest {
     assertThat(handler.handleNoResourceFoundException(notFound).getBody().getFailure()).isNotNull();
     assertThat(handler.handleIllegalArgumentException(illegalArg).getBody().getFailure()).isNotNull();
     assertThat(handler.handleGenericException(generic).getBody().getFailure()).isNotNull();
+  }
+
+  // ─── Password flow handlers ────────────────────────────────────────────────
+
+  @Test
+  void handleUserPasswordResetRequiredException_returns403() {
+    var ex = new UserPasswordResetRequiredException("johndoe");
+    var response = handler.handleUserPasswordResetRequiredException(ex);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.RESET_PASSWORD_REQUIRED.getCode());
+  }
+
+  @Test
+  void handleUserNotInResetPasswordStatusException_returns403() {
+    var ex = new UserNotInResetPasswordStatusException("john@acme.com");
+    var response = handler.handleUserNotInResetPasswordStatusException(ex);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handlePasswordRecoveryTokenExpiredException_returns422() {
+    var ex = new PasswordRecoveryTokenExpiredException();
+    var response = handler.handlePasswordRecoveryTokenExpiredException(ex);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handlePasswordRecoveryTokenAlreadyUsedException_returns422() {
+    var ex = new PasswordRecoveryTokenAlreadyUsedException();
+    var response = handler.handlePasswordRecoveryTokenAlreadyUsedException(ex);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
   }
 }
 

@@ -150,7 +150,10 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasSuffix(path, bootstrapProperties.getAccountChangePasswordPathSuffix())
         || hasSegment(path, bootstrapProperties.getAccountSessionsPathSuffix())
         || hasSuffix(path, bootstrapProperties.getAccountNotificationPreferencesPathSuffix())
-        || hasSuffix(path, bootstrapProperties.getAccountAccessPathSuffix());
+        || hasSuffix(path, bootstrapProperties.getAccountAccessPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getAccountResetPasswordPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getAccountForgotPasswordPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getAccountRecoverPasswordPathSuffix());
   }
   private static boolean hasPrefix(String path, String prefix) {
     return prefix != null && path.startsWith(prefix);

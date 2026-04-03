@@ -405,6 +405,31 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 
+  // ─── Regression: password flow public paths (T-103) ───────────────────────
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/api/v1/tenants/keygo/account/reset-password",
+      "/api/v1/tenants/keygo/account/forgot-password",
+      "/api/v1/tenants/keygo/account/recover-password"
+  })
+  void doFilterInternal_shouldAllowPasswordFlowPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getAccountResetPasswordPathSuffix()).thenReturn("/account/reset-password");
+    lenient().when(bootstrapProperties.getAccountForgotPasswordPathSuffix()).thenReturn("/account/forgot-password");
+    lenient().when(bootstrapProperties.getAccountRecoverPasswordPathSuffix()).thenReturn("/account/recover-password");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
   // ─── Non-API paths ─────────────────────────────────────────────────────────
 
   @Test

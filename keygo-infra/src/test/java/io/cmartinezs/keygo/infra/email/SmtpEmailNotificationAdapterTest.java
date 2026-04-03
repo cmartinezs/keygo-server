@@ -199,5 +199,72 @@ class SmtpEmailNotificationAdapterTest {
     // Then
     assertThat(html).contains("temporal");
   }
+
+  // ── buildPasswordRecoveryBody ──────────────────────────────────────────────
+
+  @Test
+  @DisplayName("buildPasswordRecoveryBody — contiene el token de recuperación")
+  void buildPasswordRecoveryBody_containsToken() {
+    // Given / When
+    String html = adapter.buildPasswordRecoveryBody("carlos", "abc123def456abc123def456abc12300", "acme");
+
+    // Then
+    assertThat(html).contains("abc123def456abc123def456abc12300");
+  }
+
+  @Test
+  @DisplayName("buildPasswordRecoveryBody — es HTML válido en español")
+  void buildPasswordRecoveryBody_isHtmlInSpanish() {
+    // Given / When
+    String html = adapter.buildPasswordRecoveryBody("carlos", "sometoken", "acme");
+
+    // Then
+    assertThat(html)
+        .contains("<!DOCTYPE html>")
+        .contains("<html lang=\"es\">")
+        .contains("Recupera")
+        .contains("token");
+  }
+
+  @Test
+  @DisplayName("buildPasswordRecoveryBody — indica validez de 30 minutos")
+  void buildPasswordRecoveryBody_indicates30MinTtl() {
+    // Given / When
+    String html = adapter.buildPasswordRecoveryBody("usuario", "sometoken", "acme");
+
+    // Then
+    assertThat(html).contains("30 minutos");
+  }
+
+  // ── sendPasswordRecoveryEmail ──────────────────────────────────────────────
+
+  @Test
+  @DisplayName("sendPasswordRecoveryEmail — crea y envía MimeMessage")
+  void sendPasswordRecoveryEmail_createsMimeMessage() {
+    // Given
+    when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+    // When
+    adapter.sendPasswordRecoveryEmail("user@example.com", "carlos", "abc123token", "acme");
+
+    // Then
+    verify(mailSender).createMimeMessage();
+    verify(mailSender).send(mimeMessage);
+  }
+
+  @Test
+  @DisplayName("sendPasswordRecoveryEmail — lanza EmailNotificationException si MessagingException")
+  void sendPasswordRecoveryEmail_throwsOnMessagingException() throws MessagingException {
+    // Given
+    MimeMessage badMessage = mock(MimeMessage.class);
+    when(mailSender.createMimeMessage()).thenReturn(badMessage);
+    doThrow(new MessagingException("SMTP error")).when(badMessage).setFrom(any(Address.class));
+
+    // When / Then
+    assertThatThrownBy(
+            () -> adapter.sendPasswordRecoveryEmail("fail@example.com", "usuario", "abc123", "acme"))
+        .isInstanceOf(EmailNotificationException.class)
+        .hasMessageContaining("fail@example.com");
+  }
 }
 

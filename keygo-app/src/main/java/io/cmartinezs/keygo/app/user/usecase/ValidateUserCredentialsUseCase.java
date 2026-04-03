@@ -8,6 +8,7 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
@@ -45,10 +46,11 @@ public class ValidateUserCredentialsUseCase {
    * @param credential  email address or username
    * @param rawPassword the raw password to verify
    * @return the authenticated User
-   * @throws TenantNotFoundException      if the tenant does not exist
-   * @throws UserNotFoundException        if no user matches the credential
-   * @throws UserSuspendedException       if the user account is suspended
-   * @throws InvalidCredentialsException  if the password does not match
+   * @throws TenantNotFoundException              if the tenant does not exist
+   * @throws UserNotFoundException               if no user matches the credential
+   * @throws UserSuspendedException              if the user account is suspended
+   * @throws UserPasswordResetRequiredException  if the user must reset their password before logging in
+   * @throws InvalidCredentialsException         if the password does not match
    */
   public User execute(String tenantSlug, String credential, String rawPassword) {
     Tenant tenant = tenantRepositoryPort.findBySlug(TenantSlug.of(tenantSlug))
@@ -72,6 +74,12 @@ public class ValidateUserCredentialsUseCase {
 
     if (!passwordHasherPort.matches(rawPassword, user.getPasswordHash().value())) {
       throw new InvalidCredentialsException();
+    }
+
+    // Check after password validation to avoid revealing the account status
+    // to an attacker who does not know the password.
+    if (user.isResetPassword()) {
+      throw new UserPasswordResetRequiredException(user.getUsername().value());
     }
 
     return user;

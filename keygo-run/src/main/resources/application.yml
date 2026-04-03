@@ -42,6 +42,9 @@ keygo:
     account-sessions-path-suffix: "/account/sessions"
     account-notification-preferences-path-suffix: "/account/notification-preferences"
     account-access-path-suffix: "/account/access"
+    account-reset-password-path-suffix: "/account/reset-password"
+    account-forgot-password-path-suffix: "/account/forgot-password"
+    account-recover-password-path-suffix: "/account/recover-password"
   billing:
     mock-payment-enabled: true
     contract-expiry-hours: 48

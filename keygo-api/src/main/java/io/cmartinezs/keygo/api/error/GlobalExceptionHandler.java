@@ -20,6 +20,7 @@ import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
 import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.app.shared.exception.PortException;
 import io.cmartinezs.keygo.app.shared.exception.UseCaseException;
 import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
@@ -46,6 +47,9 @@ import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidExcepti
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import lombok.extern.slf4j.Slf4j;
@@ -573,6 +577,52 @@ public class GlobalExceptionHandler {
       IncorrectCurrentPasswordException ex) {
     log.warn("Incorrect current password attempt: {}", ex.getMessage());
     return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles UserNotInResetPasswordStatusException - returns 403 Forbidden.
+   * Lanzada cuando se intenta restablecer la contraseña de un usuario que no está en
+   * estado RESET_PASSWORD.
+   */
+  @ExceptionHandler(UserNotInResetPasswordStatusException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserNotInResetPasswordStatusException(
+      UserNotInResetPasswordStatusException ex) {
+    log.warn("Reset password rejected — user not in RESET_PASSWORD status: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles PasswordRecoveryTokenExpiredException - returns 422 Unprocessable Entity.
+   * Lanzada cuando el token de recuperación de contraseña ha expirado.
+   */
+  @ExceptionHandler(PasswordRecoveryTokenExpiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordRecoveryTokenExpiredException(
+      PasswordRecoveryTokenExpiredException ex) {
+    log.warn("Recovery token expired: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_ENTITY, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles PasswordRecoveryTokenAlreadyUsedException - returns 422 Unprocessable Entity.
+   * Lanzada cuando el token de recuperación de contraseña ya fue utilizado.
+   */
+  @ExceptionHandler(PasswordRecoveryTokenAlreadyUsedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordRecoveryTokenAlreadyUsedException(
+      PasswordRecoveryTokenAlreadyUsedException ex) {
+    log.warn("Recovery token already used: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_ENTITY, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles UserPasswordResetRequiredException - returns 403 Forbidden.
+   * Lanzada cuando un usuario con status=RESET_PASSWORD intenta autenticarse.
+   * El cliente debe redirigir al flujo de reset de contraseña.
+   */
+  @ExceptionHandler(UserPasswordResetRequiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserPasswordResetRequiredException(
+      UserPasswordResetRequiredException ex) {
+    log.warn("Login blocked — password reset required: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.RESET_PASSWORD_REQUIRED, ex);
   }
 
   /**

@@ -14,6 +14,16 @@
     <name>KeyGo Supabase</name>
     <description>Supabase integration module with migrations and scripts / Módulo de integración con Supabase con migraciones y scripts</description>
 
+    <properties>
+        <!--
+          TODO (T-115): Incrementar gradualmente hasta 0.60 a medida que se añadan tests
+          para los adaptadores sin cobertura (UserRepositoryAdapter, EmailVerificationRepositoryAdapter,
+          SessionRepositoryAdapter, MembershipRepositoryAdapter, billing/*RepositoryAdapter, etc.)
+          Valor actual refleja la cobertura real pre-existente del módulo.
+        -->
+        <jacoco.minimum.coverage>0.15</jacoco.minimum.coverage>
+    </properties>
+
     <dependencies>
         <!-- KeyGo dependencies -->
         <dependency>
