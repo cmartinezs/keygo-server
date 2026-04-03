@@ -22,12 +22,10 @@ class ApiErrorDataFactoryI18nTest {
   @Mock
   private MessageSource messageSource;
 
-  private ApiErrorDataFactory factory;
-
   @BeforeEach
   void setUp() {
     LocaleContextHolder.resetLocaleContext();
-    factory = new ApiErrorDataFactory(messageSource);
+    new ApiErrorDataFactory(messageSource); // side-effect: registers itself as ApiErrorDataFactory.instance
   }
 
   @AfterEach
@@ -45,8 +43,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("Resuelve mensaje en español para AUTHENTICATION_REQUIRED")
   void clientMessage_spanish_authenticationRequired() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("es"));
-    when(messageSource.getMessage("error.AUTHENTICATION_REQUIRED", null, new Locale("es")))
+    LocaleContextHolder.setLocale(Locale.of("es"));
+    when(messageSource.getMessage("error.AUTHENTICATION_REQUIRED", null, Locale.of("es")))
         .thenReturn("No pudimos validar tu sesión. Inicia sesión nuevamente.");
 
     // When
@@ -62,8 +60,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("Resuelve mensaje en español (Chile) para INVALID_INPUT")
   void clientMessage_spanishChile_invalidInput() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("es", "CL"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("es", "CL")))
+    LocaleContextHolder.setLocale(Locale.of("es", "CL"));
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.of("es", "CL")))
         .thenReturn("Revisa los datos que enviaste e intenta de nuevo.");
 
     // When
@@ -81,8 +79,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("Resuelve mensaje en inglés para RESOURCE_NOT_FOUND")
   void clientMessage_english_resourceNotFound() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("en", "US"));
-    when(messageSource.getMessage("error.RESOURCE_NOT_FOUND", null, new Locale("en", "US")))
+    LocaleContextHolder.setLocale(Locale.US);
+    when(messageSource.getMessage("error.RESOURCE_NOT_FOUND", null, Locale.US))
         .thenReturn("We couldn't find the resource you requested.");
 
     // When
@@ -100,8 +98,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("Resuelve mensaje en portugués (Brasil) para DUPLICATE_RESOURCE")
   void clientMessage_portugueseBrazil_duplicateResource() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("pt", "BR"));
-    when(messageSource.getMessage("error.DUPLICATE_RESOURCE", null, new Locale("pt", "BR")))
+    LocaleContextHolder.setLocale(Locale.of("pt", "BR"));
+    when(messageSource.getMessage("error.DUPLICATE_RESOURCE", null, Locale.of("pt", "BR")))
         .thenReturn("Este recurso já existe.");
 
     // When
@@ -119,8 +117,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("Resuelve mensaje en francés para INSUFFICIENT_PERMISSIONS")
   void clientMessage_french_insufficientPermissions() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("fr"));
-    when(messageSource.getMessage("error.INSUFFICIENT_PERMISSIONS", null, new Locale("fr")))
+    LocaleContextHolder.setLocale(Locale.FRENCH);
+    when(messageSource.getMessage("error.INSUFFICIENT_PERMISSIONS", null, Locale.FRENCH))
         .thenReturn("Vous n'avez pas la permission d'effectuer cette action.");
 
     // When
@@ -138,8 +136,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("Fallback a en-US si MessageSource lanza excepción")
   void clientMessage_fallbackToEnUs_messageSourceException() {
     // Given — MessageSource throws exception, factory uses hardcoded fallback
-    LocaleContextHolder.setLocale(new Locale("es"));
-    when(messageSource.getMessage("error.EMAIL_NOT_VERIFIED", null, new Locale("es")))
+    LocaleContextHolder.setLocale(Locale.of("es"));
+    when(messageSource.getMessage("error.EMAIL_NOT_VERIFIED", null, Locale.of("es")))
         .thenThrow(new RuntimeException("Message not found")); // Simulates missing message
 
     // When
@@ -157,8 +155,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("fromValidationErrors resuelve mensaje localizado")
   void fromValidationErrors_i18n() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("es"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("es")))
+    LocaleContextHolder.setLocale(Locale.of("es"));
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.of("es")))
         .thenReturn("Datos inválidos.");
 
     // When
@@ -175,8 +173,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("fromValidationErrors establece origin y cause correctamente para errores de validación")
   void fromValidationErrors_setsOriginAndCauseForValidationErrors() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("en"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("en")))
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.ENGLISH))
         .thenReturn("Invalid input.");
 
     // When
@@ -194,8 +192,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("fromValidationErrors incluye fieldErrors cuando hay errores de validación")
   void fromValidationErrors_includesFieldErrorsWhenPresent() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("en"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("en")))
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.ENGLISH))
         .thenReturn("Invalid input.");
 
     FieldValidationError fieldError1 = FieldValidationError.builder()
@@ -227,8 +225,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("fromValidationErrors preserva los fieldErrors tal como se proporcionan")
   void fromValidationErrors_preservesFieldErrors() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("en"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("en")))
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.ENGLISH))
         .thenReturn("Invalid input.");
 
     FieldValidationError fieldError = FieldValidationError.builder()
@@ -247,16 +245,16 @@ class ApiErrorDataFactoryI18nTest {
     assertThat(errorData.getFieldErrors()).isNotNull().hasSize(1);
     // ApiErrorDataFactory.fromValidationErrors() preserva los fieldErrors exactamente como se proporcionan.
     // El filtrado de rejectedValue se hace en GlobalExceptionHandler (línea 141 del filter)
-    assertThat(errorData.getFieldErrors().get(0).getField()).isEqualTo("username");
-    assertThat(errorData.getFieldErrors().get(0).getMessage()).isEqualTo("must not be blank");
+    assertThat(errorData.getFieldErrors().getFirst().getField()).isEqualTo("username");
+    assertThat(errorData.getFieldErrors().getFirst().getMessage()).isEqualTo("must not be blank");
   }
 
   @Test
   @DisplayName("fromValidationErrors establece fieldErrors=null cuando lista está vacía")
   void fromValidationErrors_nullifiesFieldErrorsWhenEmpty() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("en"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("en")))
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.ENGLISH))
         .thenReturn("Invalid input.");
 
     // When
@@ -276,8 +274,8 @@ class ApiErrorDataFactoryI18nTest {
   void errorData_containsTraceId() {
     // Given
     org.slf4j.MDC.put("traceId", "abc123");
-    LocaleContextHolder.setLocale(new Locale("en"));
-    when(messageSource.getMessage("error.BUSINESS_RULE_VIOLATION", null, new Locale("en")))
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
+    when(messageSource.getMessage("error.BUSINESS_RULE_VIOLATION", null, Locale.ENGLISH))
         .thenReturn("This operation can't be completed.");
 
     // When
@@ -295,8 +293,8 @@ class ApiErrorDataFactoryI18nTest {
   @DisplayName("ErrorData establece code y origin correctamente")
   void errorData_hasCodeAndOrigin() {
     // Given
-    LocaleContextHolder.setLocale(new Locale("en"));
-    when(messageSource.getMessage("error.INVALID_INPUT", null, new Locale("en")))
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
+    when(messageSource.getMessage("error.INVALID_INPUT", null, Locale.ENGLISH))
         .thenReturn("Invalid input.");
 
     // When
