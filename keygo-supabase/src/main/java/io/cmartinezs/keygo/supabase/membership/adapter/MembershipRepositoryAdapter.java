@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.supabase.membership.adapter;
 
+import io.cmartinezs.keygo.app.membership.filter.MembershipFilter;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
@@ -10,10 +12,16 @@ import io.cmartinezs.keygo.supabase.membership.entity.MembershipEntity;
 import io.cmartinezs.keygo.supabase.membership.mapper.MembershipPersistenceMapper;
 import io.cmartinezs.keygo.supabase.membership.repository.MembershipJpaRepository;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -139,5 +147,48 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
   @Override
   public List<String> findEffectiveRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId) {
     return jpaRepository.findEffectiveRoleCodesByUserIdAndClientAppId(userId, clientAppId);
+  }
+
+  @Override
+  public PagedResult<Membership> findAllPaged(String tenantSlug, MembershipFilter filter) {
+    Specification<MembershipEntity> spec = buildSpecification(tenantSlug, filter);
+    PageRequest pageRequest = buildPageRequest(filter);
+
+    Page<MembershipEntity> page = jpaRepository.findAll(spec, pageRequest);
+
+    List<Membership> memberships = page.getContent().stream()
+        .map(MembershipPersistenceMapper::toDomain)
+        .toList();
+
+    return PagedResult.of(memberships, page.getNumber(), page.getSize(), page.getTotalElements());
+  }
+
+  private Specification<MembershipEntity> buildSpecification(String tenantSlug, MembershipFilter filter) {
+    return (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      // Filter by tenantSlug (scope of security — always applied)
+      predicates.add(cb.equal(root.get("user").get("tenant").get("slug"), tenantSlug));
+
+      // Filter by userId (optional)
+      if (filter.hasUserId()) {
+        predicates.add(cb.equal(root.get("user").get("id"), filter.getUserId()));
+      }
+
+      // Filter by clientAppId (optional)
+      if (filter.hasClientAppId()) {
+        predicates.add(cb.equal(root.get("clientApp").get("id"), filter.getClientAppId()));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
+  private PageRequest buildPageRequest(MembershipFilter filter) {
+    if (filter.hasSorting()) {
+      Sort.Direction direction = Sort.Direction.fromString(filter.getSortOrder());
+      return PageRequest.of(filter.getPage(), filter.getSize(), Sort.by(direction, filter.getSortBy()));
+    }
+    return PageRequest.of(filter.getPage(), filter.getSize());
   }
 }

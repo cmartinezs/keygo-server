@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.api.membership.request.AssignRoleParentRequest;
 import io.cmartinezs.keygo.api.membership.request.CreateAppRoleRequest;
 import io.cmartinezs.keygo.api.membership.response.AppRoleData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.app.membership.command.AssignRoleParentCommand;
@@ -12,6 +13,8 @@ import io.cmartinezs.keygo.app.membership.usecase.AssignRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RemoveRoleParentUseCase;
+import io.cmartinezs.keygo.app.role.filter.AppRoleFilter;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.membership.model.AppRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -105,19 +108,32 @@ public class TenantAppRoleController {
   @GetMapping
   @Operation(
       summary = "List app roles",
-      description = "List all roles defined for a client application")
+      description = "List roles defined for a client application with optional pagination, filtering, and sorting")
   @ApiResponse(responseCode = "200", description = "Roles retrieved (code: ROLE_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<List<AppRoleData>>> listAppRoles(
+  public ResponseEntity<BaseResponse<PagedData<AppRoleData>>> listAppRoles(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
-      @Parameter(description = "Client app ID") @PathVariable UUID clientAppId) {
+      @Parameter(description = "Client app ID") @PathVariable UUID clientAppId,
+      @Parameter(description = "Partial match on role name (case-insensitive)")
+      @RequestParam(name = "name_like", required = false) String nameLike,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (name, createdAt)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
 
-    List<AppRole> roles = listAppRolesUseCase.execute(tenantSlug, clientAppId);
+    AppRoleFilter filter = AppRoleFilter.of(nameLike, page, size, sort, order);
+    PagedResult<AppRole> result = listAppRolesUseCase.execute(tenantSlug, clientAppId, filter);
 
-    List<AppRoleData> data = roles.stream()
+    List<AppRoleData> data = result.getContent().stream()
         .map(r -> AppRoleData.builder()
             .id(r.getId().value())
             .clientAppId(r.getClientAppId().value())
@@ -127,8 +143,17 @@ public class TenantAppRoleController {
             .build())
         .toList();
 
-    BaseResponse<List<AppRoleData>> response = BaseResponse.<List<AppRoleData>>builder()
-        .data(data)
+    PagedData<AppRoleData> pagedData = PagedData.<AppRoleData>builder()
+        .content(data)
+        .page(result.getPage())
+        .size(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .last(result.isLast())
+        .build();
+
+    BaseResponse<PagedData<AppRoleData>> response = BaseResponse.<PagedData<AppRoleData>>builder()
+        .data(pagedData)
         .success(ResponseHelper.message(ResponseCode.ROLE_LIST_RETRIEVED))
         .build();
 

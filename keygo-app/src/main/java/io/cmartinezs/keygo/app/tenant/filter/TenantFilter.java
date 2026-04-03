@@ -1,36 +1,40 @@
 package io.cmartinezs.keygo.app.tenant.filter;
 
-import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
+import io.cmartinezs.keygo.app.shared.PageFilter;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
+import java.util.Set;
+import lombok.Getter;
 
 /**
- * Filter criteria for listing tenants.
- * <p>Criterios de filtro para listar tenants.
+ * Filter criteria for listing tenants with pagination and sorting.
+ * <p>Criterios de filtro para listar tenants con paginación y ordenamiento.
  *
  * @author cmartinezs
  * @version 1.0
  */
-public class TenantFilter {
+@Getter
+public class TenantFilter extends PageFilter {
 
-  /** Optional status filter. Null means "any status". */
+  private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+      "name", "status", "createdAt"
+  );
+
+  /** Optional status filter. Null means "any status".
+   * -- GETTER --
+   * Optional status filter. Null means "any status".
+   */
   private final TenantStatus status;
 
-  /** Optional partial match on name (case-insensitive). Null or blank means "no filter". */
+  /** Optional partial match on name (case-insensitive). Null or blank means "no filter".
+   * -- GETTER --
+   * Optional partial match on name. Null means "no filter".
+   */
   private final String nameLike;
 
-  /** Zero-based page number. Default 0. */
-  private final int page;
-
-  /** Page size. Default 20. */
-  private final int size;
-
-  private TenantFilter(TenantStatus status, String nameLike, int page, int size) {
-    if (page < 0) throw new InvalidPaginationParamException("page", "must be >= 0");
-    if (size < 1 || size > 200) throw new InvalidPaginationParamException("size", "must be between 1 and 200");
+  private TenantFilter(TenantStatus status, String nameLike, int page, int size, String sortBy, String sortOrder) {
+    super(page, size, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
     this.status = status;
     this.nameLike = (nameLike != null && nameLike.isBlank()) ? null : nameLike;
-    this.page = page;
-    this.size = size;
   }
 
   /**
@@ -40,33 +44,30 @@ public class TenantFilter {
    * @param nameLike optional partial name filter (case-insensitive)
    * @param page     zero-based page index (must be &ge; 0)
    * @param size     page size (1–200)
+   * @param sortBy   sortable field name or null
+   * @param sortOrder "ASC" or "DESC"
    * @return a new TenantFilter
    */
+  public static TenantFilter of(TenantStatus status, String nameLike, int page, int size, String sortBy, String sortOrder) {
+    return new TenantFilter(status, nameLike, page, size, sortBy, sortOrder);
+  }
+
+  /**
+   * Create a TenantFilter without sorting (backwards compatibility).
+   *
+   * @param status   optional status filter
+   * @param nameLike optional partial name filter (case-insensitive)
+   * @param page     zero-based page index (must be &ge; 0)
+   * @param size     page size (1–200)
+   * @return a new TenantFilter
+   * @deprecated Use of(status, nameLike, page, size, sortBy, sortOrder) instead
+   */
+  @Deprecated(forRemoval = false)
   public static TenantFilter of(TenantStatus status, String nameLike, int page, int size) {
-    return new TenantFilter(status, nameLike, page, size);
+    return new TenantFilter(status, nameLike, page, size, null, null);
   }
 
-  /** Optional status filter. Null means "any status". */
-  public TenantStatus getStatus() {
-    return status;
-  }
-
-  /** Optional partial match on name. Null means "no filter". */
-  public String getNameLike() {
-    return nameLike;
-  }
-
-  /** Zero-based page number. */
-  public int getPage() {
-    return page;
-  }
-
-  /** Page size. */
-  public int getSize() {
-    return size;
-  }
-
-  /** Returns true if a status filter is active. */
+    /** Returns true if a status filter is active. */
   public boolean hasStatus() {
     return status != null;
   }

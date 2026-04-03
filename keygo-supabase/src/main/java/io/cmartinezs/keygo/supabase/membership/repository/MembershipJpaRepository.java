@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Repository;
  * @version 1.0
  */
 @Repository
-public interface MembershipJpaRepository extends JpaRepository<MembershipEntity, UUID> {
+public interface MembershipJpaRepository extends JpaRepository<MembershipEntity, UUID>, JpaSpecificationExecutor<MembershipEntity> {
 
   /**
    * Find a membership by user ID and client app ID.

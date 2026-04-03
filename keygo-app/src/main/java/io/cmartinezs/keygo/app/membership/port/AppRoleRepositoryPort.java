@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.membership.port;
 
+import io.cmartinezs.keygo.app.role.filter.AppRoleFilter;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.membership.model.AppRole;
 import io.cmartinezs.keygo.domain.membership.model.AppRoleId;
 import io.cmartinezs.keygo.domain.membership.model.RoleCode;
@@ -73,5 +75,14 @@ public interface AppRoleRepositoryPort {
    * @param roleId the ID of the role to delete
    */
   void deleteById(AppRoleId roleId);
+
+  /**
+   * Find all app roles with pagination, filtering, and sorting.
+   * <p>Busca roles de app con paginación, filtrado y ordenamiento.
+   * @param clientAppId the client app scope
+   * @param filter pagination, filtering, and sorting criteria
+   * @return paginated result of roles
+   */
+  PagedResult<AppRole> findAllPaged(UUID clientAppId, AppRoleFilter filter);
 }
 

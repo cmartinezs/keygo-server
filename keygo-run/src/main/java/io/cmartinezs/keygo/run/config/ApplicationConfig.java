@@ -58,12 +58,14 @@ import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RegisterTenantUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResendVerificationEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
@@ -114,6 +116,7 @@ import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
 import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
+import io.cmartinezs.keygo.api.shared.LocaleContextFilter;
 import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
@@ -122,6 +125,8 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
@@ -287,6 +292,20 @@ public class ApplicationConfig {
       UserRepositoryPort userRepositoryPort,
       PasswordHasherPort passwordHasherPort) {
     return new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+  }
+
+  @Bean
+  public SuspendUserUseCase suspendUserUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort) {
+    return new SuspendUserUseCase(tenantRepositoryPort, userRepositoryPort);
+  }
+
+  @Bean
+  public ActivateUserUseCase activateUserUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort) {
+    return new ActivateUserUseCase(tenantRepositoryPort, userRepositoryPort);
   }
 
   @Bean
@@ -827,6 +846,52 @@ public class ApplicationConfig {
     registration.addUrlPatterns("/*");
     registration.setName("requestTracingFilter");
     return registration;
+  }
+
+  // ─── i18n: LocaleContextFilter ────────────────────────────────────────────
+
+  /**
+   * Registers {@link LocaleContextFilter} to resolve and propagate user locale
+   * from Accept-Language header.
+   *
+   * <p>Filter runs after RequestTracingFilter (order = HIGHEST_PRECEDENCE + 1) to ensure
+   * tracing context is already set. Locale is stored in LocaleContextHolder for use
+   * by error handlers and other components during request processing.
+   *
+   * <p>Supports: es, en, pt, fr. Falls back to en-US if header is missing or language
+   * is unsupported.
+   */
+  @Bean
+  public FilterRegistrationBean<LocaleContextFilter> localeContextFilterRegistration(
+      LocaleContextFilter localeContextFilter) {
+    FilterRegistrationBean<LocaleContextFilter> registration = new FilterRegistrationBean<>();
+    registration.setFilter(localeContextFilter);
+    registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+    registration.addUrlPatterns("/*");
+    registration.setName("localeContextFilter");
+    return registration;
+  }
+
+  // ─── i18n: MessageSource para traducciones ────────────────────────────────
+
+  /**
+   * Configures message source for i18n error messages.
+   *
+   * <p>Loads messages from `classpath:i18n/messages_XX.properties` with hot reload
+   * support in development. Cache TTL is 3600 seconds in production to balance
+   * between fresh content and performance.
+   *
+   * <p>Supports: messages.properties (en-US fallback), messages_es.properties,
+   * messages_es_CL.properties, messages_en_US.properties, messages_pt_BR.properties,
+   * messages_fr.properties.
+   */
+  @Bean
+  public MessageSource messageSource() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setCacheSeconds(3600); // Cache 1 hour; hot reload disabled in prod
+    return ms;
   }
 
     @Bean

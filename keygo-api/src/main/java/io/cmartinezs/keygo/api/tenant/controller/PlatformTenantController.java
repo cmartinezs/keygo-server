@@ -77,7 +77,7 @@ public class PlatformTenantController {
   @Operation(
       summary = "List all tenants",
       description = "Returns a paginated list of all tenants. Supports optional filtering by "
-                    + "status and partial name match. Requires ADMIN role.")
+                    + "status and partial name match, plus sorting. Requires ADMIN role.")
   @ApiResponse(responseCode = "200", description = "Tenant list retrieved successfully (code: TENANT_LIST_RETRIEVED)")
   @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
@@ -91,9 +91,13 @@ public class PlatformTenantController {
       @Parameter(description = "Zero-based page number", example = "0")
       @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size (1–200)", example = "20")
-      @RequestParam(defaultValue = "20") int size) {
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (name, status, createdAt)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
 
-    TenantFilter filter = TenantFilter.of(status, nameLike, page, size);
+    TenantFilter filter = TenantFilter.of(status, nameLike, page, size, sort, order);
     PagedResult<Tenant> result = listTenantsUseCase.execute(filter);
 
     List<TenantData> content = result.getContent().stream()

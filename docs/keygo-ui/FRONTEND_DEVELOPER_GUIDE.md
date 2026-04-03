@@ -2284,7 +2284,7 @@ Reglas rápidas de interpretación en frontend:
 
 | Caso de uso | Método | Endpoint | Auth | Estado |
 |---|---|---|---|---|
-| Listar tenants (paginado) | GET | `/api/v1/tenants?status=&name_like=&page=0&size=20` | Bearer ADMIN | ✅ |
+| Listar tenants (paginado) | GET | `/api/v1/tenants?status=&name_like=&page=0&size=20&sort=&order=` | Bearer ADMIN | ✅ |
 | Crear tenant | POST | `/api/v1/tenants` | Bearer ADMIN | ✅ |
 | Ver tenant | GET | `/api/v1/tenants/{slug}` | Bearer ADMIN | ✅ |
 | Suspender tenant | PUT | `/api/v1/tenants/{slug}/suspend` | Bearer ADMIN | ✅ |
@@ -2298,6 +2298,8 @@ Reglas rápidas de interpretación en frontend:
 | `name_like` | string | — | Búsqueda parcial en nombre (case-insensitive) |
 | `page` | int | `0` | Página (base 0) |
 | `size` | int | `20` | Tamaño (1–200) |
+| `sort` | `name\|status\|createdAt` | — | Campo a ordenar (opcional) |
+| `order` | `ASC\|DESC` | `ASC` | Dirección de ordenamiento |
 
 ---
 
@@ -2305,11 +2307,22 @@ Reglas rápidas de interpretación en frontend:
 
 | Caso de uso | Método | Endpoint | Auth | Estado |
 |---|---|---|---|---|
-| Listar apps | GET | `/api/v1/tenants/{slug}/apps` | Bearer ADMIN/ADMIN_TENANT | ✅ |
+| Listar apps (paginado) | GET | `/api/v1/tenants/{slug}/apps?status=&name_like=&page=0&size=20&sort=&order=` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Crear app | POST | `/api/v1/tenants/{slug}/apps` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Ver app | GET | `/api/v1/tenants/{slug}/apps/{clientId}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Actualizar app | PUT | `/api/v1/tenants/{slug}/apps/{clientId}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Rotar secret | POST | `/api/v1/tenants/{slug}/apps/{clientId}/rotate-secret` | Bearer ADMIN/ADMIN_TENANT | ✅ |
+
+**Query params de listado (todos snake_case):**
+
+| Param | Tipo | Por defecto | Descripción |
+|---|---|---|---|
+| `status` | `ACTIVE\|SUSPENDED` | — | Filtro por estado |
+| `name_like` | string | — | Búsqueda parcial en nombre (case-insensitive) |
+| `page` | int | `0` | Página (base 0) |
+| `size` | int | `20` | Tamaño (1–200) |
+| `sort` | `name\|status\|createdAt` | — | Campo a ordenar (opcional) |
+| `order` | `ASC\|DESC` | `ASC` | Dirección de ordenamiento |
 
 ---
 
@@ -2317,8 +2330,18 @@ Reglas rápidas de interpretación en frontend:
 
 | Caso de uso | Método | Endpoint | Auth | Estado |
 |---|---|---|---|---|
-| Listar roles | GET | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | Bearer ADMIN/ADMIN_TENANT | ✅ |
+| Listar roles (paginado) | GET | `/api/v1/tenants/{slug}/apps/{clientId}/roles?name_like=&page=0&size=20&sort=&order=` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Crear rol | POST | `/api/v1/tenants/{slug}/apps/{clientId}/roles` | Bearer ADMIN/ADMIN_TENANT | ✅ |
+
+**Query params de listado (todos snake_case):**
+
+| Param | Tipo | Por defecto | Descripción |
+|---|---|---|---|
+| `name_like` | string | — | Búsqueda parcial en nombre (case-insensitive) |
+| `page` | int | `0` | Página (base 0) |
+| `size` | int | `20` | Tamaño (1–200) |
+| `sort` | `name\|createdAt` | — | Campo a ordenar (opcional) |
+| `order` | `ASC\|DESC` | `ASC` | Dirección de ordenamiento |
 
 ---
 
@@ -2326,7 +2349,7 @@ Reglas rápidas de interpretación en frontend:
 
 | Caso de uso | Método | Endpoint | Auth | Estado |
 |---|---|---|---|---|
-| Listar usuarios | GET | `/api/v1/tenants/{slug}/users` | Bearer ADMIN/ADMIN_TENANT | ✅ |
+| Listar usuarios (paginado) | GET | `/api/v1/tenants/{slug}/users?status=&username_like=&email_like=&page=0&size=20&sort=&order=` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Crear usuario | POST | `/api/v1/tenants/{slug}/users` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Ver usuario | GET | `/api/v1/tenants/{slug}/users/{userId}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Actualizar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
@@ -2335,23 +2358,38 @@ Reglas rápidas de interpretación en frontend:
 | Activar usuario | PUT | `/api/v1/tenants/{slug}/users/{userId}/activate` | Bearer ADMIN/ADMIN_TENANT | ⏳ T-033 |
 | Ver sesiones del usuario | GET | `/api/v1/tenants/{slug}/users/{userId}/sessions` | Bearer ADMIN/ADMIN_TENANT | ⏳ Pendiente (T-072) |
 
+**Query params de listado (todos snake_case):**
+
+| Param | Tipo | Por defecto | Descripción |
+|---|---|---|---|
+| `status` | `ACTIVE\|INACTIVE` | — | Filtro por estado |
+| `username_like` | string | — | Búsqueda parcial en nombre de usuario (case-insensitive) |
+| `email_like` | string | — | Búsqueda parcial en email (case-insensitive) |
+| `page` | int | `0` | Página (base 0) |
+| `size` | int | `20` | Tamaño (1–200) |
+| `sort` | `username\|email\|status\|createdAt` | — | Campo a ordenar (opcional) |
+| `order` | `ASC\|DESC` | `ASC` | Dirección de ordenamiento |
+
 ---
 
 #### 14.2.5. Memberships
 
 | Caso de uso | Método | Endpoint | Auth | Estado |
 |---|---|---|---|---|
-| Listar por app (`client_app_id`) | GET | `/api/v1/tenants/{slug}/memberships?client_app_id={uuid}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
-| Listar por usuario (`user_id`) | GET | `/api/v1/tenants/{slug}/memberships?user_id={uuid}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
+| Listar memberships (paginado) | GET | `/api/v1/tenants/{slug}/memberships?user_id=&client_app_id=&page=0&size=20&sort=&order=` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Crear membership | POST | `/api/v1/tenants/{slug}/memberships` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 | Revocar membership | DELETE | `/api/v1/tenants/{slug}/memberships/{id}` | Bearer ADMIN/ADMIN_TENANT | ✅ |
 
-**Query params (snake_case obligatorio):**
+**Query params de listado (todos snake_case):**
 
-| Param HTTP | Tipo | Descripción |
-|---|---|---|
-| `user_id` | UUID string | Filtrar memberships por ID de usuario |
-| `client_app_id` | UUID string | Filtrar memberships por ID de app |
+| Param | Tipo | Por defecto | Descripción |
+|---|---|---|---|
+| `user_id` | UUID string | — | Filtrar memberships por ID de usuario |
+| `client_app_id` | UUID string | — | Filtrar memberships por ID de app |
+| `page` | int | `0` | Página (base 0) |
+| `size` | int | `20` | Tamaño (1–200) |
+| `sort` | `createdAt` | — | Campo a ordenar (opcional) |
+| `order` | `ASC\|DESC` | `ASC` | Dirección de ordenamiento |
 
 ---
 

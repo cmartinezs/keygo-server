@@ -5,10 +5,14 @@ import io.cmartinezs.keygo.api.user.request.ResetPasswordRequest;
 import io.cmartinezs.keygo.api.user.request.UpdateUserRequest;
 import io.cmartinezs.keygo.api.user.request.ValidateCredentialsRequest;
 import io.cmartinezs.keygo.api.user.response.UserData;
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.app.user.filter.UserFilter;
+import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -31,6 +35,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +49,8 @@ class TenantUserControllerTest {
   @Mock UpdateUserUseCase updateUserUseCase;
   @Mock ResetUserPasswordUseCase resetUserPasswordUseCase;
   @Mock ValidateUserCredentialsUseCase validateUserCredentialsUseCase;
+  @Mock SuspendUserUseCase suspendUserUseCase;
+  @Mock ActivateUserUseCase activateUserUseCase;
 
   private TenantUserController controller;
   private User sampleUser;
@@ -52,7 +59,8 @@ class TenantUserControllerTest {
   void setUp() {
     controller = new TenantUserController(
         createUserUseCase, listUsersUseCase, getUserUseCase,
-        updateUserUseCase, resetUserPasswordUseCase, validateUserCredentialsUseCase);
+        updateUserUseCase, resetUserPasswordUseCase, validateUserCredentialsUseCase,
+        suspendUserUseCase, activateUserUseCase);
 
     sampleUser = User.builder()
         .id(UserId.of(UUID.randomUUID()))
@@ -81,15 +89,16 @@ class TenantUserControllerTest {
   @Test
   void listUsersReturns200() {
     // Given
-    when(listUsersUseCase.execute(TENANT_SLUG)).thenReturn(List.of(sampleUser));
+    PagedResult<User> pagedResult = PagedResult.of(List.of(sampleUser), 0, 20, 1);
+    when(listUsersUseCase.execute(eq(TENANT_SLUG), any(UserFilter.class))).thenReturn(pagedResult);
 
     // When
-    var response = controller.listUsers(TENANT_SLUG);
+    var response = controller.listUsers(TENANT_SLUG, null, null, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData()).hasSize(1);
+    assertThat(response.getBody().getData().getContent()).hasSize(1);
   }
 
   @Test
@@ -140,6 +149,52 @@ class TenantUserControllerTest {
 
     // When
     var response = controller.validateCredentials(TENANT_SLUG, new ValidateCredentialsRequest("john@acme.com", "secret123"));
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData().getStatus()).isEqualTo("ACTIVE");
+  }
+
+  @Test
+  void suspendUserReturns200() {
+    // Given
+    User suspendedUser = User.builder()
+        .id(sampleUser.getId())
+        .tenantId(sampleUser.getTenantId())
+        .username(sampleUser.getUsername())
+        .email(sampleUser.getEmail())
+        .passwordHash(sampleUser.getPasswordHash())
+        .firstName("John").lastName("Doe")
+        .status(UserStatus.SUSPENDED)
+        .build();
+    when(suspendUserUseCase.execute(any(), any())).thenReturn(suspendedUser);
+
+    // When
+    var response = controller.suspendUser(TENANT_SLUG, sampleUser.getId().toString());
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getData().getStatus()).isEqualTo("SUSPENDED");
+  }
+
+  @Test
+  void activateUserReturns200() {
+    // Given
+    User activeUser = User.builder()
+        .id(sampleUser.getId())
+        .tenantId(sampleUser.getTenantId())
+        .username(sampleUser.getUsername())
+        .email(sampleUser.getEmail())
+        .passwordHash(sampleUser.getPasswordHash())
+        .firstName("John").lastName("Doe")
+        .status(UserStatus.ACTIVE)
+        .build();
+    when(activateUserUseCase.execute(any(), any())).thenReturn(activeUser);
+
+    // When
+    var response = controller.activateUser(TENANT_SLUG, sampleUser.getId().toString());
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

@@ -256,7 +256,7 @@ class GlobalExceptionHandlerTest {
   void handlePasswordRecoveryTokenExpiredException_returns422() {
     var ex = new PasswordRecoveryTokenExpiredException();
     var response = handler.handlePasswordRecoveryTokenExpiredException(ex);
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
   }
@@ -265,7 +265,7 @@ class GlobalExceptionHandlerTest {
   void handlePasswordRecoveryTokenAlreadyUsedException_returns422() {
     var ex = new PasswordRecoveryTokenAlreadyUsedException();
     var response = handler.handlePasswordRecoveryTokenAlreadyUsedException(ex);
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
   }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Repository;
  * @version 1.0
  */
 @Repository
-public interface AppRoleJpaRepository extends JpaRepository<AppRoleEntity, UUID> {
+public interface AppRoleJpaRepository extends JpaRepository<AppRoleEntity, UUID>, JpaSpecificationExecutor<AppRoleEntity> {
 
   /**
    * Find a role by client app ID and role code.

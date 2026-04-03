@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.app.clientapp.usecase;
 
+import io.cmartinezs.keygo.app.clientapp.filter.ClientAppFilter;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
@@ -10,8 +12,8 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import java.util.List;
 
 /**
- * Use case: list all client applications belonging to a tenant.
- * <p>Caso de uso: listar todas las aplicaciones cliente de un tenant.
+ * Use case: list client applications with pagination, filtering, and sorting.
+ * <p>Caso de uso: listar aplicaciones cliente con paginación, filtrado y ordenamiento.
  * @author cmartinezs
  * @version 1.0
  */
@@ -28,17 +30,18 @@ public class ListClientAppsUseCase {
   }
 
   /**
-   * Execute the use case.
+   * Execute the use case with filtering, sorting, and pagination.
    * @param tenantSlug the tenant slug
-   * @return list of client apps for the tenant
+   * @param filter filter criteria with pagination and sorting
+   * @return paginated result of client apps
    * @throws TenantNotFoundException if the tenant does not exist
    */
-  public List<ClientApp> execute(String tenantSlug) {
+  public PagedResult<ClientApp> execute(String tenantSlug, ClientAppFilter filter) {
     Tenant tenant = tenantRepositoryPort
         .findBySlug(TenantSlug.of(tenantSlug))
         .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
 
-    return clientAppRepositoryPort.findAllByTenantId(tenant.getId());
+    return clientAppRepositoryPort.findAllPaged(tenant.getId(), filter);
   }
 }
 

@@ -105,5 +105,48 @@ class ServiceInfoPropertiesTest {
         assertThat(properties.getName()).isEqualTo("updated-name");
         assertThat(properties.getVersion()).isEqualTo("2.0");
     }
+
+    // ─── T-069: getEnvironment() y getStatus() ────────────────────────────────
+
+    @Test
+    void getStatus_shouldAlwaysReturnUp() {
+        // When / Then
+        assertThat(properties.getStatus()).isEqualTo("UP");
+    }
+
+    @Test
+    void getEnvironment_shouldReturnDefaultWhenNoProfilesActive() {
+        // Given — sin perfiles activos → springEnvironment devuelve array vacío
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment();
+        properties.setSpringEnvironment(env);
+
+        // When / Then
+        assertThat(properties.getEnvironment()).isEqualTo("default");
+    }
+
+    @Test
+    void getEnvironment_shouldReturnActiveProfileName() {
+        // Given
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment();
+        env.setActiveProfiles("supabase");
+        properties.setSpringEnvironment(env);
+
+        // When / Then
+        assertThat(properties.getEnvironment()).isEqualTo("supabase");
+    }
+
+    @Test
+    void getEnvironment_shouldReturnCommaSeparatedProfilesWhenMultipleActive() {
+        // Given
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment();
+        env.setActiveProfiles("supabase", "dev");
+        properties.setSpringEnvironment(env);
+
+        // When
+        String result = properties.getEnvironment();
+
+        // Then
+        assertThat(result).contains("supabase").contains("dev").contains(",");
+    }
 }
 

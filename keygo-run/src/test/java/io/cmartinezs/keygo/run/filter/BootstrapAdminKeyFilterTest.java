@@ -430,6 +430,67 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 
+  // ─── Regression: billing catalog and contracts public paths (T-082) ─────────
+
+  @Test
+  void doFilterInternal_shouldAllowBillingCatalogPathWithoutAuth()
+      throws ServletException, IOException {
+    // Given — hasSuffix: path must END with /billing/catalog
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getBillingCatalogPathSuffix()).thenReturn("/billing/catalog");
+    request.setServletPath("/api/v1/billing/catalog");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/api/v1/billing/contracts",
+      "/api/v1/billing/contracts/abc123/verify-email"
+  })
+  void doFilterInternal_shouldAllowBillingContractsPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getBillingContractsPathSuffix()).thenReturn("/billing/contracts");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Regression: OIDC userinfo and revocation endpoints (T-034) ────────────
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/api/v1/tenants/keygo/oauth2/userinfo",
+      "/api/v1/tenants/keygo/oauth2/revoke"
+  })
+  void doFilterInternal_shouldAllowUserinfoAndRevokePathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getUserInfoPathSuffix()).thenReturn("/userinfo");
+    lenient().when(bootstrapProperties.getRevocationPathSuffix()).thenReturn("/oauth2/revoke");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
   // ─── Non-API paths ─────────────────────────────────────────────────────────
 
   @Test

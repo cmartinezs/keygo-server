@@ -55,11 +55,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
   @Override
   public PagedResult<Tenant> findAll(TenantFilter filter) {
     Specification<TenantEntity> spec = buildSpecification(filter);
-    PageRequest pageRequest = PageRequest.of(
-        filter.getPage(),
-        filter.getSize(),
-        Sort.by(Sort.Direction.ASC, "name")
-    );
+    PageRequest pageRequest = buildPageRequest(filter);
 
     Page<TenantEntity> page = jpaRepository.findAll(spec, pageRequest);
 
@@ -89,6 +85,14 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
 
       return cb.and(predicates.toArray(new Predicate[0]));
     };
+  }
+
+  private PageRequest buildPageRequest(TenantFilter filter) {
+    if (filter.hasSorting()) {
+      Sort.Direction direction = Sort.Direction.fromString(filter.getSortOrder());
+      return PageRequest.of(filter.getPage(), filter.getSize(), Sort.by(direction, filter.getSortBy()));
+    }
+    return PageRequest.of(filter.getPage(), filter.getSize());
   }
 }
 

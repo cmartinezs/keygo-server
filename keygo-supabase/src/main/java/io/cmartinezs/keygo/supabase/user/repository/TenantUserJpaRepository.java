@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.supabase.user.repository;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +19,7 @@ import java.util.UUID;
  * @version 1.0
  */
 @Repository
-public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity, UUID> {
+public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity, UUID>, JpaSpecificationExecutor<TenantUserEntity> {
 
   /**
    * Find a user by its UUID and tenant ID.

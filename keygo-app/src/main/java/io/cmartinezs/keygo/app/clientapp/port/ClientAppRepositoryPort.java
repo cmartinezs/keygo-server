@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.clientapp.port;
 
+import io.cmartinezs.keygo.app.clientapp.filter.ClientAppFilter;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -58,5 +60,14 @@ public interface ClientAppRepositoryPort {
    * @return true if the clientId is already in use
    */
   boolean existsByClientId(ClientId clientId);
+
+  /**
+   * Find all client applications with pagination, filtering, and sorting.
+   * <p>Busca aplicaciones cliente con paginación, filtrado y ordenamiento.
+   * @param tenantId the tenant scope
+   * @param filter pagination, filtering, and sorting criteria
+   * @return paginated result of client apps (may be empty)
+   */
+  PagedResult<ClientApp> findAllPaged(TenantId tenantId, ClientAppFilter filter);
 }
 

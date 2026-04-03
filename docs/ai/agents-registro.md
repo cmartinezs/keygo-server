@@ -20,9 +20,19 @@
 
 ## Registro de cambios
 
+### [2026-04-03] Corrección `logback-spring.xml` — fix `%clr`, appenders por perfil, caracteres literales
+
+- **`logback-spring.xml`:** tres bugs de Logback corregidos en la misma sesión:
+  1. `%clr` no registrado → agregado `<include resource="org/springframework/boot/logging/logback/defaults.xml"/>` al inicio del archivo.
+  2. Appender `CONSOLE` definido globalmente pero referenciado solo en `<springProfile>` → movida la definición dentro del bloque de perfil que lo usa.
+  3. `\[` / `\]` en el patrón causaba `Illegal char '['` → eliminadas barras de escape (los corchetes son literales en Logback).
+- **`GlobalExceptionHandlerTest.java`:** `HttpStatus.UNPROCESSABLE_ENTITY` → `HttpStatus.UNPROCESSABLE_CONTENT` (renombrado en Spring Boot 4 / RFC 9110).
+- **`logback-spring.xml` (mejoras de diseño):** condición cambiada de `!local` a `!(desa | prod)` para que el perfil `default` también use la consola colorida; `<springProfile name="desa | prod">` agrega archivo JSON rotativo diario (via `LogstashEncoder`) + consola mínima WARN+. `management.metrics.web.server.request.autotime` eliminado (deprecado en Spring Boot 4, habilitado por defecto vía `WebMvcObservationAutoConfiguration`).
+- **Header unificado:** `X-Request-ID` (entrada) y `X-Trace-ID` (salida) unificados en un solo header simétrico `X-Trace-ID` en ambas direcciones — `RequestTracingFilter` lo reutiliza si viene en el request o genera un UUID nuevo.
+
 ### [2026-04-02] Trazabilidad end-to-end: RequestTracingFilter + MDC enriquecido + logback-spring.xml
 
-- **Nuevo filtro:** `RequestTracingFilter` (`keygo-run/filter/`) — genera `traceId` UUID (o reutiliza `X-Request-ID` del cliente), pone en MDC `traceId`/`method`/`path`, agrega `X-Trace-ID` al response, limpia MDC en `finally`.
+- **Nuevo filtro:** `RequestTracingFilter` (`keygo-run/filter/`) — genera `traceId` UUID (o reutiliza header `X-Trace-ID` del cliente), pone en MDC `traceId`/`method`/`path`, agrega `X-Trace-ID` al response (simétrico), limpia MDC en `finally`.
 - **`BootstrapAdminKeyFilter`:** agrega `MDC.put("userId", sub)` tras validar JWT, limpia en `finally`. Nuevo método privado `enrichMdcWithUserId()`.
 - **`TenantResolutionFilter`:** agrega `MDC.put("tenantSlug", ...)` tras resolver tenant, limpia en `finally`.
 - **`ErrorData.java`:** nuevo campo `traceId` (posición 0 del builder, `@JsonInclude(NON_NULL)` heredado).

@@ -115,6 +115,11 @@ switch_environment() {
         DB_PORT=$(grep "^SUPABASE_DB_PORT=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
         DB_NAME=$(grep "^SUPABASE_DB_NAME=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
         SERVER_PORT=$(grep "^SERVER_PORT=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        SMTP_HOST=$(grep "^SMTP_HOST=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        SMTP_PORT=$(grep "^SMTP_PORT=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        SMTP_USERNAME=$(grep "^SMTP_USERNAME=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        MAIL_FROM=$(grep "^KEYGO_MAIL_FROM=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
+        MAIL_APP_NAME=$(grep "^KEYGO_MAIL_APP_NAME=" "$ENV_TARGET" 2>/dev/null | cut -d'=' -f2)
 
         echo -e "  Environment:      ${YELLOW}$ENV_NAME${NC}"
         echo -e "  Spring Profiles:  ${YELLOW}$PROFILES${NC}"
@@ -122,6 +127,14 @@ switch_environment() {
         [ -n "$DB_HOST" ] && echo -e "  Database Host:    ${YELLOW}$DB_HOST${NC}"
         [ -n "$DB_PORT" ] && echo -e "  Database Port:    ${YELLOW}$DB_PORT${NC}"
         [ -n "$DB_NAME" ] && echo -e "  Database Name:    ${YELLOW}$DB_NAME${NC}"
+        if [ -n "$SMTP_HOST" ] || [ -n "$SMTP_PORT" ] || [ -n "$SMTP_USERNAME" ]; then
+            echo "  ─────────────────────────────────────────────────"
+            [ -n "$SMTP_HOST" ]     && echo -e "  SMTP Host:        ${YELLOW}$SMTP_HOST${NC}"
+            [ -n "$SMTP_PORT" ]     && echo -e "  SMTP Port:        ${YELLOW}$SMTP_PORT${NC}"
+            [ -n "$SMTP_USERNAME" ] && echo -e "  SMTP Username:    ${YELLOW}$SMTP_USERNAME${NC}"
+            [ -n "$MAIL_FROM" ]     && echo -e "  Mail From:        ${YELLOW}$MAIL_FROM${NC}"
+            [ -n "$MAIL_APP_NAME" ] && echo -e "  Mail App Name:    ${YELLOW}$MAIL_APP_NAME${NC}"
+        fi
     fi
 
     echo ""

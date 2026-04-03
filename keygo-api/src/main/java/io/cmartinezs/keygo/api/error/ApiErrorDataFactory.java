@@ -4,14 +4,35 @@ import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.domain.shared.exception.KeyGoException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import java.util.List;
+import java.util.Locale;
 import org.slf4j.MDC;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 
+@Component
 public final class ApiErrorDataFactory {
 
-  private ApiErrorDataFactory() {
+  private static ApiErrorDataFactory instance;
+  private final MessageSource messageSource;
+
+  /**
+   * Constructor with optional MessageSource injection.
+   * If no MessageSource bean is available, the factory will use hardcoded fallback messages.
+   */
+  public ApiErrorDataFactory(MessageSource messageSource) {
+    this.messageSource = messageSource;
+    ApiErrorDataFactory.instance = this;
+  }
+
+  /**
+   * No-arg constructor for tests or contexts where MessageSource is not available.
+   */
+  public ApiErrorDataFactory() {
+    this(null);
   }
 
   public static ErrorData fromException(
@@ -85,24 +106,67 @@ public final class ApiErrorDataFactory {
   }
 
   private static String clientMessage(ResponseCode responseCode) {
+    if (instance != null) {
+      try {
+        return instance.getLocalizedMessage(responseCode);
+      } catch (Exception e) {
+        // If localization fails, fall back to default message
+        return getDefaultMessage(responseCode);
+      }
+    }
+    // Fallback si el bean no se ha inicializado (ej. en tests sin Spring context)
+    return getDefaultMessage(responseCode);
+  }
+
+  /**
+   * Gets localized message for a response code using current locale from LocaleContextHolder.
+   * If no MessageSource is available, returns hardcoded fallback message.
+   *
+   * @param responseCode Response code to localize
+   * @return Localized message
+   */
+  private String getLocalizedMessage(ResponseCode responseCode) {
+    if (messageSource == null) {
+      return getDefaultMessage(responseCode);
+    }
+
+    Locale locale = LocaleContextHolder.getLocale();
+    if (locale == null) {
+      locale = Locale.US; // Fallback to en-US
+    }
+
+    String key = "error." + responseCode.getCode();
+    try {
+      return messageSource.getMessage(key, null, locale);
+    } catch (Exception e) {
+      // If message not found, return default message for this code
+      return getDefaultMessage(responseCode);
+    }
+  }
+
+  /**
+   * Default hardcoded message (fallback if properties file is missing).
+   * Kept for backward compatibility and as last-resort fallback.
+   */
+  private static String getDefaultMessage(ResponseCode responseCode) {
     return switch (responseCode) {
-      case AUTHENTICATION_REQUIRED -> "No pudimos validar tu sesión. Inicia sesión nuevamente.";
-      case INVALID_INPUT -> "Revisa los datos enviados e intenta otra vez.";
-      case RESOURCE_NOT_FOUND -> "No encontramos el recurso solicitado.";
-      case BUSINESS_RULE_VIOLATION -> "No se puede completar la operación con el estado actual.";
-      case DUPLICATE_RESOURCE -> "El recurso ya existe.";
-      case INSUFFICIENT_PERMISSIONS -> "No tienes permisos para realizar esta acción.";
-      case EMAIL_NOT_VERIFIED -> "Debes verificar tu correo antes de iniciar sesión.";
-      case EMAIL_VERIFICATION_EXPIRED -> "El código de verificación expiro. Solicita uno nuevo.";
-      case EMAIL_VERIFICATION_STILL_ACTIVE -> "Ya tienes un código vigente. Espera antes de solicitar otro.";
+      case AUTHENTICATION_REQUIRED -> "We couldn't validate your session. Please sign in again.";
+      case INVALID_INPUT -> "Please review the data you sent and try again.";
+      case RESOURCE_NOT_FOUND -> "We couldn't find the resource you requested.";
+      case BUSINESS_RULE_VIOLATION -> "This operation can't be completed in the current state.";
+      case DUPLICATE_RESOURCE -> "This resource already exists.";
+      case INSUFFICIENT_PERMISSIONS -> "You don't have permission to perform this action.";
+      case EMAIL_NOT_VERIFIED -> "You must verify your email before signing in.";
+      case EMAIL_VERIFICATION_EXPIRED -> "The verification code has expired. Request a new one.";
+      case EMAIL_VERIFICATION_STILL_ACTIVE -> "You already have an active code. Wait before requesting another.";
       case CONTRACT_NOT_FOUND, PROVIDER_APP_NOT_FOUND,
-          PLAN_VERSION_NOT_FOUND, SUBSCRIPTION_NOT_FOUND -> "No encontramos el recurso solicitado.";
-      case CONTRACT_INVALID_STATE -> "El contrato no puede procesarse en su estado actual.";
-      case SUBSCRIPTION_INVALID_STATE -> "La suscripción no está activa y no puede ser cancelada.";
-      case UNSUPPORTED_PKCE_METHOD -> "El método PKCE solicitado no es compatible.";
-      case CLIENT_APP_INACTIVE -> "La aplicación cliente no está activa.";
-      case DUPLICATE_TENANT -> "Ya existe un tenant con ese identificador.";
-      default -> "No pudimos completar la solicitud. Intenta de nuevo en unos minutos.";
+          PLAN_VERSION_NOT_FOUND, SUBSCRIPTION_NOT_FOUND -> "We couldn't find the requested resource.";
+      case CONTRACT_INVALID_STATE -> "The contract can't be processed in its current state.";
+      case SUBSCRIPTION_INVALID_STATE -> "The subscription is not active and can't be cancelled.";
+      case UNSUPPORTED_PKCE_METHOD -> "The requested PKCE method is not supported.";
+      case CLIENT_APP_INACTIVE -> "The client application is not active.";
+      case DUPLICATE_TENANT -> "A tenant with that identifier already exists.";
+      default -> "We couldn't complete the request. Try again in a few moments.";
     };
   }
 

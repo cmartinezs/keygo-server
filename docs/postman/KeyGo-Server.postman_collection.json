@@ -693,7 +693,7 @@
               }
             ],
             "url": {
-              "raw": "{{fullBaseUrl}}/api/v1/tenants?page=0&size=20",
+              "raw": "{{fullBaseUrl}}/api/v1/tenants?page=0&size=20&sort=name&order=asc",
               "host": [
                 "{{fullBaseUrl}}"
               ],
@@ -724,6 +724,18 @@
                   "key": "size",
                   "value": "20",
                   "description": "Tamaño de página (1-200)."
+                },
+                {
+                  "key": "sort",
+                  "value": "name",
+                  "description": "Campo de ordenamiento (name, status, createdAt). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Orden (asc o desc). Opcional.",
+                  "disabled": true
                 }
               ]
             },
@@ -1881,8 +1893,8 @@
                   "    pm.expect(body.success).to.have.property('code', 'CLIENT_APP_LIST_RETRIEVED');",
                   "});",
                   "",
-                  "pm.test('data es un array', function () {",
-                  "    pm.expect(body.data).to.be.an('array');",
+                  "pm.test('data.content es un array', function () {",
+                  "    pm.expect(body.data.content).to.be.an('array');",
                   "});"
                 ]
               }
@@ -1897,7 +1909,7 @@
               }
             ],
             "url": {
-              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps",
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps?page=0&size=20&sort=name&order=asc",
               "host": [
                 "{{fullBaseUrl}}"
               ],
@@ -1907,9 +1919,45 @@
                 "tenants",
                 "{{tenantSlug}}",
                 "apps"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "Filtrar por estado (ACTIVE, INACTIVE). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "name_like",
+                  "value": "",
+                  "description": "Búsqueda parcial en nombre de la app (case-insensitive). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Número de página (base 0)."
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Tamaño de página (1-200)."
+                },
+                {
+                  "key": "sort",
+                  "value": "name",
+                  "description": "Campo de ordenamiento (name, status, createdAt). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Orden (asc o desc). Opcional.",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Lista todas las aplicaciones cliente registradas bajo el tenant."
+            "description": "Lista todas las aplicaciones cliente registradas bajo el tenant con paginación y filtros opcionales.\n\n**Query params:**\n- `status` (opcional): `ACTIVE`, `INACTIVE`\n- `name_like` (opcional): búsqueda parcial en nombre (case-insensitive)\n- `page` (default 0): número de página (base 0)\n- `size` (default 20): tamaño de página (1–200)\n- `sort` (opcional): campo de ordenamiento (name, status, createdAt)\n- `order` (opcional): orden (asc o desc)\n\n**ResponseCode esperado:** `CLIENT_APP_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "response": []
         },
@@ -2149,6 +2197,88 @@
             "description": "Crea un rol dentro de la app del tenant. Requiere `X-KEYGO-ADMIN` o Bearer JWT con rol admin."
           },
           "response": []
+        },
+        {
+          "name": "GET List App Roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('BaseResponse tiene success y data', function () {",
+                  "    pm.expect(body).to.have.property('success');",
+                  "    pm.expect(body).to.have.property('data');",
+                  "});",
+                  "",
+                  "pm.test('success.code es ROLE_LIST_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'ROLE_LIST_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data.content es una lista', function () {",
+                  "    pm.expect(body.data.content).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/{{clientId}}/roles?page=0&size=20&sort=name&order=asc",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "{{clientId}}",
+                "roles"
+              ],
+              "query": [
+                {
+                  "key": "name_like",
+                  "value": "",
+                  "description": "Búsqueda parcial en nombre del rol (case-insensitive). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Número de página (base 0)."
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Tamaño de página (1-200)."
+                },
+                {
+                  "key": "sort",
+                  "value": "name",
+                  "description": "Campo de ordenamiento (name, createdAt). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Orden (asc o desc). Opcional.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista los roles de una app del tenant con paginación y filtros opcionales. Requiere Bearer JWT con rol admin.\n\n**Query params:**\n- `name_like` (opcional): búsqueda parcial en nombre (case-insensitive)\n- `page` (default 0): número de página (base 0)\n- `size` (default 20): tamaño de página (1–200)\n- `sort` (opcional): campo de ordenamiento (name, createdAt)\n- `order` (opcional): orden (asc o desc)\n\n**ResponseCode esperado:** `ROLE_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "response": []
         }
       ]
     },
@@ -2228,10 +2358,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('BaseResponse con lista', () => {",
+                  "pm.test('BaseResponse con lista paginada', () => {",
                   "  const body = pm.response.json();",
                   "  pm.expect(body).to.have.property('success');",
-                  "  pm.expect(body.data).to.be.an('array');",
+                  "  pm.expect(body.data).to.have.property('content').that.is.an('array');",
+                  "  pm.expect(body.data).to.have.property('page');",
+                  "  pm.expect(body.data).to.have.property('size');",
                   "});"
                 ]
               }
@@ -2240,7 +2372,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users",
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/users?page=0&size=20&sort=username&order=asc",
               "host": [
                 "{{fullBaseUrl}}"
               ],
@@ -2250,9 +2382,51 @@
                 "tenants",
                 "{{tenantSlug}}",
                 "users"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "Filtrar por estado (ACTIVE, INACTIVE, SUSPENDED). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "username_like",
+                  "value": "",
+                  "description": "Búsqueda parcial en username (case-insensitive). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "email_like",
+                  "value": "",
+                  "description": "Búsqueda parcial en email (case-insensitive). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Número de página (base 0)."
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Tamaño de página (1-200)."
+                },
+                {
+                  "key": "sort",
+                  "value": "username",
+                  "description": "Campo de ordenamiento (username, email, createdAt). Opcional.",
+                  "disabled": true
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Orden (asc o desc). Opcional.",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Lista todos los usuarios del tenant."
+            "description": "Lista todos los usuarios del tenant con paginación y filtros opcionales.\n\n**Query params:**\n- `status` (opcional): `ACTIVE`, `INACTIVE`, `SUSPENDED`\n- `username_like` (opcional): búsqueda parcial en username (case-insensitive)\n- `email_like` (opcional): búsqueda parcial en email (case-insensitive)\n- `page` (default 0): número de página (base 0)\n- `size` (default 20): tamaño de página (1–200)\n- `sort` (opcional): campo de ordenamiento (username, email, createdAt)\n- `order` (opcional): orden (asc o desc)\n\n**ResponseCode esperado:** `USER_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "response": []
         },

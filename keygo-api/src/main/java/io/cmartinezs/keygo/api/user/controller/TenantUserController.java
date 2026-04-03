@@ -3,21 +3,27 @@ package io.cmartinezs.keygo.api.user.controller;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.user.request.CreateUserRequest;
 import io.cmartinezs.keygo.api.user.request.ResetPasswordRequest;
 import io.cmartinezs.keygo.api.user.request.UpdateUserRequest;
 import io.cmartinezs.keygo.api.user.request.ValidateCredentialsRequest;
 import io.cmartinezs.keygo.api.user.response.UserData;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.user.command.CreateUserCommand;
 import io.cmartinezs.keygo.app.user.command.ResetUserPasswordCommand;
 import io.cmartinezs.keygo.app.user.command.UpdateUserCommand;
+import io.cmartinezs.keygo.app.user.filter.UserFilter;
+import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.domain.user.model.User;
+import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -52,6 +58,8 @@ public class TenantUserController {
   private final UpdateUserUseCase updateUserUseCase;
   private final ResetUserPasswordUseCase resetUserPasswordUseCase;
   private final ValidateUserCredentialsUseCase validateUserCredentialsUseCase;
+  private final SuspendUserUseCase suspendUserUseCase;
+  private final ActivateUserUseCase activateUserUseCase;
 
   public TenantUserController(
       CreateUserUseCase createUserUseCase,
@@ -59,13 +67,17 @@ public class TenantUserController {
       GetUserUseCase getUserUseCase,
       UpdateUserUseCase updateUserUseCase,
       ResetUserPasswordUseCase resetUserPasswordUseCase,
-      ValidateUserCredentialsUseCase validateUserCredentialsUseCase) {
+      ValidateUserCredentialsUseCase validateUserCredentialsUseCase,
+      SuspendUserUseCase suspendUserUseCase,
+      ActivateUserUseCase activateUserUseCase) {
     this.createUserUseCase = createUserUseCase;
     this.listUsersUseCase = listUsersUseCase;
     this.getUserUseCase = getUserUseCase;
     this.updateUserUseCase = updateUserUseCase;
     this.resetUserPasswordUseCase = resetUserPasswordUseCase;
     this.validateUserCredentialsUseCase = validateUserCredentialsUseCase;
+    this.suspendUserUseCase = suspendUserUseCase;
+    this.activateUserUseCase = activateUserUseCase;
   }
 
   /**
@@ -106,30 +118,60 @@ public class TenantUserController {
   }
 
   /**
-   * List all users of the given tenant.
-   * <p>Lista todos los usuarios del tenant dado.
+   * List users of the given tenant with optional pagination, filtering, and sorting.
+   * <p>Lista usuarios del tenant dado con paginación, filtrado y ordenamiento opcionales.
    */
   @GetMapping
   @Operation(
       summary = "List users",
-      description = "Returns all user accounts registered under the specified tenant.")
+      description = "Returns a paginated list of user accounts under the specified tenant. "
+                    + "Supports filtering by status and partial email/username match, plus sorting.")
   @ApiResponse(responseCode = "200", description = "User list retrieved successfully (code: USER_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<List<UserData>>> listUsers(
-      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
+  public ResponseEntity<BaseResponse<PagedData<UserData>>> listUsers(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "Filter by user status (ACTIVE, SUSPENDED, PENDING, RESET_PASSWORD)")
+      @RequestParam(required = false) UserStatus status,
+      @Parameter(description = "Partial match on username (case-insensitive)")
+      @RequestParam(name = "username_like", required = false) String usernameLike,
+      @Parameter(description = "Partial match on email (case-insensitive)")
+      @RequestParam(name = "email_like", required = false) String emailLike,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (username, email, status, createdAt)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
 
-    List<UserData> data = listUsersUseCase.execute(tenantSlug).stream()
+    UserFilter filter = UserFilter.of(status, usernameLike, emailLike, page, size, sort, order);
+    PagedResult<User> result = listUsersUseCase.execute(tenantSlug, filter);
+
+    List<UserData> content = result.getContent().stream()
         .map(this::toData)
         .toList();
 
-    return ResponseEntity.status(HttpStatus.OK).body(
-        BaseResponse.<List<UserData>>builder()
-            .data(data)
-            .success(ResponseHelper.message(ResponseCode.USER_LIST_RETRIEVED))
-            .build());
+    PagedData<UserData> pagedData = PagedData.<UserData>builder()
+        .content(content)
+        .page(result.getPage())
+        .size(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .last(result.isLast())
+        .build();
+
+    BaseResponse<PagedData<UserData>> response = BaseResponse.<PagedData<UserData>>builder()
+        .data(pagedData)
+        .success(ResponseHelper.message(ResponseCode.USER_LIST_RETRIEVED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
   /**
@@ -216,6 +258,61 @@ public class TenantUserController {
         BaseResponse.<UserData>builder()
             .data(toData(user))
             .success(ResponseHelper.message(ResponseCode.USER_PASSWORD_RESET))
+            .build());
+  }
+
+  /**
+   * Suspend a user account within the tenant.
+   * <p>Suspende una cuenta de usuario dentro del tenant.
+   */
+  @PutMapping("/{userId}/suspend")
+  @Operation(
+      summary = "Suspend user",
+      description = "Suspends an active user account within the tenant. "
+                    + "Requires user to be in ACTIVE status.")
+  @ApiResponse(responseCode = "200", description = "User suspended successfully (code: USER_SUSPENDED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "User is already suspended (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> suspendUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
+
+    User user = suspendUserUseCase.execute(tenantSlug, userId);
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_SUSPENDED))
+            .build());
+  }
+
+  /**
+   * Activate a previously suspended user account within the tenant.
+   * <p>Activa una cuenta de usuario previamente suspendida dentro del tenant.
+   */
+  @PutMapping("/{userId}/activate")
+  @Operation(
+      summary = "Activate user",
+      description = "Reactivates a previously suspended user account within the tenant.")
+  @ApiResponse(responseCode = "200", description = "User activated successfully (code: USER_ACTIVATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> activateUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
+
+    User user = activateUserUseCase.execute(tenantSlug, userId);
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_ACTIVATED))
             .build());
   }
 

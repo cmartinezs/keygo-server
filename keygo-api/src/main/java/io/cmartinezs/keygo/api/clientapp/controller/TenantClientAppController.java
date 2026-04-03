@@ -7,8 +7,10 @@ import io.cmartinezs.keygo.api.clientapp.response.ClientAppSecretData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.app.clientapp.command.CreateClientAppCommand;
 import io.cmartinezs.keygo.app.clientapp.command.UpdateClientAppCommand;
+import io.cmartinezs.keygo.app.clientapp.filter.ClientAppFilter;
 import io.cmartinezs.keygo.app.clientapp.usecase.CreateClientAppResult;
 import io.cmartinezs.keygo.app.clientapp.usecase.CreateClientAppUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.GetClientAppUseCase;
@@ -16,6 +18,8 @@ import io.cmartinezs.keygo.app.clientapp.usecase.ListClientAppsUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.RotateClientSecretUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.RotateSecretResult;
 import io.cmartinezs.keygo.app.clientapp.usecase.UpdateClientAppUseCase;
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedScope;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.RedirectUri;
@@ -113,31 +117,56 @@ public class TenantClientAppController {
   }
 
   /**
-   * List all client applications of the given tenant.
-   * <p>Lista todas las aplicaciones cliente del tenant dado.
+   * List client applications with optional pagination, filtering, and sorting.
+   * <p>Lista aplicaciones cliente con paginación, filtrado y ordenamiento opcionales.
    * @param tenantSlug the tenant slug
-   * @return 200 OK with the list of client apps
+   * @return 200 OK with paginated client apps
    */
   @GetMapping
   @Operation(
       summary = "List client applications",
-      description = "Returns all OAuth2 client applications registered under the specified tenant.")
+      description = "Returns a paginated list of OAuth2 client applications under the specified tenant. "
+                    + "Supports filtering by status and partial name match, plus sorting.")
   @ApiResponse(responseCode = "200", description = "Client apps retrieved successfully (code: CLIENT_APP_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<List<ClientAppData>>> listClientApps(
-      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
+  public ResponseEntity<BaseResponse<PagedData<ClientAppData>>> listClientApps(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "Filter by application status (ACTIVE, SUSPENDED, PENDING)")
+      @RequestParam(required = false) ClientAppStatus status,
+      @Parameter(description = "Partial match on application name (case-insensitive)")
+      @RequestParam(name = "name_like", required = false) String nameLike,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (name, status, createdAt)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
 
-    List<ClientApp> apps = listClientAppsUseCase.execute(tenantSlug);
+    ClientAppFilter filter = ClientAppFilter.of(status, nameLike, page, size, sort, order);
+    PagedResult<ClientApp> result = listClientAppsUseCase.execute(tenantSlug, filter);
 
-    List<ClientAppData> data = apps.stream()
+    List<ClientAppData> content = result.getContent().stream()
         .map(this::toData)
         .toList();
 
-    BaseResponse<List<ClientAppData>> response = BaseResponse.<List<ClientAppData>>builder()
-        .data(data)
+    PagedData<ClientAppData> pagedData = PagedData.<ClientAppData>builder()
+        .content(content)
+        .page(result.getPage())
+        .size(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .last(result.isLast())
+        .build();
+
+    BaseResponse<PagedData<ClientAppData>> response = BaseResponse.<PagedData<ClientAppData>>builder()
+        .data(pagedData)
         .success(ResponseHelper.message(ResponseCode.CLIENT_APP_LIST_RETRIEVED))
         .build();
 

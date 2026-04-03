@@ -72,7 +72,7 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+#        dialect: org.hibernate.dialect.PostgreSQLDialect | PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
         show_sql: ${HIBERNATE_SHOW_SQL:false}
         jdbc:

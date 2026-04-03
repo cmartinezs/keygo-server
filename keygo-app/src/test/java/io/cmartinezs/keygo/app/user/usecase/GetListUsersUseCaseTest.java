@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.app.user.usecase;
 
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.app.user.filter.UserFilter;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -27,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -105,13 +108,16 @@ class GetListUsersUseCaseTest {
     // Given
     ListUsersUseCase uc = new ListUsersUseCase(tenantRepositoryPort, userRepositoryPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(userRepositoryPort.findAllByTenantId(any())).thenReturn(List.of(sampleUser));
+    PagedResult<User> pagedResult = PagedResult.of(List.of(sampleUser), 0, 20, 1);
+    when(userRepositoryPort.findAllPaged(eq(activeTenant.getId()), any())).thenReturn(pagedResult);
 
     // When
-    List<User> users = uc.execute(TENANT_SLUG);
+    UserFilter filter = UserFilter.of(null, null, null, 0, 20, null, null);
+    PagedResult<User> result = uc.execute(TENANT_SLUG, filter);
 
     // Then
-    assertThat(users).hasSize(1);
+    assertThat(result.getContent()).hasSize(1);
+    assertThat(result.getTotalElements()).isEqualTo(1);
   }
 
   @Test
@@ -121,7 +127,8 @@ class GetListUsersUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.empty());
 
     // When / Then
-    assertThatThrownBy(() -> uc.execute(TENANT_SLUG))
+    UserFilter filter = UserFilter.of(null, null, null, 0, 20, null, null);
+    assertThatThrownBy(() -> uc.execute(TENANT_SLUG, filter))
         .isInstanceOf(TenantNotFoundException.class);
   }
 }

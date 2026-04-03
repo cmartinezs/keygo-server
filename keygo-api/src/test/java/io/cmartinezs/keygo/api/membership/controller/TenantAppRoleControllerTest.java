@@ -2,12 +2,15 @@ package io.cmartinezs.keygo.api.membership.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.cmartinezs.keygo.api.membership.request.CreateAppRoleRequest;
 import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
+import io.cmartinezs.keygo.app.role.filter.AppRoleFilter;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.membership.model.AppRole;
 import io.cmartinezs.keygo.domain.membership.model.AppRoleId;
@@ -53,15 +56,17 @@ class TenantAppRoleControllerTest {
   @Test
   void listAppRoles_shouldReturn200WithRoleList() {
     // Given
-    when(listAppRolesUseCase.execute(TENANT_SLUG, CLIENT_APP_ID)).thenReturn(List.of(appRole("admin"), appRole("user")));
+    PagedResult<AppRole> pagedResult = PagedResult.of(List.of(appRole("admin"), appRole("user")), 0, 20, 2);
+    when(listAppRolesUseCase.execute(eq(TENANT_SLUG), eq(CLIENT_APP_ID), any(AppRoleFilter.class)))
+        .thenReturn(pagedResult);
 
     // When
-    var response = controller.listAppRoles(TENANT_SLUG, CLIENT_APP_ID);
+    var response = controller.listAppRoles(TENANT_SLUG, CLIENT_APP_ID, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData()).hasSize(2);
+    assertThat(response.getBody().getData().getContent()).hasSize(2);
   }
 
   private AppRole appRole(String code) {

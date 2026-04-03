@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.api.clientapp.controller;
 
 import io.cmartinezs.keygo.api.clientapp.request.CreateClientAppRequest;
 import io.cmartinezs.keygo.api.clientapp.request.UpdateClientAppRequest;
+import io.cmartinezs.keygo.app.clientapp.filter.ClientAppFilter;
 import io.cmartinezs.keygo.app.clientapp.usecase.CreateClientAppResult;
 import io.cmartinezs.keygo.app.clientapp.usecase.CreateClientAppUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.GetClientAppUseCase;
@@ -9,6 +10,7 @@ import io.cmartinezs.keygo.app.clientapp.usecase.ListClientAppsUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.RotateClientSecretUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.RotateSecretResult;
 import io.cmartinezs.keygo.app.clientapp.usecase.UpdateClientAppUseCase;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
@@ -31,6 +33,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -114,15 +117,16 @@ class TenantClientAppControllerTest {
   @Test
   void listClientApps_shouldReturn200WithList() {
     // Given
-    when(listClientAppsUseCase.execute(TENANT_SLUG))
-        .thenReturn(List.of(publicApp(), publicApp()));
+    PagedResult<ClientApp> pagedResult = PagedResult.of(List.of(publicApp(), publicApp()), 0, 20, 2);
+    when(listClientAppsUseCase.execute(eq(TENANT_SLUG), any(ClientAppFilter.class)))
+        .thenReturn(pagedResult);
 
     // When
-    var response = controller.listClientApps(TENANT_SLUG);
+    var response = controller.listClientApps(TENANT_SLUG, null, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody().getData()).hasSize(2);
+    assertThat(response.getBody().getData().getContent()).hasSize(2);
   }
 
   @Test

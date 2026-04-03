@@ -599,7 +599,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handlePasswordRecoveryTokenExpiredException(
       PasswordRecoveryTokenExpiredException ex) {
     log.warn("Recovery token expired: {}", ex.getMessage());
-    return error(HttpStatus.UNPROCESSABLE_ENTITY, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**
@@ -610,7 +610,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handlePasswordRecoveryTokenAlreadyUsedException(
       PasswordRecoveryTokenAlreadyUsedException ex) {
     log.warn("Recovery token already used: {}", ex.getMessage());
-    return error(HttpStatus.UNPROCESSABLE_ENTITY, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**

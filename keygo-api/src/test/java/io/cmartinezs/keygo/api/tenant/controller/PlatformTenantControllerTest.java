@@ -4,7 +4,7 @@ import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.tenant.request.CreateTenantRequest;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.command.CreateTenantCommand;
-import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
+import io.cmartinezs.keygo.app.shared.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
 import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
@@ -128,7 +128,7 @@ class PlatformTenantControllerTest {
     when(listTenantsUseCase.execute(any(TenantFilter.class))).thenReturn(pagedResult);
 
     // When
-    var response = controller.listTenants(null, null, 0, 20);
+    var response = controller.listTenants(null, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -151,7 +151,7 @@ class PlatformTenantControllerTest {
     when(listTenantsUseCase.execute(any(TenantFilter.class))).thenReturn(pagedResult);
 
     // When
-    var response = controller.listTenants(TenantStatus.ACTIVE, null, 0, 20);
+    var response = controller.listTenants(TenantStatus.ACTIVE, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -168,7 +168,7 @@ class PlatformTenantControllerTest {
         .thenReturn(PagedResult.of(List.of(), 0, 20, 0L));
 
     // When
-    controller.listTenants(null, "acme", 0, 20);
+    controller.listTenants(null, "acme", 0, 20, null, null);
 
     // Then
     verify(listTenantsUseCase).execute(argThat(f ->
@@ -183,7 +183,7 @@ class PlatformTenantControllerTest {
         .thenReturn(PagedResult.of(List.of(), 0, 20, 0L));
 
     // When
-    var response = controller.listTenants(null, null, 0, 20);
+    var response = controller.listTenants(null, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -195,7 +195,7 @@ class PlatformTenantControllerTest {
   @DisplayName("GET /tenants should propagate IllegalArgumentException on invalid page params")
   void shouldPropagateIllegalArgumentExceptionOnInvalidParams() {
     // When / Then
-    assertThatThrownBy(() -> controller.listTenants(null, null, -1, 20))
+    assertThatThrownBy(() -> controller.listTenants(null, null, -1, 20, null, null))
         .isInstanceOf(InvalidPaginationParamException.class)
         .hasMessageContaining("Pagination parameter 'page' is invalid: must be >= 0");
   }

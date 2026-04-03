@@ -8,6 +8,85 @@
 
 ---
 
+### [2026-04-03] ⚠️ NUNCA paginar en aplicación — usar JPA Specifications para DB-side filtering
+**Síntoma:** Primera implementación de paginación cargaba **todos** los registros (ej: 10k usuarios) en memoria, aplicaba filtros/sorting/pagination en Java, luego retornaba 20 resultados. Grave anti-patrón de escalabilidad.
+**Causa:** Enfoque naïve — "cargar todo, filtrar en app" es simple de implementar pero desastroso en producción.
+**Solución / Regla Obligatoria:** Filtrado, ordenamiento y paginación **siempre ocurren en la BD** usando JPA Specifications + `JpaSpecificationExecutor`:
+  1. Repository extiende `JpaSpecificationExecutor<Entity>`
+  2. Adapter construye dinámicamente `Specification<Entity>` con predicados JPA Criteria (→ SQL WHERE)
+  3. Adapter construye `PageRequest` con sorting dinámico (→ SQL ORDER BY)
+  4. Una sola llamada: `jpaRepository.findAll(spec, pageRequest)` → SQL con LIMIT/OFFSET
+  
+Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSET 0` — solo los 20 registros llegan a la aplicación.
+
+**Patrón de referencia:** `TenantRepositoryAdapter` + `TenantJpaRepository` (ya correcto). Refactorizados en T-110: `UserRepositoryAdapter`, `ClientAppRepositoryAdapter`, `MembershipRepositoryAdapter`, `AppRoleRepositoryAdapter`.
+**Archivos clave:** `keygo-supabase/src/main/java/.../adapter/*RepositoryAdapter.java`, `keygo-supabase/src/main/java/.../repository/*JpaRepository.java`.
+
+---
+
+### [2026-04-03] LocaleContextHolder — resetLocaleContext() no retorna null, asume default Locale
+**Síntoma:** Tests que verificaban `LocaleContextHolder.getLocale() == null` tras `resetLocaleContext()` fallaban, retornando Locale.US.
+**Causa:** Spring's LocaleContextHolder retorna Locale.getDefault() (Locale.US) si no hay contexto explícito. reset() quita el contexto del RequestContextHolder, pero getLocale() retorna fallback default.
+**Solución:** Tests que verifiquen cleanup deben usar `verify(filterChain).doFilter()` en lugar de asumir que getLocale() retorna null. El cleanup sucede correctamente; el return value de getLocale() es un detalle de Spring.
+
+---
+
+### [2026-04-03] Accept-Language header parsing — remover q-values antes de split
+**Síntoma:** Header como "fr;q=0.5" no era parseado correctamente; se interpretaba como idioma "fr;q" en lugar de "fr".
+**Causa:** Split por "-" se hacía sin remover antes los q-values separados por ";".
+**Solución:** Dividir por ";" **antes** de dividir por "-": `headerValue.split(";")[0]` para remover `q=0.5`, luego `split("-")` para extraer idioma y región.
+
+---
+
+### [2026-04-03] `%clr` no registrado en Spring Boot 4 con `logback-spring.xml` personalizado
+**Contexto:** Configuración de consola colorida estilo Spring Boot en `logback-spring.xml` durante la implementación de trazabilidad.
+**Problema:** Al arrancar el servidor aparecía `There is no conversion class registered for composite conversion word [clr]`. El servidor no levantaba. `%clr` es un converter personalizado de Spring Boot, no nativo de Logback. En Spring Boot 3.x se registraba automáticamente por `SpringBootJoranConfigurator`, pero en Spring Boot 4 / Logback 1.5.32 con `logback-spring.xml` personalizado esto dejó de funcionar sin declaración explícita.
+**Solución / Buena práctica:** Agregar `<include resource="org/springframework/boot/logging/logback/defaults.xml"/>` al inicio del `logback-spring.xml`, **antes** de cualquier `<springProfile>`. Esto registra `%clr`, `%wex`, `%wEx`, `%correlationId`, `%esb` y todas las propiedades estándar de Spring Boot. Es la forma canónica recomendada por la documentación oficial. Alternativa: `<conversionRule conversionWord="clr" className="org.springframework.boot.logging.logback.ColorConverter"/>`.
+**Archivos clave:** `keygo-run/src/main/resources/logback-spring.xml`.
+
+---
+
+### [2026-04-03] Appender definido globalmente pero solo referenciado en `<springProfile>` — WARN Logback
+**Contexto:** Configuración de Logback con perfiles mutuamente excluyentes (`!(desa|prod)` vs `desa|prod`).
+**Problema:** Al definir el appender `CONSOLE` fuera de todo `<springProfile>` y referenciarlo solo dentro de uno, Logback emitía `Appender named [CONSOLE] not referenced. Skipping further processing.` en los perfiles que no lo usaban. El efecto secundario era que el formato JSON se activaba en el perfil `default` (sin variable de entorno), produciendo logs ilegibles al desarrollar.
+**Solución / Buena práctica:** Mover la **definición completa** del appender dentro del bloque `<springProfile>` que lo usa. Cada perfil declara y referencia sus propios appenders. Usar `!(desa | prod)` (en lugar de `!local`) como condición de consola colorida, para que el perfil `default` también reciba el formato legible.
+**Archivos clave:** `keygo-run/src/main/resources/logback-spring.xml`.
+
+---
+
+### [2026-04-03] Caracteres `[` y `]` no necesitan escape en patrones Logback
+**Contexto:** Patrón de consola colorida con campos MDC entre corchetes: `[%X{traceId:--}]`.
+**Problema:** Usar `\[%X{traceId:--}\]` causaba el error de parsing `Illegal char '[ at column 122. Only \\, \_, \%, \(, \), \t, \n, \r combinations are allowed`.
+**Solución / Buena práctica:** Los corchetes literales `[` y `]` no son caracteres especiales en el lenguaje de patrones de Logback; no necesitan escaparse. Usar simplemente `[%X{traceId:--}]`.
+**Archivos clave:** `keygo-run/src/main/resources/logback-spring.xml`.
+
+---
+
+### [2026-04-03] Test pollution con singleton estático: necesita reset en @AfterEach
+**Síntoma:** `GlobalExceptionHandlerTest.handleUnauthorizedException_shouldReturnUnauthorized` fallaba intermitentemente con `Expecting not blank but was: null` en `clientMessage`.
+**Causa:** `ApiErrorDataFactory` tiene un singleton estático `instance` que se asigna en el constructor. `ApiErrorDataFactoryI18nTest` creaba una instancia con MessageSource mock, pero nunca reseteaba `instance`. Test posterior (`GlobalExceptionHandlerTest` que no mockea MessageSource) heredaba la instancia previa.
+**Solución:** Usar reflection en `@AfterEach` para resetear campos estáticos: `Field instanceField = ApiErrorDataFactory.class.getDeclaredField("instance"); instanceField.setAccessible(true); instanceField.set(null, null);`. Previene test pollution en singleton mutables.
+**Archivos clave:** `keygo-api/src/test/java/io/cmartinezs/keygo/api/error/ApiErrorDataFactoryI18nTest.java`.
+
+---
+
+### [2026-04-03] PageFilter como base class eliminó duplicación en TenantFilter
+**Contexto:** T-110 — estandarizar paginación en endpoints de lista.
+**Problema:** `TenantFilter` reimplementaba validación de `page`/`size`/`sortBy` en lugar de extender `PageFilter`. Dos clases con lógica de validación idéntica → riesgo de divergencia.
+**Solución:** Refactorizar `TenantFilter` para extender `PageFilter`. Esto automaticamente agregó compatibilidad de `sort`/`order` a `GET /tenants` y estableció un patrón consistente para todos los filtros. El cambio requirió actualizar 5 tests de `PlatformTenantControllerTest` (4 params → 6 params).
+**Patrón confirmado escalable:** 4 filtros nuevos (`UserFilter`, `ClientAppFilter`, `MembershipFilter`, `AppRoleFilter`) implementados sin duplicación gracias a `PageFilter` base.
+**Archivos clave:** `PageFilter.java`, `TenantFilter.java`.
+
+---
+
+### [2026-04-03] `HttpStatus.UNPROCESSABLE_ENTITY` renombrado a `UNPROCESSABLE_CONTENT` en Spring Boot 4
+**Contexto:** Fix en `GlobalExceptionHandlerTest` detectado durante la sesión de trazabilidad.
+**Problema:** `HttpStatus.UNPROCESSABLE_ENTITY` fue renombrado a `HttpStatus.UNPROCESSABLE_CONTENT` en Spring Boot 4 (alineación con RFC 9110). El test fallaba con `cannot find symbol`.
+**Solución / Buena práctica:** Reemplazar todas las referencias a `HttpStatus.UNPROCESSABLE_ENTITY` por `HttpStatus.UNPROCESSABLE_CONTENT` en tests y código de producción.
+**Archivos clave:** `keygo-api/src/test/java/.../GlobalExceptionHandlerTest.java`.
+
+---
+
 ### [2026-04-02] Trazabilidad MDC — `RequestTracingFilter` como primera capa del stack
 **Contexto:** Implementación de estrategia de trazabilidad end-to-end (plan en `docs/design/TRACING_TELEMETRY.md`).
 **Problema:** Los filtros de seguridad (`BootstrapAdminKeyFilter`) corrían antes que el tracing, perdiendo el contexto MDC en los logs de autenticación.

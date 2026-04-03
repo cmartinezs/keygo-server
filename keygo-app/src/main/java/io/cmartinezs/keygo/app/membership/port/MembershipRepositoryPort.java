@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.membership.port;
 
+import io.cmartinezs.keygo.app.membership.filter.MembershipFilter;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
 import java.util.List;
@@ -130,5 +132,14 @@ public interface MembershipRepositoryPort {
    * @return deduplicated list of effective role code strings
    */
   List<String> findEffectiveRoleCodesByUserAndClientApp(UUID userId, UUID clientAppId);
+
+  /**
+   * Find all memberships with pagination, filtering, and sorting.
+   * <p>Busca membresías con paginación, filtrado y ordenamiento.
+   * @param tenantSlug the tenant scope
+   * @param filter pagination, filtering, and sorting criteria
+   * @return paginated result of memberships
+   */
+  PagedResult<Membership> findAllPaged(String tenantSlug, MembershipFilter filter);
 }
 

@@ -2,6 +2,8 @@ package io.cmartinezs.keygo.app.membership.usecase;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
+import io.cmartinezs.keygo.app.role.filter.AppRoleFilter;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
@@ -40,6 +42,39 @@ public class ListAppRolesUseCase {
   }
 
   /**
+   * List all roles for a given client app within a tenant with pagination and sorting.
+   * <p>Lista todos los roles de una app de cliente dentro de un tenant con paginación y ordenamiento.
+   *
+   * @param tenantSlug the tenant slug
+   * @param clientAppId the client app internal UUID
+   * @param filter pagination, filtering, and sorting criteria
+   * @return paginated result of roles
+   * @throws TenantNotFoundException if the tenant does not exist
+   * @throws TenantSuspendedException if the tenant is suspended
+   * @throws ClientAppNotFoundException if the app does not exist or does not belong to the tenant
+   */
+  public PagedResult<AppRole> execute(String tenantSlug, UUID clientAppId, AppRoleFilter filter) {
+    Tenant tenant = tenantRepositoryPort
+        .findBySlug(TenantSlug.of(tenantSlug))
+        .orElseThrow(() -> new TenantNotFoundException(tenantSlug));
+
+    if (tenant.isSuspended()) {
+      throw new TenantSuspendedException(tenantSlug);
+    }
+
+    boolean appBelongsToTenant = clientAppRepositoryPort
+        .findAllByTenantId(tenant.getId())
+        .stream()
+        .anyMatch(app -> app.getId().equals(ClientAppId.of(clientAppId)));
+
+    if (!appBelongsToTenant) {
+      throw new ClientAppNotFoundException(clientAppId.toString());
+    }
+
+    return appRoleRepositoryPort.findAllPaged(clientAppId, filter);
+  }
+
+  /**
    * List all roles for a given client app within a tenant.
    * <p>Lista todos los roles de una app de cliente dentro de un tenant.
    *
@@ -49,7 +84,9 @@ public class ListAppRolesUseCase {
    * @throws TenantNotFoundException if the tenant does not exist
    * @throws TenantSuspendedException if the tenant is suspended
    * @throws ClientAppNotFoundException if the app does not exist or does not belong to the tenant
+   * @deprecated Use execute(tenantSlug, clientAppId, filter) instead
    */
+  @Deprecated(forRemoval = true)
   public List<AppRole> execute(String tenantSlug, UUID clientAppId) {
     Tenant tenant = tenantRepositoryPort
         .findBySlug(TenantSlug.of(tenantSlug))

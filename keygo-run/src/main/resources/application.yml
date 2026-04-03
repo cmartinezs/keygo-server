@@ -1,7 +1,7 @@
 keygo:
   cors:
     allowed-origins:
-      - "http://localhost:5173"
+      - "${KEYGO_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
     allowed-methods:
       - GET
       - POST

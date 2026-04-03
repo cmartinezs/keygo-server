@@ -1,6 +1,8 @@
 package io.cmartinezs.keygo.app.clientapp.usecase;
 
+import io.cmartinezs.keygo.app.clientapp.filter.ClientAppFilter;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
@@ -27,6 +29,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,28 +70,35 @@ class ListClientAppsUseCaseTest {
     // Given
     Tenant tenant = activeTenant();
     List<ClientApp> apps = List.of(sampleApp(tenant.getId()), sampleApp(tenant.getId()));
+    PagedResult<ClientApp> pagedResult = PagedResult.of(apps, 0, 20, 2);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
-    when(clientAppRepositoryPort.findAllByTenantId(tenant.getId())).thenReturn(apps);
+    when(clientAppRepositoryPort.findAllPaged(eq(tenant.getId()), any()))
+        .thenReturn(pagedResult);
 
     // When
-    List<ClientApp> result = useCase.execute(TENANT_SLUG);
+    ClientAppFilter filter = ClientAppFilter.of(null, null, 0, 20, null, null);
+    PagedResult<ClientApp> result = useCase.execute(TENANT_SLUG, filter);
 
     // Then
-    assertThat(result).hasSize(2);
+    assertThat(result.getContent()).hasSize(2);
+    assertThat(result.getTotalElements()).isEqualTo(2);
   }
 
   @Test
   void execute_existingTenantWithNoApps_shouldReturnEmptyList() {
     // Given
     Tenant tenant = activeTenant();
+    PagedResult<ClientApp> pagedResult = PagedResult.of(List.of(), 0, 20, 0);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
-    when(clientAppRepositoryPort.findAllByTenantId(any())).thenReturn(List.of());
+    when(clientAppRepositoryPort.findAllPaged(eq(tenant.getId()), any()))
+        .thenReturn(pagedResult);
 
     // When
-    List<ClientApp> result = useCase.execute(TENANT_SLUG);
+    ClientAppFilter filter = ClientAppFilter.of(null, null, 0, 20, null, null);
+    PagedResult<ClientApp> result = useCase.execute(TENANT_SLUG, filter);
 
     // Then
-    assertThat(result).isEmpty();
+    assertThat(result.getContent()).isEmpty();
   }
 
   @Test
@@ -97,7 +107,8 @@ class ListClientAppsUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.empty());
 
     // When / Then
-    assertThatThrownBy(() -> useCase.execute("unknown"))
+    ClientAppFilter filter = ClientAppFilter.of(null, null, 0, 20, null, null);
+    assertThatThrownBy(() -> useCase.execute("unknown", filter))
         .isInstanceOf(TenantNotFoundException.class);
   }
 }

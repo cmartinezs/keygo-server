@@ -3,12 +3,15 @@ package io.cmartinezs.keygo.api.membership.controller;
 import io.cmartinezs.keygo.api.membership.request.CreateMembershipRequest;
 import io.cmartinezs.keygo.api.membership.response.MembershipData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.app.membership.command.CreateMembershipCommand;
+import io.cmartinezs.keygo.app.membership.filter.MembershipFilter;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
 import io.swagger.v3.oas.annotations.Operation;
@@ -101,25 +104,29 @@ public class TenantMembershipController {
   @GetMapping
   @Operation(
       summary = "List memberships",
-      description = "List all memberships for a user or app (query params determine filter)")
+      description = "List memberships with optional pagination, filtering by user or app, and sorting")
   @ApiResponse(responseCode = "200", description = "Memberships retrieved (code: MEMBERSHIP_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<List<MembershipData>>> listMemberships(
+  public ResponseEntity<BaseResponse<PagedData<MembershipData>>> listMemberships(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Filter by user ID") @RequestParam(name = "user_id", required = false) UUID userId,
-      @Parameter(description = "Filter by client app ID") @RequestParam(name = "client_app_id", required = false) UUID clientAppId) {
+      @Parameter(description = "Filter by client app ID") @RequestParam(name = "client_app_id", required = false) UUID clientAppId,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (createdAt)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
 
-    List<Membership> memberships;
-    if (userId != null) {
-      memberships = listMembershipsUseCase.listByUserId(userId, tenantSlug);
-    } else if (clientAppId != null) {
-      memberships = listMembershipsUseCase.listByClientAppId(clientAppId, tenantSlug);
-    } else {
-      memberships = List.of();
-    }
+    MembershipFilter filter = MembershipFilter.of(userId, clientAppId, page, size, sort, order);
+    PagedResult<Membership> result = listMembershipsUseCase.execute(tenantSlug, filter);
 
-    List<MembershipData> data = memberships.stream()
+    List<MembershipData> data = result.getContent().stream()
         .map(m -> MembershipData.builder()
             .id(m.getId().value())
             .userId(m.getUserId().value())
@@ -131,8 +138,17 @@ public class TenantMembershipController {
             .build())
         .toList();
 
-    BaseResponse<List<MembershipData>> response = BaseResponse.<List<MembershipData>>builder()
-        .data(data)
+    PagedData<MembershipData> pagedData = PagedData.<MembershipData>builder()
+        .content(data)
+        .page(result.getPage())
+        .size(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .last(result.isLast())
+        .build();
+
+    BaseResponse<PagedData<MembershipData>> response = BaseResponse.<PagedData<MembershipData>>builder()
+        .data(pagedData)
         .success(ResponseHelper.message(ResponseCode.MEMBERSHIP_LIST_RETRIEVED))
         .build();
 

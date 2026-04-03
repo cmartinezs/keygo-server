@@ -25,27 +25,27 @@
 | ~~T-027~~ | ~~Refresh token grant + revocación RFC 7009 + userinfo OIDC~~ | ✅ Completada 2026-03-22 (Fase 7) |
 | T-028 | Migrar gestión de clave privada RSA a KMS externo (AWS KMS, Azure Key Vault, HashiCorp Vault) | 🔲 Pendiente |
 | T-030 | Agregar verificación de referencias Markdown rotas post-reorganización `docs/ai/` | 🔲 Pendiente |
-| T-033 | Endpoints `PUT /api/v1/tenants/{slug}/users/{userId}/suspend` y `/activate` | 🔲 Pendiente |
-| T-034 | Tests de regresión en `BootstrapAdminKeyFilterTest` para los nuevos sufijos `/userinfo` y `/oauth2/revoke` como rutas públicas | 🔲 Pendiente |
+| ~~T-033~~ | ~~Endpoints `PUT /api/v1/tenants/{slug}/users/{userId}/suspend` y `/activate`~~ | ✅ Completada 2026-04-03 |
+| ~~T-034~~ | ~~Tests de regresión en `BootstrapAdminKeyFilterTest` para los nuevos sufijos `/userinfo` y `/oauth2/revoke` como rutas públicas~~ | ✅ Completada 2026-04-03 |
 | T-035 | Detección de replay attack: al recibir un refresh token en estado `USED`, revocar toda la cadena de sesión automáticamente | 🔲 Pendiente |
 | ~~T-041~~ | ~~Agregar V13 y extender `TenantUserEntity` con 6 campos OIDC estándar~~ | ✅ Completada 2026-03-24 (Fase 9b) |
 | ~~T-042~~ | ~~Implementar endpoints self-service de perfil: GET y PATCH `/account/profile` con Bearer token~~ | ✅ Completada 2026-03-24 (Fase 9b) |
 | T-043 | Extender `GetUserInfoUseCase` para filtrar claims por scope solicitado (`profile`, `email`, `phone`) | 🔲 Pendiente |
-| T-049 | Agregar request Postman `GET /api/v1/tenants/{slug}/apps/{clientId}/roles` con `pm.test()` de status 200, estructura `BaseResponse` y validación de lista | 🔲 Pendiente |
+| ~~T-049~~ | ~~Agregar request Postman `GET /api/v1/tenants/{slug}/apps/{clientId}/roles` con `pm.test()` de status 200, estructura `BaseResponse` y validación de lista~~ | ✅ Completada 2026-04-03 |
 | T-051 | Suite de autorización por endpoint (`@PreAuthorize`) con matriz rol/tenant (ADMIN, ADMIN_TENANT match/mismatch, USER_TENANT) | 🔲 Pendiente |
 | ~~T-052~~ | ~~Hardening seguridad admin Bearer-only (sin `X-KEYGO-ADMIN`, `@PreAuthorize` + tenant match)~~ | ✅ Completada 2026-03-25 |
 | T-053 | Script SQL de verificación post-seed V14 (conteos por tenant/app/roles/memberships) para validación rápida local/CI | 🔲 Pendiente |
 | ~~T-056~~ | ~~**Lanzamiento P0 — Hosted login seguro en `keygo-ui`:** contrato tipado `HostedLoginParams`, guard de runtime para query params obligatorios, ejemplo completo de login-handoff con parámetros firmados/validados y componente reutilizable `HostedLoginBoundary`~~ | ✅ Completada 2026-03-26 |
 | T-061 | Externalizar lista de orígenes CORS por ambiente: documentar `KEYGO_CORS_ALLOWED_ORIGINS_0` en `.env.example` y `ENVIRONMENT_SETUP.md`; perfil `prod` con lista vacía (denegación por defecto) | 🔲 Pendiente |
 | T-062 | Agregar handler específico para `MissingServletRequestParameterException` y responder `400 INVALID_INPUT` (evitar `500 OPERATION_FAILED` en casos de parámetro faltante) | 🔲 Pendiente |
-| T-065 | Agregar `fieldErrors` (lista de campos inválidos) cuando `origin=CLIENT_REQUEST` y `clientRequestCause=USER_INPUT` | 🔲 Pendiente |
-| T-068 | Agregar test unitario de `PlatformStatsController`: mockar `GetPlatformStatsUseCase`, verificar status 200, `PLATFORM_STATS_RETRIEVED` y estructura anidada `tenants`/`users`/`apps`/`signingKeys` | 🔲 Pendiente |
-| T-069 | Extender `ServiceInfoPropertiesTest` para cubrir `getEnvironment()` (sin perfil → `"default"`; con perfil → nombre del perfil) y `getStatus()` (siempre `"UP"`) | 🔲 Pendiente |
+| ~~T-065~~ | ~~Agregar `fieldErrors` (lista de campos inválidos) cuando `origin=CLIENT_REQUEST` y `clientRequestCause=USER_INPUT`~~ | ✅ Completada 2026-04-03 (tests mejorados) |
+| ~~T-068~~ | ~~Agregar test unitario de `PlatformStatsController`: mockar `GetPlatformStatsUseCase`, verificar status 200, `PLATFORM_STATS_RETRIEVED` y estructura anidada `tenants`/`users`/`apps`/`signingKeys`~~ | ✅ Completada 2026-04-03 |
+| ~~T-069~~ | ~~Extender `ServiceInfoPropertiesTest` para cubrir `getEnvironment()` (sin perfil → `"default"`; con perfil → nombre del perfil) y `getStatus()` (siempre `"UP"`)~~ | ✅ Completada 2026-04-03 |
 | T-074 | Agregar caché `@Cacheable` en `GetPlatformDashboardUseCase` con TTL 60 s (Spring Cache + Caffeine) — el use case realiza ~25 queries JPA por llamada | 🔲 Pendiente |
 | T-075 | `GET /api/v1/admin/tenants/{slug}/dashboard` — dashboard de métricas específicas del tenant para rol `ADMIN_TENANT` (usuarios/apps/memberships/sesiones/verificaciones acotados al slug) | 🔲 Pendiente |
 | ~~T-080~~ | ~~`V21__seed_billing_keygo_plans.sql` — planes FREE/STARTER/BUSINESS/ENTERPRISE para keygo-platform con entitlements reales~~ | ✅ Completada 2026-03-28 |
 | ~~T-081~~ | ~~Tests de controller billing (`AppBillingPlanControllerTest`, `AppBillingContractControllerTest`, `AppBillingSubscriptionControllerTest`) + `CreateAppPlanUseCaseTest`~~ | ✅ Completada 2026-03-28 |
-| T-082 | Tests de regresión en `BootstrapAdminKeyFilterTest` para sufijos `/billing/catalog` y `/billing/contracts` como rutas públicas | 🔲 Pendiente |
+| ~~T-082~~ | ~~Tests de regresión en `BootstrapAdminKeyFilterTest` para sufijos `/billing/catalog` y `/billing/contracts` como rutas públicas~~ | ✅ Completada 2026-04-03 |
 | T-083 | Endpoint `GET /billing/invoices/{invoiceId}` — detalle de factura individual (requiere nueva ruta en `AppBillingSubscriptionController`) | 🔲 Pendiente |
 | T-091 | Test de integración Testcontainers: validar coherencia JPA ↔ Flyway con `ddl-auto: validate` contra DB limpia con todas las migraciones aplicadas | 🔲 Pendiente |
 | T-094 | Agregar test unitario para `AppPlanBillingOptionRepositoryAdapter`: `findByAppPlanVersionId`, `findByAppPlanVersionIdAndBillingPeriod` y `saveAll` con Mockito | 🔲 Pendiente |
@@ -53,6 +53,7 @@
 | T-096 | Añadir `@NotNull` y `@Valid` en `CreateAppPlanRequest.billingOptions`, `@NotNull` en `billingPeriod` y `basePrice` de `BillingOptionRequest`; agregar test de validación Bean Validation | 🔲 Pendiente |
 | ~~T-103~~ | ~~Bloquear login cuando `status = RESET_PASSWORD` en `ValidateUserCredentialsUseCase` → `UserPasswordResetRequiredException`; `GlobalExceptionHandler` responde `403 RESET_PASSWORD_REQUIRED`; el frontend redirige al flujo de cambio de contraseña~~ | ✅ Completada 2026-04-02 |
 | ~~T-106~~ | ~~Jerarquía de excepciones tipadas por capa + `ErrorData.layer`: `KeyGoException` → `DomainException` / `UseCaseException` / `PortException`; mensajes en la clase con constructores de valores. Ver [`docs/design/EXCEPTION_HIERARCHY.md`](../../docs/design/EXCEPTION_HIERARCHY.md)~~ | ✅ Completada 2026-04-01 |
+| ~~T-110~~ | ~~**Estandarizar paginación, filtrado y ordenamiento con JPA Specifications (DB-side):** Fase 1: infraestructura compartida (`PageFilter` base class, `InvalidPaginationParamException` en shared), 4 filter objects por entidad (`UserFilter`, `ClientAppFilter`, `MembershipFilter`, `AppRoleFilter`), 5 endpoints actualizados (tenants + sort/order, users, apps, roles, memberships) con `PagedData<T>`. Fase 2: refactorizar `TenantFilter` para extender `PageFilter` + sorting dinámico. Fase 3 (✅ Completada): **Eliminar paginación en-memoria** — reemplazar 4 adapters (User, ClientApp, Membership, AppRole) con JPA Specifications + `JpaSpecificationExecutor`. Cada adapter ahora construye dinámicamente predicados SQL reales (WHERE), sorting (ORDER BY), y paginación (LIMIT/OFFSET). Corregir TenantRepositoryAdapter para sorting dinámico. Documentación en FRONTEND_DEVELOPER_GUIDE.md § 14, Postman, y `docs/ai/lecciones.md` (regla: NUNCA paginar en aplicación).~~ | ✅ Completada 2026-04-03 |
 
 ---
 
@@ -128,6 +129,10 @@
 | T-102 | Precios dinámicos vía webhook externo: `DynamicPricingPort` + adapter configurable; precio base en `app_plan_billing_options` como fallback; integración con Stripe Price API | 🔲 Pendiente |
 | T-105 | Política de expiración de contraseñas temporales (TTL 24 h): campo `temp_password_expires_at` en `tenant_users`; job `@Scheduled` que detecta usuarios `RESET_PASSWORD` con TTL vencido, genera nueva contraseña y la reenvía por email; config `keygo.security.temp-password-ttl-hours` | 🔲 Pendiente |
 | T-115 | Incrementar cobertura JaCoCo en `keygo-supabase` desde 0.15 hasta 0.60: añadir tests unitarios para `UserRepositoryAdapter`, `EmailVerificationRepositoryAdapter`, `SessionRepositoryAdapter`, `MembershipRepositoryAdapter` y adapters de billing | 🔲 Pendiente |
+| T-120 | **Diseño de catálogo i18n para respuestas API** — crear estructura i18n/messages_XX.properties (es, es-CL, en-US fallback, pt_BR, fr); ver [`docs/design/I18N_STRATEGY.md`](../../docs/design/I18N_STRATEGY.md) | 🟡 Parcial (archivos creados; faltan T-122, T-123) |
+| T-121 | **LocaleResolver + LocaleContextFilter** — resolver locale desde `Accept-Language` header; propagar vía `LocaleContextHolder`; fallback en-US | ✅ Completada 2026-04-03 (20 tests, 100% coverage) |
+| T-122 | **Refactorizar `ApiErrorDataFactory.clientMessage()`** — integrar `MessageSource`; cache `ReloadableResourceBundleMessageSource` con TTL 3600 s en prod | ✅ Completada 2026-04-03 |
+| T-123 | **Tests de i18n** — unitarios de `LocaleResolver`, `LocaleContextFilter`, `ApiErrorDataFactory` con múltiples locales × ResponseCode | ✅ Completada 2026-04-03 |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | ~~F-043~~ | ~~**Flujo forgot/recover-password:** `POST /account/forgot-password` (anti-enumeración) + `POST /account/recover-password` (token 32-hex, TTL 30 min, upsert), tabla `V22__password_recovery_tokens.sql`, `PasswordRecoveryToken` domain model, `ForgotPasswordUseCase`, `RecoverPasswordUseCase`, email HTML~~ | ✅ Completada 2026-04-02 |
@@ -146,4 +151,4 @@
 
 ---
 
-**Última actualización:** 2026-04-02 (T-103 ✅, T-104 ✅, F-043 ✅ — flujo self-service reset+recover password; T-115 agregada) | **Responsable:** AI Agent
+**Última actualización:** 2026-04-03 (T-120 🟡 Parcial, T-121 ✅, T-122 ✅, T-123 ✅ — i18n completo: locale resolver + context filter + message source) | **Responsable:** AI Agent

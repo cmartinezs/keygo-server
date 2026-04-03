@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.user.port;
 
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.app.user.filter.UserFilter;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -77,5 +79,14 @@ public interface UserRepositoryPort {
    * @return list of users (may be empty)
    */
   List<User> findAllByTenantId(TenantId tenantId);
+
+  /**
+   * Find all users with pagination, filtering, and sorting.
+   * <p>Busca usuarios con paginación, filtrado y ordenamiento.
+   * @param tenantId the tenant scope
+   * @param filter pagination, filtering, and sorting criteria
+   * @return paginated result of users (may be empty)
+   */
+  PagedResult<User> findAllPaged(TenantId tenantId, UserFilter filter);
 }
 

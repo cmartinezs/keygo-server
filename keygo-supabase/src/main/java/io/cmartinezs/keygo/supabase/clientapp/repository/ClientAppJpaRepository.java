@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.OffsetDateTime;
@@ -17,7 +18,7 @@ import java.util.UUID;
  * @author cmartinezs
  * @version 1.0
  */
-public interface ClientAppJpaRepository extends JpaRepository<ClientAppEntity, UUID> {
+public interface ClientAppJpaRepository extends JpaRepository<ClientAppEntity, UUID>, JpaSpecificationExecutor<ClientAppEntity> {
 
   Optional<ClientAppEntity> findByClientId(String clientId);
 
