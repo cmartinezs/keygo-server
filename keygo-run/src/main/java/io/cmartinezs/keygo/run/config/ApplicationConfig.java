@@ -105,11 +105,11 @@ import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.infra.adapter.notification.EmailNotificationAdapter;
 import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
-import io.cmartinezs.keygo.infra.email.SmtpEmailNotificationAdapter;
 import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
@@ -127,6 +127,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.thymeleaf.TemplateEngine;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.PropertyNamingStrategies;
@@ -301,10 +302,8 @@ public class ApplicationConfig {
 
   @Bean
   public EmailNotificationPort emailNotificationPort(
-      JavaMailSender mailSender,
-      @Value("${keygo.mail.from:noreply@keygo.example.com}") String fromAddress,
-      @Value("${keygo.mail.app-name:KeyGo}") String appName) {
-    return new SmtpEmailNotificationAdapter(mailSender, fromAddress, appName);
+      TemplateEngine emailTemplateEngine, JavaMailSender mailSender) {
+    return new EmailNotificationAdapter(emailTemplateEngine, mailSender);
   }
 
   @Bean
@@ -919,4 +918,7 @@ public class ApplicationConfig {
             // Coherencia entre ambientes
             .defaultTimeZone(TimeZone.getTimeZone("UTC"));
   }
+
+  // ─── Email Notifications: Thymeleaf + JavaMail ────────────────────────────
+  // EmailNotificationAdapter está registered vía @Component o autoconfiguración en keygo-infra
 }

@@ -8,6 +8,76 @@
 
 ---
 
+### [2026-04-04] Templates de email profesionales — 4 tipos de notificación con Thymeleaf
+**Contexto:** Necesidad de actualizar los templates de email de formato básico a diseño professional responsive. Los templates anteriores usaban HTML simplificado sin estilos CSS inline, no tenían instrucciones paso a paso ni advertencias de seguridad claras.
+
+**Problema:** Los dos templates iniciales (`email-validation.html`, `password-recovery.html`) eran copias del ejemplo genérico, no adaptados a las variables reales del sistema. El puerto `EmailNotificationPort` define 4 métodos de conveniencia que mapean a 4 tipos de email diferentes:
+1. `sendVerificationEmail()` → `email-verification` 
+2. `sendContractVerificationEmail()` → `contract-verification`
+3. `sendTemporaryPasswordEmail()` → `temporary-password`
+4. `sendPasswordRecoveryEmail()` → `password-recovery`
+
+**Solución / Buena práctica:**
+1. **Crear 4 templates Thymeleaf** (no 2) en `keygo-run/src/main/resources/templates/email/`:
+   - `email-validation.html` — Registro de usuario (código 6 dígitos, 30 min)
+   - `contract-verification.html` — Onboarding de contrato (código + contractId, 30 min)
+   - `temporary-password.html` — Contraseña temporal para nuevos usuarios
+   - `password-recovery.html` — Recuperación de contraseña (token 32-char, 24h)
+
+2. **Características comunes en todos los templates:**
+   - **Header gradient único por tipo** (morado para verificación, rojo para recuperación, etc.)
+   - **Código/Token en caja destacada** con font monospace para fácil copiar
+   - **Responsive design** (CSS inline) → adaptable a móvil, tablet, desktop
+   - **Advertencia de seguridad** → "nunca compartas este código"
+   - **Instrucciones paso a paso** → qué hacer exactamente
+   - **Descargo de responsabilidad** → "si no solicitaste esto, ignora"
+   - **Footer con links** → política privacidad, soporte, etc.
+
+3. **Variables esperadas por cada tipo** (alineadas con `EmailNotificationPort`):
+   ```java
+   // email-verification
+   "userName", "verificationCode", "expiresInMinutes"
+   
+   // contract-verification
+   "userName", "verificationCode", "contractId", "expiresInMinutes"
+   
+   // temporary-password
+   "userName", "temporaryPassword"
+   
+   // password-recovery
+   "userName", "recoveryToken", "tenantSlug"
+   ```
+
+4. **Test Updates:** Se actualizó `SmtpEmailNotificationAdapterTest.java`:
+   - Antes: Tests de métodos privados `buildVerificationBody()`, `buildTemporaryPasswordBody()`, etc. (estos ya no existen en v3)
+   - Ahora: Tests del patrón de delegación — verifica que cada método de conveniencia construye el `SendEmailCommand` correcto con `emailType` y variables apropiadas
+   - Usa `ArgumentCaptor<SendEmailCommand>` para capturar y validar los commands
+
+5. **Documentación:** Nuevo archivo `docs/design/email/EMAIL_TEMPLATES_MAPPING.md` con:
+   - Tabla resumen de templates, tipos, métodos port, variables
+   - Explicación cuándo se envía cada tipo de email
+   - Ubicación del código que lo dispara
+   - Ejemplo de invocación
+   - Flujo end-to-end: UseCase → Port → Adapter → Template Thymeleaf → SMTP
+
+**Patrón adoptado:**
+- Templates **NUNCA incluyen HTML inline en Java** → siempre en archivos `.html` con Thymeleaf
+- **Variables consistentes:** `userName` (no `username`, `user`, `name`), `verificationCode` (no `code`, `token`), `recoveryToken` (no `resetToken`, `token`)
+- **Estilos CSS inline obligatorios** → compatibilidad con clientes email antiguos que no cargan `.css` externo
+- **Responsive design obligatorio** → `@media (max-width: 600px)` con ajustes para móvil
+- **Colores de brand únicos por tipo** → morado (verificación), rojo (recuperación), etc.
+
+**Archivos afectados:**
+- `keygo-run/src/main/resources/templates/email/email-validation.html` — actualizado
+- `keygo-run/src/main/resources/templates/email/password-recovery.html` — actualizado
+- `keygo-run/src/main/resources/templates/email/contract-verification.html` — ✨ nuevo
+- `keygo-run/src/main/resources/templates/email/temporary-password.html` — ✨ nuevo
+- `keygo-infra/src/test/java/.../email/SmtpEmailNotificationAdapterTest.java` — refactorizado
+- `keygo-run/src/main/java/.../config/ApplicationConfig.java` — agregado bean `smtpEmailNotificationAdapter`
+- `docs/design/email/EMAIL_TEMPLATES_MAPPING.md` — ✨ nuevo documento de referencia
+
+---
+
 ### [2026-04-03] ApiErrorDataFactory convertida a instancia — nunca mockear cuando los tests verifican campos de ErrorData
 **Contexto:** Se modificó la implementación del `LocaleResolver` (de un resolvedor custom a `AcceptHeaderLocaleResolver` de Spring). Esto implicó que `ApiErrorDataFactory` dejó de tener métodos estáticos autosuficientes y pasó a ser un `@Component` de instancia que depende de `MessageTranslator` (y este de `MessageSource`). El constructor de `GlobalExceptionHandler` también cambió para recibir `ApiErrorDataFactory` como segundo parámetro.
 **Problema:** Varios tests usaban `@Mock private ApiErrorDataFactory factory` y luego verificaban campos del `ErrorData` devuelto (`.getCode()`, `.getOrigin()`, `.getClientMessage()`, etc.). Al ser un mock sin stubbear, `factory.fromException(...)` y `factory.fromDetail(...)` devolvían `null`, causando `NullPointerException` o `assertThat(...).isNotNull()` fallido. También se rompió `AuthorizationControllerTest` al instanciar `GlobalExceptionHandler` con el constructor antiguo de un solo argumento.

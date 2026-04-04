@@ -413,6 +413,37 @@ Switch env: `./docs/scripts/switch-env.sh <local|desa|prod>`.
 - `mockito-junit-jupiter` must be in the module's `pom.xml` when using `@ExtendWith(MockitoExtension.class)`.
 - Pattern: Given/When/Then comments in every test method.
 
+## Email notifications — Thymeleaf templates
+
+For email notifications, use **Thymeleaf templates** (not HTML inline in Java). This ensures:
+- ✅ Separation of concerns (templates separate from code)
+- ✅ No recompilation for design changes
+- ✅ Designer-friendly (edit `.html` directly)
+- ✅ XSS protection (Thymeleaf auto-escapes values)
+- ✅ i18n support (locale-aware rendering)
+- ✅ Testeable independently
+
+**Architecture:**
+1. **Port OUT** — `EmailNotificationPort` interface in `keygo-infra/port/notification/`
+2. **Strategy** — `EmailStrategy` implementations per email type (validation, recovery, etc.)
+3. **Adapter** — `EmailNotificationAdapter` in `keygo-infra/adapter/notification/`
+4. **Config** — `ThymeleafTemplateConfig` bean in `keygo-run/config/`
+5. **Templates** — `.html` files in `keygo-run/src/main/resources/templates/email/`
+
+**Documentation:**
+- **Index (start here!):** [`docs/design/email/EMAIL_TEMPLATES_INDEX.md`](docs/design/email/EMAIL_TEMPLATES_INDEX.md) — Navigation guide for all email docs
+- **Quick start (5 steps):** [`docs/design/email/EMAIL_TEMPLATES_QUICKSTART.md`](docs/design/email/EMAIL_TEMPLATES_QUICKSTART.md)
+- **Complete guide:** [`docs/design/email/EMAIL_TEMPLATES_THYMELEAF.md`](docs/design/email/EMAIL_TEMPLATES_THYMELEAF.md) — architecture, implementations, best practices
+- **Pattern analysis:** [`docs/design/email/EMAIL_PATTERNS_ANALYSIS.md`](docs/design/email/EMAIL_PATTERNS_ANALYSIS.md) — HTML inline vs Thymeleaf, industry best practices 2024-2026
+- **Visual reference:** [`docs/design/email/EMAIL_TEMPLATES_VISUAL.md`](docs/design/email/EMAIL_TEMPLATES_VISUAL.md) — diagrams, checklists, quick lookup
+
+**Key points:**
+- Depends on: `spring-boot-starter-thymeleaf` + `spring-boot-starter-mail`
+- Use `@Bean(name = "emailTemplateEngine")` to avoid conflicts with web tier
+- Template cache: `false` in dev, `true` in prod (configured via `KeyGoEmailProperties`)
+- Render with: `emailTemplateEngine.process(templateName, context)`
+- Send with: `JavaMailSender.send(mimeMessage)` with `MimeMessageHelper` (UTF-8, HTML mode)
+
 ## Implementation plan
 
 Full plan: **`docs/arch/keygo_server_implementation_plan.md`** — 11 phases ordered by dependency.

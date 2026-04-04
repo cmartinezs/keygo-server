@@ -52,6 +52,10 @@ keygo:
   mail:
     from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
     app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
+  email:
+    smtp-host: "${SMTP_HOST:localhost}"
+    smtp-port: "${SMTP_PORT:587}"
+    template-cache-enabled: true
 springdoc:
   api-docs:
     path: /v3/api-docs

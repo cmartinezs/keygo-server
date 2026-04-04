@@ -1,28 +1,67 @@
 package io.cmartinezs.keygo.app.user.port;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Port OUT — contract for sending email notifications.
- * <p>Puerto de salida — contrato para el envío de notificaciones por email.
+ *
+ * <p>Porto de salida — contrato para el envío de notificaciones por email.
+ * Uses a flexible command-based approach with Thymeleaf templates.
+ * Utiliza un enfoque flexible basado en comandos con templates Thymeleaf.
+ *
  * @author cmartinezs
- * @version 1.0
+ * @version 2.0 — Command-based (flexible, scalable)
  */
 public interface EmailNotificationPort {
 
   /**
+   * Send an email using a command-based approach.
+   * Envía un email usando un enfoque basado en comandos.
+   *
+   * @param emailType         email type identifier (matches template name)
+   *                          tipo de email (debe coincidir con nombre de template)
+   * @param recipientEmail    recipient's email address
+   *                          dirección de correo del destinatario
+   * @param recipientName     recipient's name (for personalization)
+   *                          nombre del destinatario (para personalización)
+   * @param templateVariables variables to render in the template
+   *                          variables a renderizar en el template
+   */
+  void sendEmail(
+      String emailType,
+      String recipientEmail,
+      String recipientName,
+      Map<String, Object> templateVariables);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Convenience methods (backward compatibility) — Métodos de conveniencia
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
    * Send a verification code email to a newly registered user.
-   * <p>Envía un email con código de verificación a un usuario recién registrado.
+   * Envía un email con código de verificación a un usuario recién registrado.
+   *
    * @param toEmail          the recipient's email address
    * @param username         the recipient's username (for personalization)
    * @param verificationCode the 6-digit verification code
    */
-  void sendVerificationEmail(String toEmail, String username, String verificationCode);
+  default void sendVerificationEmail(String toEmail, String username, String verificationCode) {
+    sendEmail(
+        "email-verification",
+        toEmail,
+        username,
+        Map.of(
+            "userName", username,
+            "verificationCode", verificationCode,
+            "expiresInMinutes", 30));
+  }
 
   /**
    * Send a verification code email for a billing contract onboarding.
    * Includes the contractId so the recipient can resume the onboarding flow via
    * {@code GET /billing/contracts/{contractId}/resume}.
+   *
    * <p>Envía un email con código de verificación para el onboarding de un contrato de billing.
    * Incluye el contractId para que el destinatario pueda retomar el flujo via
    * {@code GET /billing/contracts/{contractId}/resume}.
@@ -32,25 +71,56 @@ public interface EmailNotificationPort {
    * @param verificationCode the 6-digit verification code
    * @param contractId       the UUID of the contract (needed to resume onboarding)
    */
-  void sendContractVerificationEmail(String toEmail, String recipientName, String verificationCode, UUID contractId);
+  default void sendContractVerificationEmail(
+      String toEmail, String recipientName, String verificationCode, UUID contractId) {
+    sendEmail(
+        "contract-verification",
+        toEmail,
+        recipientName,
+        Map.of(
+            "userName", recipientName,
+            "verificationCode", verificationCode,
+            "contractId", contractId.toString(),
+            "expiresInMinutes", 30));
+  }
 
   /**
    * Send a temporary password email to a newly created user.
-   * <p>Envía un email con contraseña temporal a un usuario recién creado.
-   * @param toEmail      the recipient's email address
-   * @param username     the recipient's username (for personalization)
-   * @param rawPassword  the plain-text temporary password
+   * Envía un email con contraseña temporal a un usuario recién creado.
+   *
+   * @param toEmail     the recipient's email address
+   * @param username    the recipient's username (for personalization)
+   * @param rawPassword the plain-text temporary password
    */
-  void sendTemporaryPasswordEmail(String toEmail, String username, String rawPassword);
+  default void sendTemporaryPasswordEmail(String toEmail, String username, String rawPassword) {
+    sendEmail(
+        "temporary-password",
+        toEmail,
+        username,
+        Map.of(
+            "userName", username,
+            "temporaryPassword", rawPassword));
+  }
 
   /**
    * Send a password recovery email with a one-time token (self-service forgot-password flow).
-   * <p>Envía un email de recuperación de contraseña con token de un solo uso.
+   * Envía un email de recuperación de contraseña con token de un solo uso.
+   *
    * @param toEmail      the recipient's email address
    * @param username     the recipient's username (for personalization)
    * @param recoveryToken the 32-char hex recovery token
    * @param tenantSlug   the tenant slug (for building the reset URL)
    */
-  void sendPasswordRecoveryEmail(String toEmail, String username, String recoveryToken, String tenantSlug);
+  default void sendPasswordRecoveryEmail(
+      String toEmail, String username, String recoveryToken, String tenantSlug) {
+    sendEmail(
+        "password-recovery",
+        toEmail,
+        username,
+        Map.of(
+            "userName", username,
+            "recoveryToken", recoveryToken,
+            "tenantSlug", tenantSlug));
+  }
 }
 
