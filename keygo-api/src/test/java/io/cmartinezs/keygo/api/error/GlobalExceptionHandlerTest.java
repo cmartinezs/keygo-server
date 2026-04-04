@@ -246,10 +246,10 @@ class GlobalExceptionHandlerTest {
   // ─── Password flow handlers ────────────────────────────────────────────────
 
   @Test
-  void handleUserPasswordResetRequiredException_returns403() {
+  void handleUserPasswordResetRequiredException_returns401() {
     var ex = new UserPasswordResetRequiredException("johndoe");
     var response = handler.handleUserPasswordResetRequiredException(ex);
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.RESET_PASSWORD_REQUIRED.getCode());
   }

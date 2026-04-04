@@ -26,6 +26,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,7 @@ class AuthorizationControllerTest {
   @Mock private ClientAppRepositoryPort clientAppRepository;
   @Mock private MembershipRepositoryPort membershipRepository;
   @Mock private ClockPort clock;
+  @Mock private SendPasswordResetCodeUseCase sendPasswordResetCodeUseCase;
 
   private MockMvc mockMvc;
 
@@ -74,7 +76,8 @@ class AuthorizationControllerTest {
             clientAppRepository,
             membershipRepository,
             clock,
-            "http://localhost:8080/keygo-server");
+            "http://localhost:8080/keygo-server",
+            sendPasswordResetCodeUseCase);
 
     var apiErrorDataFactory = new ApiErrorDataFactory(new MessageTranslator(new StaticMessageSource()));
     mockMvc =

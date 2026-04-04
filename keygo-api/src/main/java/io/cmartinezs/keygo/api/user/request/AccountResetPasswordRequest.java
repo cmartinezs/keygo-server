@@ -1,5 +1,9 @@
 package io.cmartinezs.keygo.api.user.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 /**
  * Request body para restablecer la contraseña con contraseña temporal (self-service).
  *
@@ -9,15 +13,21 @@ package io.cmartinezs.keygo.api.user.request;
  *   <li>{@code email} → {@code email}</li>
  *   <li>{@code temporaryPassword} → {@code temporary_password}</li>
  *   <li>{@code newPassword} → {@code new_password}</li>
+ *   <li>{@code confirmNewPassword} → {@code confirm_new_password}</li>
+ *   <li>{@code verificationCode} → {@code verification_code}</li>
  * </ul>
  *
- * @param email             dirección de correo del usuario
- * @param temporaryPassword contraseña temporal asignada por el administrador
- * @param newPassword       nueva contraseña definitiva (debe cumplir política de seguridad)
+ * @param email              dirección de correo del usuario
+ * @param temporaryPassword  contraseña temporal asignada por el administrador
+ * @param newPassword        nueva contraseña definitiva (debe cumplir política de seguridad)
+ * @param confirmNewPassword confirmación de la nueva contraseña (debe coincidir con newPassword)
+ * @param verificationCode   código de 6 dígitos enviado al email al intentar el login bloqueado
  * @author cmartinezs
- * @version 1.0
+ * @version 2.0
  */
 public record AccountResetPasswordRequest(
-    String email,
-    String temporaryPassword,
-    String newPassword) {}
+    @NotBlank String email,
+    @NotBlank String temporaryPassword,
+    @NotBlank String newPassword,
+    @NotBlank String confirmNewPassword,
+    @NotBlank @Size(min = 6, max = 6) @Pattern(regexp = "\\d{6}") String verificationCode) {}

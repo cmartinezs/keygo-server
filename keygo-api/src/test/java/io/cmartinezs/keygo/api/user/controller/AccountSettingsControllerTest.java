@@ -92,7 +92,8 @@ class AccountSettingsControllerTest {
     // When
     ResponseEntity<?> response = controller.resetPassword(
         TENANT_SLUG,
-        new AccountResetPasswordRequest("john@acme.com", "TempPass@123", "NewSecure@2026!"));
+        new AccountResetPasswordRequest(
+            "john@acme.com", "TempPass@123", "NewSecure@2026!", "NewSecure@2026!", "123456"));
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

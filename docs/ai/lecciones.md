@@ -8,7 +8,33 @@
 
 ---
 
-### [2026-04-04] Templates de email profesionales — 4 tipos de notificación con Thymeleaf
+### [2026-04-04] Flujo RESET_PASSWORD completo — código 6 dígitos + SendPasswordResetCodeUseCase
+
+**Contexto:** Implementación del flujo completo de restablecimiento de contraseña con verificación por código para usuarios en estado `RESET_PASSWORD`. Se extiende el flujo previo que sólo cambiaba la contraseña con contraseña temporal.
+
+**Problema (múltiple):**
+1. `ResetPasswordUseCase.java` tenía el cuerpo viejo duplicado al final del archivo (líneas 127–201), causando error de compilación "class ResetPasswordUseCase is already defined".
+2. `ResetPasswordUseCaseTest` instanciaba el use case con el constructor de 3 args en lugar del nuevo de 4 (faltaba `PasswordResetCodeRepositoryPort`).
+3. `AuthorizationControllerTest` no pasaba `SendPasswordResetCodeUseCase` al constructor del controller (nuevo parámetro).
+4. `AccountSettingsControllerTest` construía `AccountResetPasswordRequest` con 3 args en lugar de 5 (faltaban `confirmNewPassword` y `verificationCode`).
+5. `GlobalExceptionHandlerTest` esperaba HTTP 403 para `UserPasswordResetRequiredException` pero el handler retorna 401 (`RESET_PASSWORD_REQUIRED` → credenciales bloqueadas, no acceso prohibido).
+6. `PasswordResetCode.reconstitute()` — al crear el modelo de dominio, se usó el método de restitución para tests.
+
+**Solución / Buena práctica:**
+- Al añadir parámetros a un use case constructor, **actualizar siempre** el test `@BeforeEach` con el nuevo `@Mock` y el constructor.
+- Al añadir parámetros a un controller constructor, **actualizar siempre** el test del controller (igual que el use case).
+- Al añadir campos a un `record` de request/command, **buscar y actualizar** todos los tests que lo construyen directamente.
+- Cuando se reescribe un archivo completo, verificar que no queden restos del archivo anterior (duplicados de clases/cuerpos).
+- `RESET_PASSWORD_REQUIRED` → HTTP 401 (no 403) porque el usuario no puede autenticarse, no que esté "prohibido".
+
+**Archivos clave:**
+- `keygo-app/src/main/java/.../user/usecase/ResetPasswordUseCase.java` (v2: + codeRepository)
+- `keygo-app/src/test/java/.../user/usecase/ResetPasswordUseCaseTest.java`
+- `keygo-api/src/test/java/.../auth/controller/AuthorizationControllerTest.java`
+- `keygo-api/src/test/java/.../user/controller/AccountSettingsControllerTest.java`
+- `keygo-api/src/test/java/.../error/GlobalExceptionHandlerTest.java`
+
+
 **Contexto:** Necesidad de actualizar los templates de email de formato básico a diseño professional responsive. Los templates anteriores usaban HTML simplificado sin estilos CSS inline, no tenían instrucciones paso a paso ni advertencias de seguridad claras.
 
 **Problema:** Los dos templates iniciales (`email-validation.html`, `password-recovery.html`) eran copias del ejemplo genérico, no adaptados a las variables reales del sistema. El puerto `EmailNotificationPort` define 4 métodos de conveniencia que mapean a 4 tipos de email diferentes:
@@ -830,3 +856,58 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 **Síntoma:** PATCH de preferencias aceptaba campos desconocidos a pesar de querer rechazarlos.
 **Causa:** `application.yml` configura `FAIL_ON_UNKNOWN_PROPERTIES=false` globalmente.
 **Solución:** Anotar el record de request con `@JsonIgnoreProperties(ignoreUnknown = false)` de `com.fasterxml.jackson.annotation` — sobrescribe la config global para esa clase.
+
+---
+
+### [2026-04-04] Jerarquía de excepciones para email — 3 tipos específicos
+**Contexto:** El adaptador de email (`EmailNotificationAdapter`) necesita lanzar excepciones que comuniquen explícitamente qué tipo de fallo ocurrió (template, SMTP, validación).
+
+**Problema:** Usar `EmailNotificationException` genérica para todos los errores dificulta el manejo diferenciado en la UI/use cases. Los 3 tipos de fallo tienen raíces y soluciones completamente diferentes:
+- **Template falla** → dev error, configuración, variables faltantes
+- **SMTP falla** → infraestructura (servidor down, credenciales), problema transitorio → retry viable
+- **Email inválido** → client error, validación necesaria antes de enviar
+
+**Solución / Buena práctica:**
+1. **Crear jerarquía de excepciones en `keygo-app`** (capa PORT):
+   ```
+   EmailNotificationException (base — PortException)
+   ├── EmailTemplateException — fallo Thymeleaf
+   ├── EmailSmtpException — fallo de envío SMTP
+   └── EmailValidationException — email destinatario inválido
+   ```
+
+2. **Ubicación:**
+   - Base: `keygo-app/src/main/java/.../user/port/notification/EmailNotificationException.java`
+   - Sub-excepciones: `keygo-app/src/main/java/.../user/port/notification/exception/Email{Type}Exception.java`
+
+3. **Constructores tipados** (seguir patrón EXCEPTION_HIERARCHY.md):
+   ```java
+   // EmailTemplateException
+   new EmailTemplateException("template-name")
+   new EmailTemplateException("template-name", cause)
+   
+   // EmailSmtpException
+   new EmailSmtpException("reason")
+   new EmailSmtpException("reason", cause)
+   
+   // EmailValidationException
+   new EmailValidationException("invalid-email@")
+   new EmailValidationException("invalid-email@", "reason")
+   ```
+
+4. **En el adaptador (`keygo-infra`):**
+   - `renderTemplate()` lanza `EmailTemplateException`
+   - `sendMimeMessage()` lanza `EmailSmtpException` y `EmailValidationException`
+   - `sendEmailInternal()` re-thrown específicas sin envolverlas en genéricas
+
+5. **En use cases / controllers:**
+   - Catch base `EmailNotificationException` para genérico
+   - Catch específicas si se necesita manejo diferenciado (ej: SMTP → retry, validation → error inmediato)
+
+**Archivos clave:**
+- `keygo-app/src/main/java/.../user/port/notification/EmailNotificationException.java`
+- `keygo-app/src/main/java/.../user/port/notification/exception/EmailTemplateException.java`
+- `keygo-app/src/main/java/.../user/port/notification/exception/EmailSmtpException.java`
+- `keygo-app/src/main/java/.../user/port/notification/exception/EmailValidationException.java`
+- `keygo-infra/src/main/java/.../adapter/notification/EmailNotificationAdapter.java`
+

@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.User;
@@ -77,6 +78,11 @@ public class AuthenticateUserForAuthorizationUseCase {
     // Validar contraseña
     if (!passwordHasher.matches(command.password(), user.getPasswordHash().value())) {
       throw new InvalidCredentialsException();
+    }
+
+    // Bloquear login si el usuario debe cambiar su contraseña
+    if (user.isResetPassword()) {
+      throw new UserPasswordResetRequiredException(user.getUsername().value());
     }
 
     return user;

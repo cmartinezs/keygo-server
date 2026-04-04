@@ -82,6 +82,7 @@ import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
@@ -99,6 +100,7 @@ import io.cmartinezs.keygo.app.user.usecase.ResendVerificationEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
@@ -588,8 +590,26 @@ public class ApplicationConfig {
   public ResetPasswordUseCase resetPasswordUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
-    return new ResetPasswordUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+      PasswordHasherPort passwordHasherPort,
+      PasswordResetCodeRepositoryPort passwordResetCodeRepositoryPort) {
+    return new ResetPasswordUseCase(
+        tenantRepositoryPort,
+        userRepositoryPort,
+        passwordHasherPort,
+        passwordResetCodeRepositoryPort);
+  }
+
+  @Bean
+  public SendPasswordResetCodeUseCase sendPasswordResetCodeUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      PasswordResetCodeRepositoryPort passwordResetCodeRepositoryPort,
+      EmailNotificationPort emailNotificationPort) {
+    return new SendPasswordResetCodeUseCase(
+        tenantRepositoryPort,
+        userRepositoryPort,
+        passwordResetCodeRepositoryPort,
+        emailNotificationPort);
   }
 
   @Bean

@@ -29,7 +29,7 @@ public class EmailValidationStrategy extends EmailStrategy {
 
   @Override
   public String getTemplateName() {
-    return "email-validation";
+    return "html/email-validation";
   }
 
   @Override

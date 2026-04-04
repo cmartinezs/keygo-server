@@ -43,8 +43,10 @@ import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredExcepti
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
@@ -612,15 +614,39 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Handles UserPasswordResetRequiredException - returns 403 Forbidden.
+   * Handles UserPasswordResetRequiredException - returns 401 Unauthorized.
    * Lanzada cuando un usuario con status=RESET_PASSWORD intenta autenticarse.
    * El cliente debe redirigir al flujo de reset de contraseña.
+   * NOTA: el controlador de login la captura antes y envía el email, pero se mantiene
+   * este handler como fallback para otros contextos donde pueda propagarse.
    */
   @ExceptionHandler(UserPasswordResetRequiredException.class)
   public ResponseEntity<BaseResponse<ErrorData>> handleUserPasswordResetRequiredException(
       UserPasswordResetRequiredException ex) {
     log.warn("Login blocked — password reset required: {}", ex.getMessage());
-    return error(HttpStatus.FORBIDDEN, ResponseCode.RESET_PASSWORD_REQUIRED, ex);
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.RESET_PASSWORD_REQUIRED, ex);
+  }
+
+  /**
+   * Handles InvalidPasswordResetCodeException - returns 400 Bad Request.
+   * Lanzada cuando el código de verificación de reset de contraseña es inválido o no existe.
+   */
+  @ExceptionHandler(InvalidPasswordResetCodeException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPasswordResetCodeException(
+      InvalidPasswordResetCodeException ex) {
+    log.warn("Invalid password reset code: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles PasswordResetCodeExpiredException - returns 422 Unprocessable Entity.
+   * Lanzada cuando el código de verificación de reset de contraseña ha expirado.
+   */
+  @ExceptionHandler(PasswordResetCodeExpiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordResetCodeExpiredException(
+      PasswordResetCodeExpiredException ex) {
+    log.warn("Password reset code expired: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**

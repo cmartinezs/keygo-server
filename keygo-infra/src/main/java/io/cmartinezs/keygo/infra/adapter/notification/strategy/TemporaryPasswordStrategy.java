@@ -7,33 +7,33 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Estrategia para envío de email de recuperación de contraseña.
+ * Estrategia para envío de email con contraseña temporal.
  *
- * <p>Se utiliza cuando un usuario solicita restablecer su contraseña. El template incluye:
- * - Código de verificación (y/o enlace)
- * - Información de seguridad (aviso sobre no compartir)
- * - Tiempo de expiración
+ * <p>Se utiliza cuando un usuario es creado por un administrador y necesita una contraseña
+ * temporal para primer acceso. El template incluye:
+ * - Contraseña temporal
+ * - Instrucciones para cambiarla al primer login
+ * - Advertencia de seguridad
  *
  * <p>Variables esperadas en el comando:
- * - verificationCode: código único
+ * - temporaryPassword: contraseña temporal generada
  * - userName: nombre del usuario
- * - recoveryLink (opcional): enlace directo
  */
 @Slf4j
-public class PasswordRecoveryStrategy extends EmailStrategy {
+public class TemporaryPasswordStrategy extends EmailStrategy {
 
-  public PasswordRecoveryStrategy(SendEmailCommand cmd) {
+  public TemporaryPasswordStrategy(SendEmailCommand cmd) {
     super(cmd);
   }
 
   @Override
   public String getTemplateName() {
-    return "html/password-recovery";
+    return "html/temporary-password";
   }
 
   @Override
   public String getSubject() {
-    return "Restablecer tu contraseña en KeyGo";
+    return "Tu contraseña temporal en KeyGo";
   }
 
   @Override
@@ -43,7 +43,7 @@ public class PasswordRecoveryStrategy extends EmailStrategy {
 
   @Override
   public String getFromName() {
-    return "KeyGo - Seguridad";
+    return "KeyGo - Cuenta";
   }
 
   @Override
@@ -52,10 +52,11 @@ public class PasswordRecoveryStrategy extends EmailStrategy {
 
     // Asegurar que existan variables mínimas
     variables.putIfAbsent("userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
-    variables.putIfAbsent("verificationCode", "000000");
+    variables.putIfAbsent("temporaryPassword", "TempPass123!");
+    variables.putIfAbsent("recipientEmail", cmd.getRecipientEmail());
 
     log.debug(
-        "PasswordRecoveryStrategy rendered with variables: {}",
+        "TemporaryPasswordStrategy rendered with variables: {}",
         variables.keySet());
 
     return variables;

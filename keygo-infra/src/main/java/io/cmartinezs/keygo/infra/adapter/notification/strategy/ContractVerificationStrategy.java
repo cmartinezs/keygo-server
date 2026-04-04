@@ -7,33 +7,34 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Estrategia para envío de email de recuperación de contraseña.
+ * Estrategia para envío de email de verificación de contrato de suscripción.
  *
- * <p>Se utiliza cuando un usuario solicita restablecer su contraseña. El template incluye:
- * - Código de verificación (y/o enlace)
- * - Información de seguridad (aviso sobre no compartir)
- * - Tiempo de expiración
+ * <p>Se utiliza cuando un usuario inicia un contrato de suscripción. El template incluye:
+ * - Código de verificación de email
+ * - ID del contrato
+ * - Información de expiración
  *
  * <p>Variables esperadas en el comando:
- * - verificationCode: código único
+ * - verificationCode: código de 6 dígitos
+ * - contractId: UUID del contrato
+ * - expiresInMinutes: minutos de validez del código
  * - userName: nombre del usuario
- * - recoveryLink (opcional): enlace directo
  */
 @Slf4j
-public class PasswordRecoveryStrategy extends EmailStrategy {
+public class ContractVerificationStrategy extends EmailStrategy {
 
-  public PasswordRecoveryStrategy(SendEmailCommand cmd) {
+  public ContractVerificationStrategy(SendEmailCommand cmd) {
     super(cmd);
   }
 
   @Override
   public String getTemplateName() {
-    return "html/password-recovery";
+    return "html/contract-verification";
   }
 
   @Override
   public String getSubject() {
-    return "Restablecer tu contraseña en KeyGo";
+    return "Verifica tu email para completar la suscripción";
   }
 
   @Override
@@ -43,7 +44,7 @@ public class PasswordRecoveryStrategy extends EmailStrategy {
 
   @Override
   public String getFromName() {
-    return "KeyGo - Seguridad";
+    return "KeyGo - Suscripción";
   }
 
   @Override
@@ -53,9 +54,11 @@ public class PasswordRecoveryStrategy extends EmailStrategy {
     // Asegurar que existan variables mínimas
     variables.putIfAbsent("userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
     variables.putIfAbsent("verificationCode", "000000");
+    variables.putIfAbsent("expiresInMinutes", 30);
+    variables.putIfAbsent("recipientEmail", cmd.getRecipientEmail());
 
     log.debug(
-        "PasswordRecoveryStrategy rendered with variables: {}",
+        "ContractVerificationStrategy rendered with variables: {}",
         variables.keySet());
 
     return variables;

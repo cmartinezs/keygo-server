@@ -45,6 +45,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -214,11 +215,12 @@ public class AccountSettingsController {
       summary = "Reset password with temporary password",
       description = "Allows a user in RESET_PASSWORD status to set their permanent password "
                     + "using the temporary password assigned by the administrator. "
-                    + "No Bearer token required — authenticated via email + temporary password.")
+                    + "Also requires the 6-digit verification code received by email when the "
+                    + "login was blocked. No Bearer token required.")
   @ApiResponse(responseCode = "200",
       description = "Password reset successfully (code: ACCOUNT_PASSWORD_RESET)")
   @ApiResponse(responseCode = "400",
-      description = "New password violates policy (code: INVALID_INPUT)",
+      description = "New password violates policy, passwords don't match, or invalid code format (code: INVALID_INPUT)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "403",
       description = "Temporary password incorrect or user not in RESET_PASSWORD status (code: BUSINESS_RULE_VIOLATION)",
@@ -226,20 +228,25 @@ public class AccountSettingsController {
   @ApiResponse(responseCode = "404",
       description = "Tenant or user not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "422",
+      description = "Verification code expired (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "500",
       description = "Internal error (code: OPERATION_FAILED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<ResetPasswordResult>> resetPassword(
       @Parameter(description = "Tenant slug", example = "my-company")
       @PathVariable String tenantSlug,
-      @RequestBody AccountResetPasswordRequest request) {
+      @Valid @RequestBody AccountResetPasswordRequest request) {
 
     ResetPasswordResult result = resetPasswordUseCase.execute(
         new ResetPasswordCommand(
             tenantSlug,
             request.email(),
             request.temporaryPassword(),
-            request.newPassword()));
+            request.newPassword(),
+            request.confirmNewPassword(),
+            request.verificationCode()));
 
     return ResponseEntity.status(HttpStatus.OK).body(
         BaseResponse.<ResetPasswordResult>builder()

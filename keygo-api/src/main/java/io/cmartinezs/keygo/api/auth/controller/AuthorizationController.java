@@ -31,13 +31,16 @@ import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.app.user.command.SendPasswordResetCodeCommand;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.domain.auth.model.RefreshToken;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -95,6 +98,7 @@ public class AuthorizationController {
   private final MembershipRepositoryPort membershipRepository;
   private final ClockPort clock;
   private final String issuerBaseUrl;
+  private final SendPasswordResetCodeUseCase sendPasswordResetCodeUseCase;
 
   private final SecureRandom random = new SecureRandom();
 
@@ -114,7 +118,8 @@ public class AuthorizationController {
       MembershipRepositoryPort membershipRepository,
       ClockPort clock,
       @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}")
-          String issuerBaseUrl) {
+          String issuerBaseUrl,
+      SendPasswordResetCodeUseCase sendPasswordResetCodeUseCase) {
     this.initiateAuthorizationUseCase = initiateAuthorizationUseCase;
     this.authenticateUserForAuthorizationUseCase = authenticateUserForAuthorizationUseCase;
     this.issueAuthorizationCodeUseCase = issueAuthorizationCodeUseCase;
@@ -130,6 +135,7 @@ public class AuthorizationController {
     this.membershipRepository = membershipRepository;
     this.clock = clock;
     this.issuerBaseUrl = issuerBaseUrl;
+    this.sendPasswordResetCodeUseCase = sendPasswordResetCodeUseCase;
   }
 
   /**
@@ -249,11 +255,15 @@ public class AuthorizationController {
           code. Requires an active authorization session established by `GET /oauth2/authorize`.
 
           The returned `code` must be exchanged for tokens via `POST /oauth2/token` \
-          (`grant_type=authorization_code`) using the original PKCE `code_verifier`.""")
+          (`grant_type=authorization_code`) using the original PKCE `code_verifier`.
+
+          If the user account has `status=RESET_PASSWORD`, the login is blocked (401) \
+          and a 6-digit verification code is sent to their email. The frontend should \
+          redirect to the reset-password form.""")
   @ApiResponse(responseCode = "200", description = "Login successful — authorization code issued (code: LOGIN_SUCCESSFUL)")
   @ApiResponse(responseCode = "400", description = "No authorization state in session — call GET /oauth2/authorize first (code: INVALID_INPUT)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  @ApiResponse(responseCode = "401", description = "Invalid credentials (code: AUTHENTICATION_REQUIRED)",
+  @ApiResponse(responseCode = "401", description = "Invalid credentials or password reset required (code: AUTHENTICATION_REQUIRED | RESET_PASSWORD_REQUIRED)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
@@ -272,31 +282,43 @@ public class AuthorizationController {
     // Validar credenciales del usuario
     var command =
         new AuthenticateUserCommand(tenantSlug, request.emailOrUsername(), request.password());
-    var user = authenticateUserForAuthorizationUseCase.execute(tenantSlug, command);
 
-    // Emitir el authorization code usando el estado recuperado
-    var issueCodeCommand =
-        new IssueAuthorizationCodeCommand(
-            authSessionState.tenantSlug(),
-            authSessionState.clientId(),
-            user.getId().value().toString(),
-            authSessionState.redirectUri(),
-            authSessionState.scope(),
-            authSessionState.codeChallenge(),
-            authSessionState.codeChallengeMethod());
+    try {
+      var user = authenticateUserForAuthorizationUseCase.execute(tenantSlug, command);
 
-    var authCodeResult = issueAuthorizationCodeUseCase.execute(issueCodeCommand);
+      // Emitir el authorization code usando el estado recuperado
+      var issueCodeCommand =
+          new IssueAuthorizationCodeCommand(
+              authSessionState.tenantSlug(),
+              authSessionState.clientId(),
+              user.getId().value().toString(),
+              authSessionState.redirectUri(),
+              authSessionState.scope(),
+              authSessionState.codeChallenge(),
+              authSessionState.codeChallengeMethod());
 
-    var responseData =
-        new LoginData("Login successful", authCodeResult.code(), authCodeResult.redirectUri());
+      var authCodeResult = issueAuthorizationCodeUseCase.execute(issueCodeCommand);
 
-    BaseResponse<LoginData> response =
-        BaseResponse.<LoginData>builder()
-            .data(responseData)
-            .success(ResponseHelper.message(ResponseCode.LOGIN_SUCCESSFUL))
-            .build();
+      var responseData =
+          new LoginData("Login successful", authCodeResult.code(), authCodeResult.redirectUri());
 
-    return ResponseEntity.status(HttpStatus.OK).body(response);
+      return ResponseEntity.status(HttpStatus.OK).body(
+          BaseResponse.<LoginData>builder()
+              .data(responseData)
+              .success(ResponseHelper.message(ResponseCode.LOGIN_SUCCESSFUL))
+              .build());
+
+    } catch (UserPasswordResetRequiredException e) {
+      // Credenciales correctas, pero el usuario debe cambiar su contraseña.
+      // Enviar código de verificación al email antes de bloquear el login.
+      sendPasswordResetCodeUseCase.execute(
+          new SendPasswordResetCodeCommand(tenantSlug, request.emailOrUsername()));
+
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+          BaseResponse.<LoginData>builder()
+              .failure(ResponseHelper.message(ResponseCode.RESET_PASSWORD_REQUIRED))
+              .build());
+    }
   }
 
   /**

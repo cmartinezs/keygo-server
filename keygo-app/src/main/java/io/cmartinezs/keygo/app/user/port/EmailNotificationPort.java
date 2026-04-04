@@ -122,5 +122,25 @@ public interface EmailNotificationPort {
             "recoveryToken", recoveryToken,
             "tenantSlug", tenantSlug));
   }
+
+  /**
+   * Sends a 6-digit verification code to a user whose login is blocked by {@code status=RESET_PASSWORD}.
+   * Envía un código de 6 dígitos a un usuario cuyo login está bloqueado por {@code status=RESET_PASSWORD}.
+   *
+   * @param toEmail          the recipient's email address
+   * @param username         the recipient's username (for personalization)
+   * @param code             the 6-digit verification code
+   * @param expiresInMinutes TTL in minutes
+   */
+  default void sendPasswordResetCodeEmail(String toEmail, String username, String code, int expiresInMinutes) {
+    sendEmail(
+        "password-reset-code",
+        toEmail,
+        username,
+        Map.of(
+            "userName", username,
+            "verificationCode", code,
+            "expiresInMinutes", expiresInMinutes));
+  }
 }
 
