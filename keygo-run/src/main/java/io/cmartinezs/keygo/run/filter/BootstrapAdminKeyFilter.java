@@ -48,6 +48,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
   private static final String BEARER_PREFIX = "Bearer ";
   private final KeyGoBootstrapProperties bootstrapProperties;
   private final JsonMapper jsonMapper;
+  private final ApiErrorDataFactory factory;
   private final boolean includeTechnicalDetails;
   /**
    * Optional: available only when the 'supabase' profile is active.
@@ -58,27 +59,28 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
 
   public BootstrapAdminKeyFilter(
       KeyGoBootstrapProperties bootstrapProperties,
-      JsonMapper jsonMapper) {
-    this(bootstrapProperties, jsonMapper, null, null, false);
+      JsonMapper jsonMapper, ApiErrorDataFactory factory) {
+    this(bootstrapProperties, jsonMapper, factory, null, null, false);
   }
 
   public BootstrapAdminKeyFilter(
       KeyGoBootstrapProperties bootstrapProperties,
       JsonMapper jsonMapper,
       AccessTokenVerifierPort accessTokenVerifier,
-      SigningKeyRepositoryPort signingKeyRepository) {
-    this(bootstrapProperties, jsonMapper, accessTokenVerifier, signingKeyRepository, false);
+      SigningKeyRepositoryPort signingKeyRepository, ApiErrorDataFactory factory) {
+    this(bootstrapProperties, jsonMapper, factory, accessTokenVerifier, signingKeyRepository, false);
   }
 
   public BootstrapAdminKeyFilter(
       KeyGoBootstrapProperties bootstrapProperties,
-      JsonMapper jsonMapper,
+      JsonMapper jsonMapper, ApiErrorDataFactory factory,
       AccessTokenVerifierPort accessTokenVerifier,
       SigningKeyRepositoryPort signingKeyRepository,
       boolean includeTechnicalDetails) {
     this.bootstrapProperties = bootstrapProperties;
     this.jsonMapper = jsonMapper;
-    this.accessTokenVerifier = accessTokenVerifier;
+      this.factory = factory;
+      this.accessTokenVerifier = accessTokenVerifier;
     this.signingKeyRepository = signingKeyRepository;
     this.includeTechnicalDetails = includeTechnicalDetails;
   }
@@ -276,7 +278,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     response.setCharacterEncoding("UTF-8");
     BaseResponse<ErrorData> errorResponse = BaseResponse.<ErrorData>builder()
         .failure(ResponseHelper.message(ResponseCode.AUTHENTICATION_REQUIRED))
-        .data(ApiErrorDataFactory.fromDetail(
+        .data(factory.fromDetail(
             ResponseCode.AUTHENTICATION_REQUIRED,
             detail,
             "BootstrapAdminKeyFilter",

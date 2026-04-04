@@ -3,9 +3,6 @@ package io.cmartinezs.keygo.api.error;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
-import jakarta.validation.ConstraintViolationException;
-import java.util.ArrayList;
-import java.util.List;
 import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
 import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
 import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
@@ -19,12 +16,12 @@ import io.cmartinezs.keygo.app.clientapp.exception.ClientAppInactiveException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
 import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
-import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
-import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.app.shared.exception.PortException;
 import io.cmartinezs.keygo.app.shared.exception.UseCaseException;
 import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
 import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
+import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidPkceVerificationException;
@@ -46,18 +43,22 @@ import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredExcepti
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
-import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
+import jakarta.validation.ConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -77,14 +78,11 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  */
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
   private final Environment environment;
-
-  public GlobalExceptionHandler(Environment environment) {
-    this.environment = environment;
-  }
-
+  private final ApiErrorDataFactory apiErrorDataFactory;
   /**
    * Handles UnauthorizedException - returns 401 Unauthorized.
    * Maneja UnauthorizedException - retorna 401 Unauthorized.
@@ -149,7 +147,7 @@ public class GlobalExceptionHandler {
             .build())
     );
 
-    ErrorData errorData = ApiErrorDataFactory.fromValidationErrors(
+    ErrorData errorData = apiErrorDataFactory.fromValidationErrors(
         ResponseCode.INVALID_INPUT, fieldErrors, techDetails);
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -180,7 +178,7 @@ public class GlobalExceptionHandler {
           .build());
     });
 
-    ErrorData errorData = ApiErrorDataFactory.fromValidationErrors(
+    ErrorData errorData = apiErrorDataFactory.fromValidationErrors(
         ResponseCode.INVALID_INPUT, fieldErrors, techDetails);
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -709,7 +707,7 @@ public class GlobalExceptionHandler {
       Throwable throwable) {
     BaseResponse<ErrorData> response = BaseResponse.<ErrorData>builder()
         .failure(ResponseHelper.message(responseCode))
-        .data(ApiErrorDataFactory.fromException(responseCode, throwable, includeTechnicalDetails()))
+        .data(apiErrorDataFactory.fromException(responseCode, throwable, includeTechnicalDetails()))
         .build();
 
     return ResponseEntity.status(status).body(response);

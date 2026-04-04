@@ -8,7 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.cmartinezs.keygo.api.error.ApiErrorDataFactory;
 import io.cmartinezs.keygo.api.error.GlobalExceptionHandler;
+import io.cmartinezs.keygo.api.shared.MessageTranslator;
 import io.cmartinezs.keygo.app.auth.result.AuthorizationInitiatedResult;
 import io.cmartinezs.keygo.app.auth.usecase.AuthenticateUserForAuthorizationUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.ExchangeAuthorizationCodeUseCase;
@@ -29,9 +31,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.StaticMessageSource;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.mock.env.MockEnvironment;
 
 @ExtendWith(MockitoExtension.class)
 class AuthorizationControllerTest {
@@ -73,9 +76,10 @@ class AuthorizationControllerTest {
             clock,
             "http://localhost:8080/keygo-server");
 
+    var apiErrorDataFactory = new ApiErrorDataFactory(new MessageTranslator(new StaticMessageSource()));
     mockMvc =
         MockMvcBuilders.standaloneSetup(controller)
-            .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment()))
+            .setControllerAdvice(new GlobalExceptionHandler(new MockEnvironment(), apiErrorDataFactory))
             .build();
   }
 

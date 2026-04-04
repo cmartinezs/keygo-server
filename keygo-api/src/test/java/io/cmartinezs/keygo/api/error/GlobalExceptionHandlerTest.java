@@ -1,5 +1,11 @@
 package io.cmartinezs.keygo.api.error;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
+
+import io.cmartinezs.keygo.api.shared.MessageTranslator;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
@@ -12,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
@@ -22,14 +29,8 @@ import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
-
 /**
- * Unit tests for GlobalExceptionHandler
- * Pruebas unitarias para GlobalExceptionHandler
+ * Unit tests for GlobalExceptionHandler Pruebas unitarias para GlobalExceptionHandler
  *
  * @author cmartinezs
  * @version 1.0
@@ -39,11 +40,13 @@ class GlobalExceptionHandlerTest {
 
   @Mock private Environment environment;
 
+  private ApiErrorDataFactory factory;
   private GlobalExceptionHandler handler;
 
   @BeforeEach
   void setUp() {
-    handler = new GlobalExceptionHandler(environment);
+    factory = new ApiErrorDataFactory(new MessageTranslator(new StaticMessageSource()));
+    handler = new GlobalExceptionHandler(environment, factory);
     lenient().when(environment.acceptsProfiles(any(Profiles.class))).thenReturn(false);
   }
 
@@ -53,7 +56,8 @@ class GlobalExceptionHandlerTest {
     UnauthorizedException exception = new UnauthorizedException("Unauthorized access");
 
     // When
-    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleUnauthorizedException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleUnauthorizedException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -72,10 +76,12 @@ class GlobalExceptionHandlerTest {
   @Test
   void handleNoResourceFoundException_shouldReturnNotFound() {
     // Given
-    NoResourceFoundException exception = new NoResourceFoundException(HttpMethod.GET, "/test", "test");
+    NoResourceFoundException exception =
+        new NoResourceFoundException(HttpMethod.GET, "/test", "test");
 
     // When
-    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleNoResourceFoundException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleNoResourceFoundException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -95,7 +101,8 @@ class GlobalExceptionHandlerTest {
     IllegalArgumentException exception = new IllegalArgumentException("Invalid argument");
 
     // When
-    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleIllegalArgumentException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleIllegalArgumentException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -122,7 +129,8 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure()).isNotNull();
     assertThat(response.getBody().getData()).isNotNull();
-    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.SERVER_PROCESSING);
+    assertThat(response.getBody().getData().getOrigin())
+        .isEqualTo(ApiErrorOrigin.SERVER_PROCESSING);
     assertThat(response.getBody().getData().getClientRequestCause()).isNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.OPERATION_FAILED.getCode());
@@ -134,7 +142,8 @@ class GlobalExceptionHandlerTest {
     InvalidCredentialsException exception = new InvalidCredentialsException();
 
     // When
-    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleInvalidCredentialsException(exception);
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleInvalidCredentialsException(exception);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -169,8 +178,7 @@ class GlobalExceptionHandlerTest {
     // Given
     HttpMessageNotReadableException exception =
         new HttpMessageNotReadableException(
-            "Malformed JSON",
-            new MockHttpInputMessage(new byte[0]));
+            "Malformed JSON", new MockHttpInputMessage(new byte[0]));
 
     // When
     ResponseEntity<BaseResponse<ErrorData>> response =
@@ -206,7 +214,8 @@ class GlobalExceptionHandlerTest {
   void allHandlers_shouldReturnNonNullResponse() {
     // Given
     UnauthorizedException unauth = new UnauthorizedException("test");
-    NoResourceFoundException notFound = new NoResourceFoundException(HttpMethod.GET, "/test", "test");
+    NoResourceFoundException notFound =
+        new NoResourceFoundException(HttpMethod.GET, "/test", "test");
     IllegalArgumentException illegalArg = new IllegalArgumentException("test");
     Exception generic = new Exception("test");
 
@@ -221,14 +230,16 @@ class GlobalExceptionHandlerTest {
   void allHandlers_shouldHaveFailureMessage() {
     // Given
     UnauthorizedException unauth = new UnauthorizedException("test");
-    NoResourceFoundException notFound = new NoResourceFoundException(HttpMethod.GET, "/test", "test");
+    NoResourceFoundException notFound =
+        new NoResourceFoundException(HttpMethod.GET, "/test", "test");
     IllegalArgumentException illegalArg = new IllegalArgumentException("test");
     Exception generic = new Exception("test");
 
     // When / Then
     assertThat(handler.handleUnauthorizedException(unauth).getBody().getFailure()).isNotNull();
     assertThat(handler.handleNoResourceFoundException(notFound).getBody().getFailure()).isNotNull();
-    assertThat(handler.handleIllegalArgumentException(illegalArg).getBody().getFailure()).isNotNull();
+    assertThat(handler.handleIllegalArgumentException(illegalArg).getBody().getFailure())
+        .isNotNull();
     assertThat(handler.handleGenericException(generic).getBody().getFailure()).isNotNull();
   }
 
@@ -266,8 +277,8 @@ class GlobalExceptionHandlerTest {
     var ex = new PasswordRecoveryTokenAlreadyUsedException();
     var response = handler.handlePasswordRecoveryTokenAlreadyUsedException(ex);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+    assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
   }
 }
-

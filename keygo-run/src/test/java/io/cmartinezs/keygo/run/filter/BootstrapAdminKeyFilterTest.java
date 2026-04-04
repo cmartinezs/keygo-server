@@ -1,9 +1,16 @@
 package io.cmartinezs.keygo.run.filter;
 
-import tools.jackson.databind.json.JsonMapper;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
 import io.cmartinezs.keygo.api.error.ApiClientRequestCause;
+import io.cmartinezs.keygo.api.error.ApiErrorDataFactory;
 import io.cmartinezs.keygo.api.error.ApiErrorOrigin;
 import io.cmartinezs.keygo.api.error.ErrorData;
+import io.cmartinezs.keygo.api.shared.MessageTranslator;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
@@ -11,6 +18,10 @@ import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,20 +29,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class BootstrapAdminKeyFilterTest {
@@ -42,13 +44,17 @@ class BootstrapAdminKeyFilterTest {
   @Mock private AccessTokenVerifierPort accessTokenVerifier;
   @Mock private SigningKeyRepositoryPort signingKeyRepository;
 
+  private ApiErrorDataFactory factory;
   private BootstrapAdminKeyFilter filter;
   private MockHttpServletRequest request;
   private MockHttpServletResponse response;
 
   @BeforeEach
   void setUp() {
-    filter = new BootstrapAdminKeyFilter(bootstrapProperties, jsonMapper, accessTokenVerifier, signingKeyRepository);
+    factory = new ApiErrorDataFactory(new MessageTranslator(new StaticMessageSource()));
+    filter =
+        new BootstrapAdminKeyFilter(
+            bootstrapProperties, jsonMapper, accessTokenVerifier, signingKeyRepository, factory);
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();
 
@@ -60,7 +66,8 @@ class BootstrapAdminKeyFilterTest {
   // ─── Bootstrap disabled ────────────────────────────────────────────────────
 
   @Test
-  void doFilterInternal_shouldAllowRequestWhenBootstrapDisabled() throws ServletException, IOException {
+  void doFilterInternal_shouldAllowRequestWhenBootstrapDisabled()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(false);
     when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
@@ -75,18 +82,24 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @Test
-  void doFilterInternal_shouldSetBypassAuthenticationWhenBootstrapDisabled() throws ServletException, IOException {
+  void doFilterInternal_shouldSetBypassAuthenticationWhenBootstrapDisabled()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(false);
     when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
     request.setServletPath("/api/v1/tenants");
 
     // Capture the SecurityContext state during filter execution
-    var capturedAuth = new java.util.concurrent.atomic.AtomicReference<org.springframework.security.core.Authentication>();
-    doAnswer(invocation -> {
-      capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
-      return null;
-    }).when(filterChain).doFilter(request, response);
+    var capturedAuth =
+        new java.util.concurrent.atomic.AtomicReference<
+            org.springframework.security.core.Authentication>();
+    doAnswer(
+            invocation -> {
+              capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
+              return null;
+            })
+        .when(filterChain)
+        .doFilter(request, response);
 
     // When
     filter.doFilterInternal(request, response, filterChain);
@@ -95,7 +108,8 @@ class BootstrapAdminKeyFilterTest {
     org.springframework.security.core.Authentication auth = capturedAuth.get();
     assertThat(auth).isNotNull();
     assertThat(auth.isAuthenticated()).isTrue();
-    assertThat(auth.getAuthorities()).extracting("authority")
+    assertThat(auth.getAuthorities())
+        .extracting("authority")
         .containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_ADMIN_TENANT", "ROLE_USER");
   }
 
@@ -106,23 +120,30 @@ class BootstrapAdminKeyFilterTest {
     when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN"));
     request.setServletPath("/api/v1/tenants");
 
-    var capturedAuth = new java.util.concurrent.atomic.AtomicReference<org.springframework.security.core.Authentication>();
-    doAnswer(invocation -> {
-      capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
-      return null;
-    }).when(filterChain).doFilter(request, response);
+    var capturedAuth =
+        new java.util.concurrent.atomic.AtomicReference<
+            org.springframework.security.core.Authentication>();
+    doAnswer(
+            invocation -> {
+              capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
+              return null;
+            })
+        .when(filterChain)
+        .doFilter(request, response);
 
     // When
     filter.doFilterInternal(request, response, filterChain);
 
     // Then
-    assertThat(capturedAuth.get().getAuthorities()).extracting("authority")
+    assertThat(capturedAuth.get().getAuthorities())
+        .extracting("authority")
         .containsExactly("ROLE_ADMIN")
         .doesNotContain("ROLE_ADMIN_TENANT", "ROLE_USER");
   }
 
   @Test
-  void doFilterInternal_shouldClearSecurityContextAfterBypassRequest() throws ServletException, IOException {
+  void doFilterInternal_shouldClearSecurityContextAfterBypassRequest()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(false);
     when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
@@ -138,8 +159,10 @@ class BootstrapAdminKeyFilterTest {
   // ─── Public paths ──────────────────────────────────────────────────────────
 
   @ParameterizedTest
-  @ValueSource(strings = {"/actuator/health", "/actuator/metrics", "/service/info", "/service/info/details"})
-  void doFilterInternal_shouldAllowPublicPathsWithoutAuth(String publicPath) throws ServletException, IOException {
+  @ValueSource(
+      strings = {"/actuator/health", "/actuator/metrics", "/service/info", "/service/info/details"})
+  void doFilterInternal_shouldAllowPublicPathsWithoutAuth(String publicPath)
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     request.setServletPath(publicPath);
@@ -153,12 +176,14 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "/api/v1/tenants/keygo/oauth2/authorize",
-      "/api/v1/tenants/keygo/account/login",
-      "/api/v1/tenants/keygo/oauth2/token"
-  })
-  void doFilterInternal_shouldAllowOAuth2FlowPathsWithoutAuth(String path) throws ServletException, IOException {
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/oauth2/authorize",
+        "/api/v1/tenants/keygo/account/login",
+        "/api/v1/tenants/keygo/oauth2/token"
+      })
+  void doFilterInternal_shouldAllowOAuth2FlowPathsWithoutAuth(String path)
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     lenient().when(bootstrapProperties.getAuthorizePathSuffix()).thenReturn("/oauth2/authorize");
@@ -177,7 +202,8 @@ class BootstrapAdminKeyFilterTest {
   // ─── Bearer JWT auth ───────────────────────────────────────────────────────
 
   @Test
-  void doFilterInternal_shouldAllowApiPathWithValidBearerJwt() throws ServletException, IOException {
+  void doFilterInternal_shouldAllowApiPathWithValidBearerJwt()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
@@ -196,7 +222,8 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @Test
-  void doFilterInternal_shouldAllowApiPathWithAnyNonEmptyRoleClaim() throws ServletException, IOException {
+  void doFilterInternal_shouldAllowApiPathWithAnyNonEmptyRoleClaim()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
@@ -215,12 +242,12 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @Test
-  void doFilterInternal_shouldRejectBearerJwtWithNoRolesClaim() throws ServletException, IOException {
+  void doFilterInternal_shouldRejectBearerJwtWithNoRolesClaim()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
-    when(accessTokenVerifier.verify(anyString(), anyList()))
-        .thenReturn(Map.of("sub", "user-uuid"));
+    when(accessTokenVerifier.verify(anyString(), anyList())).thenReturn(Map.of("sub", "user-uuid"));
 
     request.setServletPath("/api/v1/tenants");
     request.addHeader("Authorization", "Bearer valid.jwt.token");
@@ -253,10 +280,11 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @Test
-  void doFilterInternal_shouldRejectBearerJwtWhenVerifierNotAvailable() throws ServletException, IOException {
+  void doFilterInternal_shouldRejectBearerJwtWhenVerifierNotAvailable()
+      throws ServletException, IOException {
     // Given — no tokenVerifier/signingKeyRepository injected (non-supabase profile)
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    filter = new BootstrapAdminKeyFilter(bootstrapProperties, jsonMapper);
+    filter = new BootstrapAdminKeyFilter(bootstrapProperties, jsonMapper, factory);
     request.setServletPath("/api/v1/tenants");
     request.addHeader("Authorization", "Bearer some.jwt.token");
 
@@ -269,7 +297,8 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @Test
-  void doFilterInternal_shouldRejectBearerJwtWhenVerificationThrowsException() throws ServletException, IOException {
+  void doFilterInternal_shouldRejectBearerJwtWhenVerificationThrowsException()
+      throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
@@ -319,9 +348,11 @@ class BootstrapAdminKeyFilterTest {
     verify(jsonMapper).writeValue(any(Writer.class), responseCaptor.capture());
 
     BaseResponse<ErrorData> payload = responseCaptor.getValue();
-    assertThat(payload.getFailure().getCode()).isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getFailure().getCode())
+        .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
     assertThat(payload.getData()).isNotNull();
-    assertThat(payload.getData().getCode()).isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getData().getCode())
+        .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
     assertThat(payload.getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
     assertThat(payload.getData().getClientRequestCause())
         .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
@@ -336,12 +367,14 @@ class BootstrapAdminKeyFilterTest {
       throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    filter = new BootstrapAdminKeyFilter(
-        bootstrapProperties,
-        jsonMapper,
-        accessTokenVerifier,
-        signingKeyRepository,
-        true);
+    filter =
+        new BootstrapAdminKeyFilter(
+            bootstrapProperties,
+            jsonMapper,
+            factory,
+            accessTokenVerifier,
+            signingKeyRepository,
+            true);
     request.setServletPath("/api/v1/tenants");
 
     // When
@@ -363,17 +396,22 @@ class BootstrapAdminKeyFilterTest {
   // ─── Account self-service public paths ────────────────────────────────────
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "/api/v1/tenants/keygo/account/change-password",
-      "/api/v1/tenants/keygo/account/notification-preferences",
-      "/api/v1/tenants/keygo/account/access"
-  })
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/account/change-password",
+        "/api/v1/tenants/keygo/account/notification-preferences",
+        "/api/v1/tenants/keygo/account/access"
+      })
   void doFilterInternal_shouldAllowAccountSelfServiceSuffixPathsWithoutAuth(String path)
       throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    lenient().when(bootstrapProperties.getAccountChangePasswordPathSuffix()).thenReturn("/account/change-password");
-    lenient().when(bootstrapProperties.getAccountNotificationPreferencesPathSuffix()).thenReturn("/account/notification-preferences");
+    lenient()
+        .when(bootstrapProperties.getAccountChangePasswordPathSuffix())
+        .thenReturn("/account/change-password");
+    lenient()
+        .when(bootstrapProperties.getAccountNotificationPreferencesPathSuffix())
+        .thenReturn("/account/notification-preferences");
     lenient().when(bootstrapProperties.getAccountAccessPathSuffix()).thenReturn("/account/access");
     request.setServletPath(path);
 
@@ -386,15 +424,18 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "/api/v1/tenants/keygo/account/sessions",
-      "/api/v1/tenants/keygo/account/sessions/550e8400-e29b-41d4-a716-446655440000"
-  })
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/account/sessions",
+        "/api/v1/tenants/keygo/account/sessions/550e8400-e29b-41d4-a716-446655440000"
+      })
   void doFilterInternal_shouldAllowAccountSessionsPathsWithoutAuth(String path)
       throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    lenient().when(bootstrapProperties.getAccountSessionsPathSuffix()).thenReturn("/account/sessions");
+    lenient()
+        .when(bootstrapProperties.getAccountSessionsPathSuffix())
+        .thenReturn("/account/sessions");
     request.setServletPath(path);
 
     // When
@@ -408,18 +449,25 @@ class BootstrapAdminKeyFilterTest {
   // ─── Regression: password flow public paths (T-103) ───────────────────────
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "/api/v1/tenants/keygo/account/reset-password",
-      "/api/v1/tenants/keygo/account/forgot-password",
-      "/api/v1/tenants/keygo/account/recover-password"
-  })
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/account/reset-password",
+        "/api/v1/tenants/keygo/account/forgot-password",
+        "/api/v1/tenants/keygo/account/recover-password"
+      })
   void doFilterInternal_shouldAllowPasswordFlowPathsWithoutAuth(String path)
       throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    lenient().when(bootstrapProperties.getAccountResetPasswordPathSuffix()).thenReturn("/account/reset-password");
-    lenient().when(bootstrapProperties.getAccountForgotPasswordPathSuffix()).thenReturn("/account/forgot-password");
-    lenient().when(bootstrapProperties.getAccountRecoverPasswordPathSuffix()).thenReturn("/account/recover-password");
+    lenient()
+        .when(bootstrapProperties.getAccountResetPasswordPathSuffix())
+        .thenReturn("/account/reset-password");
+    lenient()
+        .when(bootstrapProperties.getAccountForgotPasswordPathSuffix())
+        .thenReturn("/account/forgot-password");
+    lenient()
+        .when(bootstrapProperties.getAccountRecoverPasswordPathSuffix())
+        .thenReturn("/account/recover-password");
     request.setServletPath(path);
 
     // When
@@ -437,7 +485,9 @@ class BootstrapAdminKeyFilterTest {
       throws ServletException, IOException {
     // Given — hasSuffix: path must END with /billing/catalog
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    lenient().when(bootstrapProperties.getBillingCatalogPathSuffix()).thenReturn("/billing/catalog");
+    lenient()
+        .when(bootstrapProperties.getBillingCatalogPathSuffix())
+        .thenReturn("/billing/catalog");
     request.setServletPath("/api/v1/billing/catalog");
 
     // When
@@ -449,15 +499,15 @@ class BootstrapAdminKeyFilterTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "/api/v1/billing/contracts",
-      "/api/v1/billing/contracts/abc123/verify-email"
-  })
+  @ValueSource(
+      strings = {"/api/v1/billing/contracts", "/api/v1/billing/contracts/abc123/verify-email"})
   void doFilterInternal_shouldAllowBillingContractsPathsWithoutAuth(String path)
       throws ServletException, IOException {
     // Given
     when(bootstrapProperties.isEnabled()).thenReturn(true);
-    lenient().when(bootstrapProperties.getBillingContractsPathSuffix()).thenReturn("/billing/contracts");
+    lenient()
+        .when(bootstrapProperties.getBillingContractsPathSuffix())
+        .thenReturn("/billing/contracts");
     request.setServletPath(path);
 
     // When
@@ -471,10 +521,8 @@ class BootstrapAdminKeyFilterTest {
   // ─── Regression: OIDC userinfo and revocation endpoints (T-034) ────────────
 
   @ParameterizedTest
-  @ValueSource(strings = {
-      "/api/v1/tenants/keygo/oauth2/userinfo",
-      "/api/v1/tenants/keygo/oauth2/revoke"
-  })
+  @ValueSource(
+      strings = {"/api/v1/tenants/keygo/oauth2/userinfo", "/api/v1/tenants/keygo/oauth2/revoke"})
   void doFilterInternal_shouldAllowUserinfoAndRevokePathsWithoutAuth(String path)
       throws ServletException, IOException {
     // Given

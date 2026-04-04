@@ -1,9 +1,9 @@
 package io.cmartinezs.keygo.run.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
-import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
@@ -20,9 +20,32 @@ import io.cmartinezs.keygo.app.auth.usecase.IssueAuthorizationCodeUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueClientCredentialsTokenUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.IssueTokensUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.OpenSessionUseCase;
-import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.RevokeTokenUseCase;
+import io.cmartinezs.keygo.app.auth.usecase.RotateRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.auth.usecase.TerminateSessionUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.catalog.usecase.CreateAppPlanUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanCatalogUseCase;
+import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ResendContractVerificationUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.ResumeContractOnboardingUseCase;
+import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
+import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
+import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
+import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
+import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.subscription.usecase.CancelAppSubscriptionUseCase;
+import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUseCase;
+import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
+import io.cmartinezs.keygo.app.billing.usage.usecase.CheckAppEntitlementUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
@@ -54,96 +77,69 @@ import io.cmartinezs.keygo.app.tenant.usecase.CreateTenantUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.ListTenantsUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ForgotPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetNotificationPreferencesUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetUserAccessUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListUserSessionsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
+import io.cmartinezs.keygo.app.user.usecase.RecoverPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RegisterTenantUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResendVerificationEmailUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ResetPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
-import io.cmartinezs.keygo.app.user.usecase.ForgotPasswordUseCase;
-import io.cmartinezs.keygo.app.user.usecase.RecoverPasswordUseCase;
-import io.cmartinezs.keygo.app.user.usecase.ResetPasswordUseCase;
-import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
-import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
-import io.cmartinezs.keygo.app.user.usecase.ListUserSessionsUseCase;
-import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
-import io.cmartinezs.keygo.app.user.usecase.GetNotificationPreferencesUseCase;
-import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
-import io.cmartinezs.keygo.app.user.usecase.GetUserAccessUseCase;
-import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
-import io.cmartinezs.keygo.app.user.usecase.GetUserProfileUseCase;
-import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
-import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanBillingOptionRepositoryPort;
-import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanEntitlementRepositoryPort;
-import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanRepositoryPort;
-import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
-import io.cmartinezs.keygo.app.billing.catalog.usecase.CreateAppPlanUseCase;
-import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanCatalogUseCase;
-import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
-import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.MockApprovePaymentUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.ResendContractVerificationUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.ResumeContractOnboardingUseCase;
-import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
-import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
-import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
-import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
-import io.cmartinezs.keygo.app.billing.subscription.usecase.CancelAppSubscriptionUseCase;
-import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUseCase;
-import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
-import io.cmartinezs.keygo.app.billing.usage.usecase.CheckAppEntitlementUseCase;
-import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
-import io.cmartinezs.keygo.infra.email.SmtpEmailNotificationAdapter;
-import org.springframework.mail.javamail.JavaMailSender;
-import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
-import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
-import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
-import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
+import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
-import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
-import io.cmartinezs.keygo.api.shared.LocaleContextFilter;
+import io.cmartinezs.keygo.infra.email.SmtpEmailNotificationAdapter;
+import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
+import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
+import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
+import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
 import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
+import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
-import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
+import org.springframework.mail.javamail.JavaMailSender;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.PropertyNamingStrategies;
 
 /**
- * Application configuration for use cases and dependency injection
- * Configuración de la aplicación para casos de uso e inyección de dependencias
+ * Application configuration for use cases and dependency injection Configuración de la aplicación
+ * para casos de uso e inyección de dependencias
  *
  * @author cmartinezs
  * @version 1.0
  */
 @Configuration
-@ComponentScan(basePackages = {
-    "io.cmartinezs.keygo.api",
-    "io.cmartinezs.keygo.supabase"
-})
+@ComponentScan(basePackages = {"io.cmartinezs.keygo.api", "io.cmartinezs.keygo.supabase"})
 public class ApplicationConfig {
 
   @Bean
@@ -183,8 +179,7 @@ public class ApplicationConfig {
 
   @Bean
   public GetPlatformDashboardUseCase getPlatformDashboardUseCase(
-      PlatformDashboardPort platformDashboardPort,
-      ServiceInfoProvider serviceInfoProvider) {
+      PlatformDashboardPort platformDashboardPort, ServiceInfoProvider serviceInfoProvider) {
     return new GetPlatformDashboardUseCase(platformDashboardPort, serviceInfoProvider);
   }
 
@@ -204,27 +199,25 @@ public class ApplicationConfig {
       ClientAppRepositoryPort clientAppRepositoryPort,
       ClientCredentialGeneratorPort credentialGenerator,
       ClientSecretEncoderPort secretEncoder) {
-    return new CreateClientAppUseCase(tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, secretEncoder);
+    return new CreateClientAppUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, secretEncoder);
   }
 
   @Bean
   public ListClientAppsUseCase listClientAppsUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, ClientAppRepositoryPort clientAppRepositoryPort) {
     return new ListClientAppsUseCase(tenantRepositoryPort, clientAppRepositoryPort);
   }
 
   @Bean
   public GetClientAppUseCase getClientAppUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, ClientAppRepositoryPort clientAppRepositoryPort) {
     return new GetClientAppUseCase(tenantRepositoryPort, clientAppRepositoryPort);
   }
 
   @Bean
   public UpdateClientAppUseCase updateClientAppUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, ClientAppRepositoryPort clientAppRepositoryPort) {
     return new UpdateClientAppUseCase(tenantRepositoryPort, clientAppRepositoryPort);
   }
 
@@ -234,14 +227,15 @@ public class ApplicationConfig {
       ClientAppRepositoryPort clientAppRepositoryPort,
       ClientCredentialGeneratorPort credentialGenerator,
       ClientSecretEncoderPort secretEncoder) {
-    return new RotateClientSecretUseCase(tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, secretEncoder);
+    return new RotateClientSecretUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, secretEncoder);
   }
 
   @Bean
   public ResolveClientAppForAuthorizationUseCase resolveClientAppForAuthorizationUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
-    return new ResolveClientAppForAuthorizationUseCase(tenantRepositoryPort, clientAppRepositoryPort);
+      TenantRepositoryPort tenantRepositoryPort, ClientAppRepositoryPort clientAppRepositoryPort) {
+    return new ResolveClientAppForAuthorizationUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort);
   }
 
   @Bean
@@ -259,22 +253,19 @@ public class ApplicationConfig {
 
   @Bean
   public GetUserUseCase getUserUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      UserRepositoryPort userRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, UserRepositoryPort userRepositoryPort) {
     return new GetUserUseCase(tenantRepositoryPort, userRepositoryPort);
   }
 
   @Bean
   public ListUsersUseCase listUsersUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      UserRepositoryPort userRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, UserRepositoryPort userRepositoryPort) {
     return new ListUsersUseCase(tenantRepositoryPort, userRepositoryPort);
   }
 
   @Bean
   public UpdateUserUseCase updateUserUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      UserRepositoryPort userRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, UserRepositoryPort userRepositoryPort) {
     return new UpdateUserUseCase(tenantRepositoryPort, userRepositoryPort);
   }
 
@@ -283,7 +274,8 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       PasswordHasherPort passwordHasherPort) {
-    return new ResetUserPasswordUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    return new ResetUserPasswordUseCase(
+        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
   }
 
   @Bean
@@ -291,20 +283,19 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       PasswordHasherPort passwordHasherPort) {
-    return new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    return new ValidateUserCredentialsUseCase(
+        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
   }
 
   @Bean
   public SuspendUserUseCase suspendUserUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      UserRepositoryPort userRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, UserRepositoryPort userRepositoryPort) {
     return new SuspendUserUseCase(tenantRepositoryPort, userRepositoryPort);
   }
 
   @Bean
   public ActivateUserUseCase activateUserUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      UserRepositoryPort userRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, UserRepositoryPort userRepositoryPort) {
     return new ActivateUserUseCase(tenantRepositoryPort, userRepositoryPort);
   }
 
@@ -325,8 +316,12 @@ public class ApplicationConfig {
       EmailVerificationRepositoryPort emailVerificationRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     return new RegisterTenantUserUseCase(
-        tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        passwordHasherPort, emailVerificationRepositoryPort, emailNotificationPort);
+        tenantRepositoryPort,
+        clientAppRepositoryPort,
+        userRepositoryPort,
+        passwordHasherPort,
+        emailVerificationRepositoryPort,
+        emailNotificationPort);
   }
 
   @Bean
@@ -349,8 +344,12 @@ public class ApplicationConfig {
       EmailNotificationPort emailNotificationPort,
       ClockPort clockPort) {
     return new ResendVerificationEmailUseCase(
-        tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        emailVerificationRepositoryPort, emailNotificationPort, clockPort);
+        tenantRepositoryPort,
+        clientAppRepositoryPort,
+        userRepositoryPort,
+        emailVerificationRepositoryPort,
+        emailNotificationPort,
+        clockPort);
   }
 
   @Bean
@@ -358,7 +357,8 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       AppRoleRepositoryPort appRoleRepositoryPort) {
-    return new CreateAppRoleUseCase(tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
+    return new CreateAppRoleUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
   }
 
   @Bean
@@ -366,16 +366,19 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       MembershipRepositoryPort membershipRepositoryPort,
       AppRoleRepositoryPort appRoleRepositoryPort) {
-    return new CreateMembershipUseCase(tenantRepositoryPort, membershipRepositoryPort, appRoleRepositoryPort);
+    return new CreateMembershipUseCase(
+        tenantRepositoryPort, membershipRepositoryPort, appRoleRepositoryPort);
   }
 
   @Bean
-  public ListMembershipsUseCase listMembershipsUseCase(MembershipRepositoryPort membershipRepositoryPort) {
+  public ListMembershipsUseCase listMembershipsUseCase(
+      MembershipRepositoryPort membershipRepositoryPort) {
     return new ListMembershipsUseCase(membershipRepositoryPort);
   }
 
   @Bean
-  public RevokeMembershipUseCase revokeMembershipUseCase(MembershipRepositoryPort membershipRepositoryPort) {
+  public RevokeMembershipUseCase revokeMembershipUseCase(
+      MembershipRepositoryPort membershipRepositoryPort) {
     return new RevokeMembershipUseCase(membershipRepositoryPort);
   }
 
@@ -384,7 +387,8 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       AppRoleRepositoryPort appRoleRepositoryPort) {
-    return new ListAppRolesUseCase(tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
+    return new ListAppRolesUseCase(
+        tenantRepositoryPort, clientAppRepositoryPort, appRoleRepositoryPort);
   }
 
   @Bean
@@ -413,8 +417,7 @@ public class ApplicationConfig {
 
   @Bean
   public InitiateAuthorizationUseCase initiateAuthorizationUseCase(
-      TenantRepositoryPort tenantRepositoryPort,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      TenantRepositoryPort tenantRepositoryPort, ClientAppRepositoryPort clientAppRepositoryPort) {
     return new InitiateAuthorizationUseCase(tenantRepositoryPort, clientAppRepositoryPort);
   }
 
@@ -477,19 +480,20 @@ public class ApplicationConfig {
       TokenSignerPort tokenSignerPort,
       TokenClaimsFactoryPort tokenClaimsFactoryPort,
       ClockPort clockPort) {
-    return new IssueTokensUseCase(signingKeyRepositoryPort, tokenSignerPort, tokenClaimsFactoryPort, clockPort);
+    return new IssueTokensUseCase(
+        signingKeyRepositoryPort, tokenSignerPort, tokenClaimsFactoryPort, clockPort);
   }
 
   @Bean
   public GetJwksUseCase getJwksUseCase(
-      SigningKeyRepositoryPort signingKeyRepositoryPort,
-      JwksBuilderPort jwksBuilderPort) {
+      SigningKeyRepositoryPort signingKeyRepositoryPort, JwksBuilderPort jwksBuilderPort) {
     return new GetJwksUseCase(signingKeyRepositoryPort, jwksBuilderPort);
   }
 
   @Bean
   public GetOidcConfigurationUseCase getOidcConfigurationUseCase(
-      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}")
+          String issuerBaseUrl) {
     return new GetOidcConfigurationUseCase(issuerBaseUrl);
   }
 
@@ -501,8 +505,7 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public OpenSessionUseCase openSessionUseCase(
-      SessionRepositoryPort sessionRepositoryPort) {
+  public OpenSessionUseCase openSessionUseCase(SessionRepositoryPort sessionRepositoryPort) {
     return new OpenSessionUseCase(sessionRepositoryPort);
   }
 
@@ -525,12 +528,20 @@ public class ApplicationConfig {
       UserRepositoryPort userRepositoryPort,
       MembershipRepositoryPort membershipRepositoryPort,
       ClockPort clockPort,
-      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}")
+          String issuerBaseUrl) {
     return new RotateRefreshTokenUseCase(
-        refreshTokenRepositoryPort, sessionRepositoryPort,
-        signingKeyRepositoryPort, tokenSignerPort, tokenClaimsFactoryPort,
-        tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        membershipRepositoryPort, clockPort, issuerBaseUrl);
+        refreshTokenRepositoryPort,
+        sessionRepositoryPort,
+        signingKeyRepositoryPort,
+        tokenSignerPort,
+        tokenClaimsFactoryPort,
+        tenantRepositoryPort,
+        clientAppRepositoryPort,
+        userRepositoryPort,
+        membershipRepositoryPort,
+        clockPort,
+        issuerBaseUrl);
   }
 
   @Bean
@@ -590,8 +601,11 @@ public class ApplicationConfig {
       UserRepositoryPort userRepositoryPort,
       PasswordHasherPort passwordHasherPort) {
     return new ChangePasswordUseCase(
-        signingKeyRepositoryPort, accessTokenVerifierPort,
-        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+        signingKeyRepositoryPort,
+        accessTokenVerifierPort,
+        tenantRepositoryPort,
+        userRepositoryPort,
+        passwordHasherPort);
   }
 
   @Bean
@@ -613,8 +627,11 @@ public class ApplicationConfig {
       SessionRepositoryPort sessionRepositoryPort,
       RefreshTokenRepositoryPort refreshTokenRepositoryPort) {
     return new RevokeUserSessionUseCase(
-        signingKeyRepositoryPort, accessTokenVerifierPort,
-        tenantRepositoryPort, sessionRepositoryPort, refreshTokenRepositoryPort);
+        signingKeyRepositoryPort,
+        accessTokenVerifierPort,
+        tenantRepositoryPort,
+        sessionRepositoryPort,
+        refreshTokenRepositoryPort);
   }
 
   @Bean
@@ -647,8 +664,11 @@ public class ApplicationConfig {
       MembershipRepositoryPort membershipRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort) {
     return new GetUserAccessUseCase(
-        signingKeyRepositoryPort, accessTokenVerifierPort,
-        tenantRepositoryPort, membershipRepositoryPort, clientAppRepositoryPort);
+        signingKeyRepositoryPort,
+        accessTokenVerifierPort,
+        tenantRepositoryPort,
+        membershipRepositoryPort,
+        clientAppRepositoryPort);
   }
 
   // ─── Perfil de usuario self-service ──────────────────────────────────────
@@ -686,7 +706,8 @@ public class ApplicationConfig {
       TokenSignerPort tokenSignerPort,
       TokenClaimsFactoryPort tokenClaimsFactoryPort,
       ClockPort clockPort,
-      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}") String issuerBaseUrl) {
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}")
+          String issuerBaseUrl) {
     return new IssueClientCredentialsTokenUseCase(
         tenantRepositoryPort,
         clientAppRepositoryPort,
@@ -736,7 +757,9 @@ public class ApplicationConfig {
       EmailNotificationPort emailNotificationPort,
       KeyGoBillingProperties billingProperties) {
     return new CreateAppContractUseCase(
-        contractRepo, versionRepo, emailNotificationPort,
+        contractRepo,
+        versionRepo,
+        emailNotificationPort,
         billingProperties.getContractExpiryHours(),
         billingProperties.getVerificationCodeExpiryMinutes());
   }
@@ -752,8 +775,14 @@ public class ApplicationConfig {
       PasswordHasherPort passwordHasherPort,
       EmailNotificationPort emailNotificationPort) {
     return new VerifyContractEmailUseCase(
-        contractRepo, clientAppRepositoryPort, userRepo, contractorRepositoryPort,
-        membershipRepositoryPort, appRoleRepositoryPort, passwordHasherPort, emailNotificationPort);
+        contractRepo,
+        clientAppRepositoryPort,
+        userRepo,
+        contractorRepositoryPort,
+        membershipRepositoryPort,
+        appRoleRepositoryPort,
+        passwordHasherPort,
+        emailNotificationPort);
   }
 
   @Bean
@@ -763,8 +792,7 @@ public class ApplicationConfig {
 
   @Bean
   public MockApprovePaymentUseCase mockApprovePaymentUseCase(
-      AppContractRepositoryPort contractRepo,
-      KeyGoBillingProperties billingProperties) {
+      AppContractRepositoryPort contractRepo, KeyGoBillingProperties billingProperties) {
     return new MockApprovePaymentUseCase(contractRepo, billingProperties.isMockPaymentEnabled());
   }
 
@@ -791,8 +819,7 @@ public class ApplicationConfig {
       EmailNotificationPort emailNotificationPort,
       KeyGoBillingProperties billingProperties) {
     return new ResendContractVerificationUseCase(
-        contractRepo, emailNotificationPort,
-        billingProperties.getVerificationCodeExpiryMinutes());
+        contractRepo, emailNotificationPort, billingProperties.getVerificationCodeExpiryMinutes());
   }
 
   // ─── Billing: Suscripción ─────────────────────────────────────────────────
@@ -826,7 +853,8 @@ public class ApplicationConfig {
       AppPlanVersionRepositoryPort versionRepo,
       AppPlanEntitlementRepositoryPort entitlementRepo,
       UsageCounterRepositoryPort usageRepo) {
-    return new CheckAppEntitlementUseCase(subscriptionRepo, versionRepo, entitlementRepo, usageRepo);
+    return new CheckAppEntitlementUseCase(
+        subscriptionRepo, versionRepo, entitlementRepo, usageRepo);
   }
 
   // ─── Trazabilidad: RequestTracingFilter ──────────────────────────────────
@@ -848,38 +876,14 @@ public class ApplicationConfig {
     return registration;
   }
 
-  // ─── i18n: LocaleContextFilter ────────────────────────────────────────────
-
-  /**
-   * Registers {@link LocaleContextFilter} to resolve and propagate user locale
-   * from Accept-Language header.
-   *
-   * <p>Filter runs after RequestTracingFilter (order = HIGHEST_PRECEDENCE + 1) to ensure
-   * tracing context is already set. Locale is stored in LocaleContextHolder for use
-   * by error handlers and other components during request processing.
-   *
-   * <p>Supports: es, en, pt, fr. Falls back to en-US if header is missing or language
-   * is unsupported.
-   */
-  @Bean
-  public FilterRegistrationBean<LocaleContextFilter> localeContextFilterRegistration(
-      LocaleContextFilter localeContextFilter) {
-    FilterRegistrationBean<LocaleContextFilter> registration = new FilterRegistrationBean<>();
-    registration.setFilter(localeContextFilter);
-    registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
-    registration.addUrlPatterns("/*");
-    registration.setName("localeContextFilter");
-    return registration;
-  }
-
   // ─── i18n: MessageSource para traducciones ────────────────────────────────
 
   /**
    * Configures message source for i18n error messages.
    *
-   * <p>Loads messages from `classpath:i18n/messages_XX.properties` with hot reload
-   * support in development. Cache TTL is 3600 seconds in production to balance
-   * between fresh content and performance.
+   * <p>Loads messages from `classpath:i18n/messages_XX.properties` with hot reload support in
+   * development. Cache TTL is 3600 seconds in production to balance between fresh content and
+   * performance.
    *
    * <p>Supports: messages.properties (en-US fallback), messages_es.properties,
    * messages_es_CL.properties, messages_en_US.properties, messages_pt_BR.properties,
@@ -894,9 +898,10 @@ public class ApplicationConfig {
     return ms;
   }
 
-    @Bean
-    JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer() {
-        return builder -> builder
+  @Bean
+  JsonMapperBuilderCustomizer jsonMapperBuilderCustomizer() {
+    return builder ->
+        builder
             // Deserializa snake_case (OAuth2) y serializa también en snake_case — globalmente.
             // Los DTOs con @JsonProperty explícito mantienen su nombre definido.
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -908,9 +913,10 @@ public class ApplicationConfig {
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
 
             // Payloads limpios
-            .changeDefaultPropertyInclusion(include -> include.withValueInclusion(JsonInclude.Include.NON_NULL))
+            .changeDefaultPropertyInclusion(
+                include -> include.withValueInclusion(JsonInclude.Include.NON_NULL))
 
             // Coherencia entre ambientes
             .defaultTimeZone(TimeZone.getTimeZone("UTC"));
-    }
+  }
 }

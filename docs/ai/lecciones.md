@@ -8,6 +8,28 @@
 
 ---
 
+### [2026-04-03] ApiErrorDataFactory convertida a instancia — nunca mockear cuando los tests verifican campos de ErrorData
+**Contexto:** Se modificó la implementación del `LocaleResolver` (de un resolvedor custom a `AcceptHeaderLocaleResolver` de Spring). Esto implicó que `ApiErrorDataFactory` dejó de tener métodos estáticos autosuficientes y pasó a ser un `@Component` de instancia que depende de `MessageTranslator` (y este de `MessageSource`). El constructor de `GlobalExceptionHandler` también cambió para recibir `ApiErrorDataFactory` como segundo parámetro.
+**Problema:** Varios tests usaban `@Mock private ApiErrorDataFactory factory` y luego verificaban campos del `ErrorData` devuelto (`.getCode()`, `.getOrigin()`, `.getClientMessage()`, etc.). Al ser un mock sin stubbear, `factory.fromException(...)` y `factory.fromDetail(...)` devolvían `null`, causando `NullPointerException` o `assertThat(...).isNotNull()` fallido. También se rompió `AuthorizationControllerTest` al instanciar `GlobalExceptionHandler` con el constructor antiguo de un solo argumento.
+**Solución / Buena práctica:** Reemplazar `@Mock private ApiErrorDataFactory factory` por una instancia real construida con `StaticMessageSource` (sin mensajes registrados, activa el fallback `getDefaultMessage()`):
+```java
+private ApiErrorDataFactory factory;
+
+@BeforeEach
+void setUp() {
+    factory = new ApiErrorDataFactory(new MessageTranslator(new StaticMessageSource()));
+    // ...
+}
+```
+Esta instancia real devuelve `ErrorData` correctamente populado (código, origin, clientMessage via fallback) sin necesitar un Spring context completo.  
+Cuando `factory` solo necesita existir (sin verificar campos de `ErrorData`), puede seguir siendo `@Mock` stubbeable.
+**Archivos clave:**
+- `keygo-api/src/test/java/.../error/GlobalExceptionHandlerTest.java`
+- `keygo-api/src/test/java/.../auth/controller/AuthorizationControllerTest.java`
+- `keygo-run/src/test/java/.../filter/BootstrapAdminKeyFilterTest.java`
+
+---
+
 ### [2026-04-03] ⚠️ NUNCA paginar en aplicación — usar JPA Specifications para DB-side filtering
 **Síntoma:** Primera implementación de paginación cargaba **todos** los registros (ej: 10k usuarios) en memoria, aplicaba filtros/sorting/pagination en Java, luego retornaba 20 resultados. Grave anti-patrón de escalabilidad.
 **Causa:** Enfoque naïve — "cargar todo, filtrar en app" es simple de implementar pero desastroso en producción.
