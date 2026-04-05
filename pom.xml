@@ -46,6 +46,8 @@
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.skip>false</jacoco.skip>
         <jacoco.minimum.coverage>0.60</jacoco.minimum.coverage>
+        <!-- Checkstyle (aligned with google-java-format) -->
+        <checkstyle.version>10.23.0</checkstyle.version>
     </properties>
 
     <modules>
@@ -153,6 +155,37 @@
                         </execution>
                     </executions>
                 </plugin>
+                <!-- Checkstyle: Code style validation (aligned with google-java-format) -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.6.0</version>
+                    <configuration>
+                        <configLocation>config/checkstyle/checkstyle.xml</configLocation>
+                        <sourceDirectories>${project.compileSourceRoots}</sourceDirectories>
+                        <testSourceDirectories>${project.testCompileSourceRoots}</testSourceDirectories>
+                        <!-- Do not fail build on violations (warnings only) -->
+                        <failOnViolation>false</failOnViolation>
+                        <logViolationsToConsole>true</logViolationsToConsole>
+                        <consoleOutput>true</consoleOutput>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>${checkstyle.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <executions>
+                        <execution>
+                            <id>checkstyle-check</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -165,7 +198,12 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 
 </project>
+
