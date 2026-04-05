@@ -15,7 +15,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 
 @Component
 @RequiredArgsConstructor
-public final class ApiErrorDataFactory {
+public class ApiErrorDataFactory {
 
   private final MessageTranslator translator;
 

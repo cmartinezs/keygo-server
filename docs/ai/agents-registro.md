@@ -20,6 +20,20 @@
 
 ## Registro de cambios
 
+### [2026-04-04] KeyGoTracingAspect — trazabilidad AOP input/output por método
+
+- **Nuevo aspect:** `KeyGoTracingAspect` (`keygo-run/aop/`) con `@Around` que intercepta todos los métodos en `io.cmartinezs.keygo.*` excepto getters/setters y los marcados con `@NoLog`.
+- **Formato de log (nivel DEBUG):**
+  - `[TRACE_IN]  ClassName.method(param=value, secret=[REDACTED])`
+  - `[TRACE_OUT] ClassName.method(param=value) → result [42ms]`
+  - `[TRACE_ERR] ClassName.method(param=value) ⚠ ExceptionType: msg [5ms]`
+- **Nueva anotación:** `@NoLog` para excluir métodos o clases completas del aspect.
+- **Propiedad de control:** `keygo.tracing.method-logging-enabled: true` en `application.yml` — desactivar con `false` en entornos que no lo requieran.
+- **Enmascaramiento sensible:** parámetros cuyo nombre contiene `password`, `secret`, `token`, `credential`, `apikey`, `privatekey`, `hash`, `pin` → se muestran como `[REDACTED]`.
+- **Fast-path:** si `logger.isDebugEnabled()` es false, el aspect llama `pjp.proceed()` directamente sin ninguna reflexión adicional.
+- **Dependencia:** `spring-boot-starter-aspectj` (en Spring Boot 4.x, `spring-boot-starter-aop` fue renombrado y ya no está en el BOM).
+- **Tests:** 6 tests unitarios en `KeyGoTracingAspectTest` usando `@SpringJUnitConfig` + `@EnableAspectJAutoProxy` + `ListAppender<ILoggingEvent>` de Logback.
+
 ### [2026-04-03] Corrección `logback-spring.xml` — fix `%clr`, appenders por perfil, caracteres literales
 
 - **`logback-spring.xml`:** tres bugs de Logback corregidos en la misma sesión:

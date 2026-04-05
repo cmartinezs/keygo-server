@@ -8,6 +8,87 @@
 
 ---
 
+### [2026-04-04] AOP + JsonMapper: dependencia circular — field injection no es suficiente, usar mapper estático
+
+**Contexto:** Mejora del `KeyGoTracingAspect` para serializar objetos complejos a JSON con `tools.jackson.databind.json.JsonMapper` en lugar de `toString()`.
+
+**Problema 1 — Constructor injection (primer intento):** Al inyectar `JsonMapper` vía constructor (`@RequiredArgsConstructor` + `private final JsonMapper`), el contexto falla en tests con:
+```
+Error creating bean with name 'keyGoTracingAspect': Requested bean is currently in creation
+```
+Causa: el inner `TestConfig` cae dentro del pointcut `within(io.cmartinezs.keygo..*)`. El factory `jsonMapper()` es interceptado por el aspecto, que aún necesita el bean → ciclo.
+
+**Problema 2 — Field injection `@Autowired(required = false)` (segundo intento):** El ciclo persiste en la aplicación real:
+```
+keyGoTracingAspect → jacksonJsonMapper → jsonMapperBuilder → jsonMapperBuilderCustomizer
+  (definido en ApplicationConfig dentro de io.cmartinezs.keygo.*) → keyGoTracingAspect
+```
+Spring AOP crea proxy de `ApplicationConfig` para interceptar sus métodos `@Bean`, lo que requiere el aspecto antes de que el `JsonMapper` de autoconfiguración esté disponible.
+
+**Solución definitiva / Buena práctica:**
+Un `@Aspect` con un pointcut amplio como `within(com.example..*)` **NO debe depender de ningún bean de Spring** para su propio funcionamiento interno. Usar un `static final` local:
+
+```java
+// ✅ Correcto — sin dependencia circular, completamente autosuficiente
+private static final JsonMapper TRACER_MAPPER = JsonMapper.builder().build();
+
+// ❌ Incorrecto — circular en tests y en producción (cualquier forma de inyección)
+@Autowired(required = false)
+private JsonMapper jsonMapper;
+```
+
+El mapper del aspecto no necesita la configuración global de la app (snake_case, NON_NULL, etc.); camelCase es suficiente para logs de trazabilidad. El `TestConfig` del test que proveía el bean `JsonMapper` también se eliminó, simplificando el setup.
+
+**Regla:** Los `@Aspect` que aplican a un paquete amplio deben ser **completamente autosuficientes**: instanciar sus propias dependencias como `static final` en lugar de inyectarlas desde el contexto Spring.
+
+**Archivos clave:**
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/aop/KeyGoTracingAspect.java`
+- `keygo-run/src/test/java/io/cmartinezs/keygo/run/KeyGoTracingAspectTest.java`
+
+---
+
+### [2026-04-04] Trazabilidad AOP input/output — KeyGoTracingAspect + spring-boot-starter-aspectj
+
+**Contexto:** Implementación de un Aspect Spring AOP en `keygo-run` para loguear en nivel DEBUG el input y output de todos los métodos dentro de `io.cmartinezs.keygo.*`.
+
+**Problema 1 — Starter renombrado:**
+`spring-boot-starter-aop` fue renombrado a **`spring-boot-starter-aspectj`** en Spring Boot 4.x. Al agregar `spring-boot-starter-aop` sin versión explícita, Maven falla con `'dependencies.dependency.version' is missing` porque el BOM de Spring Boot 4.0.4 ya no gestiona ese artifact.
+
+**Problema 2 — `@Component final class` incompatible con CGLIB:**
+Al activar AOP con un pointcut amplio (`within(io.cmartinezs.keygo..*)`), CGLIB intenta crear subclases proxy de todos los beans Spring en el paquete interceptado. Si un bean está declarado como `final class`, el arranque falla con:
+```
+Cannot subclass final class io.cmartinezs.keygo.api.error.ApiErrorDataFactory
+```
+**Regla:** cualquier `@Component` / `@Service` / `@RestController` dentro del package interceptado por AOP **no puede ser `final`**.  
+La solución es quitar `final` de la declaración de clase.
+
+**Problema 3 — Filtros Servlet: NPE en `GenericFilterBean.init()` con CGLIB:**
+Si el pointcut incluye filtros `@Bean` que extienden `OncePerRequestFilter`/`GenericFilterBean`, CGLIB/Objenesis crea el proxy sin llamar al constructor, dejando el campo interno `logger` como `null`. Tomcat falla al inicializar el filtro con:
+```
+NullPointerException: Cannot invoke "Log.isDebugEnabled()" because "this.logger" is null
+```
+**Causa adicional — `!target(T)` (runtime) vs `!within(..)` (estático):**  
+Al intentar resolver esto con `!target(jakarta.servlet.Filter)`, Spring AOP no puede determinar en tiempo de carga si el advice se aplica a beans no-filtro; como resultado, el advice no se ejecuta en esos beans (los logs quedan vacíos aunque los tests no fallen por excepción). La solución correcta es usar **`!within(*..filter..*)`** (designador estático) que Spring AOP evalúa en tiempo de carga y no interfiere con la decisión de proxy de otros beans.
+
+**Regla:** para excluir tipos por jerarquía o convención de package del pointcut AOP, preferir siempre `within()` sobre `target()` cuando sea posible. Reservar `target()` solo para checks en runtime donde no existe alternativa estática.
+
+**Solución / Buena práctica:**
+- En Spring Boot 4.x siempre usar `spring-boot-starter-aspectj` (no `spring-boot-starter-aop`).
+- Verificar disponibilidad en BOM local: `grep -i "aop\|aspectj" ~/.m2/repository/org/springframework/boot/spring-boot-dependencies/<version>/*.pom`.
+- Antes de activar AOP amplio, buscar beans `final`: `grep -rln "@Component\|@Service\|@RestController" ... | while read f; do grep -q "public final class" "$f" && echo "$f"; done`.
+- Quitar `final` de cualquier `@Component` dentro del paquete interceptado.
+- Para tests de AOP con Spring: usar `@SpringJUnitConfig` + `@EnableAspectJAutoProxy` + `@TestPropertySource`. La clase target DEBE estar en un package que coincida con el pointcut y NO ser excluida por él.
+- Los nombres de parámetros en runtime requieren el flag `-parameters` del compilador, activo por defecto en `spring-boot-starter-parent 4.x`.
+
+**Archivos clave:**
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/aop/KeyGoTracingAspect.java`
+- `keygo-run/src/main/java/io/cmartinezs/keygo/run/aop/NoLog.java`
+- `keygo-run/src/test/java/io/cmartinezs/keygo/run/KeyGoTracingAspectTest.java`
+- `keygo-run/pom.xml` — `spring-boot-starter-aspectj`
+- `keygo-api/.../error/ApiErrorDataFactory.java` — `final` eliminado
+
+---
+
 ### [2026-04-04] Flujo RESET_PASSWORD completo — código 6 dígitos + SendPasswordResetCodeUseCase
 
 **Contexto:** Implementación del flujo completo de restablecimiento de contraseña con verificación por código para usuarios en estado `RESET_PASSWORD`. Se extiende el flujo previo que sólo cambiaba la contraseña con contraseña temporal.

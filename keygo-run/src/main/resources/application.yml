@@ -45,6 +45,11 @@ keygo:
     account-reset-password-path-suffix: "/account/reset-password"
     account-forgot-password-path-suffix: "/account/forgot-password"
     account-recover-password-path-suffix: "/account/recover-password"
+  tracing:
+    # Habilita el log DEBUG de input/output por método (KeyGoTracingAspect).
+    # Requiere que el nivel DEBUG esté activo para io.cmartinezs.keygo en logback-spring.xml.
+    # Poner en false en producción si el overhead de reflexión es inaceptable.
+    method-logging-enabled: true
   billing:
     mock-payment-enabled: true
     contract-expiry-hours: 48
