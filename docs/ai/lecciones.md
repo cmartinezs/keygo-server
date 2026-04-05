@@ -189,7 +189,7 @@ Al intentar resolver esto con `!target(jakarta.servlet.Filter)`, Spring AOP no p
    - **Footer con links** → política privacidad, soporte, etc.
 
 3. **Variables esperadas por cada tipo** (alineadas con `EmailNotificationPort`):
-   ```java
+   ```text
    // email-verification
    "userName", "verificationCode", "expiresInMinutes"
    
@@ -583,7 +583,7 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 ### [2026-03-29] Imports duplicados al añadir anotaciones OpenAPI
 **Síntoma:** Nuevos imports insertados antes de los existentes, duplicándolos; warnings de compilación.
 **Causa:** No se verificó el bloque de imports antes de agregar.
-**Solución:** Revisar bloque completo de imports antes de agregar. Orden: `api.*` → `app.*` → `domain.*` → librerías externas → `java.*`. Compilar con `-pl keygo-api compile` después.
+**Solución:** Revisar bloque completo de imports antes de agregar. Orden: `api.*` → `app.*` → `domain.*` → librerías externas → `java.*`. Compilar con `-pl <módulo> compile` después.
 
 ---
 
@@ -1039,4 +1039,6 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 - `keygo-app/src/main/java/.../user/port/notification/exception/EmailSmtpException.java`
 - `keygo-app/src/main/java/.../user/port/notification/exception/EmailValidationException.java`
 - `keygo-infra/src/main/java/.../adapter/notification/EmailNotificationAdapter.java`
+
+
 
