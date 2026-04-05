@@ -139,7 +139,7 @@ public class GlobalExceptionHandler {
 
     ex.getBindingResult().getFieldErrors().forEach(fe ->
         fieldErrors.add(FieldValidationError.builder()
-            .field(fe.getField())
+            .field(toSnakeCase(fe.getField()))
             .message(fe.getDefaultMessage())
             .rejectedValue(techDetails ? fe.getRejectedValue() : null)
             .build())
@@ -147,7 +147,7 @@ public class GlobalExceptionHandler {
 
     ex.getBindingResult().getGlobalErrors().forEach(ge ->
         fieldErrors.add(FieldValidationError.builder()
-            .field(ge.getObjectName())
+            .field(toSnakeCase(ge.getObjectName()))
             .message(ge.getDefaultMessage())
             .build())
     );
@@ -177,7 +177,7 @@ public class GlobalExceptionHandler {
       // Strip method name prefix: "methodName.paramName" → "paramName"
       String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
       fieldErrors.add(FieldValidationError.builder()
-          .field(field)
+          .field(toSnakeCase(field))
           .message(cv.getMessage())
           .rejectedValue(techDetails ? cv.getInvalidValue() : null)
           .build());
@@ -775,6 +775,22 @@ public class GlobalExceptionHandler {
 
   private boolean includeTechnicalDetails() {
     return environment.acceptsProfiles(Profiles.of("local", "dev"));
+  }
+
+  /**
+   * Converts camelCase to snake_case.
+   * Examples: firstName → first_name, clientAppId → client_app_id, email → email
+   *
+   * @param camelCase the string in camelCase
+   * @return the string converted to snake_case
+   */
+  private String toSnakeCase(String camelCase) {
+    if (camelCase == null || camelCase.isEmpty()) {
+      return camelCase;
+    }
+    return camelCase
+        .replaceAll("([a-z])([A-Z])", "$1_$2")
+        .toLowerCase();
   }
 }
 
