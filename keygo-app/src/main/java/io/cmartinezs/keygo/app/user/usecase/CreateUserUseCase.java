@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.CreateUserCommand;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
@@ -29,15 +29,15 @@ public class CreateUserUseCase {
 
   private final TenantRepositoryPort tenantRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
-  private final PasswordHasherPort passwordHasherPort;
+  private final CredentialEncoderPort credentialEncoderPort;
 
   public CreateUserUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
-    this.passwordHasherPort = passwordHasherPort;
+    this.credentialEncoderPort = credentialEncoderPort;
   }
 
   /**
@@ -67,10 +67,10 @@ public class CreateUserUseCase {
        throw new DuplicateUserException("username", command.username());
      }
 
-     // Validar política de la contraseña (permanente, proporcionada por admin)
-     PasswordValidationHelper.validate(command.rawPassword(), false);
+      // Validar política de la contraseña (permanente, proporcionada por admin)
+      PasswordValidationHelper.validate(command.rawPassword(), false);
 
-     String hashedPassword = passwordHasherPort.hash(command.rawPassword());
+      String hashedPassword = credentialEncoderPort.encode(command.rawPassword());
 
      User user = User.builder()
         .id(UserId.generate())

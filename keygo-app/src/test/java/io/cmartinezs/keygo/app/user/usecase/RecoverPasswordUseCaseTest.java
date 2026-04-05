@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RecoverPasswordCommand;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -49,7 +49,7 @@ class RecoverPasswordUseCaseTest {
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
   @Mock PasswordRecoveryTokenRepositoryPort tokenRepositoryPort;
-  @Mock PasswordHasherPort passwordHasherPort;
+  @Mock CredentialEncoderPort credentialEncoderPort;
 
   private RecoverPasswordUseCase useCase;
   private Tenant activeTenant;
@@ -59,7 +59,7 @@ class RecoverPasswordUseCaseTest {
   @BeforeEach
   void setUp() {
     useCase = new RecoverPasswordUseCase(
-        tenantRepositoryPort, userRepositoryPort, tokenRepositoryPort, passwordHasherPort);
+        tenantRepositoryPort, userRepositoryPort, tokenRepositoryPort, credentialEncoderPort);
 
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
@@ -88,7 +88,7 @@ class RecoverPasswordUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(validToken));
     when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.hash(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
+    when(credentialEncoderPort.encode(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
@@ -181,7 +181,7 @@ class RecoverPasswordUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(validToken));
     when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.hash(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
+    when(credentialEncoderPort.encode(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When

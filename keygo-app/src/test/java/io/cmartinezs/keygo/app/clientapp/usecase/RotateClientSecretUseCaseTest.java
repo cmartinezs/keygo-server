@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.clientapp.usecase;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
-import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
@@ -41,7 +41,7 @@ class RotateClientSecretUseCaseTest {
   @Mock private TenantRepositoryPort tenantRepositoryPort;
   @Mock private ClientAppRepositoryPort clientAppRepositoryPort;
   @Mock private ClientCredentialGeneratorPort credentialGenerator;
-  @Mock private ClientSecretEncoderPort secretEncoder;
+  @Mock private CredentialEncoderPort credentialEncoder;
 
   @InjectMocks
   private RotateClientSecretUseCase useCase;
@@ -78,7 +78,7 @@ class RotateClientSecretUseCaseTest {
     when(clientAppRepositoryPort.findByClientIdAndTenantId(any(), any()))
         .thenReturn(Optional.of(app));
     when(credentialGenerator.generateClientSecret()).thenReturn(NEW_RAW_SECRET);
-    when(secretEncoder.encode(NEW_RAW_SECRET)).thenReturn(NEW_HASHED_SECRET);
+    when(credentialEncoder.encode(NEW_RAW_SECRET)).thenReturn(NEW_HASHED_SECRET);
     when(clientAppRepositoryPort.save(any())).thenReturn(app);
 
     // When

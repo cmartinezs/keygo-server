@@ -9,7 +9,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
@@ -50,7 +50,7 @@ class VerifyContractEmailUseCaseTest {
   @Mock ContractorRepositoryPort contractorRepo;
   @Mock MembershipRepositoryPort membershipRepo;
   @Mock AppRoleRepositoryPort appRoleRepo;
-  @Mock PasswordHasherPort passwordHasher;
+  @Mock CredentialEncoderPort credentialEncoder;
   @Mock EmailNotificationPort emailNotification;
 
   @InjectMocks
@@ -128,7 +128,7 @@ class VerifyContractEmailUseCaseTest {
 
     // User does not exist → triggers creation
     when(userRepo.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.empty());
-    when(passwordHasher.hash(anyString())).thenReturn("$2a$10$hashedtemppassword");
+    when(credentialEncoder.encode(anyString())).thenReturn("$2a$10$hashedtemppassword");
 
     UUID tenantUserId = UUID.randomUUID();
     User savedUser = mock(User.class);
@@ -297,7 +297,7 @@ class VerifyContractEmailUseCaseTest {
     useCase.execute(contract.getId(), code);
 
     // Then — se invoca el hasher antes de persistir la contraseña
-    verify(passwordHasher).hash(anyString());
+    verify(credentialEncoder).encode(anyString());
     verify(userRepo).save(argThat(u ->
         "$2a$10$hashedtemppassword".equals(u.getPasswordHash().value())));
   }

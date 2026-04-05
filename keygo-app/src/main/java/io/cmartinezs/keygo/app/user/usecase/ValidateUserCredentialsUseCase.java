@@ -1,7 +1,7 @@
 package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -29,15 +29,15 @@ public class ValidateUserCredentialsUseCase {
 
   private final TenantRepositoryPort tenantRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
-  private final PasswordHasherPort passwordHasherPort;
+  private final CredentialEncoderPort credentialEncoderPort;
 
   public ValidateUserCredentialsUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
-    this.passwordHasherPort = passwordHasherPort;
+    this.credentialEncoderPort = credentialEncoderPort;
   }
 
   /**
@@ -72,7 +72,7 @@ public class ValidateUserCredentialsUseCase {
       throw new UserSuspendedException(user.getUsername().value());
     }
 
-    if (!passwordHasherPort.matches(rawPassword, user.getPasswordHash().value())) {
+    if (!credentialEncoderPort.matches(rawPassword, user.getPasswordHash().value())) {
       throw new InvalidCredentialsException();
     }
 

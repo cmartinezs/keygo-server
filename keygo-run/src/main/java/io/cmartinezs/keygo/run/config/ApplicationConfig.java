@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
 import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
+import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
 import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
@@ -48,7 +50,6 @@ import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
 import io.cmartinezs.keygo.app.billing.usage.usecase.CheckAppEntitlementUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
-import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
 import io.cmartinezs.keygo.app.clientapp.usecase.CreateClientAppUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.GetClientAppUseCase;
 import io.cmartinezs.keygo.app.clientapp.usecase.ListClientAppsUseCase;
@@ -80,7 +81,6 @@ import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
@@ -112,12 +112,11 @@ import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
-import io.cmartinezs.keygo.run.clientapp.BCryptClientSecretEncoder;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
+import io.cmartinezs.keygo.run.credential.BCryptCredentialEncoder;
 import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
-import io.cmartinezs.keygo.run.user.BCryptPasswordHasher;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
@@ -187,8 +186,8 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public ClientSecretEncoderPort clientSecretEncoderPort() {
-    return new BCryptClientSecretEncoder();
+  public CredentialEncoderPort credentialEncoderPort() {
+    return new BCryptCredentialEncoder();
   }
 
   @Bean
@@ -201,9 +200,9 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       ClientCredentialGeneratorPort credentialGenerator,
-      ClientSecretEncoderPort secretEncoder) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new CreateClientAppUseCase(
-        tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, secretEncoder);
+        tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, credentialEncoderPort);
   }
 
   @Bean
@@ -229,9 +228,9 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       ClientCredentialGeneratorPort credentialGenerator,
-      ClientSecretEncoderPort secretEncoder) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new RotateClientSecretUseCase(
-        tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, secretEncoder);
+        tenantRepositoryPort, clientAppRepositoryPort, credentialGenerator, credentialEncoderPort);
   }
 
   @Bean
@@ -242,16 +241,11 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public PasswordHasherPort passwordHasherPort() {
-    return new BCryptPasswordHasher();
-  }
-
-  @Bean
   public CreateUserUseCase createUserUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
-    return new CreateUserUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+      CredentialEncoderPort credentialEncoderPort) {
+    return new CreateUserUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
   }
 
   @Bean
@@ -276,18 +270,18 @@ public class ApplicationConfig {
   public ResetUserPasswordUseCase resetUserPasswordUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new ResetUserPasswordUseCase(
-        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+        tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
   }
 
   @Bean
   public ValidateUserCredentialsUseCase validateUserCredentialsUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new ValidateUserCredentialsUseCase(
-        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+        tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
   }
 
   @Bean
@@ -313,14 +307,14 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort,
+      CredentialEncoderPort credentialEncoderPort,
       EmailVerificationRepositoryPort emailVerificationRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     return new RegisterTenantUserUseCase(
         tenantRepositoryPort,
         clientAppRepositoryPort,
         userRepositoryPort,
-        passwordHasherPort,
+        credentialEncoderPort,
         emailVerificationRepositoryPort,
         emailNotificationPort);
   }
@@ -426,9 +420,9 @@ public class ApplicationConfig {
   public AuthenticateUserForAuthorizationUseCase authenticateUserForAuthorizationUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new AuthenticateUserForAuthorizationUseCase(
-        tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+        tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
   }
 
   @Bean
@@ -580,22 +574,22 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       PasswordRecoveryTokenRepositoryPort passwordRecoveryTokenRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new RecoverPasswordUseCase(
         tenantRepositoryPort, userRepositoryPort,
-        passwordRecoveryTokenRepositoryPort, passwordHasherPort);
+        passwordRecoveryTokenRepositoryPort, credentialEncoderPort);
   }
 
   @Bean
   public ResetPasswordUseCase resetPasswordUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort,
+      CredentialEncoderPort credentialEncoderPort,
       PasswordResetCodeRepositoryPort passwordResetCodeRepositoryPort) {
     return new ResetPasswordUseCase(
         tenantRepositoryPort,
         userRepositoryPort,
-        passwordHasherPort,
+        credentialEncoderPort,
         passwordResetCodeRepositoryPort);
   }
 
@@ -618,13 +612,13 @@ public class ApplicationConfig {
       AccessTokenVerifierPort accessTokenVerifierPort,
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     return new ChangePasswordUseCase(
         signingKeyRepositoryPort,
         accessTokenVerifierPort,
         tenantRepositoryPort,
         userRepositoryPort,
-        passwordHasherPort);
+        credentialEncoderPort);
   }
 
   @Bean
@@ -720,7 +714,7 @@ public class ApplicationConfig {
   public IssueClientCredentialsTokenUseCase issueClientCredentialsTokenUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
-      ClientSecretEncoderPort clientSecretEncoderPort,
+      CredentialEncoderPort credentialEncoderPort,
       SigningKeyRepositoryPort signingKeyRepositoryPort,
       TokenSignerPort tokenSignerPort,
       TokenClaimsFactoryPort tokenClaimsFactoryPort,
@@ -730,7 +724,7 @@ public class ApplicationConfig {
     return new IssueClientCredentialsTokenUseCase(
         tenantRepositoryPort,
         clientAppRepositoryPort,
-        clientSecretEncoderPort,
+        credentialEncoderPort,
         signingKeyRepositoryPort,
         tokenSignerPort,
         tokenClaimsFactoryPort,
@@ -791,7 +785,7 @@ public class ApplicationConfig {
       ContractorRepositoryPort contractorRepositoryPort,
       MembershipRepositoryPort membershipRepositoryPort,
       AppRoleRepositoryPort appRoleRepositoryPort,
-      PasswordHasherPort passwordHasherPort,
+      CredentialEncoderPort credentialEncoderPort,
       EmailNotificationPort emailNotificationPort) {
     return new VerifyContractEmailUseCase(
         contractRepo,
@@ -800,7 +794,7 @@ public class ApplicationConfig {
         contractorRepositoryPort,
         membershipRepositoryPort,
         appRoleRepositoryPort,
-        passwordHasherPort,
+        credentialEncoderPort,
         emailNotificationPort);
   }
 

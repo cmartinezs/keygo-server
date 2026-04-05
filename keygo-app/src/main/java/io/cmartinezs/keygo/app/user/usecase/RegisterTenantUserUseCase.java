@@ -5,7 +5,7 @@ import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
@@ -45,7 +45,7 @@ public class RegisterTenantUserUseCase {
   private final TenantRepositoryPort tenantRepositoryPort;
   private final ClientAppRepositoryPort clientAppRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
-  private final PasswordHasherPort passwordHasherPort;
+  private final CredentialEncoderPort credentialEncoderPort;
   private final EmailVerificationRepositoryPort emailVerificationRepositoryPort;
   private final EmailNotificationPort emailNotificationPort;
   private final SecureRandom secureRandom;
@@ -54,13 +54,13 @@ public class RegisterTenantUserUseCase {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort,
+      CredentialEncoderPort credentialEncoderPort,
       EmailVerificationRepositoryPort emailVerificationRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
-    this.passwordHasherPort = passwordHasherPort;
+    this.credentialEncoderPort = credentialEncoderPort;
     this.emailVerificationRepositoryPort = emailVerificationRepositoryPort;
     this.emailNotificationPort = emailNotificationPort;
     this.secureRandom = new SecureRandom();
@@ -103,7 +103,7 @@ public class RegisterTenantUserUseCase {
     PasswordValidationHelper.validate(command.rawPassword(), false);
 
     // 5. Create user with PENDING status
-    String hashedPassword = passwordHasherPort.hash(command.rawPassword());
+    String hashedPassword = credentialEncoderPort.encode(command.rawPassword());
     User user = User.builder()
         .id(UserId.generate())
         .tenantId(tenant.getId())

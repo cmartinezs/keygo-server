@@ -5,7 +5,7 @@ import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
@@ -56,7 +56,7 @@ class RegisterTenantUserUseCaseTest {
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock ClientAppRepositoryPort clientAppRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock PasswordHasherPort passwordHasherPort;
+  @Mock CredentialEncoderPort credentialEncoderPort;
   @Mock EmailVerificationRepositoryPort emailVerificationRepositoryPort;
   @Mock EmailNotificationPort emailNotificationPort;
 
@@ -68,7 +68,7 @@ class RegisterTenantUserUseCaseTest {
   void setUp() {
     useCase = new RegisterTenantUserUseCase(
         tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        passwordHasherPort, emailVerificationRepositoryPort, emailNotificationPort);
+        credentialEncoderPort, emailVerificationRepositoryPort, emailNotificationPort);
 
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
@@ -98,7 +98,7 @@ class RegisterTenantUserUseCaseTest {
         .thenReturn(Optional.of(clientApp));
     when(userRepositoryPort.existsByTenantIdAndEmail(any(), any())).thenReturn(false);
     when(userRepositoryPort.existsByTenantIdAndUsername(any(), any())).thenReturn(false);
-    when(passwordHasherPort.hash(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
+    when(credentialEncoderPort.encode(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
 
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     when(userRepositoryPort.save(userCaptor.capture())).thenAnswer(inv -> inv.getArgument(0));

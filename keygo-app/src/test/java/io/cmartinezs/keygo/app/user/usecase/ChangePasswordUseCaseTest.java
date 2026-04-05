@@ -6,7 +6,7 @@ import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ChangePasswordCommand;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
 import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ChangePasswordResult;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -55,7 +55,7 @@ class ChangePasswordUseCaseTest {
   @Mock AccessTokenVerifierPort accessTokenVerifier;
   @Mock TenantRepositoryPort tenantRepository;
   @Mock UserRepositoryPort userRepository;
-  @Mock PasswordHasherPort passwordHasher;
+  @Mock CredentialEncoderPort credentialEncoder;
 
   private ChangePasswordUseCase useCase;
   private Tenant tenant;
@@ -66,7 +66,7 @@ class ChangePasswordUseCaseTest {
   void setUp() {
     useCase = new ChangePasswordUseCase(
         signingKeyRepository, accessTokenVerifier,
-        tenantRepository, userRepository, passwordHasher);
+        tenantRepository, userRepository, credentialEncoder);
 
     userId = UUID.randomUUID();
 
@@ -99,9 +99,9 @@ class ChangePasswordUseCaseTest {
   @Test
   void execute_shouldChangePassword_whenAllInputsAreValid() {
     // Given
-    when(passwordHasher.matches(CURRENT_RAW, CURRENT_HASH)).thenReturn(true);
-    when(passwordHasher.matches(NEW_STRONG_PASSWORD, CURRENT_HASH)).thenReturn(false);
-    when(passwordHasher.hash(NEW_STRONG_PASSWORD)).thenReturn(NEW_HASH);
+    when(credentialEncoder.matches(CURRENT_RAW, CURRENT_HASH)).thenReturn(true);
+    when(credentialEncoder.matches(NEW_STRONG_PASSWORD, CURRENT_HASH)).thenReturn(false);
+    when(credentialEncoder.encode(NEW_STRONG_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
@@ -117,7 +117,7 @@ class ChangePasswordUseCaseTest {
   @Test
   void execute_shouldThrowIncorrectCurrentPasswordException_whenCurrentPasswordIsWrong() {
     // Given
-    when(passwordHasher.matches(any(), eq(CURRENT_HASH))).thenReturn(false);
+    when(credentialEncoder.matches(any(), eq(CURRENT_HASH))).thenReturn(false);
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
@@ -130,7 +130,7 @@ class ChangePasswordUseCaseTest {
   @Test
   void execute_shouldThrowIllegalArgumentException_whenNewPasswordViolatesPolicy() {
     // Given — current password matches, new password is too short
-    when(passwordHasher.matches(CURRENT_RAW, CURRENT_HASH)).thenReturn(true);
+    when(credentialEncoder.matches(CURRENT_RAW, CURRENT_HASH)).thenReturn(true);
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
@@ -143,8 +143,8 @@ class ChangePasswordUseCaseTest {
   @Test
   void execute_shouldThrowIllegalArgumentException_whenNewPasswordEqualsCurrentPassword() {
     // Given — current password matches AND new password also matches (same password)
-    when(passwordHasher.matches(CURRENT_RAW, CURRENT_HASH)).thenReturn(true);
-    when(passwordHasher.matches(NEW_STRONG_PASSWORD, CURRENT_HASH)).thenReturn(true);
+    when(credentialEncoder.matches(CURRENT_RAW, CURRENT_HASH)).thenReturn(true);
+    when(credentialEncoder.matches(NEW_STRONG_PASSWORD, CURRENT_HASH)).thenReturn(true);
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(

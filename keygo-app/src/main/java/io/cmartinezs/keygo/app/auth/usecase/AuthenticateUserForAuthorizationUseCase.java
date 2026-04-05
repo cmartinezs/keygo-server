@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.auth.usecase;
 
 import io.cmartinezs.keygo.app.auth.command.AuthenticateUserCommand;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -31,15 +31,15 @@ import java.util.Optional;
 public class AuthenticateUserForAuthorizationUseCase {
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
-  private final PasswordHasherPort passwordHasher;
+  private final CredentialEncoderPort credentialEncoder;
 
   public AuthenticateUserForAuthorizationUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
-      PasswordHasherPort passwordHasher) {
+      CredentialEncoderPort credentialEncoder) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
-    this.passwordHasher = passwordHasher;
+    this.credentialEncoder = credentialEncoder;
   }
 
   /**
@@ -76,7 +76,7 @@ public class AuthenticateUserForAuthorizationUseCase {
     }
 
     // Validar contraseña
-    if (!passwordHasher.matches(command.password(), user.getPasswordHash().value())) {
+    if (!credentialEncoder.matches(command.password(), user.getPasswordHash().value())) {
       throw new InvalidCredentialsException();
     }
 

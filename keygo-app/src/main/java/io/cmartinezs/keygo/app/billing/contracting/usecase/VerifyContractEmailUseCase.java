@@ -10,7 +10,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
@@ -57,7 +57,7 @@ public class VerifyContractEmailUseCase {
   private final ContractorRepositoryPort contractorRepo;
   private final MembershipRepositoryPort membershipRepo;
   private final AppRoleRepositoryPort appRoleRepo;
-  private final PasswordHasherPort passwordHasher;
+  private final CredentialEncoderPort credentialEncoder;
   private final EmailNotificationPort emailNotification;
   private final SecureRandom secureRandom;
 
@@ -68,7 +68,7 @@ public class VerifyContractEmailUseCase {
       ContractorRepositoryPort contractorRepo,
       MembershipRepositoryPort membershipRepo,
       AppRoleRepositoryPort appRoleRepo,
-      PasswordHasherPort passwordHasher,
+      CredentialEncoderPort credentialEncoder,
       EmailNotificationPort emailNotification) {
     this.contractRepo = contractRepo;
     this.clientAppRepo = clientAppRepo;
@@ -76,7 +76,7 @@ public class VerifyContractEmailUseCase {
     this.contractorRepo = contractorRepo;
     this.membershipRepo = membershipRepo;
     this.appRoleRepo = appRoleRepo;
-    this.passwordHasher = passwordHasher;
+    this.credentialEncoder = credentialEncoder;
     this.emailNotification = emailNotification;
     this.secureRandom = new SecureRandom();
   }
@@ -104,8 +104,8 @@ public class VerifyContractEmailUseCase {
 
     User tenantUser = userRepo.findByTenantIdAndEmail(tenantId, email)
         .orElseGet(() -> {
-          String rawPassword  = generateTemporaryPassword();
-          String hashedPwd    = passwordHasher.hash(rawPassword);
+           String rawPassword  = generateTemporaryPassword();
+           String hashedPwd    = credentialEncoder.encode(rawPassword);
 
           User newUser = User.builder()
               .tenantId(tenantId)

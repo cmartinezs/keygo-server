@@ -3,7 +3,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResetUserPasswordCommand;
 import io.cmartinezs.keygo.app.user.command.UpdateUserCommand;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -43,7 +43,7 @@ class UpdateResetValidateUseCaseTest {
 
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock PasswordHasherPort passwordHasherPort;
+  @Mock CredentialEncoderPort credentialEncoderPort;
 
   private Tenant activeTenant;
   private User activeUser;
@@ -141,10 +141,10 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void resetPasswordUpdatesHash() {
     // Given
-    ResetUserPasswordUseCase uc = new ResetUserPasswordUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ResetUserPasswordUseCase uc = new ResetUserPasswordUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.hash("newpass")).thenReturn(NEW_HASH);
+    when(credentialEncoderPort.encode("newpass")).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
@@ -159,10 +159,10 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsByEmailSucceeds() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.matches("secret", VALID_HASH)).thenReturn(true);
+    when(credentialEncoderPort.matches("secret", VALID_HASH)).thenReturn(true);
 
     // When
     User result = uc.execute(TENANT_SLUG, "john@acme.com", "secret");
@@ -174,11 +174,11 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsByUsernameSucceeds() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     // "johndoe" is not a valid email → tryFindByEmail catches IAE and returns empty without calling mock
     when(userRepositoryPort.findByTenantIdAndUsername(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.matches("secret", VALID_HASH)).thenReturn(true);
+    when(credentialEncoderPort.matches("secret", VALID_HASH)).thenReturn(true);
 
     // When
     User result = uc.execute(TENANT_SLUG, "johndoe", "secret");
@@ -190,7 +190,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsWhenSuspended() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     activeUser.suspend();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
@@ -203,10 +203,10 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsOnWrongPassword() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.matches(any(), any())).thenReturn(false);
+    when(credentialEncoderPort.matches(any(), any())).thenReturn(false);
 
     // When / Then
     assertThatThrownBy(() -> uc.execute(TENANT_SLUG, "john@acme.com", "wrong"))
@@ -216,11 +216,11 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsWhenResetPasswordRequired() {
     // Given — T-103: user has RESET_PASSWORD status and provides correct password
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     activeUser.requirePasswordReset();  // transitions status to RESET_PASSWORD
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.matches("secret", VALID_HASH)).thenReturn(true);  // password is correct
+    when(credentialEncoderPort.matches("secret", VALID_HASH)).thenReturn(true);  // password is correct
 
     // When / Then — must throw after password validation (not before, to prevent timing oracle)
     assertThatThrownBy(() -> uc.execute(TENANT_SLUG, "john@acme.com", "secret"))
@@ -230,11 +230,11 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsWithResetPasswordStatus_stillThrowsInvalidCredentialsOnWrongPassword() {
     // Given — T-103: timing oracle guard — wrong password must still yield InvalidCredentialsException
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     activeUser.requirePasswordReset();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
-    when(passwordHasherPort.matches("wrong", VALID_HASH)).thenReturn(false);
+    when(credentialEncoderPort.matches("wrong", VALID_HASH)).thenReturn(false);
 
     // When / Then — must NOT reveal RESET_PASSWORD status when password is wrong
     assertThatThrownBy(() -> uc.execute(TENANT_SLUG, "john@acme.com", "wrong"))
@@ -245,7 +245,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsWhenUserNotFound() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     // Use a valid email so the email-lookup mock is actually called
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.empty());

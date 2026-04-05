@@ -3,7 +3,7 @@ package io.cmartinezs.keygo.app.clientapp.usecase;
 import io.cmartinezs.keygo.app.clientapp.command.CreateClientAppCommand;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
-import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedScope;
@@ -32,17 +32,17 @@ public class CreateClientAppUseCase {
   private final TenantRepositoryPort tenantRepositoryPort;
   private final ClientAppRepositoryPort clientAppRepositoryPort;
   private final ClientCredentialGeneratorPort credentialGenerator;
-  private final ClientSecretEncoderPort secretEncoder;
+  private final CredentialEncoderPort credentialEncoder;
 
   public CreateClientAppUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       ClientCredentialGeneratorPort credentialGenerator,
-      ClientSecretEncoderPort secretEncoder) {
+      CredentialEncoderPort credentialEncoder) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.credentialGenerator = credentialGenerator;
-    this.secretEncoder = secretEncoder;
+    this.credentialEncoder = credentialEncoder;
   }
 
   /**
@@ -74,7 +74,7 @@ public class CreateClientAppUseCase {
     String hashedSecret = null;
     if (ClientType.CONFIDENTIAL.equals(command.type())) {
       rawSecret = credentialGenerator.generateClientSecret();
-      hashedSecret = secretEncoder.encode(rawSecret);
+      hashedSecret = credentialEncoder.encode(rawSecret);
     }
 
     Set<RedirectUri> redirectUris = command.redirectUris() == null ? Set.of() :

@@ -3,7 +3,7 @@ package io.cmartinezs.keygo.app.clientapp.usecase;
 import io.cmartinezs.keygo.app.clientapp.command.CreateClientAppCommand;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
-import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
@@ -46,7 +46,7 @@ class CreateClientAppUseCaseTest {
   @Mock private TenantRepositoryPort tenantRepositoryPort;
   @Mock private ClientAppRepositoryPort clientAppRepositoryPort;
   @Mock private ClientCredentialGeneratorPort credentialGenerator;
-  @Mock private ClientSecretEncoderPort secretEncoder;
+  @Mock private CredentialEncoderPort credentialEncoder;
 
   @InjectMocks
   private CreateClientAppUseCase useCase;
@@ -85,7 +85,7 @@ class CreateClientAppUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
     when(credentialGenerator.generateClientId()).thenReturn(RAW_CLIENT_ID);
     when(credentialGenerator.generateClientSecret()).thenReturn(RAW_SECRET);
-    when(secretEncoder.encode(RAW_SECRET)).thenReturn(HASHED_SECRET);
+    when(credentialEncoder.encode(RAW_SECRET)).thenReturn(HASHED_SECRET);
     when(clientAppRepositoryPort.existsByClientId(any())).thenReturn(false);
     when(clientAppRepositoryPort.save(any())).thenReturn(savedApp(tenant));
 
@@ -127,7 +127,7 @@ class CreateClientAppUseCaseTest {
 
     // Then
     assertThat(result.rawSecret()).isNull();
-    verify(secretEncoder, never()).encode(any());
+    verify(credentialEncoder, never()).encode(any());
   }
 
   @Test

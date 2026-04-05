@@ -7,7 +7,7 @@ import io.cmartinezs.keygo.app.auth.port.TokenClaimsFactoryPort;
 import io.cmartinezs.keygo.app.auth.port.TokenSignerPort;
 import io.cmartinezs.keygo.app.auth.result.IssueClientCredentialsTokenResult;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
-import io.cmartinezs.keygo.app.clientapp.port.ClientSecretEncoderPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.exception.NoActiveSigningKeyException;
 import io.cmartinezs.keygo.domain.auth.model.SigningKey;
@@ -51,7 +51,7 @@ public class IssueClientCredentialsTokenUseCase {
 
   private final TenantRepositoryPort tenantRepository;
   private final ClientAppRepositoryPort clientAppRepository;
-  private final ClientSecretEncoderPort clientSecretEncoder;
+  private final CredentialEncoderPort credentialEncoder;
   private final SigningKeyRepositoryPort signingKeyRepository;
   private final TokenSignerPort tokenSigner;
   private final TokenClaimsFactoryPort tokenClaimsFactory;
@@ -61,7 +61,7 @@ public class IssueClientCredentialsTokenUseCase {
   public IssueClientCredentialsTokenUseCase(
       TenantRepositoryPort tenantRepository,
       ClientAppRepositoryPort clientAppRepository,
-      ClientSecretEncoderPort clientSecretEncoder,
+      CredentialEncoderPort credentialEncoder,
       SigningKeyRepositoryPort signingKeyRepository,
       TokenSignerPort tokenSigner,
       TokenClaimsFactoryPort tokenClaimsFactory,
@@ -69,7 +69,7 @@ public class IssueClientCredentialsTokenUseCase {
       String issuerBaseUrl) {
     this.tenantRepository = tenantRepository;
     this.clientAppRepository = clientAppRepository;
-    this.clientSecretEncoder = clientSecretEncoder;
+    this.credentialEncoder = credentialEncoder;
     this.signingKeyRepository = signingKeyRepository;
     this.tokenSigner = tokenSigner;
     this.tokenClaimsFactory = tokenClaimsFactory;
@@ -114,7 +114,7 @@ public class IssueClientCredentialsTokenUseCase {
     clientApp.validateGrant(AllowedGrant.CLIENT_CREDENTIALS);
 
     // 5. Verificar el client_secret
-    if (!clientSecretEncoder.matches(command.rawClientSecret(), clientApp.getHashedSecret())) {
+    if (!credentialEncoder.matches(command.rawClientSecret(), clientApp.getHashedSecret())) {
       throw new ClientAuthenticationException(
           "Invalid client_secret for client: " + command.clientId());
     }

@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.CreateUserCommand;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
@@ -39,14 +39,14 @@ class CreateUserUseCaseTest {
 
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock PasswordHasherPort passwordHasherPort;
+  @Mock CredentialEncoderPort credentialEncoderPort;
 
   private CreateUserUseCase useCase;
   private Tenant activeTenant;
 
   @BeforeEach
   void setUp() {
-    useCase = new CreateUserUseCase(tenantRepositoryPort, userRepositoryPort, passwordHasherPort);
+    useCase = new CreateUserUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
@@ -62,7 +62,7 @@ class CreateUserUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.existsByTenantIdAndEmail(any(), any())).thenReturn(false);
     when(userRepositoryPort.existsByTenantIdAndUsername(any(), any())).thenReturn(false);
-    when(passwordHasherPort.hash(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
+    when(credentialEncoderPort.encode(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     CreateUserCommand command = new CreateUserCommand(TENANT_SLUG, USERNAME, EMAIL, RAW_PASSWORD, "John", "Doe");

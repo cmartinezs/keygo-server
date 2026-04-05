@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RecoverPasswordCommand;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.RecoverPasswordResult;
@@ -12,8 +12,8 @@ import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUse
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordPolicy;
 import io.cmartinezs.keygo.domain.user.model.PasswordRecoveryToken;
+import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 
 /**
  * Caso de uso: restablecer contraseña usando un token de recuperación (self-service).
@@ -40,17 +40,17 @@ public class RecoverPasswordUseCase {
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
   private final PasswordRecoveryTokenRepositoryPort tokenRepository;
-  private final PasswordHasherPort passwordHasher;
+  private final CredentialEncoderPort credentialEncoder;
 
   public RecoverPasswordUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
       PasswordRecoveryTokenRepositoryPort tokenRepository,
-      PasswordHasherPort passwordHasher) {
+      CredentialEncoderPort credentialEncoder) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
     this.tokenRepository = tokenRepository;
-    this.passwordHasher = passwordHasher;
+    this.credentialEncoder = credentialEncoder;
   }
 
   /**
@@ -84,14 +84,14 @@ public class RecoverPasswordUseCase {
     }
 
     // 5. Validar política de contraseña
-    PasswordPolicy.validate(command.newPassword());
+      PasswordValidationHelper.validate(command.newPassword(), false);
 
     // 6. Cargar usuario
     var user = userRepository.findByIdAndTenantId(recoveryToken.getUserId(), tenant.getId())
         .orElseThrow(() -> new UserNotFoundException("id", recoveryToken.getUserId().toString()));
 
     // 7. Actualizar contraseña + activar si estaba PENDING
-    String newHash = passwordHasher.hash(command.newPassword());
+    String newHash = credentialEncoder.encode(command.newPassword());
     user.updatePassword(PasswordHash.of(newHash));
     if (user.isPending()) {
       user.activate();

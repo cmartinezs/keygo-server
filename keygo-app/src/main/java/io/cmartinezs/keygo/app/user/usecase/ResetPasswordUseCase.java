@@ -5,7 +5,7 @@ import io.cmartinezs.keygo.app.user.command.ResetPasswordCommand;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
 import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ResetPasswordResult;
@@ -49,17 +49,17 @@ public class ResetPasswordUseCase {
 
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
-  private final PasswordHasherPort passwordHasher;
+  private final CredentialEncoderPort credentialEncoder;
   private final PasswordResetCodeRepositoryPort codeRepository;
 
   public ResetPasswordUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
-      PasswordHasherPort passwordHasher,
+      CredentialEncoderPort credentialEncoder,
       PasswordResetCodeRepositoryPort codeRepository) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
-    this.passwordHasher = passwordHasher;
+    this.credentialEncoder = credentialEncoder;
     this.codeRepository = codeRepository;
   }
 
@@ -109,7 +109,7 @@ public class ResetPasswordUseCase {
     }
 
     // 6. Verificar que la contraseña temporal coincide
-    if (!passwordHasher.matches(command.temporaryPassword(), user.getPasswordHash().value())) {
+    if (!credentialEncoder.matches(command.temporaryPassword(), user.getPasswordHash().value())) {
       throw new IncorrectCurrentPasswordException();
     }
 
@@ -122,7 +122,7 @@ public class ResetPasswordUseCase {
     PasswordValidationHelper.validate(command.newPassword(), false);
 
     // 9. Hashear y persistir la nueva contraseña + activar cuenta
-    String newHash = passwordHasher.hash(command.newPassword());
+    String newHash = credentialEncoder.encode(command.newPassword());
     user.updatePassword(PasswordHash.of(newHash));
     user.activate();
     userRepository.save(user);

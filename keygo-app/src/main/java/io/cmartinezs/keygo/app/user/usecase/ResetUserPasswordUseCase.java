@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResetUserPasswordCommand;
-import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
+import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -22,15 +22,15 @@ public class ResetUserPasswordUseCase {
 
   private final TenantRepositoryPort tenantRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
-  private final PasswordHasherPort passwordHasherPort;
+  private final CredentialEncoderPort credentialEncoderPort;
 
   public ResetUserPasswordUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordHasherPort passwordHasherPort) {
+      CredentialEncoderPort credentialEncoderPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
-    this.passwordHasherPort = passwordHasherPort;
+    this.credentialEncoderPort = credentialEncoderPort;
   }
 
   /**
@@ -47,7 +47,7 @@ public class ResetUserPasswordUseCase {
     User user = userRepositoryPort.findByIdAndTenantId(UserId.of(command.userId()), tenant.getId())
         .orElseThrow(() -> new UserNotFoundException("id", String.valueOf(command.userId())));
 
-    String hashedPassword = passwordHasherPort.hash(command.newRawPassword());
+    String hashedPassword = credentialEncoderPort.encode(command.newRawPassword());
     user.updatePassword(PasswordHash.of(hashedPassword));
 
     return userRepositoryPort.save(user);
