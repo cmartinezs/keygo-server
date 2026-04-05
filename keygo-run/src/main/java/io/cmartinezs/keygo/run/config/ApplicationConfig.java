@@ -6,7 +6,6 @@ import io.cmartinezs.keygo.app.auth.port.AuthorizationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
-import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
@@ -112,6 +111,7 @@ import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
+import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
@@ -123,7 +123,6 @@ import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomize
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.core.Ordered;
@@ -141,7 +140,6 @@ import tools.jackson.databind.PropertyNamingStrategies;
  * @version 1.0
  */
 @Configuration
-@ComponentScan(basePackages = {"io.cmartinezs.keygo.api", "io.cmartinezs.keygo.supabase"})
 public class ApplicationConfig {
 
   @Bean
@@ -298,8 +296,10 @@ public class ApplicationConfig {
 
   @Bean
   public EmailNotificationPort emailNotificationPort(
-      TemplateEngine emailTemplateEngine, JavaMailSender mailSender) {
-    return new EmailNotificationAdapter(emailTemplateEngine, mailSender);
+      TemplateEngine emailTemplateEngine,
+      JavaMailSender mailSender,
+      KeyGoUiProperties uiProperties) {
+    return new EmailNotificationAdapter(emailTemplateEngine, mailSender, uiProperties);
   }
 
   @Bean

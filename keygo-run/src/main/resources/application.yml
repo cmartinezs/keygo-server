@@ -57,6 +57,17 @@ keygo:
   mail:
     from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
     app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
+  ui:
+    base-url: "${KEYGO_UI_BASE_URL:http://localhost:5173}"
+    paths:
+      reset-password:
+        route: "/reset-password"
+        query-params:
+          - request_id
+      subscribe:
+        route: "/subscribe"
+        query-params:
+          - contract_id
   email:
     smtp-host: "${SMTP_HOST:localhost}"
     smtp-port: "${SMTP_PORT:587}"

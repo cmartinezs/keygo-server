@@ -401,9 +401,12 @@ set -a; source .env; set +a
 | `SUPABASE_USER` | DB user | — |
 | `SUPABASE_PASSWORD` | DB password | — |
 | `KEYGO_BOOTSTRAP_ENABLED` | Enable security filter | `true` |
+| `KEYGO_UI_BASE_URL` | UI base URL (for links in emails, notifications) | `http://localhost:5173` |
 
 Profiles: `supabase` activates JPA + Flyway; combine with `local` / `desa` / `prod` for env-specific config.  
 Switch env: `./docs/scripts/switch-env.sh <local|desa|prod>`.
+
+**UI Configuration:** See [`docs/design/UI_CONFIGURATION.md`](docs/design/UI_CONFIGURATION.md) for details on configuring UI paths and generating direct links in emails.
 
 ## Testing conventions
 

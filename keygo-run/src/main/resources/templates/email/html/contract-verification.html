@@ -189,6 +189,39 @@
             text-decoration: underline;
         }
 
+        /* Primary CTA Button */
+        .btn-primary {
+            display: inline-block;
+            background-color: #667eea;
+            color: white;
+            padding: 14px 32px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 24px 0;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #764ba2;
+            text-decoration: none;
+            color: white;
+        }
+
+        /* CTA Container */
+        .cta-container {
+            margin: 32px 0;
+            text-align: center;
+        }
+
+        .cta-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             .email-container {
@@ -243,6 +276,12 @@
                 <div class="code-info">
                     Copia este código y úsalo en tu panel de contratación.
                 </div>
+            </div>
+
+            <!-- Direct Link CTA (if available) -->
+            <div th:if="${subscribeUrl}" class="cta-container">
+                <p class="cta-text">O haz clic en el botón para acceder directamente:</p>
+                <a th:href="${subscribeUrl}" class="btn-primary">Continuar con mi suscripción</a>
             </div>
 
             <!-- Expiration -->

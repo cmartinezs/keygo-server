@@ -9,16 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Estrategia para envío de email de verificación de contrato de suscripción.
  *
- * <p>Se utiliza cuando un usuario inicia un contrato de suscripción. El template incluye:
- * - Código de verificación de email
- * - ID del contrato
- * - Información de expiración
+ * <p>Se utiliza cuando un usuario inicia un contrato de suscripción. El template incluye: - Código
+ * de verificación de email - ID del contrato - URL directa a la página de suscripción (generada por
+ * el adapter) - Información de expiración
  *
- * <p>Variables esperadas en el comando:
- * - verificationCode: código de 6 dígitos
- * - contractId: UUID del contrato
- * - expiresInMinutes: minutos de validez del código
- * - userName: nombre del usuario
+ * <p>Variables esperadas en el comando: - verificationCode: código de 6 dígitos - contractId: UUID
+ * del contrato - subscribeUrl: URL directa a /subscribe?contract_id=... (opcional, generada por
+ * adapter) - expiresInMinutes: minutos de validez del código - userName: nombre del usuario
  */
 @Slf4j
 public class ContractVerificationStrategy extends EmailStrategy {
@@ -50,18 +47,14 @@ public class ContractVerificationStrategy extends EmailStrategy {
   @Override
   public Map<String, Object> getTemplateVariables() {
     final var variables = new HashMap<>(cmd.getVariables());
-
-    // Asegurar que existan variables mínimas
-    variables.putIfAbsent("userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
+    variables.putIfAbsent(
+        "userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
     variables.putIfAbsent("verificationCode", "000000");
     variables.putIfAbsent("expiresInMinutes", 30);
     variables.putIfAbsent("recipientEmail", cmd.getRecipientEmail());
 
-    log.debug(
-        "ContractVerificationStrategy rendered with variables: {}",
-        variables.keySet());
+    log.debug("ContractVerificationStrategy rendered with variables: {}", variables.keySet());
 
     return variables;
   }
 }
-

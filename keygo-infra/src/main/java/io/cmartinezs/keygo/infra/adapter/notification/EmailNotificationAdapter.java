@@ -10,14 +10,22 @@ import io.cmartinezs.keygo.infra.adapter.notification.strategy.EmailValidationSt
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.PasswordRecoveryStrategy;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.PasswordResetCodeStrategy;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.TemporaryPasswordStrategy;
+import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
 import io.cmartinezs.keygo.infra.mail.EmailStrategy;
 import io.cmartinezs.keygo.infra.mail.SendEmailCommand;
 import jakarta.mail.MessagingException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -36,6 +44,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
 
   private final TemplateEngine emailTemplateEngine;
   private final JavaMailSender mailSender;
+  private final KeyGoUiProperties uiProperties;
 
   @Override
   public void sendEmail(
@@ -132,7 +141,12 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
    */
   private String renderTemplate(EmailStrategy strategy) throws EmailTemplateException {
     try {
-      final var context = new Context();
+      final var context = new Context(LocaleContextHolder.getLocale());
+
+      strategy
+          .getCommand()
+          .getVariables()
+          .forEach((key, value) -> log.debug("Template variable: {}={}", key, value));
 
       // Agregar todas las variables de la estrategia
       context.setVariables(strategy.getTemplateVariables());
@@ -182,66 +196,34 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
       mailSender.send(mimeMessage);
     } catch (EmailValidationException e) {
       throw e;
-    } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+    } catch (MessagingException | UnsupportedEncodingException e) {
       throw new EmailSmtpException("Failed to send MIME message: " + e.getMessage(), e);
     } catch (Exception e) {
       throw new EmailSmtpException("Unexpected error during SMTP delivery: " + e.getMessage(), e);
     }
   }
 
-  // ── Métodos de conveniencia (implementación de EmailNotificationPort) ──────
-
   @Override
-  public void sendVerificationEmail(String toEmail, String username, String verificationCode) {
-    sendEmail(
-        "email-validation",
-        toEmail,
-        username,
-        Map.of(
-            "userName", username,
-            "verificationCode", verificationCode,
-            "expiresInMinutes", 30));
+  public Map<String, String> generateLinks(String emailType) {
+    var paths =
+        switch (emailType) {
+          case "password-reset-code" -> Set.of("reset-password");
+          default -> throw new IllegalStateException("Unexpected value: " + emailType);
+        };
+
+    return paths.stream()
+        .collect(
+            Collectors.toMap(
+                Function.identity(), key -> generateLink(uiProperties.getPaths().get(key))));
   }
 
-  @Override
-  public void sendContractVerificationEmail(
-      String toEmail, String recipientName, String verificationCode, java.util.UUID contractId) {
-    sendEmail(
-        "contract-verification",
-        toEmail,
-        recipientName,
-        Map.of(
-            "userName",
-            recipientName,
-            "verificationCode",
-            verificationCode,
-            "contractId",
-            contractId.toString(),
-            "expiresInMinutes",
-            30));
-  }
-
-  @Override
-  public void sendTemporaryPasswordEmail(String toEmail, String username, String rawPassword) {
-    sendEmail(
-        "temporary-password",
-        toEmail,
-        username,
-        Map.of(
-            "userName", username,
-            "temporaryPassword", rawPassword));
-  }
-
-  @Override
-  public void sendPasswordRecoveryEmail(
-      String toEmail, String username, String recoveryToken, String tenantSlug) {
-    sendEmail(
-        "password-recovery",
-        toEmail,
-        username,
-        Map.of(
-            "userName", username,
-            "recoveryToken", recoveryToken,
-            "tenantSlug", tenantSlug));
+  private String generateLink(KeyGoUiProperties.UiPath uiPath) {
+    final var uriBuilder =
+        UriComponentsBuilder.fromUri(URI.create(uiProperties.getBaseUrl())).path(uiPath.getRoute());
+    var queryParams = uiPath.getQueryParams();
+    if (queryParams != null && !queryParams.isEmpty()) {
+      queryParams.forEach(uriBuilder::queryParam);
+    }
+    return uriBuilder.build().toUriString();
   }
 }

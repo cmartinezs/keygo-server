@@ -48,8 +48,6 @@ public class PasswordResetCodeStrategy extends EmailStrategy {
   @Override
   public Map<String, Object> getTemplateVariables() {
     final var variables = new HashMap<>(cmd.getVariables());
-
-    // Asegurar que existan variables mínimas con defaults seguros
     variables.putIfAbsent("userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
     variables.putIfAbsent("verificationCode", "000000");
     variables.putIfAbsent("expiresInMinutes", 15);

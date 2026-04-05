@@ -20,6 +20,27 @@
 
 ## Registro de cambios
 
+### [2026-04-05] Configuración UI — propiedades YAML para enlaces en emails
+
+- **Nueva clase:** `KeyGoUiProperties` (`keygo-run/config/`) con anotación `@ConfigurationProperties(prefix = "keygo.ui")`
+  - Propiedades: `baseUrl` (variable de entorno `KEYGO_UI_BASE_URL`), `paths` (mapa de rutas disponibles)
+  - Inner class `UiPath` con método `buildUrl(baseUrl, params)` para construir URLs completas con query params
+- **Configuración YAML:** sección `keygo.ui` en `application.yml` con:
+  ```yaml
+  keygo:
+    ui:
+      base-url: "${KEYGO_UI_BASE_URL:http://localhost:5173}"
+      paths:
+        reset-password:
+          route: "/reset-password"
+          query-params: [request-id]
+  ```
+- **Variables de entorno:** `KEYGO_UI_BASE_URL` añadida a todos los templates (`.env-local`, `.env-desa`, `.env-prod`, `.env.example`)
+- **Tests:** `KeyGoUiPropertiesTest` con 11 test cases unitarios validando defaults, URL building con/sin parámetros, y configuración
+- **Documentación:** nuevo archivo `docs/design/UI_CONFIGURATION.md` con guía de uso, ejemplos en email templates, y patrón para agregar nuevas rutas
+- **Actualización AGENTS.md:** tabla Environment variables + enlace a `UI_CONFIGURATION.md`
+- **Propósito:** centralizar la configuración de rutas UI para usar en email adapters (Thymeleaf) sin hardcoding de URLs, facilitando mantenimiento y reutilización
+
 ### [2026-04-04] KeyGoTracingAspect — trazabilidad AOP input/output por método
 
 - **Nuevo aspect:** `KeyGoTracingAspect` (`keygo-run/aop/`) con `@Around` que intercepta todos los métodos en `io.cmartinezs.keygo.*` excepto getters/setters y los marcados con `@NoLog`.

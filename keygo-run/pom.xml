@@ -18,6 +18,11 @@
     <dependencies>
         <dependency>
             <groupId>io.cmartinezs.keygo</groupId>
+            <artifactId>keygo-app</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.cmartinezs.keygo</groupId>
             <artifactId>keygo-api</artifactId>
             <version>${project.version}</version>
         </dependency>
