@@ -47,6 +47,7 @@ import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeExcepti
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
@@ -625,6 +626,17 @@ public class GlobalExceptionHandler {
       UserPasswordResetRequiredException ex) {
     log.warn("Login blocked — password reset required: {}", ex.getMessage());
     return error(HttpStatus.UNAUTHORIZED, ResponseCode.RESET_PASSWORD_REQUIRED, ex);
+  }
+
+  /**
+   * Handles PasswordResetRequestNotFoundException - returns 404 Not Found.
+   * Lanzada cuando el requestId de reset de contraseña no corresponde a ninguna solicitud.
+   */
+  @ExceptionHandler(PasswordResetRequestNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordResetRequestNotFoundException(
+      PasswordResetRequestNotFoundException ex) {
+    log.warn("Password reset request not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
   /**

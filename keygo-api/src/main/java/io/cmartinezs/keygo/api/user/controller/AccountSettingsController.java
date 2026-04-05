@@ -215,18 +215,20 @@ public class AccountSettingsController {
       summary = "Reset password with temporary password",
       description = "Allows a user in RESET_PASSWORD status to set their permanent password "
                     + "using the temporary password assigned by the administrator. "
-                    + "Also requires the 6-digit verification code received by email when the "
-                    + "login was blocked. No Bearer token required.")
+                    + "Requires the `request_id` (UUID returned in the 401 login response), "
+                    + "the 6-digit verification code received by email, "
+                    + "the temporary password, and the new password (with confirmation). "
+                    + "No Bearer token required.")
   @ApiResponse(responseCode = "200",
       description = "Password reset successfully (code: ACCOUNT_PASSWORD_RESET)")
   @ApiResponse(responseCode = "400",
-      description = "New password violates policy, passwords don't match, or invalid code format (code: INVALID_INPUT)",
+      description = "New password violates policy, passwords don't match, invalid code format or invalid request_id format (code: INVALID_INPUT)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "403",
       description = "Temporary password incorrect or user not in RESET_PASSWORD status (code: BUSINESS_RULE_VIOLATION)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404",
-      description = "Tenant or user not found (code: RESOURCE_NOT_FOUND)",
+      description = "Reset request not found or user not found in tenant (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "422",
       description = "Verification code expired (code: BUSINESS_RULE_VIOLATION)",
@@ -242,7 +244,7 @@ public class AccountSettingsController {
     ResetPasswordResult result = resetPasswordUseCase.execute(
         new ResetPasswordCommand(
             tenantSlug,
-            request.email(),
+            request.requestId(),
             request.temporaryPassword(),
             request.newPassword(),
             request.confirmNewPassword(),

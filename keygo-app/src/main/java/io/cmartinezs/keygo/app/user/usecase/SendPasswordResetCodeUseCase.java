@@ -10,6 +10,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordResetCode;
+import io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.Username;
 
@@ -60,13 +61,14 @@ public class SendPasswordResetCodeUseCase {
   }
 
   /**
-   * Genera y envía el código de verificación.
+   * Genera, persiste y envía el código de verificación.
    *
    * @param command parámetros del comando
+   * @return resultado con el {@code requestId} de la solicitud persistida
    * @throws TenantNotFoundException si el tenant no existe
    * @throws UserNotFoundException   si el usuario no existe en el tenant
    */
-  public void execute(SendPasswordResetCodeCommand command) {
+  public SendPasswordResetCodeResult execute(SendPasswordResetCodeCommand command) {
     var tenant = tenantRepository.findBySlug(TenantSlug.of(command.tenantSlug()))
         .orElseThrow(() -> new TenantNotFoundException(command.tenantSlug()));
 
@@ -76,13 +78,15 @@ public class SendPasswordResetCodeUseCase {
     Instant expiresAt = Instant.now().plus(CODE_TTL_MINUTES, ChronoUnit.MINUTES);
 
     var resetCode = PasswordResetCode.create(user.getId(), rawCode, expiresAt);
-    codeRepository.upsert(resetCode);
+    PasswordResetCode persisted = codeRepository.upsert(resetCode);
 
     emailNotification.sendPasswordResetCodeEmail(
         user.getEmail().value(),
         user.getUsername().value(),
         rawCode,
         CODE_TTL_MINUTES);
+
+    return new SendPasswordResetCodeResult(persisted.getId());
   }
 
   private User findUser(io.cmartinezs.keygo.domain.tenant.model.TenantId tenantId, String emailOrUsername) {

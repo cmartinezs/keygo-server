@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.domain.user.model.PasswordResetCode;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Port OUT — contrato de persistencia para códigos de verificación del flujo RESET_PASSWORD.
@@ -24,6 +25,17 @@ public interface PasswordResetCodeRepositoryPort {
    * @return el código persistido
    */
   PasswordResetCode upsert(PasswordResetCode code);
+
+  /**
+   * Busca un código de reset por su identificador único (requestId).
+   *
+   * <p>Se usa en el endpoint público {@code POST /account/reset-password} para localizar
+   * la solicitud a partir del ID devuelto en el 401 de login bloqueado.
+   *
+   * @param id UUID de la fila en {@code password_reset_codes}
+   * @return el código, o vacío si no existe
+   */
+  Optional<PasswordResetCode> findById(UUID id);
 
   /**
    * Busca el código activo (no usado) del usuario.

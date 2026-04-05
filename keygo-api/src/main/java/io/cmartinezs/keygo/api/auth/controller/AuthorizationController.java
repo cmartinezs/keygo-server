@@ -311,11 +311,12 @@ public class AuthorizationController {
     } catch (UserPasswordResetRequiredException e) {
       // Credenciales correctas, pero el usuario debe cambiar su contraseña.
       // Enviar código de verificación al email antes de bloquear el login.
-      sendPasswordResetCodeUseCase.execute(
+      var resetResult = sendPasswordResetCodeUseCase.execute(
           new SendPasswordResetCodeCommand(tenantSlug, request.emailOrUsername()));
 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
           BaseResponse.<LoginData>builder()
+              .data(new LoginData(null, null, null, resetResult.requestId().toString()))
               .failure(ResponseHelper.message(ResponseCode.RESET_PASSWORD_REQUIRED))
               .build());
     }

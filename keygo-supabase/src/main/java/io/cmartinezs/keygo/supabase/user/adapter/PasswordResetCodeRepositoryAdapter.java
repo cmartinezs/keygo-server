@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Adaptador JPA para {@link PasswordResetCodeRepositoryPort}.
@@ -57,6 +58,11 @@ public class PasswordResetCodeRepositoryAdapter implements PasswordResetCodeRepo
 
     PasswordResetCodeEntity saved = jpaRepository.save(entity);
     return toDomain(saved);
+  }
+
+  @Override
+  public Optional<PasswordResetCode> findById(UUID id) {
+    return jpaRepository.findById(id).map(this::toDomain);
   }
 
   @Override

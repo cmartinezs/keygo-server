@@ -9,13 +9,17 @@ import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ResetPasswordResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
-import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.PasswordPolicy;
+import io.cmartinezs.keygo.domain.user.model.UserId;
+
+import java.util.UUID;
 
 /**
  * Caso de uso: restablecer contraseña para usuarios en estado {@code RESET_PASSWORD} (self-service).
@@ -23,12 +27,13 @@ import io.cmartinezs.keygo.domain.user.model.PasswordPolicy;
  * <p>Flujo:
  * <ol>
  *   <li>Resolver el tenant por {@code tenantSlug}.</li>
- *   <li>Buscar el usuario por {@code tenantId} + {@code email}.</li>
+ *   <li>Buscar la solicitud de reset por {@code requestId} (UUID de {@code password_reset_codes}).</li>
+ *   <li>Verificar que el código no está usado ni expirado y coincide con el proporcionado.</li>
+ *   <li>Resolver el usuario asociado al código dentro del scope del tenant.</li>
  *   <li>Verificar que el usuario está en estado {@code RESET_PASSWORD}.</li>
  *   <li>Verificar que la {@code temporaryPassword} coincide con el hash almacenado.</li>
  *   <li>Validar que {@code newPassword} coincide con {@code confirmNewPassword}.</li>
  *   <li>Validar {@code newPassword} contra la política de seguridad.</li>
- *   <li>Verificar el código de 6 dígitos recibido por email (no expirado, no usado, correcto).</li>
  *   <li>Hashear y persistir la nueva contraseña.</li>
  *   <li>Activar la cuenta ({@code status → ACTIVE}).</li>
  *   <li>Marcar el código como usado.</li>
@@ -37,7 +42,7 @@ import io.cmartinezs.keygo.domain.user.model.PasswordPolicy;
  * <p>Usado por: {@code POST /api/v1/tenants/{slug}/account/reset-password}
  *
  * @author cmartinezs
- * @version 2.0
+ * @version 3.0
  */
 public class ResetPasswordUseCase {
 
@@ -63,45 +68,25 @@ public class ResetPasswordUseCase {
    * @param command parámetros del comando
    * @return resultado con {@code reset = true} si se restableció exitosamente
    * @throws TenantNotFoundException                  si el tenant no existe
-   * @throws UserNotFoundException                    si el usuario no existe en el tenant
+   * @throws PasswordResetRequestNotFoundException    si el requestId no existe
+   * @throws InvalidPasswordResetCodeException        si el código de verificación es inválido o ya fue usado
+   * @throws PasswordResetCodeExpiredException        si el código de verificación ha expirado
+   * @throws UserNotFoundException                    si el usuario del código no pertenece al tenant
    * @throws UserNotInResetPasswordStatusException    si el usuario no está en estado RESET_PASSWORD
    * @throws IncorrectCurrentPasswordException        si la contraseña temporal es incorrecta
    * @throws IllegalArgumentException                 si las contraseñas no coinciden o violan la política
-   * @throws InvalidPasswordResetCodeException        si el código de verificación es inválido o no existe
-   * @throws PasswordResetCodeExpiredException        si el código de verificación ha expirado
    */
   public ResetPasswordResult execute(ResetPasswordCommand command) {
     // 1. Resolver tenant
     var tenant = tenantRepository.findBySlug(TenantSlug.of(command.tenantSlug()))
         .orElseThrow(() -> new TenantNotFoundException(command.tenantSlug()));
 
-    // 2. Buscar usuario por email
-    var user = userRepository.findByTenantIdAndEmail(tenant.getId(), EmailAddress.of(command.email()))
-        .orElseThrow(() -> new UserNotFoundException("email", command.email()));
+    // 2. Buscar la solicitud de reset por requestId
+    UUID requestId = parseRequestId(command.requestId());
+    var resetCode = codeRepository.findById(requestId)
+        .orElseThrow(() -> new PasswordResetRequestNotFoundException(command.requestId()));
 
-    // 3. Verificar que el usuario está en estado RESET_PASSWORD
-    if (!user.isResetPassword()) {
-      throw new UserNotInResetPasswordStatusException(command.email());
-    }
-
-    // 4. Verificar que la contraseña temporal coincide
-    if (!passwordHasher.matches(command.temporaryPassword(), user.getPasswordHash().value())) {
-      throw new IncorrectCurrentPasswordException();
-    }
-
-    // 5. Validar que newPassword coincide con confirmNewPassword
-    if (!command.newPassword().equals(command.confirmNewPassword())) {
-      throw new IllegalArgumentException(
-          "new_password: la nueva contraseña y su confirmación no coinciden");
-    }
-
-    // 6. Validar política de la nueva contraseña
-    PasswordPolicy.validate(command.newPassword());
-
-    // 7. Verificar el código de 6 dígitos
-    var resetCode = codeRepository.findByUserId(user.getId())
-        .orElseThrow(InvalidPasswordResetCodeException::new);
-
+    // 3. Verificar el código de verificación (primero: evita revelar info del usuario si el código es inválido)
     if (resetCode.isUsed()) {
       throw new InvalidPasswordResetCodeException();
     }
@@ -112,15 +97,47 @@ public class ResetPasswordUseCase {
       throw new InvalidPasswordResetCodeException();
     }
 
-    // 8. Hashear y persistir la nueva contraseña + activar cuenta
+    // 4. Resolver el usuario dentro del scope del tenant (protección cross-tenant)
+    TenantId tenantId = tenant.getId();
+    var user = userRepository.findByIdAndTenantId(new UserId(resetCode.getUserId().value()), tenantId)
+        .orElseThrow(() -> new UserNotFoundException("requestId", command.requestId()));
+
+    // 5. Verificar que el usuario está en estado RESET_PASSWORD
+    if (!user.isResetPassword()) {
+      throw new UserNotInResetPasswordStatusException(user.getEmail() != null ? user.getEmail().value() : "unknown");
+    }
+
+    // 6. Verificar que la contraseña temporal coincide
+    if (!passwordHasher.matches(command.temporaryPassword(), user.getPasswordHash().value())) {
+      throw new IncorrectCurrentPasswordException();
+    }
+
+    // 7. Validar que newPassword coincide con confirmNewPassword
+    if (!command.newPassword().equals(command.confirmNewPassword())) {
+      throw new IllegalArgumentException(
+          "new_password: la nueva contraseña y su confirmación no coinciden");
+    }
+
+    // 8. Validar política de la nueva contraseña
+    PasswordPolicy.validate(command.newPassword());
+
+    // 9. Hashear y persistir la nueva contraseña + activar cuenta
     String newHash = passwordHasher.hash(command.newPassword());
     user.updatePassword(PasswordHash.of(newHash));
     user.activate();
     userRepository.save(user);
 
-    // 9. Marcar el código como usado
+    // 10. Marcar el código como usado
     codeRepository.markUsed(resetCode);
 
     return new ResetPasswordResult(true);
+  }
+
+  private UUID parseRequestId(String requestId) {
+    try {
+      return UUID.fromString(requestId);
+    } catch (IllegalArgumentException ex) {
+      throw new PasswordResetRequestNotFoundException(requestId);
+    }
   }
 }

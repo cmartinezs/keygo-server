@@ -45,6 +45,7 @@ public enum ResponseCode {
   USER_ACTIVATED("USER_ACTIVATED", "User account activated successfully"),
   USER_SESSIONS_RETRIEVED("USER_SESSIONS_RETRIEVED", "User sessions retrieved successfully"),
   RESET_PASSWORD_REQUIRED("RESET_PASSWORD_REQUIRED", "User must reset their password before logging in"),
+  RESET_PASSWORD_CODE_SENT("RESET_PASSWORD_CODE_SENT", "Password reset verification code sent to user email"),
 
   // User Operations
   USER_CREATED("USER_CREATED", "User created successfully"),

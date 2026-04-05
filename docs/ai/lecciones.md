@@ -8,7 +8,55 @@
 
 ---
 
-### [2026-04-04] AOP + JsonMapper: dependencia circular — field injection no es suficiente, usar mapper estático
+### [2026-04-04] Flujo reset-password: requestId en lugar de email, código verificado antes del usuario
+
+**Contexto:** Implementación del endpoint público `POST /account/reset-password` para usuarios en estado `RESET_PASSWORD` que no pueden autenticarse con Bearer token.
+
+**Problema:** El flujo anterior identificaba al usuario por email (campo en el request body), lo cual: 1) podría revelar qué emails existen en el sistema; 2) requería una llamada DB para buscar al usuario antes de validar el código de verificación; 3) no tenía persistencia del código generado y enviado por correo.
+
+**Solución / Buena práctica:**
+- `SendPasswordResetCodeUseCase.execute()` ahora retorna `SendPasswordResetCodeResult(requestId)` con el UUID de la fila persistida en `password_reset_codes`.
+- El controller `AuthorizationController.login()` incluye `reset_code_id` en el body del 401 `RESET_PASSWORD_REQUIRED`.
+- `ResetPasswordCommand` usa `requestId` (UUID) en lugar de `email`.
+- `ResetPasswordUseCase` busca primero por `requestId` → valida el código (usado/expirado/incorrecto) → luego busca al usuario con `findByIdAndTenantId` (protección cross-tenant) → verifica estado RESET_PASSWORD → verifica contraseña temporal → valida nueva contraseña.
+- El orden es importante: el código se valida **antes** de buscar al usuario para evitar revelar información de existencia del usuario cuando el código es inválido.
+- Nueva excepción `PasswordResetRequestNotFoundException` (404) para cuando el `requestId` no existe o no es UUID válido.
+- `PasswordResetCodeRepositoryPort.findById(UUID)` agregado al port y al adaptador.
+
+**Archivos clave:**
+- `keygo-app/.../user/usecase/SendPasswordResetCodeUseCase.java`
+- `keygo-app/.../user/usecase/ResetPasswordUseCase.java`
+- `keygo-app/.../user/port/PasswordResetCodeRepositoryPort.java`
+- `keygo-app/.../user/result/SendPasswordResetCodeResult.java`
+- `keygo-app/.../user/command/ResetPasswordCommand.java`
+- `keygo-domain/.../user/exception/PasswordResetRequestNotFoundException.java`
+- `keygo-api/.../auth/response/LoginData.java` (campo `reset_code_id`)
+- `keygo-api/.../user/request/AccountResetPasswordRequest.java` (campo `request_id`)
+- `keygo-supabase/.../user/adapter/PasswordResetCodeRepositoryAdapter.java`
+
+---
+
+### [2026-04-04] Stubs innecesarios en Mockito: tryFindByEmail lanza IAE internamente
+
+**Contexto:** Tests de `SendPasswordResetCodeUseCaseTest` con un input de username (no email).
+
+**Problema:** En `tryFindByEmail()`, si el string no es un email válido, `EmailAddress.of()` lanza `IllegalArgumentException` que es **capturada internamente**, por lo que el mock de `userRepositoryPort.findByTenantIdAndEmail()` nunca se llama. Mockito Strict detecta el stub como innecesario (`UnnecessaryStubbing`) y falla el test.
+
+**Solución / Buena práctica:** No stub-ear `findByTenantIdAndEmail` cuando el input claramente no es un email válido (ej. "johndoe" o "unknown_user" sin `@`). El método lanza IAE internamente sin llegar al repositorio.
+
+**Archivos clave:** `SendPasswordResetCodeUseCaseTest.java`
+
+---
+
+### [2026-04-04] replace_string_in_file deja código duplicado al reemplazar solo el inicio de una clase
+
+**Contexto:** Reescritura de `ResetPasswordUseCase.java` y su test.
+
+**Problema:** Al usar `replace_string_in_file` para reemplazar solo las líneas de imports (inicio de la clase), el resto del cuerpo viejo quedó concatenado después del nuevo cuerpo, resultando en dos definiciones de clase en el mismo archivo (error de compilación "Duplicate class").
+
+**Solución / Buena práctica:** Cuando se reescribe completamente una clase, usar `cat > file << 'EOF'` en terminal para sobreescribir el archivo completo. Alternativamente, incluir suficiente contexto en el `oldString` para abarcar todo el contenido que debe eliminarse.
+
+
 
 **Contexto:** Mejora del `KeyGoTracingAspect` para serializar objetos complejos a JSON con `tools.jackson.databind.json.JsonMapper` en lugar de `toString()`.
 
