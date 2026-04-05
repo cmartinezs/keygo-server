@@ -11,6 +11,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
+import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -62,13 +63,16 @@ public class CreateUserUseCase {
       throw new DuplicateUserException("email", command.email());
     }
 
-    if (userRepositoryPort.existsByTenantIdAndUsername(tenant.getId(), username)) {
-      throw new DuplicateUserException("username", command.username());
-    }
+     if (userRepositoryPort.existsByTenantIdAndUsername(tenant.getId(), username)) {
+       throw new DuplicateUserException("username", command.username());
+     }
 
-    String hashedPassword = passwordHasherPort.hash(command.rawPassword());
+     // Validar política de la contraseña (permanente, proporcionada por admin)
+     PasswordValidationHelper.validate(command.rawPassword(), false);
 
-    User user = User.builder()
+     String hashedPassword = passwordHasherPort.hash(command.rawPassword());
+
+     User user = User.builder()
         .id(UserId.generate())
         .tenantId(tenant.getId())
         .username(username)

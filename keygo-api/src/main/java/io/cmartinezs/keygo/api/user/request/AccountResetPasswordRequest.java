@@ -32,6 +32,6 @@ import jakarta.validation.constraints.Size;
 public record AccountResetPasswordRequest(
     @NotBlank String requestId,
     @NotBlank String temporaryPassword,
-    @NotBlank String newPassword,
+    @NotBlank @Size(min = 8, message = "newPassword must be at least 8 characters") String newPassword,
     @NotBlank String confirmNewPassword,
     @NotBlank @Size(min = 6, max = 6) @Pattern(regexp = "\\d{6}") String verificationCode) {}

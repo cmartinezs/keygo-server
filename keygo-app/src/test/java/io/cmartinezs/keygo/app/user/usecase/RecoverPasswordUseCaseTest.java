@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
+import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
@@ -159,7 +160,7 @@ class RecoverPasswordUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
         new RecoverPasswordCommand(TENANT_SLUG, RAW_TOKEN, "weak")))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(InvalidPasswordException.class);
 
     verify(userRepositoryPort, never()).save(any());
   }

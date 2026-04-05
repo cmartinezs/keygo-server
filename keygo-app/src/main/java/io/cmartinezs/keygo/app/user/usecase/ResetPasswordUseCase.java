@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResetPasswordCommand;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
@@ -16,7 +17,7 @@ import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredExcepti
 import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordPolicy;
+import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 
 import java.util.UUID;
@@ -114,12 +115,11 @@ public class ResetPasswordUseCase {
 
     // 7. Validar que newPassword coincide con confirmNewPassword
     if (!command.newPassword().equals(command.confirmNewPassword())) {
-      throw new IllegalArgumentException(
-          "new_password: la nueva contraseña y su confirmación no coinciden");
+      throw new PasswordMismatchException("new_password and confirm_new_password must match");
     }
 
-    // 8. Validar política de la nueva contraseña
-    PasswordPolicy.validate(command.newPassword());
+    // 8. Validar política de la nueva contraseña (permanente)
+    PasswordValidationHelper.validate(command.newPassword(), false);
 
     // 9. Hashear y persistir la nueva contraseña + activar cuenta
     String newHash = passwordHasher.hash(command.newPassword());

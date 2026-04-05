@@ -1,12 +1,14 @@
 package io.cmartinezs.keygo.domain.user.model;
 
+import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException;
+
 /**
- * Política de contraseñas del dominio.
+ * Política de contraseñas del dominio — DEPRECATED.
  *
- * <p>Clase utilitaria sin dependencias externas ni Spring.
- * Valida que una contraseña cumpla los requisitos mínimos de seguridad.
+ * <p>Este clase se mantiene por compatibilidad con código existente.
+ * Usa {@link PasswordValidationHelper} para nueva validación — más flexible y mantenible.
  *
- * <p>Reglas:
+ * <p>Reglas (permanentes):
  * <ul>
  *   <li>Longitud mínima: 12 caracteres</li>
  *   <li>Al menos una letra mayúscula</li>
@@ -17,37 +19,22 @@ package io.cmartinezs.keygo.domain.user.model;
  *
  * @author cmartinezs
  * @version 1.0
+ * @deprecated use {@link PasswordValidationHelper#validate(String, boolean)} instead
  */
+@Deprecated(since = "1.0", forRemoval = false)
 public final class PasswordPolicy {
 
   private PasswordPolicy() {}
 
   /**
-   * Valida que la contraseña cumpla la política de seguridad.
+   * Valida que la contraseña cumpla la política de seguridad (permanente).
    *
    * @param password contraseña a validar
-   * @throws IllegalArgumentException si la contraseña no cumple alguna regla
+   * @throws InvalidPasswordException si la contraseña no cumple alguna regla
+   * @deprecated use {@link PasswordValidationHelper#validate(String, boolean)} with {@code false}
    */
+  @Deprecated(since = "1.0", forRemoval = false)
   public static void validate(String password) {
-    if (password == null || password.length() < 12) {
-      throw new IllegalArgumentException(
-          "new_password: debe tener al menos 12 caracteres");
-    }
-    if (!password.matches(".*[A-Z].*")) {
-      throw new IllegalArgumentException(
-          "new_password: debe contener al menos una letra mayúscula");
-    }
-    if (!password.matches(".*[a-z].*")) {
-      throw new IllegalArgumentException(
-          "new_password: debe contener al menos una letra minúscula");
-    }
-    if (!password.matches(".*\\d.*")) {
-      throw new IllegalArgumentException(
-          "new_password: debe contener al menos un dígito");
-    }
-    if (!password.matches(".*[^A-Za-z0-9].*")) {
-      throw new IllegalArgumentException(
-          "new_password: debe contener al menos un carácter especial");
-    }
+    PasswordValidationHelper.validate(password, false);
   }
 }

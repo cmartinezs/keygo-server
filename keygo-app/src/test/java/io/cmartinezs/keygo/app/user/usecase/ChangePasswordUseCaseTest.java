@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ChangePasswordCommand;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ChangePasswordResult;
@@ -134,8 +135,7 @@ class ChangePasswordUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
         new ChangePasswordCommand(TENANT_SLUG, BEARER_TOKEN, CURRENT_RAW, "short")))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("new_password");
+        .isInstanceOf(io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException.class);
   }
 
   // ─── Escenario 4: nueva contraseña igual a la actual ─────────────────────
@@ -149,7 +149,6 @@ class ChangePasswordUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
         new ChangePasswordCommand(TENANT_SLUG, BEARER_TOKEN, CURRENT_RAW, NEW_STRONG_PASSWORD)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("nueva contraseña debe ser diferente");
+        .isInstanceOf(PasswordMismatchException.class);
   }
 }

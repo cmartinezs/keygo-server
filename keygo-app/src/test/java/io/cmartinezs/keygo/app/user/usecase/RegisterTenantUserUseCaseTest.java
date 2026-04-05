@@ -50,7 +50,7 @@ class RegisterTenantUserUseCaseTest {
   private static final String CLIENT_ID = "client-123";
   private static final String USERNAME = "johndoe";
   private static final String EMAIL = "john@acme.com";
-  private static final String RAW_PASSWORD = "secret123";
+  private static final String RAW_PASSWORD = "SecurePass123!";  // 14 chars: uppercase, lowercase, digit, special
   private static final String HASHED_PASSWORD = "$2a$10$hash";
 
   @Mock TenantRepositoryPort tenantRepositoryPort;

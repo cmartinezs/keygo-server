@@ -17,6 +17,7 @@ import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.EmailVerification;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
+import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -98,7 +99,10 @@ public class RegisterTenantUserUseCase {
       throw new DuplicateUserException("username", command.username());
     }
 
-    // 4. Create user with PENDING status
+    // 4. Validar política de la contraseña (permanente, proporcionada por usuario)
+    PasswordValidationHelper.validate(command.rawPassword(), false);
+
+    // 5. Create user with PENDING status
     String hashedPassword = passwordHasherPort.hash(command.rawPassword());
     User user = User.builder()
         .id(UserId.generate())

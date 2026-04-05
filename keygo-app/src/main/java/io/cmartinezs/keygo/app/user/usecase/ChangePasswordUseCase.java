@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ChangePasswordCommand;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ChangePasswordResult;
@@ -13,7 +14,7 @@ import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordPolicy;
+import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 
 import java.util.Map;
@@ -107,25 +108,24 @@ public class ChangePasswordUseCase {
     var user = userRepository.findByIdAndTenantId(new UserId(userId), tenant.getId())
         .orElseThrow(() -> new UserNotFoundException("id", sub));
 
-    // 5. Verificar contraseña actual
-    if (!passwordHasher.matches(command.currentPassword(), user.getPasswordHash().value())) {
-      throw new IncorrectCurrentPasswordException();
-    }
+     // 5. Verificar contraseña actual
+     if (!passwordHasher.matches(command.currentPassword(), user.getPasswordHash().value())) {
+       throw new IncorrectCurrentPasswordException();
+     }
 
-    // 6. Validar política de la nueva contraseña
-    PasswordPolicy.validate(command.newPassword());
+     // 6. Validar política de la nueva contraseña (permanente)
+     PasswordValidationHelper.validate(command.newPassword(), false);
 
-    // 7. Validar que la nueva contraseña difiere de la actual
-    if (passwordHasher.matches(command.newPassword(), user.getPasswordHash().value())) {
-      throw new IllegalArgumentException(
-          "new_password: la nueva contraseña debe ser diferente a la actual");
-    }
+     // 7. Validar que la nueva contraseña difiere de la actual
+     if (passwordHasher.matches(command.newPassword(), user.getPasswordHash().value())) {
+       throw new PasswordMismatchException("new password must be different from current password");
+     }
 
-    // 8. Hashear y persistir
-    String newHash = passwordHasher.hash(command.newPassword());
-    user.updatePassword(PasswordHash.of(newHash));
-    userRepository.save(user);
+     // 8. Hashear y persistir
+     String newHash = passwordHasher.hash(command.newPassword());
+     user.updatePassword(PasswordHash.of(newHash));
+     userRepository.save(user);
 
-    return new ChangePasswordResult(true);
+     return new ChangePasswordResult(true);
   }
 }

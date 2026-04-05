@@ -21,6 +21,7 @@ import io.cmartinezs.keygo.app.shared.exception.UseCaseException;
 import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
 import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
 import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
@@ -43,6 +44,7 @@ import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredExcepti
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
@@ -705,6 +707,26 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(InvalidPaginationParamException.class)
   public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPaginationParamException(InvalidPaginationParamException ex) {
     log.error("Invalid pagination param: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles InvalidPasswordException - returns 400 Bad Request.
+   * Lanzada cuando una contraseña viola la política de seguridad.
+   */
+  @ExceptionHandler(InvalidPasswordException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPasswordException(InvalidPasswordException ex) {
+    log.warn("Invalid password: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles PasswordMismatchException - returns 400 Bad Request.
+   * Lanzada cuando dos contraseñas que deberían coincidir no lo hacen.
+   */
+  @ExceptionHandler(PasswordMismatchException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordMismatchException(PasswordMismatchException ex) {
+    log.warn("Password mismatch: {}", ex.getMessage());
     return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 

@@ -1,5 +1,8 @@
 package io.cmartinezs.keygo.api.user.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 /**
  * Request body para cambiar la contraseña propia del usuario autenticado (self-service).
  *
@@ -16,5 +19,11 @@ package io.cmartinezs.keygo.api.user.request;
  * @version 1.0
  */
 public record ChangePasswordRequest(
+    @NotBlank(message = "currentPassword is required")
     String currentPassword,
-    String newPassword) {}
+
+    @NotBlank(message = "newPassword is required")
+    @Size(min = 8, message = "newPassword must be at least 8 characters")
+    String newPassword
+) {
+}

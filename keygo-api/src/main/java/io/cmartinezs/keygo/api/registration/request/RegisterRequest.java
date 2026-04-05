@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
  * <p>Cuerpo de la solicitud para auto-registro de usuario en la app de un tenant.
  * @param username  desired username (unique within the tenant)
  * @param email     user's email address (unique within the tenant)
- * @param password  raw password (min 8 chars)
+ * @param password  raw password (min 8 chars HTTP validation; full policy applied at use case)
  * @param firstName optional first name
  * @param lastName  optional last name
  * @author cmartinezs

@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResetPasswordCommand;
 import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.app.user.port.PasswordHasherPort;
 import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
@@ -199,8 +200,7 @@ class ResetPasswordUseCaseTest {
     var command = new ResetPasswordCommand(
         TENANT_SLUG, requestId.toString(), "tempPass123!", VALID_NEW_PWD, "DifferentPassword@1!", VALID_CODE);
     assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("coinciden");
+        .isInstanceOf(PasswordMismatchException.class);
     verify(userRepositoryPort, never()).save(any());
   }
   @Test
@@ -212,7 +212,7 @@ class ResetPasswordUseCaseTest {
     var command = new ResetPasswordCommand(
         TENANT_SLUG, requestId.toString(), "tempPass123!", "weak", "weak", VALID_CODE);
     assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException.class);
     verify(userRepositoryPort, never()).save(any());
   }
 }

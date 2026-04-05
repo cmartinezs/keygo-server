@@ -9,7 +9,8 @@ import jakarta.validation.constraints.Size;
  * <p>Cuerpo de solicitud para crear un nuevo usuario dentro de un tenant.
  * @param username  desired username (3-100 chars, unique within tenant)
  * @param email     user email address (unique within tenant)
- * @param password  raw password (will be hashed server-side)
+ * @param password  raw password (will be hashed server-side). Min 8 chars (HTTP validation);
+ *                  full policy (12 chars + 4 classes) applied at use case layer
  * @param firstName optional first name
  * @param lastName  optional last name
  * @author cmartinezs
