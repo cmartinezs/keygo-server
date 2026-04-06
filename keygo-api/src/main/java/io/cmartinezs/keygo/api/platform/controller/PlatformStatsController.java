@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/platform")
 @Tag(name = "Platform", description = "Public platform endpoints — no authentication required")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','KEYGO_ADMIN')")
 public class PlatformStatsController {
 
   private final GetPlatformStatsUseCase getPlatformStatsUseCase;

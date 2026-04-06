@@ -2,13 +2,15 @@ package io.cmartinezs.keygo.app.auth.port;
 
 import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Puerto OUT: persistencia de sesiones de usuario.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * sessions no tiene tenant_id ni user_id; usa platform_user_id (nullable) y client_app_id (nullable).
  */
 public interface SessionRepositoryPort {
 
@@ -36,12 +38,11 @@ public interface SessionRepositoryPort {
   void update(Session session);
 
   /**
-   * Devuelve todas las sesiones de un usuario en un tenant (sin filtro de estado).
+   * Devuelve todas las sesiones de un platform_user (sin filtro de estado).
    *
-   * @param userId   ID del usuario
-   * @param tenantId ID del tenant
+   * @param platformUserId UUID del platform_user
    * @return lista de sesiones, ordenada por lastAccessedAt DESC
    */
-  List<Session> findAllByUserIdAndTenantId(UserId userId, TenantId tenantId);
+  List<Session> findAllByPlatformUserId(UUID platformUserId);
 }
 

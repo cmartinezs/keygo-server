@@ -20,7 +20,24 @@
 
 ## Registro de cambios
 
-### [2026-04-06] Corrección de entidades JPA huérfanas — tenant scope en signing keys + audit refs en sessions/refresh_tokens
+### [2026-04-07] T-111 — Modelo RBAC multi-ámbito (plataforma + tenant)
+
+- **Dominio (`keygo-domain`):** 8 nuevos tipos en `membership/model/`: `PlatformRoleId`, `PlatformRole`, `PlatformUserRoleId`, `PlatformUserRole`, `TenantRoleId`, `TenantRole`, `TenantUserRoleId`, `TenantUserRole`.
+- **TenantRole:** código UPPERCASE `^[A-Z][A-Z0-9_]*$`; métodos `deactivate()`, `reactivate()`, `updateMetadata()`. Diferente de `AppRole` que usa lowercase.
+- **TenantUserRole:** soft-delete via `removedAt`; método `revoke()` con validación idempotente.
+- **Entidades JPA (`keygo-supabase/membership/entity`):** `PlatformRoleEntity`, `PlatformUserRoleEntity`, `TenantRoleEntity`, `TenantUserRoleEntity`.
+- **Repositorios JPA:** `PlatformRoleJpaRepository`, `PlatformUserRoleJpaRepository`, `TenantRoleJpaRepository`, `TenantUserRoleJpaRepository`.
+- **Mapper:** `MembershipPersistenceMapper` — 4 nuevos `toDomain()` overloads.
+- **Puertos OUT (`keygo-app/membership/port`):** `PlatformRoleRepositoryPort`, `PlatformUserRoleRepositoryPort`, `TenantRoleRepositoryPort`, `TenantUserRoleRepositoryPort`.
+- **Adaptadores:** `PlatformRoleRepositoryAdapter`, `PlatformUserRoleRepositoryAdapter`, `TenantRoleRepositoryAdapter`, `TenantUserRoleRepositoryAdapter`.
+- **Use cases:** `AssignPlatformRoleUseCase`, `RevokePlatformRoleUseCase`, `CreateTenantRoleUseCase`, `AssignTenantRoleUseCase`, `RevokeTenantRoleUseCase`.
+- **Excepciones:** `PlatformRoleNotFoundException`, `DuplicateTenantRoleException`, `TenantRoleNotFoundException`.
+- **Migraciones Flyway:** `V24__platform_roles_and_user_roles.sql`, `V25__tenant_roles_and_user_roles.sql`, `V26__seed_platform_and_tenant_roles.sql`. `V1__drop_all.sql` actualizado.
+- **Wiring (`keygo-run/ApplicationConfig`):** 5 nuevos `@Bean` para los use cases T-111.
+- **Decisión arquitectural:** `platform_user_roles.tenant_user_id → tenant_users.id` (administradores de plataforma = TenantUsers en el tenant `keygo`). No existe tabla global `users`. Documentado en `docs/design/T-111-implementation/MODEL.md`.
+- **Próxima migración:** `V27__...`
+
+
 
 - **`UserNotificationPreferencesEntity`:** campos `UUID userId/tenantId` → `@ManyToOne(LAZY) TenantUserEntity user` + `@ManyToOne(LAZY) TenantEntity tenant`. Repository: `findByUserIdAndTenantId` → `findByUser_IdAndTenant_Id`. Adapter: usa `getReferenceById()` para proxy sin SELECT.
 - **`SigningKeyEntity`:** nueva FK `@ManyToOne(LAZY) TenantEntity tenant` (nullable — null = clave global de plataforma).

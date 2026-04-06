@@ -15,7 +15,6 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,15 +78,15 @@ class ListUserSessionsUseCaseTest {
   void execute_shouldReturnOnlyActiveSessions() {
     // Given
     var activeSession = Session.reconstitute(
-        SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(userId), SessionStatus.ACTIVE,
+        SessionId.from(UUID.randomUUID()), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.ACTIVE,
         Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now(), null);
     var terminatedSession = Session.reconstitute(
-        SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(userId), SessionStatus.TERMINATED,
+        SessionId.from(UUID.randomUUID()), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.TERMINATED,
         Instant.now().plusSeconds(3600), Instant.now(), "other-ua", "10.0.0.1", Instant.now(), null);
 
-    when(sessionRepository.findAllByUserIdAndTenantId(any(), any()))
+    when(sessionRepository.findAllByPlatformUserId(any()))
         .thenReturn(List.of(activeSession, terminatedSession));
 
     // When
@@ -103,15 +102,15 @@ class ListUserSessionsUseCaseTest {
   void execute_shouldMarkCurrentSession_whenUserAgentAndIpMatch() {
     // Given
     var currentSession = Session.reconstitute(
-        SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(userId), SessionStatus.ACTIVE,
+        SessionId.from(UUID.randomUUID()), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.ACTIVE,
         Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now(), null);
     var otherSession = Session.reconstitute(
-        SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(userId), SessionStatus.ACTIVE,
+        SessionId.from(UUID.randomUUID()), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.ACTIVE,
         Instant.now().plusSeconds(3600), Instant.now(), "other-ua", "10.0.0.2", Instant.now(), null);
 
-    when(sessionRepository.findAllByUserIdAndTenantId(any(), any()))
+    when(sessionRepository.findAllByPlatformUserId(any()))
         .thenReturn(List.of(currentSession, otherSession));
 
     // When
@@ -128,7 +127,7 @@ class ListUserSessionsUseCaseTest {
   @Test
   void execute_shouldReturnEmptyList_whenNoActiveSessions() {
     // Given
-    when(sessionRepository.findAllByUserIdAndTenantId(any(), any())).thenReturn(List.of());
+    when(sessionRepository.findAllByPlatformUserId(any())).thenReturn(List.of());
 
     // When
     ListUserSessionsResult result = useCase.execute(

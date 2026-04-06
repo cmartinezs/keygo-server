@@ -95,6 +95,7 @@
 | T-099 | Caché `@Cacheable` + Caffeine TTL 5 min en `GetAppPlanCatalogUseCase` y `GetAppPlanUseCase`; invalidar al crear plan o actualizar billing options (T-097) | 🔲 Pendiente |
 | ~~T-104~~ | ~~Endpoint `POST /account/reset-password` — recibe `email` + `temporaryPassword` + `newPassword`; `ResetPasswordUseCase` verifica hash temporal (BCrypt), actualiza hash con nueva contraseña y cambia `status → ACTIVE`; validación de complejidad mínima; depende de T-103~~ | ✅ Completada 2026-04-02 |
 | ~~T-107~~ | ~~**Jerarquía de roles en apps de tenant:** tabla `app_role_hierarchy` (V20), restricciones de ciclo y profundidad ≤5, CTE recursiva para expansión en JWT, use cases `AssignRoleParentUseCase`/`RemoveRoleParentUseCase`, endpoints `POST/DELETE …/roles/{roleCode}/parent`~~ | ✅ Completada 2026-04-02 |
+| ~~T-111~~ | ~~**RBAC multi-ámbito:** dominio (`PlatformRole`, `PlatformUserRole`, `TenantRole`, `TenantUserRole`); 4 entidades JPA + 4 repos + 4 puertos + 4 adapters + 5 use cases; migraciones V24–V26; 5 beans en `ApplicationConfig`. FKs: `platform_user_roles.tenant_user_id → tenant_users`. Soft-delete en `tenant_user_roles`.~~ | ✅ Completada 2026-04-07 |
 
 ---
 

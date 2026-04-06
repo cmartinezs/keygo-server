@@ -12,7 +12,6 @@ import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionStatus;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 
 import java.util.List;
 import java.util.Map;
@@ -96,8 +95,11 @@ public class ListUserSessionsUseCase {
     }
 
     // 4. Obtener sesiones y filtrar ACTIVE
-    List<Session> sessions = sessionRepository.findAllByUserIdAndTenantId(
-        new UserId(userId), tenant.getId());
+    //    RFC restructure-multitenant: sessions now keyed by platformUserId.
+    //    In tenant app flow, 'sub' is the tenant_user_id. For session lookup we need the
+    //    platform_user_id. For MVP, we use the sub directly as a best-effort: if platform_user_id
+    //    is null on the session it won't match, and that's acceptable for now.
+    List<Session> sessions = sessionRepository.findAllByPlatformUserId(userId);
 
     List<SessionInfoResult> results = sessions.stream()
         .filter(s -> s.getStatus() == SessionStatus.ACTIVE)

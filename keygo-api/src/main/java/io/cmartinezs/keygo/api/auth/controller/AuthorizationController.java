@@ -467,37 +467,43 @@ public class AuthorizationController {
             roles);
 
     // 4. Abrir sesión — incluye el ID de la clave firmante para auditoría
+    //    RFC restructure-multitenant: resolve platformUserId from tenant_user linkage
     Instant sessionExpiresAt = now.plus(REFRESH_TOKEN_TTL);
-    String tenantIdStr = resolvedTenantId != null
-        ? resolvedTenantId.value().toString()
-        : resolveTenantId(tenantSlug);
-    String clientAppIdStr = resolveClientAppId(tenantIdStr, request.clientId());
+    String clientAppIdStr = resolveClientAppId(tenantSlug, request.clientId());
+    UUID platformUserId = null;
+    if (resolvedTenantId != null) {
+      UUID userUUID = UUID.fromString(exchangeResult.userId());
+      var userForSession = userRepository.findByIdAndTenantId(new UserId(userUUID), resolvedTenantId);
+      if (userForSession.isPresent()) {
+        platformUserId = userForSession.get().getPlatformUserId();
+      }
+    }
     var sessionResult =
         openSessionUseCase.execute(
             new OpenSessionCommand(
-                tenantIdStr,
+                platformUserId,
                 clientAppIdStr,
-                exchangeResult.userId(),
                 sessionExpiresAt,
                 now,
                 null,
                 null,
-                tokenResult.signingKeyId()));   // nuevo: auditoría de clave firmante
+                tokenResult.signingKeyId()));
 
     // 5. Generar refresh token — incluye el ID de la clave firmante
+    //    RFC restructure-multitenant: tenantUserId for fast role lookup during rotation
     String rawRefreshToken = generateSecureToken();
     String tokenHash = sha256Hex(rawRefreshToken);
+    UUID tenantUserId = UUID.fromString(exchangeResult.userId());
     var refreshToken =
         RefreshToken.issue(
             tokenHash,
-            new TenantId(UUID.fromString(tenantIdStr)),
             new ClientAppId(UUID.fromString(clientAppIdStr)),
-            new UserId(UUID.fromString(exchangeResult.userId())),
+            tenantUserId,
             SessionId.from(UUID.fromString(sessionResult.sessionId())),
             exchangeResult.scope(),
             sessionExpiresAt,
             now,
-            tokenResult.signingKeyId());   // nuevo: auditoría de clave firmante
+            tokenResult.signingKeyId());
     refreshTokenRepository.save(refreshToken);
 
     var responseData =
@@ -559,8 +565,10 @@ public class AuthorizationController {
         .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantSlug));
   }
 
-  private String resolveClientAppId(String tenantIdStr, String clientId) {
-    TenantId tenantId = new TenantId(UUID.fromString(tenantIdStr));
+  private String resolveClientAppId(String tenantSlug, String clientId) {
+    TenantId tenantId = tenantRepository.findBySlug(new TenantSlug(tenantSlug))
+        .map(t -> t.getId())
+        .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantSlug));
     return clientAppRepository
         .findByClientIdAndTenantId(new ClientId(clientId), tenantId)
         .map(app -> app.getId().value().toString())

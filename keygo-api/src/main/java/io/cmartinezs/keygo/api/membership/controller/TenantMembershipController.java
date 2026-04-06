@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/memberships")
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "Memberships", description = "User access to applications — requires Bearer JWT")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantMembershipController {
 
   private final CreateMembershipUseCase createMembershipUseCase;

@@ -121,34 +121,37 @@ public class RotateRefreshTokenUseCase {
     }
 
     // 3. Validar pertenencia al tenant y cliente
+    //    RFC restructure-multitenant: RT has nullable clientAppId and tenantUserId
     Tenant tenant = tenantRepository.findBySlug(new TenantSlug(command.tenantSlug()))
         .orElseThrow(() -> new InvalidRefreshTokenException("Tenant not found: " + command.tenantSlug()));
-
     TenantId tenantId = tenant.getId();
-    if (!refreshToken.getTenantId().equals(tenantId)) {
-      throw new InvalidRefreshTokenException("Refresh token does not belong to this tenant");
-    }
 
     ClientApp clientApp = clientAppRepository.findByClientIdAndTenantId(
             new ClientId(command.clientId()), tenantId)
         .orElseThrow(() -> new ClientAppNotFoundException("Client app not found: " + command.clientId()));
 
-    if (!refreshToken.getClientAppId().equals(clientApp.getId())) {
+    if (refreshToken.getClientAppId() == null || !refreshToken.getClientAppId().equals(clientApp.getId())) {
       throw new InvalidRefreshTokenException("Refresh token was not issued to this client app");
     }
 
     // 4. Obtener usuario para claims del id_token
+    //    RFC restructure-multitenant: user resolved via tenantUserId (nullable)
     Instant now = clock.now();
-    UserId userId = refreshToken.getUserId();
-    var user = userRepository.findByIdAndTenantId(userId, tenantId).orElse(null);
-    String email = user != null && user.getEmail() != null ? user.getEmail().value() : null;
-    String name = user != null
-        ? buildName(user.getFirstName(), user.getLastName())
-        : null;
+    String email = null;
+    String name = null;
+    UUID tenantUserId = refreshToken.getTenantUserId();
+    if (tenantUserId != null) {
+      var user = userRepository.findByIdAndTenantId(new UserId(tenantUserId), tenantId).orElse(null);
+      if (user != null) {
+        email = user.getEmail() != null ? user.getEmail().value() : null;
+        name = buildName(user.getFirstName(), user.getLastName());
+      }
+    }
 
     // 4b. Obtener roles efectivos del usuario en la app (directos + heredados) para incluirlos en el JWT
-    List<String> roles = membershipRepository.findEffectiveRoleCodesByUserAndClientApp(
-        userId.value(), clientApp.getId().value());
+    List<String> roles = tenantUserId != null
+        ? membershipRepository.findEffectiveRoleCodesByUserAndClientApp(tenantUserId, clientApp.getId().value())
+        : List.of();
 
     // 5. Firmar nuevos tokens — clave tenant-scoped con fallback global
     SigningKey signingKey = signingKeyRepository.findActiveKeyForTenant(tenantId)
@@ -159,14 +162,15 @@ public class RotateRefreshTokenUseCase {
     String idJti = UUID.randomUUID().toString();
     String scope = command.scope() != null ? command.scope() : refreshToken.getScopes();
     String issuer = buildIssuer(command.tenantSlug());
+    String sub = tenantUserId != null ? tenantUserId.toString() : UUID.randomUUID().toString();
 
     var accessClaims = new LinkedHashMap<>(tokenClaimsFactory.buildAccessTokenClaims(
-        issuer, userId.value().toString(), command.clientId(), scope, accessJti, now, expiresAt, roles));
+        issuer, sub, command.clientId(), scope, accessJti, now, expiresAt, roles));
     accessClaims.put("tenant_slug", command.tenantSlug());
     String accessToken = tokenSigner.signJwt(accessClaims, signingKey);
 
     var idClaims = tokenClaimsFactory.buildIdTokenClaims(
-        issuer, userId.value().toString(), command.clientId(), idJti, now, expiresAt,
+        issuer, sub, command.clientId(), idJti, now, expiresAt,
         null, email, name, accessToken, roles);
     String idToken = tokenSigner.signJwt(idClaims, signingKey);
 
@@ -177,14 +181,13 @@ public class RotateRefreshTokenUseCase {
 
     RefreshToken newRefreshToken = RefreshToken.issue(
         newTokenHash,
-        tenantId,
         refreshToken.getClientAppId(),
-        userId,
+        tenantUserId,
         refreshToken.getSessionId(),
         scope,
         newRtExpiresAt,
         now,
-        signingKey.getId().value());   // auditoría: clave que firmó el nuevo access_token
+        signingKey.getId().value());
 
     RefreshToken savedNewToken = refreshTokenRepository.save(newRefreshToken);
 

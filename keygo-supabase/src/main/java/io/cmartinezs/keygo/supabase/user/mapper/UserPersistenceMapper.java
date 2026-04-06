@@ -56,6 +56,7 @@ public class UserPersistenceMapper {
         .profilePictureUrl(entity.getProfilePictureUrl())
         .birthdate(birthdate)
         .website(entity.getWebsite())
+        .platformUserId(entity.getPlatformUser() != null ? entity.getPlatformUser().getId() : null)
         .build();
   }
 }

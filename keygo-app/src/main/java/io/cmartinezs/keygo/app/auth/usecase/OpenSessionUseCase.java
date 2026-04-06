@@ -5,14 +5,19 @@ import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
 import io.cmartinezs.keygo.app.auth.result.OpenSessionResult;
 import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.util.UUID;
 
 /**
- * Caso de uso: abrir una nueva sesión de usuario tras el canje exitoso de un authorization code.
+ * Caso de uso: abrir una nueva sesión tras el canje exitoso de un authorization code
+ * o un login de plataforma.
  *
- * <p>Crea una {@link Session} en estado ACTIVE con el tenant, app y usuario indicados.
+ * <p>Crea una {@link Session} en estado ACTIVE con el platform_user y (opcionalmente) la app indicada.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * <ul>
+ *   <li>{@code platformUserId} — identidad global (nullable para MVP)
+ *   <li>{@code clientAppId} — null para sesiones de plataforma, no-null para tenant app sessions
+ * </ul>
  */
 public class OpenSessionUseCase {
 
@@ -29,15 +34,18 @@ public class OpenSessionUseCase {
    * @return resultado con el ID de la sesión creada
    */
   public OpenSessionResult execute(OpenSessionCommand command) {
+    ClientAppId clientAppId = command.clientAppId() != null
+        ? new ClientAppId(UUID.fromString(command.clientAppId()))
+        : null;
+
     var session = Session.open(
-        new TenantId(UUID.fromString(command.tenantId())),
-        new ClientAppId(UUID.fromString(command.clientAppId())),
-        new UserId(UUID.fromString(command.userId())),
+        command.platformUserId(),
+        clientAppId,
         command.expiresAt(),
         command.now(),
         command.userAgent(),
         command.ipAddress(),
-        command.signingKeyId());   // nuevo campo — UUID de la clave firmante
+        command.signingKeyId());
 
     var saved = sessionRepository.save(session);
     return new OpenSessionResult(saved.getId().value().toString());

@@ -5,18 +5,18 @@ import io.cmartinezs.keygo.domain.auth.model.RefreshTokenId;
 import io.cmartinezs.keygo.domain.auth.model.RefreshTokenStatus;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.supabase.auth.entity.RefreshTokenEntity;
 import io.cmartinezs.keygo.supabase.auth.entity.SessionEntity;
 import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import lombok.experimental.UtilityClass;
 
 /**
  * Mapper: convierte entre {@link RefreshToken} (dominio) y {@link RefreshTokenEntity} (JPA).
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * usa clientApp (nullable) y tenantUser (nullable) en lugar de tenant/user.
  */
 @UtilityClass
 public class RefreshTokenPersistenceMapper {
@@ -28,13 +28,18 @@ public class RefreshTokenPersistenceMapper {
     String signingKeyId = entity.getSigningKey() != null
         ? entity.getSigningKey().getId().toString()
         : null;
+    ClientAppId clientAppId = entity.getClientApp() != null
+        ? new ClientAppId(entity.getClientApp().getId())
+        : null;
+    java.util.UUID tenantUserId = entity.getTenantUser() != null
+        ? entity.getTenantUser().getId()
+        : null;
 
     return RefreshToken.reconstitute(
         RefreshTokenId.from(entity.getId()),
         entity.getTokenHash(),
-        new TenantId(entity.getTenant().getId()),
-        new ClientAppId(entity.getClientApp().getId()),
-        new UserId(entity.getUser().getId()),
+        clientAppId,
+        tenantUserId,
         SessionId.from(entity.getSession().getId()),
         entity.getRequestedScopes(),
         RefreshTokenStatus.fromValue(entity.getStatus()),
@@ -47,9 +52,8 @@ public class RefreshTokenPersistenceMapper {
 
   public static RefreshTokenEntity toEntity(
       RefreshToken refreshToken,
-      TenantEntity tenantEntity,
       ClientAppEntity clientAppEntity,
-      TenantUserEntity userEntity,
+      TenantUserEntity tenantUserEntity,
       SessionEntity sessionEntity,
       RefreshTokenEntity replacedByEntity,
       SigningKeyEntity signingKeyEntity) {
@@ -57,9 +61,8 @@ public class RefreshTokenPersistenceMapper {
         .id(refreshToken.getId().value())
         .tokenHash(refreshToken.getTokenHash())
         .session(sessionEntity)
-        .tenant(tenantEntity)
         .clientApp(clientAppEntity)
-        .user(userEntity)
+        .tenantUser(tenantUserEntity)
         .requestedScopes(refreshToken.getScopes())
         .status(refreshToken.getStatus().getValue())
         .expiresAt(refreshToken.getExpiresAt())

@@ -12,7 +12,6 @@ import io.cmartinezs.keygo.domain.auth.model.SessionId;
 import io.cmartinezs.keygo.domain.auth.model.SessionStatus;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 
 import java.util.Map;
 import java.util.UUID;
@@ -117,7 +116,11 @@ public class RevokeUserSessionUseCase {
     var session = sessionOpt.get();
 
     // 5. Verificar propiedad
-    if (!session.getUserId().equals(new UserId(userId))) {
+    //    RFC restructure-multitenant: session has platformUserId instead of userId.
+    //    For MVP, compare platformUserId with the JWT sub (which may be a tenant_user_id).
+    //    This ownership check will be refined when platform auth flow is implemented.
+    UUID sessionPlatformUserId = session.getPlatformUserId();
+    if (sessionPlatformUserId != null && !sessionPlatformUserId.equals(userId)) {
       throw new SecurityException("Session does not belong to the authenticated user");
     }
 

@@ -8,6 +8,54 @@
 
 ---
 
+### [2026-04-07] T-111 — Patron de soft-delete con índice parcial en PostgreSQL
+
+**Contexto:** T-111 añade `tenant_user_roles` con soporte de historial de asignaciones revocadas (para auditoría).
+
+**Problema:** Un constraint `UNIQUE(tenant_user_id, tenant_role_id)` impediría reasignar un rol previamente revocado (fila histórica ya existente).
+
+**Solución / Buena práctica:**
+1. Usar un índice parcial en lugar de un constraint UNIQUE global: `CREATE UNIQUE INDEX ... ON tenant_user_roles(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL`.
+2. PostgreSQL aplica el unicidad sólo en filas activas, permitiendo múltiples filas revocadas del mismo par.
+3. En JPA, el índice parcial NO es declarable con `@Table(uniqueConstraints=...)` — solo existe en la migración Flyway. No intentar replicarlo en la entidad con `@UniqueConstraint`.
+4. Para queries que respetan el índice parcial, usar `@Query` JPQL explícita: `WHERE r.removedAt IS NULL` — Spring Data Specifications no soportan índices parciales directamente.
+
+**Archivos clave:** `V25__tenant_roles_and_user_roles.sql`, `TenantUserRoleJpaRepository.java`
+
+---
+
+### [2026-04-07] T-111 — Platform users sin tabla `users` global: FK hacia `tenant_users`
+
+**Contexto:** El RFC define "Platform User" como entidad separada, pero la codebase no tiene tabla `users` (V1 hace DROP sobre ella pero nunca fue creada). Los administradores de plataforma son TenantUsers del tenant `keygo`.
+
+**Problema:** Intentar crear FK `platform_user_roles.user_id → users(id)` fallará en Flyway pues la tabla `users` no existe.
+
+**Solución / Buena práctica:**
+1. Usar `platform_user_roles.tenant_user_id → tenant_users(id)` como solución pragmática.
+2. Documentar la decisión explícitamente en el MODEL.md del diseño.
+3. En el seed, siempre filtrar TenantUsers del tenant `keygo` para obtener los admins de plataforma.
+4. Esta decisión es reversible: una futura T-112 puede añadir tabla `platform_users` y migrar los datos.
+
+**Archivos clave:** `V24__platform_roles_and_user_roles.sql`, `docs/design/T-111-implementation/MODEL.md`
+
+---
+
+### [2026-04-07] T-111 — Código de TenantRole vs AppRole (convenciones distintas)
+
+**Contexto:** El dominio tiene dos tipos de "role code" con convenciones distintas que se confunden fácilmente.
+
+**Problema:** `AppRole.code` usa lowercase con guiones (validado como `RoleCode`); `TenantRole.code` usa UPPERCASE con guiones bajos (`^[A-Z][A-Z0-9_]*$`). Mezclar la validación genera `IllegalArgumentException` difíciles de detectar.
+
+**Solución / Buena práctica:**
+1. `TenantRole.code` valida con `^[A-Z][A-Z0-9_]*$` en el constructor del dominio.
+2. `PlatformRole.code` usa lowercase con guiones bajos (ej. `keygo_admin`) — convención diferente a `TenantRole`.
+3. Al crear seeds SQL, respetar la convención: platform_roles en lowercase, tenant_roles en UPPERCASE.
+4. Los tests de dominio deben cubrir explícitamente los rechazos de formato incorrecto.
+
+**Archivos clave:** `TenantRole.java`, `PlatformRole.java`, `V26__seed_platform_and_tenant_roles.sql`
+
+---
+
 ### [2026-04-06] Entidades JPA huérfanas: relaciones `@ManyToOne` en lugar de UUID crudos
 
 **Contexto:** `UserNotificationPreferencesEntity` y `SigningKeyEntity` no tenían FKs JPA correctas. La primera usaba campos `UUID userId/tenantId` sin `@ManyToOne`; la segunda no tenía `tenant_id` en absoluto (genuinamente huérfana en la BD).

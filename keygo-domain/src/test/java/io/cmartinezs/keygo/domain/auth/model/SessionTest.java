@@ -2,8 +2,6 @@ package io.cmartinezs.keygo.domain.auth.model;
 
 import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -13,26 +11,13 @@ import static org.assertj.core.api.Assertions.*;
 
 class SessionTest {
 
-  private static final TenantId TENANT_ID = new TenantId(UUID.randomUUID());
+  private static final UUID PLATFORM_USER_ID = UUID.randomUUID();
   private static final ClientAppId CLIENT_APP_ID = new ClientAppId(UUID.randomUUID());
-  private static final UserId USER_ID = new UserId(UUID.randomUUID());
   private static final Instant NOW = Instant.now();
   private static final Instant EXPIRES_AT = NOW.plusSeconds(3600);
 
   private Session newActiveSession() {
-    return Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, EXPIRES_AT, NOW, "agent", "127.0.0.1", null);
-  }
-
-  private TenantId nullTenantId() {
-    return null;
-  }
-
-  private ClientAppId nullClientAppId() {
-    return null;
-  }
-
-  private UserId nullUserId() {
-    return null;
+    return Session.open(PLATFORM_USER_ID, CLIENT_APP_ID, EXPIRES_AT, NOW, "agent", "127.0.0.1", null);
   }
 
   private Instant nullInstant() {
@@ -48,11 +33,31 @@ class SessionTest {
     assertThat(session.getId()).isNotNull();
     assertThat(session.getStatus()).isEqualTo(SessionStatus.ACTIVE);
     assertThat(session.isActive()).isTrue();
-    assertThat(session.getTenantId()).isEqualTo(TENANT_ID);
+    assertThat(session.getPlatformUserId()).isEqualTo(PLATFORM_USER_ID);
     assertThat(session.getClientAppId()).isEqualTo(CLIENT_APP_ID);
-    assertThat(session.getUserId()).isEqualTo(USER_ID);
     assertThat(session.getUserAgent()).isEqualTo("agent");
     assertThat(session.getIpAddress()).isEqualTo("127.0.0.1");
+    assertThat(session.isPlatformSession()).isFalse();
+  }
+
+  @Test
+  void open_withNullPlatformUserId_createsSession() {
+    // Given / When — platformUserId is nullable for MVP
+    Session session = Session.open(null, CLIENT_APP_ID, EXPIRES_AT, NOW, "agent", "127.0.0.1", null);
+
+    // Then
+    assertThat(session.getPlatformUserId()).isNull();
+    assertThat(session.isActive()).isTrue();
+  }
+
+  @Test
+  void open_withNullClientAppId_createsPlatformSession() {
+    // Given / When — null clientAppId = platform session
+    Session session = Session.open(PLATFORM_USER_ID, null, EXPIRES_AT, NOW, "agent", "127.0.0.1", null);
+
+    // Then
+    assertThat(session.getClientAppId()).isNull();
+    assertThat(session.isPlatformSession()).isTrue();
   }
 
   @Test
@@ -86,16 +91,15 @@ class SessionTest {
     Session session =
         Session.reconstitute(
             SessionId.generate(),
-            TENANT_ID,
+            PLATFORM_USER_ID,
             CLIENT_APP_ID,
-            USER_ID,
             SessionStatus.EXPIRED,
             EXPIRES_AT,
             NOW,
             "agent",
             "127.0.0.1",
             NOW,
-            null);   // signingKeyId
+            null);
 
     // When / Then
     assertThatThrownBy(session::terminate)
@@ -117,44 +121,10 @@ class SessionTest {
   }
 
   @Test
-  void open_withNullTenantId_throwsException() {
-    assertThatThrownBy(
-            () ->
-                Session.open(
-                    nullTenantId(),
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    EXPIRES_AT,
-                    NOW,
-                    null,
-                    null,
-                    null))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void open_withNullClientAppId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () -> Session.open(TENANT_ID, nullClientAppId(), USER_ID, EXPIRES_AT, NOW, null, null, null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("ClientAppId");
-  }
-
-  @Test
-  void open_withNullUserId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () -> Session.open(TENANT_ID, CLIENT_APP_ID, nullUserId(), EXPIRES_AT, NOW, null, null, null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("UserId");
-  }
-
-  @Test
   void open_withNullExpiresAt_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () -> Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, nullInstant(), NOW, null, null, null))
+            () -> Session.open(PLATFORM_USER_ID, CLIENT_APP_ID, nullInstant(), NOW, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ExpiresAt");
   }
@@ -163,7 +133,7 @@ class SessionTest {
   void open_withNullNow_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () -> Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, EXPIRES_AT, nullInstant(), null, null, null))
+            () -> Session.open(PLATFORM_USER_ID, CLIENT_APP_ID, EXPIRES_AT, nullInstant(), null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Now");
   }

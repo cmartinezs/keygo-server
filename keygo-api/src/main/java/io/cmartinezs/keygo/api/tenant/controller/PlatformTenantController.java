@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/tenants")
 @Tag(name = "Tenants", description = "Tenant lifecycle management — requires Bearer JWT")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','KEYGO_ADMIN')")
 public class PlatformTenantController {
 
   private final CreateTenantUseCase createTenantUseCase;

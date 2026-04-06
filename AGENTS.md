@@ -267,6 +267,10 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `SessionEntity` | `auth.entity` | `sessions` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `status` check `ACTIVE\|TERMINATED\|EXPIRED` |
 | `RefreshTokenEntity` | `auth.entity` | `refresh_tokens` | `@ManyToOne(fetch=LAZY)` → `SessionEntity`, `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `token_hash` unique (SHA-256 hex 64 chars); `status` check `ACTIVE\|USED\|EXPIRED\|REVOKED` |
 | `EmailVerificationEntity` | `user.entity` | `email_verifications` | `@ManyToOne(fetch=LAZY)` → `TenantUserEntity`; `code` VARCHAR(10); `expires_at`+`used_at` TIMESTAMPTZ; latest row per user = active verification |
+| `PlatformRoleEntity` | `membership.entity` | `platform_roles` | `code` UNIQUE; constantes: `keygo_admin`, `keygo_account_admin`, `keygo_user`; `created_at`/`updated_at` |
+| `PlatformUserRoleEntity` | `membership.entity` | `platform_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity` (platform admins = TenantUsers en keygo), `PlatformRoleEntity`; UNIQUE(tenant_user_id, platform_role_id) |
+| `TenantRoleEntity` | `membership.entity` | `tenant_roles` | `@ManyToOne(LAZY)` → `TenantEntity`; `code` UPPERCASE `^[A-Z][A-Z0-9_]*$`; UNIQUE(tenant_id, code); `active` boolean |
+| `TenantUserRoleEntity` | `membership.entity` | `tenant_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity`, `TenantRoleEntity`; soft-delete via `removed_at`; partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -282,6 +286,10 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `SessionJpaRepository` | `auth.repository` |
 | `RefreshTokenJpaRepository` | `auth.repository` |
 | `EmailVerificationJpaRepository` | `user.repository` |
+| `PlatformRoleJpaRepository` | `membership.repository` |
+| `PlatformUserRoleJpaRepository` | `membership.repository` |
+| `TenantRoleJpaRepository` | `membership.repository` |
+| `TenantUserRoleJpaRepository` | `membership.repository` |
 
 **Flyway migrations already applied:**
 - `V1__drop_all.sql` — **Drop ALL** (pizarrón limpio, idempotente; incluye `contractors`)
@@ -308,8 +316,13 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V19__user_status_reset_password.sql` — Columna `status=RESET_PASSWORD` en `tenant_users`; tabla `password_reset_tokens`
 - `V20__add_app_role_hierarchy.sql` — Tabla `app_role_hierarchy` (parent/child, restricciones de ciclo, profundidad ≤5), índices, CTE recursiva para expansión de roles en JWT
 - `V21__user_notification_preferences.sql` — Tabla `user_notification_preferences` (5 flags boolean, UNIQUE `user_id+tenant_id`)
+- `V22__signing_key_tenant_scope_and_audit_refs.sql` — `tenant_id` en `signing_keys` (nullable, FK a tenants); `signing_key_id` en `sessions` y `refresh_tokens` (nullable, FK a signing_keys para auditoría)
+- `V23__password_reset_codes.sql` — Tabla `password_reset_codes` (token UUID, verification_code VARCHAR(10), state, TTL)
+- `V24__platform_roles_and_user_roles.sql` — Tablas `platform_roles` + `platform_user_roles`; FK `platform_user_roles.tenant_user_id → tenant_users`; UNIQUE(tenant_user_id, platform_role_id)
+- `V25__tenant_roles_and_user_roles.sql` — Tablas `tenant_roles` + `tenant_user_roles`; UNIQUE(tenant_id, code); partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL
+- `V26__seed_platform_and_tenant_roles.sql` — Seed: 3 platform_roles (keygo_admin/keygo_account_admin/keygo_user), 5 tenant_roles (keygo: ADMIN_INTERNAL/EDITOR/VIEWER; demo: ADMIN/USER), 5 platform_user_role assignments
 
-Next migration must be `V23__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V27__...`. **Never reuse or edit existing migration files.**
 
 **Seed convention — foreign keys via subquery (mandatory):**  
 When a seed row references a parent table's PK, **never hardcode the UUID**. Always use a `SELECT` subquery with a `WHERE` on a unique, human-readable field:
@@ -523,6 +536,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-04-07 | **T-111 — RBAC multi-ámbito (plataforma + tenant):** 4 entidades JPA nuevas (`PlatformRoleEntity`, `PlatformUserRoleEntity`, `TenantRoleEntity`, `TenantUserRoleEntity`); 4 repositorios nuevos; 4 puertos OUT nuevos; 4 adaptadores nuevos; 5 use cases nuevos (`AssignPlatformRoleUseCase`, `RevokePlatformRoleUseCase`, `CreateTenantRoleUseCase`, `AssignTenantRoleUseCase`, `RevokeTenantRoleUseCase`); 3 migraciones (V24–V26); 5 beans en `ApplicationConfig`; dominio: `PlatformRole`, `PlatformUserRole`, `TenantRole`, `TenantUserRole`. Próxima migración: `V27__...`. |
 | 2026-04-06 | **Entidades JPA huérfanas corregidas:** `UserNotificationPreferencesEntity` — `UUID userId/tenantId` → `@ManyToOne TenantUserEntity user` + `@ManyToOne TenantEntity tenant`; `SigningKeyEntity` — nueva FK `@ManyToOne TenantEntity tenant` (nullable); `SessionEntity` + `RefreshTokenEntity` — nueva FK `@ManyToOne SigningKeyEntity signingKey` (nullable). Migración `V22__signing_key_tenant_scope_and_audit_refs.sql`. Dominios `Session`/`RefreshToken`/`SigningKey` actualizados con `signingKeyId`/`tenantId` nuevos. Puertos `findActiveKeyForTenant`/`findPublishableKeysForTenant` en `SigningKeyRepositoryPort`. `IssueTokensUseCase.execute()` ahora recibe `TenantId` como primer parámetro. `GetJwksUseCase.execute(tenantSlug)` tenant-aware con `TenantRepositoryPort`. `JwksController` pasa `tenantSlug` al use case. Próxima migración: `V23__...`. |
 | 2026-04-04 | **Flujo reset-password con requestId:** `SendPasswordResetCodeUseCase` ahora retorna `SendPasswordResetCodeResult(requestId)` con el UUID persistido. Login bloqueado (401) incluye `reset_code_id` en `data`. `ResetPasswordCommand` usa `requestId` en lugar de `email`. `ResetPasswordUseCase` valida código antes de buscar usuario (seguridad anti-enumeración). `PasswordResetCodeRepositoryPort.findById(UUID)` agregado. Nueva excepción `PasswordResetRequestNotFoundException` (404). Nuevo endpoint `POST /account/reset-password` documentado. 12 tests nuevos/actualizados. |
 | 2026-04-04 | **KeyGoTracingAspect (AOP input/output):** `@Around` en `keygo-run/aop/` intercepta todos los métodos en `io.cmartinezs.keygo.*` (excepto getters/setters y `@NoLog`). Log DEBUG: `[TRACE_IN] Clase.metodo(param=valor)` / `[TRACE_OUT] ... → resultado [Xms]` / `[TRACE_ERR] ... ⚠ ExceptionType: msg [Xms]`. Parámetros con nombres sensibles (password, secret, token, etc.) → `[REDACTED]`. Fast-path si DEBUG no activo. Activable vía `keygo.tracing.method-logging-enabled`. Starter: `spring-boot-starter-aspectj` (Spring Boot 4 renombró `starter-aop`). Anotación `@NoLog` para excluir métodos/clases. 6 tests unitarios. |

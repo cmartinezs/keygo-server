@@ -65,6 +65,15 @@ import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RemoveRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
+import io.cmartinezs.keygo.app.membership.port.PlatformRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.TenantRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.TenantUserRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.AssignTenantRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.CreateTenantRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.RevokePlatformRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.RevokeTenantRoleUseCase;
 import io.cmartinezs.keygo.app.platform.port.PlatformDashboardPort;
 import io.cmartinezs.keygo.app.platform.port.PlatformStatsPort;
 import io.cmartinezs.keygo.app.platform.port.ServiceInfoProvider;
@@ -83,7 +92,15 @@ import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.platform.usecase.IssuePlatformTokensUseCase;
+import io.cmartinezs.keygo.app.platform.usecase.RotatePlatformRefreshTokenUseCase;
+import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
+import io.cmartinezs.keygo.app.user.usecase.ActivatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SuspendPlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ForgotPasswordUseCase;
@@ -405,6 +422,44 @@ public class ApplicationConfig {
       AppRoleHierarchyPort appRoleHierarchyPort) {
     return new RemoveRoleParentUseCase(
         tenantRepositoryPort, appRoleRepositoryPort, appRoleHierarchyPort);
+  }
+
+  // ── T-111: Platform RBAC ─────────────────────────────────────────────────
+
+  @Bean
+  public AssignPlatformRoleUseCase assignPlatformRoleUseCase(
+      PlatformRoleRepositoryPort platformRoleRepositoryPort,
+      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort) {
+    return new AssignPlatformRoleUseCase(platformRoleRepositoryPort, platformUserRoleRepositoryPort);
+  }
+
+  @Bean
+  public RevokePlatformRoleUseCase revokePlatformRoleUseCase(
+      PlatformRoleRepositoryPort platformRoleRepositoryPort,
+      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort) {
+    return new RevokePlatformRoleUseCase(platformRoleRepositoryPort, platformUserRoleRepositoryPort);
+  }
+
+  // ── T-111: Tenant RBAC ───────────────────────────────────────────────────
+
+  @Bean
+  public CreateTenantRoleUseCase createTenantRoleUseCase(
+      TenantRoleRepositoryPort tenantRoleRepositoryPort) {
+    return new CreateTenantRoleUseCase(tenantRoleRepositoryPort);
+  }
+
+  @Bean
+  public AssignTenantRoleUseCase assignTenantRoleUseCase(
+      TenantRoleRepositoryPort tenantRoleRepositoryPort,
+      TenantUserRoleRepositoryPort tenantUserRoleRepositoryPort) {
+    return new AssignTenantRoleUseCase(tenantRoleRepositoryPort, tenantUserRoleRepositoryPort);
+  }
+
+  @Bean
+  public RevokeTenantRoleUseCase revokeTenantRoleUseCase(
+      TenantRoleRepositoryPort tenantRoleRepositoryPort,
+      TenantUserRoleRepositoryPort tenantUserRoleRepositoryPort) {
+    return new RevokeTenantRoleUseCase(tenantRoleRepositoryPort, tenantUserRoleRepositoryPort);
   }
 
   @Bean
@@ -915,6 +970,68 @@ public class ApplicationConfig {
     registration.addUrlPatterns("/*");
     registration.setName("localeContextFilter");
     return registration;
+  }
+
+  // ─── Platform user use cases (RFC restructure-multitenant) ─────
+
+  @Bean
+  public CreatePlatformUserUseCase createPlatformUserUseCase(
+      PlatformUserRepositoryPort platformUserRepository,
+      CredentialEncoderPort credentialEncoder,
+      PlatformUserRoleRepositoryPort platformUserRoleRepository) {
+    return new CreatePlatformUserUseCase(
+        platformUserRepository, credentialEncoder, platformUserRoleRepository);
+  }
+
+  @Bean
+  public AuthenticatePlatformUserUseCase authenticatePlatformUserUseCase(
+      PlatformUserRepositoryPort platformUserRepository,
+      CredentialEncoderPort credentialEncoder) {
+    return new AuthenticatePlatformUserUseCase(platformUserRepository, credentialEncoder);
+  }
+
+  @Bean
+  public GetPlatformUserUseCase getPlatformUserUseCase(
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new GetPlatformUserUseCase(platformUserRepository);
+  }
+
+  @Bean
+  public SuspendPlatformUserUseCase suspendPlatformUserUseCase(
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new SuspendPlatformUserUseCase(platformUserRepository);
+  }
+
+  @Bean
+  public ActivatePlatformUserUseCase activatePlatformUserUseCase(
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new ActivatePlatformUserUseCase(platformUserRepository);
+  }
+
+  @Bean
+  public IssuePlatformTokensUseCase issuePlatformTokensUseCase(
+      PlatformUserRoleRepositoryPort platformUserRoleRepository,
+      IssueTokensUseCase issueTokensUseCase,
+      SessionRepositoryPort sessionRepository,
+      RefreshTokenRepositoryPort refreshTokenRepository,
+      ClockPort clock) {
+    return new IssuePlatformTokensUseCase(
+        platformUserRoleRepository, issueTokensUseCase,
+        sessionRepository, refreshTokenRepository, clock);
+  }
+
+  @Bean
+  public RotatePlatformRefreshTokenUseCase rotatePlatformRefreshTokenUseCase(
+      RefreshTokenRepositoryPort refreshTokenRepository,
+      SessionRepositoryPort sessionRepository,
+      PlatformUserRoleRepositoryPort platformUserRoleRepository,
+      IssueTokensUseCase issueTokensUseCase,
+      ClockPort clock,
+      @Value("${keygo.info.issuer-base-url:http://localhost:8080/keygo-server}")
+          String issuerBaseUrl) {
+    return new RotatePlatformRefreshTokenUseCase(
+        refreshTokenRepository, sessionRepository, platformUserRoleRepository,
+        issueTokensUseCase, clock, issuerBaseUrl);
   }
 
   // ─── i18n: MessageSource para traducciones ────────────────────────────────

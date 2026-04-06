@@ -37,7 +37,7 @@ public class TenantAuthorizationEvaluator {
   private boolean hasAdminRole(Authentication authentication) {
     return authentication.getAuthorities().stream()
         .map(GrantedAuthority::getAuthority)
-        .anyMatch("ROLE_ADMIN"::equals);
+        .anyMatch(a -> "ROLE_ADMIN".equals(a) || "ROLE_KEYGO_ADMIN".equals(a));
   }
 
   private String resolveTenantSlugFromPath() {

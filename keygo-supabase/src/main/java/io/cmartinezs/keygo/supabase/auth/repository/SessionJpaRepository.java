@@ -20,15 +20,13 @@ public interface SessionJpaRepository extends JpaRepository<SessionEntity, UUID>
   List<Object[]> countGroupByStatus();
 
   /**
-   * Devuelve todas las sesiones de un usuario en un tenant, ordenadas por último acceso DESC.
+   * Devuelve todas las sesiones de un platform_user, ordenadas por último acceso DESC.
    *
-   * @param userId   UUID del usuario
-   * @param tenantId UUID del tenant
+   * @param platformUserId UUID del platform_user
    * @return lista de sesiones
    */
-  @Query("SELECT s FROM SessionEntity s WHERE s.user.id = :userId AND s.tenant.id = :tenantId ORDER BY s.lastAccessedAt DESC")
-  List<SessionEntity> findAllByUserIdAndTenantId(
-      @Param("userId") UUID userId,
-      @Param("tenantId") UUID tenantId);
+  @Query("SELECT s FROM SessionEntity s WHERE s.platformUser.id = :platformUserId ORDER BY s.lastAccessedAt DESC")
+  List<SessionEntity> findAllByPlatformUserId(
+      @Param("platformUserId") UUID platformUserId);
 }
 

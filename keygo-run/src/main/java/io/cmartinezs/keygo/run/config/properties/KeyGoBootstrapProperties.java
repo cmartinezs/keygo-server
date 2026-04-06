@@ -136,6 +136,15 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de recuperación de contraseña que es público (sin Bearer — usa token de recuperación). */
   private String accountRecoverPasswordPathSuffix;
 
+  // ─── Platform paths (RFC restructure-multitenant) ──────────────────────────
+
+  /** Platform login path prefix that is public (direct email/password login). */
+  private String platformLoginPathPrefix;
+
+  /** Platform token path prefix that is public (refresh token rotation). */
+  private String platformTokenPathPrefix;
+
+  /** Platform revoke path prefix that is public (RFC 7009 revocation). */
+  private String platformRevokePathPrefix;
+
 }
-
-

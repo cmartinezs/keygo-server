@@ -4,17 +4,17 @@ import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
 import io.cmartinezs.keygo.domain.auth.model.SessionStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.supabase.auth.entity.SessionEntity;
 import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import lombok.experimental.UtilityClass;
 
 /**
  * Mapper: convierte entre {@link Session} (dominio) y {@link SessionEntity} (JPA).
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * usa platformUser (nullable) y clientApp (nullable) en lugar de tenant/user.
  */
 @UtilityClass
 public class SessionPersistenceMapper {
@@ -23,11 +23,17 @@ public class SessionPersistenceMapper {
     String signingKeyId = entity.getSigningKey() != null
         ? entity.getSigningKey().getId().toString()
         : null;
+    ClientAppId clientAppId = entity.getClientApp() != null
+        ? new ClientAppId(entity.getClientApp().getId())
+        : null;
+    java.util.UUID platformUserId = entity.getPlatformUser() != null
+        ? entity.getPlatformUser().getId()
+        : null;
+
     return Session.reconstitute(
         SessionId.from(entity.getId()),
-        new TenantId(entity.getTenant().getId()),
-        new ClientAppId(entity.getClientApp().getId()),
-        new UserId(entity.getUser().getId()),
+        platformUserId,
+        clientAppId,
         SessionStatus.fromValue(entity.getStatus()),
         entity.getExpiresAt(),
         entity.getLastAccessedAt(),
@@ -39,15 +45,13 @@ public class SessionPersistenceMapper {
 
   public static SessionEntity toEntity(
       Session session,
-      TenantEntity tenantEntity,
+      PlatformUserEntity platformUserEntity,
       ClientAppEntity clientAppEntity,
-      TenantUserEntity userEntity,
       SigningKeyEntity signingKeyEntity) {
     return SessionEntity.builder()
         .id(session.getId().value())
-        .tenant(tenantEntity)
+        .platformUser(platformUserEntity)
         .clientApp(clientAppEntity)
-        .user(userEntity)
         .status(session.getStatus().getValue())
         .expiresAt(session.getExpiresAt())
         .lastAccessedAt(session.getLastAccessedAt())

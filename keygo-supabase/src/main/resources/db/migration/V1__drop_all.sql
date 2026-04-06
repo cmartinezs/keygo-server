@@ -50,6 +50,14 @@ DROP TABLE IF EXISTS client_allowed_grants CASCADE;
 DROP TABLE IF EXISTS client_redirect_uris  CASCADE;
 DROP TABLE IF EXISTS client_apps           CASCADE;
 
+-- ── RBAC — Tenant User Roles ─────────────────────────────────────────────────
+DROP TABLE IF EXISTS tenant_user_roles    CASCADE;
+DROP TABLE IF EXISTS tenant_roles         CASCADE;
+
+-- ── RBAC — Platform User Roles ───────────────────────────────────────────────
+DROP TABLE IF EXISTS platform_user_roles  CASCADE;
+DROP TABLE IF EXISTS platform_roles       CASCADE;
+
 -- ── Tenant Users ──────────────────────────────────────────────────────────────
 DROP TABLE IF EXISTS tenant_users CASCADE;
 

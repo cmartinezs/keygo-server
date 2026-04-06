@@ -34,16 +34,14 @@ class OpenSessionUseCaseTest {
     // Given
     Instant now = Instant.now();
     Instant expiresAt = now.plusSeconds(86400L * 30);
-    String tenantId = UUID.randomUUID().toString();
+    UUID platformUserId = UUID.randomUUID();
     String clientAppId = UUID.randomUUID().toString();
-    String userId = UUID.randomUUID().toString();
 
-    var command = new OpenSessionCommand(tenantId, clientAppId, userId, expiresAt, now, "agent", "1.2.3.4", null);
+    var command = new OpenSessionCommand(platformUserId, clientAppId, expiresAt, now, "agent", "1.2.3.4", null);
 
     Session savedSession = Session.open(
-        new io.cmartinezs.keygo.domain.tenant.model.TenantId(UUID.fromString(tenantId)),
+        platformUserId,
         new io.cmartinezs.keygo.domain.clientapp.model.ClientAppId(UUID.fromString(clientAppId)),
-        new io.cmartinezs.keygo.domain.user.model.UserId(UUID.fromString(userId)),
         expiresAt, now, "agent", "1.2.3.4", null);
 
     when(sessionRepository.save(any(Session.class))).thenReturn(savedSession);

@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.supabase.auth.entity;
 
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -18,6 +17,13 @@ import org.hibernate.annotations.CreationTimestamp;
  *
  * <p>Mapea la tabla {@code refresh_tokens} de la base de datos.
  * Almacena el hash SHA-256 (hex) del token plano, nunca el token en texto claro.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * <ul>
+ *   <li>{@code clientApp} — nullable (NULL = RT de sesión de plataforma)
+ *   <li>{@code tenantUser} — nullable (contexto tenant para lookup rápido de roles en rotación)
+ *   <li>Removidos: {@code tenant} y {@code user} (ya no existen en la tabla)
+ * </ul>
  */
 @Entity
 @Table(name = "refresh_tokens")
@@ -39,17 +45,15 @@ public class RefreshTokenEntity {
   @JoinColumn(name = "session_id", nullable = false)
   private SessionEntity session;
 
+  /** FK client_apps. Nullable — NULL para RT de sesión de plataforma. */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "tenant_id", nullable = false)
-  private TenantEntity tenant;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")
   private ClientAppEntity clientApp;
 
+  /** FK tenant_users. Nullable — para lookup rápido de roles en rotación de tenant app. */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = false)
-  private TenantUserEntity user;
+  @JoinColumn(name = "tenant_user_id")
+  private TenantUserEntity tenantUser;
 
   @Column(name = "requested_scopes", nullable = false, columnDefinition = "TEXT")
   private String requestedScopes;

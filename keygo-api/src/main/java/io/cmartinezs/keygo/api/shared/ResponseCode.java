@@ -21,6 +21,21 @@ public enum ResponseCode {
   PLATFORM_STATS_RETRIEVED("PLATFORM_STATS_RETRIEVED", "Platform statistics retrieved successfully"),
   PLATFORM_DASHBOARD_RETRIEVED("PLATFORM_DASHBOARD_RETRIEVED", "Platform dashboard retrieved successfully"),
 
+  // Platform Authentication
+  PLATFORM_LOGIN_SUCCESS("PLATFORM_LOGIN_SUCCESS", "Platform login successful"),
+  PLATFORM_TOKEN_ISSUED("PLATFORM_TOKEN_ISSUED", "Platform tokens issued successfully"),
+  PLATFORM_TOKEN_ROTATED("PLATFORM_TOKEN_ROTATED", "Platform token rotated successfully"),
+  PLATFORM_TOKEN_REVOKED("PLATFORM_TOKEN_REVOKED", "Platform token revoked successfully"),
+
+  // Platform User Management
+  PLATFORM_USER_CREATED("PLATFORM_USER_CREATED", "Platform user created successfully"),
+  PLATFORM_USER_RETRIEVED("PLATFORM_USER_RETRIEVED", "Platform user retrieved successfully"),
+  PLATFORM_USER_UPDATED("PLATFORM_USER_UPDATED", "Platform user updated successfully"),
+  PLATFORM_USER_SUSPENDED("PLATFORM_USER_SUSPENDED", "Platform user suspended successfully"),
+  PLATFORM_USER_ACTIVATED("PLATFORM_USER_ACTIVATED", "Platform user activated successfully"),
+  PLATFORM_ROLE_ASSIGNED("PLATFORM_ROLE_ASSIGNED", "Platform role assigned successfully"),
+  PLATFORM_ROLE_REVOKED("PLATFORM_ROLE_REVOKED", "Platform role revoked successfully"),
+
   // Tenant Operations
   TENANT_CREATED("TENANT_CREATED", "Tenant created successfully"),
   TENANT_RETRIEVED("TENANT_RETRIEVED", "Tenant retrieved successfully"),

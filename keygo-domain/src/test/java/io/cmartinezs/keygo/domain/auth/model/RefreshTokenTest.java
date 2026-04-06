@@ -4,17 +4,14 @@ import static org.assertj.core.api.Assertions.*;
 
 import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class RefreshTokenTest {
 
-  private static final TenantId TENANT_ID = new TenantId(UUID.randomUUID());
   private static final ClientAppId CLIENT_APP_ID = new ClientAppId(UUID.randomUUID());
-  private static final UserId USER_ID = new UserId(UUID.randomUUID());
+  private static final UUID TENANT_USER_ID = UUID.randomUUID();
   private static final SessionId SESSION_ID = SessionId.generate();
   private static final Instant NOW = Instant.now();
   private static final Instant EXPIRES_FUTURE = NOW.plusSeconds(86400);
@@ -23,29 +20,16 @@ class RefreshTokenTest {
   private RefreshToken activeToken() {
     return RefreshToken.issue(
         "somehash",
-        TENANT_ID,
         CLIENT_APP_ID,
-        USER_ID,
+        TENANT_USER_ID,
         SESSION_ID,
         "openid profile",
         EXPIRES_FUTURE,
         NOW,
-        null);   // signingKeyId (null en tests)
+        null);
   }
 
   private String nullString() {
-    return null;
-  }
-
-  private TenantId nullTenantId() {
-    return null;
-  }
-
-  private ClientAppId nullClientAppId() {
-    return null;
-  }
-
-  private UserId nullUserId() {
     return null;
   }
 
@@ -69,14 +53,37 @@ class RefreshTokenTest {
     assertThat(token.getScopes()).isEqualTo("openid profile");
     assertThat(token.isValid()).isTrue();
     assertThat(token.isExpired()).isFalse();
+    assertThat(token.getClientAppId()).isEqualTo(CLIENT_APP_ID);
+    assertThat(token.getTenantUserId()).isEqualTo(TENANT_USER_ID);
+    assertThat(token.isPlatformToken()).isFalse();
+  }
+
+  @Test
+  void issue_withNullClientAppId_createsPlatformToken() {
+    // Given / When — null clientAppId = platform session RT
+    RefreshToken token = RefreshToken.issue(
+        "somehash", null, TENANT_USER_ID, SESSION_ID, "openid", EXPIRES_FUTURE, NOW, null);
+
+    // Then
+    assertThat(token.getClientAppId()).isNull();
+    assertThat(token.isPlatformToken()).isTrue();
+  }
+
+  @Test
+  void issue_withNullTenantUserId_isAllowed() {
+    // Given / When — null tenantUserId = platform session RT
+    RefreshToken token = RefreshToken.issue(
+        "somehash", CLIENT_APP_ID, null, SESSION_ID, "openid", EXPIRES_FUTURE, NOW, null);
+
+    // Then
+    assertThat(token.getTenantUserId()).isNull();
   }
 
   @Test
   void isExpired_whenExpiresInPast_returnsTrue() {
     // Given
     RefreshToken token =
-        RefreshToken.issue(
-            "hash", TENANT_ID, CLIENT_APP_ID, USER_ID, SESSION_ID, "openid", EXPIRES_PAST, NOW, null);
+        RefreshToken.issue("hash", CLIENT_APP_ID, TENANT_USER_ID, SESSION_ID, "openid", EXPIRES_PAST, NOW, null);
 
     // When / Then
     assertThat(token.isExpired()).isTrue();
@@ -131,9 +138,8 @@ class RefreshTokenTest {
         RefreshToken.reconstitute(
             RefreshTokenId.generate(),
             "somehash",
-            TENANT_ID,
             CLIENT_APP_ID,
-            USER_ID,
+            TENANT_USER_ID,
             SESSION_ID,
             "openid profile",
             RefreshTokenStatus.USED,
@@ -141,7 +147,7 @@ class RefreshTokenTest {
             NOW,
             NOW,
             replacedBy,
-            null);   // signingKeyId
+            null);
 
     // When / Then
     assertThatThrownBy(token::revoke).isInstanceOf(InvalidRefreshTokenException.class);
@@ -150,17 +156,7 @@ class RefreshTokenTest {
   @Test
   void issue_withNullHash_throwsException() {
     assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    nullString(),
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    SESSION_ID,
-                    "openid",
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
+            () -> RefreshToken.issue(nullString(), CLIENT_APP_ID, TENANT_USER_ID, SESSION_ID, "openid", EXPIRES_FUTURE, NOW, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -168,93 +164,16 @@ class RefreshTokenTest {
   void issue_withBlankHash_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "   ",
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    SESSION_ID,
-                    "openid",
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
+            () -> RefreshToken.issue("   ", CLIENT_APP_ID, TENANT_USER_ID, SESSION_ID, "openid", EXPIRES_FUTURE, NOW, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash");
-  }
-
-  @Test
-  void issue_withNullTenantId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    nullTenantId(),
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    SESSION_ID,
-                    "openid",
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("TenantId");
-  }
-
-  @Test
-  void issue_withNullClientAppId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    TENANT_ID,
-                    nullClientAppId(),
-                    USER_ID,
-                    SESSION_ID,
-                    "openid",
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("ClientAppId");
-  }
-
-  @Test
-  void issue_withNullUserId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    nullUserId(),
-                    SESSION_ID,
-                    "openid",
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("UserId");
   }
 
   @Test
   void issue_withNullSessionId_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    nullSessionId(),
-                    "openid",
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
+            () -> RefreshToken.issue("somehash", CLIENT_APP_ID, TENANT_USER_ID, nullSessionId(), "openid", EXPIRES_FUTURE, NOW, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("SessionId");
   }
@@ -263,17 +182,7 @@ class RefreshTokenTest {
   void issue_withNullScopes_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    SESSION_ID,
-                    nullString(),
-                    EXPIRES_FUTURE,
-                    NOW,
-                    null))
+            () -> RefreshToken.issue("somehash", CLIENT_APP_ID, TENANT_USER_ID, SESSION_ID, nullString(), EXPIRES_FUTURE, NOW, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Scopes");
   }
@@ -282,17 +191,7 @@ class RefreshTokenTest {
   void issue_withNullExpiresAt_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    SESSION_ID,
-                    "openid",
-                    nullInstant(),
-                    NOW,
-                    null))
+            () -> RefreshToken.issue("somehash", CLIENT_APP_ID, TENANT_USER_ID, SESSION_ID, "openid", nullInstant(), NOW, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ExpiresAt");
   }
@@ -301,17 +200,7 @@ class RefreshTokenTest {
   void issue_withNullNow_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () ->
-                RefreshToken.issue(
-                    "somehash",
-                    TENANT_ID,
-                    CLIENT_APP_ID,
-                    USER_ID,
-                    SESSION_ID,
-                    "openid",
-                    EXPIRES_FUTURE,
-                    nullInstant(),
-                    null))
+            () -> RefreshToken.issue("somehash", CLIENT_APP_ID, TENANT_USER_ID, SESSION_ID, "openid", EXPIRES_FUTURE, nullInstant(), null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Now");
   }

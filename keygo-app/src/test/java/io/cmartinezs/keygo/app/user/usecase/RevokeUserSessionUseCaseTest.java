@@ -16,7 +16,6 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -84,8 +83,8 @@ class RevokeUserSessionUseCaseTest {
   void execute_shouldRevokeSession_whenSessionIsActive() {
     // Given
     var session = Session.reconstitute(
-        SessionId.from(sessionUuid), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(userId), SessionStatus.ACTIVE,
+        SessionId.from(sessionUuid), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.ACTIVE,
         Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now(), null);
 
     when(sessionRepository.findById(any())).thenReturn(Optional.of(session));
@@ -123,8 +122,8 @@ class RevokeUserSessionUseCaseTest {
   void execute_shouldReturnAlreadyClosed_whenSessionIsTerminated() {
     // Given
     var session = Session.reconstitute(
-        SessionId.from(sessionUuid), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(userId), SessionStatus.TERMINATED,
+        SessionId.from(sessionUuid), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.TERMINATED,
         Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now(), null);
 
     when(sessionRepository.findById(any())).thenReturn(Optional.of(session));
@@ -145,8 +144,8 @@ class RevokeUserSessionUseCaseTest {
     // Given
     var otherUserId = UUID.randomUUID();
     var session = Session.reconstitute(
-        SessionId.from(sessionUuid), tenantId, ClientAppId.of(UUID.randomUUID()),
-        new UserId(otherUserId), SessionStatus.ACTIVE,
+        SessionId.from(sessionUuid), otherUserId, ClientAppId.of(UUID.randomUUID()),
+        SessionStatus.ACTIVE,
         Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now(), null);
 
     when(sessionRepository.findById(any())).thenReturn(Optional.of(session));

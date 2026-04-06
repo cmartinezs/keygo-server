@@ -51,7 +51,7 @@ import java.util.List;
 @RequestMapping("/api/v1/admin")
 @Tag(name = "Admin", description = "Administrative endpoints — requires ADMIN Bearer JWT")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','KEYGO_ADMIN')")
 public class PlatformDashboardController {
 
   private final GetPlatformDashboardUseCase getDashboardUseCase;

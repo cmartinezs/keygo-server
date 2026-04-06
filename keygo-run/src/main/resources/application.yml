@@ -20,7 +20,7 @@ keygo:
     issuer-base-url: "${KEYGO_ISSUER_BASE_URL:http://localhost:8080/keygo-server}"
   bootstrap:
     enabled: true
-    bypass-roles: ${KEYGO_BOOTSTRAP_BYPASS_ROLES:ADMIN,ADMIN_TENANT,USER}
+    bypass-roles: ${KEYGO_BOOTSTRAP_BYPASS_ROLES:ADMIN,ADMIN_TENANT,USER,KEYGO_ADMIN,KEYGO_TENANT_ADMIN,KEYGO_USER}
     api-path-prefix: "/api/"
     actuator-path-prefix: "/actuator/"
     service-info-path-prefix: "/service/info"
@@ -45,6 +45,10 @@ keygo:
     account-reset-password-path-suffix: "/account/reset-password"
     account-forgot-password-path-suffix: "/account/forgot-password"
     account-recover-password-path-suffix: "/account/recover-password"
+    # Platform auth paths (RFC restructure-multitenant)
+    platform-login-path-prefix: "/api/v1/platform/account/login"
+    platform-token-path-prefix: "/api/v1/platform/oauth2/token"
+    platform-revoke-path-prefix: "/api/v1/platform/oauth2/revoke"
   tracing:
     # Habilita el log DEBUG de input/output por método (KeyGoTracingAspect).
     # Requiere que el nivel DEBUG esté activo para io.cmartinezs.keygo en logback-spring.xml.

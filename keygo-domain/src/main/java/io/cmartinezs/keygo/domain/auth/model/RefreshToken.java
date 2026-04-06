@@ -2,19 +2,25 @@ package io.cmartinezs.keygo.domain.auth.model;
 
 import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 
 /**
  * Agregado: Refresh Token OAuth2.
  *
- * <p>El token plano NO se almacena aquí; solo el hash BCrypt del token.
+ * <p>El token plano NO se almacena aquí; solo el hash SHA-256 del token.
  * La aplicación genera el token plano, lo entrega al cliente, y persiste únicamente el hash.
  *
  * <p>Implementa rotación de tokens: cada uso genera un nuevo refresh token (ACTIVE)
  * y marca el actual como USED.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * <ul>
+ *   <li>{@code clientAppId} — nullable (null = RT de sesión de plataforma)
+ *   <li>{@code tenantUserId} — nullable (contexto tenant para lookup rápido de roles en rotación)
+ *   <li>{@code tenantId} y {@code userId} eliminados (derivables desde session)
+ * </ul>
  *
  * <p>Invariantes:
  * <ul>
@@ -27,9 +33,10 @@ import lombok.Getter;
 public class RefreshToken {
   private final RefreshTokenId id;
   private final String tokenHash;
-  private final TenantId tenantId;
+  /** App cliente. Nullable — null indica RT de sesión de plataforma. */
   private final ClientAppId clientAppId;
-  private final UserId userId;
+  /** UUID del tenant_user para lookup rápido de roles en rotación. Nullable. */
+  private final UUID tenantUserId;
   private final SessionId sessionId;
   private final String scopes;
   private RefreshTokenStatus status;
@@ -43,9 +50,8 @@ public class RefreshToken {
   private RefreshToken(
       RefreshTokenId id,
       String tokenHash,
-      TenantId tenantId,
       ClientAppId clientAppId,
-      UserId userId,
+      UUID tenantUserId,
       SessionId sessionId,
       String scopes,
       RefreshTokenStatus status,
@@ -56,9 +62,8 @@ public class RefreshToken {
       String signingKeyId) {
     this.id = id;
     this.tokenHash = tokenHash;
-    this.tenantId = tenantId;
     this.clientAppId = clientAppId;
-    this.userId = userId;
+    this.tenantUserId = tenantUserId;
     this.sessionId = sessionId;
     this.scopes = scopes;
     this.status = status;
@@ -73,9 +78,8 @@ public class RefreshToken {
    * Factory method: crea un nuevo refresh token en estado ACTIVE.
    *
    * @param tokenHash    hash SHA-256 del token plano
-   * @param tenantId     tenant propietario
-   * @param clientAppId  app cliente
-   * @param userId       usuario
+   * @param clientAppId  app cliente (nullable — null para sesiones de plataforma)
+   * @param tenantUserId UUID del tenant_user (nullable — null para sesiones de plataforma)
    * @param sessionId    sesión asociada
    * @param scopes       scopes otorgados
    * @param expiresAt    fecha de expiración
@@ -85,18 +89,14 @@ public class RefreshToken {
    */
   public static RefreshToken issue(
       String tokenHash,
-      TenantId tenantId,
       ClientAppId clientAppId,
-      UserId userId,
+      UUID tenantUserId,
       SessionId sessionId,
       String scopes,
       Instant expiresAt,
       Instant now,
       String signingKeyId) {
     if (tokenHash == null || tokenHash.isBlank()) throw new IllegalArgumentException("tokenHash cannot be null or blank");
-    if (tenantId == null) throw new IllegalArgumentException("TenantId cannot be null");
-    if (clientAppId == null) throw new IllegalArgumentException("ClientAppId cannot be null");
-    if (userId == null) throw new IllegalArgumentException("UserId cannot be null");
     if (sessionId == null) throw new IllegalArgumentException("SessionId cannot be null");
     if (scopes == null) throw new IllegalArgumentException("Scopes cannot be null");
     if (expiresAt == null) throw new IllegalArgumentException("ExpiresAt cannot be null");
@@ -105,7 +105,7 @@ public class RefreshToken {
     return new RefreshToken(
         RefreshTokenId.generate(),
         tokenHash,
-        tenantId, clientAppId, userId, sessionId, scopes,
+        clientAppId, tenantUserId, sessionId, scopes,
         RefreshTokenStatus.ACTIVE,
         expiresAt, now, null, null,
         signingKeyId);
@@ -115,9 +115,8 @@ public class RefreshToken {
   public static RefreshToken reconstitute(
       RefreshTokenId id,
       String tokenHash,
-      TenantId tenantId,
       ClientAppId clientAppId,
-      UserId userId,
+      UUID tenantUserId,
       SessionId sessionId,
       String scopes,
       RefreshTokenStatus status,
@@ -126,8 +125,13 @@ public class RefreshToken {
       Instant usedAt,
       RefreshTokenId replacedByTokenId,
       String signingKeyId) {
-    return new RefreshToken(id, tokenHash, tenantId, clientAppId, userId, sessionId, scopes,
+    return new RefreshToken(id, tokenHash, clientAppId, tenantUserId, sessionId, scopes,
         status, expiresAt, createdAt, usedAt, replacedByTokenId, signingKeyId);
+  }
+
+  /** @return true si es un RT de sesión de plataforma (sin client app). */
+  public boolean isPlatformToken() {
+    return clientAppId == null;
   }
 
   /** @return true si el token ha expirado */

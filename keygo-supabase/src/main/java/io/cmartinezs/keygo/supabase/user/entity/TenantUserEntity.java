@@ -91,6 +91,11 @@ public class TenantUserEntity {
   @Column(name = "website", length = 2048)
   private String website;
 
+  /** FK platform_users. Nullable — link to global platform identity. */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "platform_user_id")
+  private PlatformUserEntity platformUser;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;

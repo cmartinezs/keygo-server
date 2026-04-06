@@ -49,7 +49,7 @@ class RotateRefreshTokenUseCaseTest {
 
   private final TenantId tenantId = new TenantId(UUID.randomUUID());
   private final ClientAppId clientAppId = new ClientAppId(UUID.randomUUID());
-  private final UserId userId = new UserId(UUID.randomUUID());
+  private final UUID tenantUserId = UUID.randomUUID();
   private final SessionId sessionId = SessionId.generate();
   private final Instant now = Instant.now();
 
@@ -64,7 +64,7 @@ class RotateRefreshTokenUseCaseTest {
   }
 
   private RefreshToken buildActiveToken(String hash) {
-    return RefreshToken.issue(hash, tenantId, clientAppId, userId, sessionId,
+    return RefreshToken.issue(hash, clientAppId, tenantUserId, sessionId,
         "openid profile", now.plusSeconds(86400), now, null);
   }
 
@@ -85,7 +85,7 @@ class RotateRefreshTokenUseCaseTest {
     when(clientAppRepository.findByClientIdAndTenantId(any(ClientId.class), eq(tenantId)))
         .thenReturn(Optional.of(clientApp));
 
-    when(userRepository.findByIdAndTenantId(userId, tenantId)).thenReturn(Optional.empty());
+    when(userRepository.findByIdAndTenantId(new UserId(tenantUserId), tenantId)).thenReturn(Optional.empty());
     when(membershipRepository.findEffectiveRoleCodesByUserAndClientApp(any(), any())).thenReturn(List.of());
 
     SigningKey key = SigningKey.builder()
@@ -126,7 +126,7 @@ class RotateRefreshTokenUseCaseTest {
     // Given
     String rawToken = "expiredToken";
     String hash = RotateRefreshTokenUseCase.sha256Hex(rawToken);
-    RefreshToken expiredToken = RefreshToken.issue(hash, tenantId, clientAppId, userId, sessionId,
+    RefreshToken expiredToken = RefreshToken.issue(hash, clientAppId, tenantUserId, sessionId,
         "openid", now.minusSeconds(1), now.minusSeconds(3600), null);
 
     when(refreshTokenRepository.findByTokenHash(hash)).thenReturn(Optional.of(expiredToken));

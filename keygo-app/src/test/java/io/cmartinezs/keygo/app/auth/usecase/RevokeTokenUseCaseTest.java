@@ -4,8 +4,6 @@ import io.cmartinezs.keygo.app.auth.command.RevokeTokenCommand;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.model.*;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,9 +32,8 @@ class RevokeTokenUseCaseTest {
 
   private RefreshToken activeToken(String hash) {
     return RefreshToken.issue(hash,
-        new TenantId(UUID.randomUUID()),
         new ClientAppId(UUID.randomUUID()),
-        new UserId(UUID.randomUUID()),
+        UUID.randomUUID(),
         SessionId.generate(),
         "openid", Instant.now().plusSeconds(86400), Instant.now(), null);
   }

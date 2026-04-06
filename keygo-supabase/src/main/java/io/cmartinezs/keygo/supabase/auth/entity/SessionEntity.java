@@ -1,8 +1,7 @@
 package io.cmartinezs.keygo.supabase.auth.entity;
 
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
@@ -17,6 +16,13 @@ import org.hibernate.annotations.CreationTimestamp;
  * Entidad JPA: Sesión de usuario OAuth2.
  *
  * <p>Mapea la tabla {@code sessions} de la base de datos.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * <ul>
+ *   <li>{@code platformUser} — FK platform_users (nullable para MVP)
+ *   <li>{@code clientApp} — FK client_apps (nullable — NULL = sesión de plataforma)
+ *   <li>Removidos: {@code tenant} y {@code user} (ya no existen en la tabla)
+ * </ul>
  */
 @Entity
 @Table(name = "sessions")
@@ -31,17 +37,15 @@ public class SessionEntity {
   @Column(name = "id", nullable = false)
   private UUID id;
 
+  /** FK platform_users. Nullable para MVP (tenant-only users sin plataforma). */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "tenant_id", nullable = false)
-  private TenantEntity tenant;
+  @JoinColumn(name = "platform_user_id")
+  private PlatformUserEntity platformUser;
 
+  /** FK client_apps. NULL = sesión de plataforma (KeyGo UI). */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")
   private ClientAppEntity clientApp;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = false)
-  private TenantUserEntity user;
 
   @Column(name = "status", nullable = false, length = 20)
   private String status;

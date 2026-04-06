@@ -3,15 +3,13 @@ package io.cmartinezs.keygo.supabase.auth.adapter;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.auth.mapper.SessionPersistenceMapper;
 import io.cmartinezs.keygo.supabase.auth.repository.SessionJpaRepository;
 import io.cmartinezs.keygo.supabase.auth.repository.SigningKeyJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
-import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
-import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
+import io.cmartinezs.keygo.supabase.user.repository.PlatformUserJpaRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,37 +17,43 @@ import org.springframework.stereotype.Component;
 
 /**
  * Adaptador: implementación de {@link SessionRepositoryPort} usando JPA.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * sesiones tienen platformUser (nullable) y clientApp (nullable).
  */
 @Component
 public class SessionRepositoryAdapter implements SessionRepositoryPort {
 
   private final SessionJpaRepository sessionJpaRepository;
-  private final TenantJpaRepository tenantJpaRepository;
+  private final PlatformUserJpaRepository platformUserJpaRepository;
   private final ClientAppJpaRepository clientAppJpaRepository;
-  private final TenantUserJpaRepository tenantUserJpaRepository;
   private final SigningKeyJpaRepository signingKeyJpaRepository;
 
   public SessionRepositoryAdapter(
       SessionJpaRepository sessionJpaRepository,
-      TenantJpaRepository tenantJpaRepository,
+      PlatformUserJpaRepository platformUserJpaRepository,
       ClientAppJpaRepository clientAppJpaRepository,
-      TenantUserJpaRepository tenantUserJpaRepository,
       SigningKeyJpaRepository signingKeyJpaRepository) {
     this.sessionJpaRepository = sessionJpaRepository;
-    this.tenantJpaRepository = tenantJpaRepository;
+    this.platformUserJpaRepository = platformUserJpaRepository;
     this.clientAppJpaRepository = clientAppJpaRepository;
-    this.tenantUserJpaRepository = tenantUserJpaRepository;
     this.signingKeyJpaRepository = signingKeyJpaRepository;
   }
 
   @Override
   public Session save(Session session) {
-    var tenantEntity = tenantJpaRepository.findById(session.getTenantId().value())
-        .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + session.getTenantId().value()));
-    var clientAppEntity = clientAppJpaRepository.findById(session.getClientAppId().value())
-        .orElseThrow(() -> new IllegalArgumentException("ClientApp not found: " + session.getClientAppId().value()));
-    var userEntity = tenantUserJpaRepository.findById(session.getUserId().value())
-        .orElseThrow(() -> new IllegalArgumentException("User not found: " + session.getUserId().value()));
+    // Resolver platformUser (nullable)
+    PlatformUserEntity platformUserEntity = null;
+    if (session.getPlatformUserId() != null) {
+      platformUserEntity = platformUserJpaRepository.findById(session.getPlatformUserId())
+          .orElse(null);
+    }
+
+    // Resolver clientApp (nullable — null = sesión de plataforma)
+    var clientAppEntity = session.getClientAppId() != null
+        ? clientAppJpaRepository.findById(session.getClientAppId().value())
+            .orElseThrow(() -> new IllegalArgumentException("ClientApp not found: " + session.getClientAppId().value()))
+        : null;
 
     // Resolución opcional del SigningKey para auditoría
     SigningKeyEntity signingKeyEntity = null;
@@ -63,7 +67,7 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
     }
 
     var entity = SessionPersistenceMapper.toEntity(
-        session, tenantEntity, clientAppEntity, userEntity, signingKeyEntity);
+        session, platformUserEntity, clientAppEntity, signingKeyEntity);
     var saved = sessionJpaRepository.save(entity);
     return SessionPersistenceMapper.toDomain(saved);
   }
@@ -84,9 +88,9 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
   }
 
   @Override
-  public List<Session> findAllByUserIdAndTenantId(UserId userId, TenantId tenantId) {
+  public List<Session> findAllByPlatformUserId(UUID platformUserId) {
     return sessionJpaRepository
-        .findAllByUserIdAndTenantId(userId.value(), tenantId.value())
+        .findAllByPlatformUserId(platformUserId)
         .stream()
         .map(SessionPersistenceMapper::toDomain)
         .toList();

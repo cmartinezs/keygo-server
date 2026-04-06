@@ -12,7 +12,6 @@ import io.cmartinezs.keygo.supabase.auth.repository.RefreshTokenJpaRepository;
 import io.cmartinezs.keygo.supabase.auth.repository.SessionJpaRepository;
 import io.cmartinezs.keygo.supabase.auth.repository.SigningKeyJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
-import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import java.util.List;
 import java.util.Optional;
@@ -21,13 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Adaptador: implementación de {@link RefreshTokenRepositoryPort} usando JPA.
+ *
+ * <p>Modelo restructurado (RFC restructure-multitenant):
+ * refresh_tokens tienen clientApp (nullable) y tenantUser (nullable) en lugar de tenant/user.
  */
 @Component
 public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort {
 
   private final RefreshTokenJpaRepository refreshTokenJpaRepository;
   private final SessionJpaRepository sessionJpaRepository;
-  private final TenantJpaRepository tenantJpaRepository;
   private final ClientAppJpaRepository clientAppJpaRepository;
   private final TenantUserJpaRepository tenantUserJpaRepository;
   private final SigningKeyJpaRepository signingKeyJpaRepository;
@@ -35,13 +36,11 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort
   public RefreshTokenRepositoryAdapter(
       RefreshTokenJpaRepository refreshTokenJpaRepository,
       SessionJpaRepository sessionJpaRepository,
-      TenantJpaRepository tenantJpaRepository,
       ClientAppJpaRepository clientAppJpaRepository,
       TenantUserJpaRepository tenantUserJpaRepository,
       SigningKeyJpaRepository signingKeyJpaRepository) {
     this.refreshTokenJpaRepository = refreshTokenJpaRepository;
     this.sessionJpaRepository = sessionJpaRepository;
-    this.tenantJpaRepository = tenantJpaRepository;
     this.clientAppJpaRepository = clientAppJpaRepository;
     this.tenantUserJpaRepository = tenantUserJpaRepository;
     this.signingKeyJpaRepository = signingKeyJpaRepository;
@@ -49,12 +48,17 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort
 
   @Override
   public RefreshToken save(RefreshToken refreshToken) {
-    var tenantEntity = tenantJpaRepository.findById(refreshToken.getTenantId().value())
-        .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + refreshToken.getTenantId().value()));
-    var clientAppEntity = clientAppJpaRepository.findById(refreshToken.getClientAppId().value())
-        .orElseThrow(() -> new IllegalArgumentException("ClientApp not found: " + refreshToken.getClientAppId().value()));
-    var userEntity = tenantUserJpaRepository.findById(refreshToken.getUserId().value())
-        .orElseThrow(() -> new IllegalArgumentException("User not found: " + refreshToken.getUserId().value()));
+    // Resolver clientApp (nullable — null para RT de sesión de plataforma)
+    var clientAppEntity = refreshToken.getClientAppId() != null
+        ? clientAppJpaRepository.findById(refreshToken.getClientAppId().value())
+            .orElseThrow(() -> new IllegalArgumentException("ClientApp not found: " + refreshToken.getClientAppId().value()))
+        : null;
+
+    // Resolver tenantUser (nullable — para contexto de roles en rotación)
+    var tenantUserEntity = refreshToken.getTenantUserId() != null
+        ? tenantUserJpaRepository.findById(refreshToken.getTenantUserId()).orElse(null)
+        : null;
+
     var sessionEntity = sessionJpaRepository.findById(refreshToken.getSessionId().value())
         .orElseThrow(() -> new IllegalArgumentException("Session not found: " + refreshToken.getSessionId().value()));
 
@@ -76,7 +80,7 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort
     }
 
     var entity = RefreshTokenPersistenceMapper.toEntity(
-        refreshToken, tenantEntity, clientAppEntity, userEntity, sessionEntity,
+        refreshToken, clientAppEntity, tenantUserEntity, sessionEntity,
         replacedByEntity, signingKeyEntity);
     var saved = refreshTokenJpaRepository.save(entity);
     return RefreshTokenPersistenceMapper.toDomain(saved);

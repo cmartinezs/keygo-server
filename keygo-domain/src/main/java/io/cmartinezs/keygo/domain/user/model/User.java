@@ -39,6 +39,9 @@ public class User {
   /** OIDC website — URL — "profile" scope */
   private String website;
 
+  /** UUID of the linked PlatformUser (nullable — only set when tenant_user is linked to a global identity). */
+  private java.util.UUID platformUserId;
+
   @Builder
   private User(
       UserId id,
@@ -54,7 +57,8 @@ public class User {
       String zoneinfo,
       String profilePictureUrl,
       String birthdate,
-      String website) {
+      String website,
+      java.util.UUID platformUserId) {
     if (tenantId == null) throw new IllegalArgumentException("User tenantId cannot be null");
     if (username == null) throw new IllegalArgumentException("User username cannot be null");
     if (email == null) throw new IllegalArgumentException("User email cannot be null");
@@ -75,6 +79,7 @@ public class User {
     this.profilePictureUrl = profilePictureUrl;
     this.birthdate = birthdate;
     this.website = website;
+    this.platformUserId = platformUserId;
   }
 
   // ─── Domain behaviour ─────────────────────────────────────────────────────

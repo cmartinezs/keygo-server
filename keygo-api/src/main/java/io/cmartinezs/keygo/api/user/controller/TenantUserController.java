@@ -49,7 +49,7 @@ import java.util.List;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/users")
 @Tag(name = "Users", description = "User identity management per tenant — requires Bearer JWT")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantUserController {
 
   private final CreateUserUseCase createUserUseCase;
