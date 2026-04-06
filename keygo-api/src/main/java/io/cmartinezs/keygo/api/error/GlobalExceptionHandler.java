@@ -8,6 +8,7 @@ import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
 import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractorEmailAlreadyExistsException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
 import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
@@ -614,6 +615,17 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleDuplicatePlanCodeException(DuplicatePlanCodeException ex) {
     log.error("Duplicate plan code: {}", ex.getMessage());
     return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles ContractorEmailAlreadyExistsException - returns 409 Conflict.
+   * Lanzada cuando se intenta crear un contrato con un email que ya está registrado como contractor.
+   */
+  @ExceptionHandler(ContractorEmailAlreadyExistsException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractorEmailAlreadyExistsException(
+      ContractorEmailAlreadyExistsException ex) {
+    log.error("Contractor email already exists: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.CONTRACTOR_EMAIL_ALREADY_EXISTS, ex);
   }
 
   /**

@@ -767,11 +767,15 @@ public class ApplicationConfig {
   public CreateAppContractUseCase createAppContractUseCase(
       AppContractRepositoryPort contractRepo,
       AppPlanVersionRepositoryPort versionRepo,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      ContractorRepositoryPort contractorRepositoryPort,
       EmailNotificationPort emailNotificationPort,
       KeyGoBillingProperties billingProperties) {
     return new CreateAppContractUseCase(
         contractRepo,
         versionRepo,
+        clientAppRepositoryPort,
+        contractorRepositoryPort,
         emailNotificationPort,
         billingProperties.getContractExpiryHours(),
         billingProperties.getVerificationCodeExpiryMinutes());

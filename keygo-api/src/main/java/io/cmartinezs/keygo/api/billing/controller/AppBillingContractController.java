@@ -75,6 +75,8 @@ public class AppBillingContractController {
   @ApiResponse(responseCode = "201", description = "Contract initiated (code: APP_CONTRACT_CREATED)")
   @ApiResponse(responseCode = "404", description = "Plan version not found (code: PLAN_VERSION_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "A contractor with this email already exists (code: CONTRACTOR_EMAIL_ALREADY_EXISTS)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> createContract(
       @RequestBody CreateAppContractRequest request) {
 

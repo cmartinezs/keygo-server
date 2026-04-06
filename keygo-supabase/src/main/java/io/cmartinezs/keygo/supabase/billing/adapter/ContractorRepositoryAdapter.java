@@ -44,6 +44,12 @@ public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
     return jpaRepo.findByTenantUserId(tenantUserId).map(this::toDomain);
   }
 
+  @Override
+  public Optional<Contractor> findByTenantUserEmail(UUID tenantId, String email) {
+    return jpaRepo.findByTenantUser_Tenant_IdAndTenantUser_Email(tenantId, email)
+        .map(this::toDomain);
+  }
+
   private ContractorEntity toEntity(Contractor c) {
     return ContractorEntity.builder()
         .tenantUser(tenantUserRepo.getReferenceById(c.getTenantUserId()))

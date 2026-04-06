@@ -131,6 +131,7 @@ public enum ResponseCode {
   // Billing — Contracting errors
   CONTRACT_NOT_FOUND("CONTRACT_NOT_FOUND", "Contract not found"),
   CONTRACT_INVALID_STATE("CONTRACT_INVALID_STATE", "Contract is in an invalid state for this operation"),
+  CONTRACTOR_EMAIL_ALREADY_EXISTS("CONTRACTOR_EMAIL_ALREADY_EXISTS", "A contractor with this email already exists"),
   PROVIDER_APP_NOT_FOUND("PROVIDER_APP_NOT_FOUND", "Provider application not found"),
   PLAN_VERSION_NOT_FOUND("PLAN_VERSION_NOT_FOUND", "Plan version not found"),
 
