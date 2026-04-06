@@ -10,9 +10,12 @@ import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStat
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
 import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionInvalidStateException;
 import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionNotFoundException;
 import io.cmartinezs.keygo.app.clientapp.exception.ClientAppInactiveException;
+import io.cmartinezs.keygo.app.membership.exception.AppRoleNotFoundException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
 import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
 import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
@@ -30,13 +33,19 @@ import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
 import io.cmartinezs.keygo.domain.auth.exception.NoActiveSigningKeyException;
 import io.cmartinezs.keygo.domain.auth.exception.RefreshTokenExpiredException;
 import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
+import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAuthenticationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
 import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
+import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyCycleException;
+import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyDepthExceededException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
@@ -274,6 +283,26 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles ClientAppAlreadySuspendedException - returns 409 Conflict.
+   * Lanzada cuando se intenta suspender una app cliente que ya está suspendida.
+   */
+  @ExceptionHandler(ClientAppAlreadySuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppAlreadySuspendedException(ClientAppAlreadySuspendedException ex) {
+    log.warn("Client app already suspended: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles ClientAppSecretRotationException - returns 400 Bad Request.
+   * Lanzada cuando se intenta rotar el secret de una app pública.
+   */
+  @ExceptionHandler(ClientAppSecretRotationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppSecretRotationException(ClientAppSecretRotationException ex) {
+    log.error("Client app secret rotation not allowed: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
    * Handles UserNotFoundException - returns 404 Not Found.
    * Maneja UserNotFoundException - retorna 404 Not Found.
    */
@@ -344,6 +373,46 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles MembershipAlreadySuspendedException - returns 409 Conflict.
+   * Lanzada cuando se intenta suspender una membresía que ya está suspendida.
+   */
+  @ExceptionHandler(MembershipAlreadySuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipAlreadySuspendedException(MembershipAlreadySuspendedException ex) {
+    log.warn("Membership already suspended: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles RoleHierarchyCycleException - returns 400 Bad Request.
+   * Lanzada cuando se intenta crear un ciclo en la jerarquía de roles.
+   */
+  @ExceptionHandler(RoleHierarchyCycleException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleRoleHierarchyCycleException(RoleHierarchyCycleException ex) {
+    log.error("Role hierarchy cycle detected: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles RoleHierarchyDepthExceededException - returns 400 Bad Request.
+   * Lanzada cuando la jerarquía de roles excede la profundidad máxima permitida.
+   */
+  @ExceptionHandler(RoleHierarchyDepthExceededException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleRoleHierarchyDepthExceededException(RoleHierarchyDepthExceededException ex) {
+    log.error("Role hierarchy depth exceeded: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles AppRoleNotFoundException - returns 404 Not Found.
+   * Lanzada cuando no se encuentra un rol de aplicación requerido.
+   */
+  @ExceptionHandler(AppRoleNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleAppRoleNotFoundException(AppRoleNotFoundException ex) {
+    log.error("App role not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
    * Handles InvalidAuthorizationCodeException - returns 400 Bad Request.
    * Maneja InvalidAuthorizationCodeException - retorna 400 Bad Request.
    */
@@ -409,6 +478,16 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleRefreshTokenExpiredException(RefreshTokenExpiredException ex) {
     log.error("Refresh token expired: {}", ex.getMessage());
     return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
+  }
+
+  /**
+   * Handles SessionInvalidStateException - returns 422 Unprocessable Entity.
+   * Lanzada cuando se intenta operar sobre una sesión en un estado inválido.
+   */
+  @ExceptionHandler(SessionInvalidStateException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSessionInvalidStateException(SessionInvalidStateException ex) {
+    log.error("Session invalid state: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**
@@ -496,6 +575,27 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleContractInvalidStateException(ContractInvalidStateException ex) {
     log.error("Contract invalid state: {}", ex.getMessage());
     return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.CONTRACT_INVALID_STATE, ex);
+  }
+
+  /**
+   * Handles ContractStateViolationException - returns 422 Unprocessable Entity.
+   * Lanzada cuando una operación en un contrato viola las reglas de transición de estado.
+   */
+  @ExceptionHandler(ContractStateViolationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractStateViolationException(ContractStateViolationException ex) {
+    log.error("Contract state violation: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles ContractVerificationCodeInvalidException - returns 400 Bad Request.
+   * Lanzada cuando el código de verificación de un contrato es inválido o ha expirado.
+   */
+  @ExceptionHandler(ContractVerificationCodeInvalidException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractVerificationCodeInvalidException(
+      ContractVerificationCodeInvalidException ex) {
+    log.warn("Contract verification code invalid: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**

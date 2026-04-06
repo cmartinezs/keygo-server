@@ -8,7 +8,19 @@ import static org.mockito.Mockito.when;
 import io.cmartinezs.keygo.api.shared.MessageTranslator;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.membership.exception.AppRoleNotFoundException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
+import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
+import io.cmartinezs.keygo.domain.auth.model.SessionStatus;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
+import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
+import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyCycleException;
+import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyDepthExceededException;
+import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
@@ -250,6 +262,7 @@ class GlobalExceptionHandlerTest {
     var ex = new UserPasswordResetRequiredException("johndoe");
     var response = handler.handleUserPasswordResetRequiredException(ex);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())
         .isEqualTo(ResponseCode.RESET_PASSWORD_REQUIRED.getCode());
   }
@@ -276,6 +289,152 @@ class GlobalExceptionHandlerTest {
   void handlePasswordRecoveryTokenAlreadyUsedException_returns422() {
     var ex = new PasswordRecoveryTokenAlreadyUsedException();
     var response = handler.handlePasswordRecoveryTokenAlreadyUsedException(ex);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handleContractStateViolationException_returns422() {
+    // Given
+    var contractId = java.util.UUID.randomUUID();
+    var ex = new ContractStateViolationException(contractId, ContractStatus.ACTIVE, "renewVerificationCode");
+
+    // When
+    var response = handler.handleContractStateViolationException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin()).isEqualTo(ApiErrorOrigin.BUSINESS_RULE);
+  }
+
+  @Test
+  void handleAppRoleNotFoundException_returns404() {
+    // Given
+    var clientAppId = java.util.UUID.randomUUID();
+    var ex = new AppRoleNotFoundException(clientAppId, RoleCode.of("admin"));
+
+    // When
+    var response = handler.handleAppRoleNotFoundException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.RESOURCE_NOT_FOUND.getCode());
+  }
+
+  @Test
+  void handleClientAppAlreadySuspendedException_returns409() {
+    // Given
+    var ex = new ClientAppAlreadySuspendedException("my-client-id");
+
+    // When
+    var response = handler.handleClientAppAlreadySuspendedException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handleClientAppSecretRotationException_returns400() {
+    // Given
+    var ex = new ClientAppSecretRotationException("public-client");
+
+    // When
+    var response = handler.handleClientAppSecretRotationException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handleContractVerificationCodeInvalidException_returns400() {
+    // Given
+    var contractId = java.util.UUID.randomUUID();
+    var ex = new ContractVerificationCodeInvalidException(contractId);
+
+    // When
+    var response = handler.handleContractVerificationCodeInvalidException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.INVALID_INPUT.getCode());
+  }
+
+  @Test
+  void handleMembershipAlreadySuspendedException_returns409() {
+    // Given
+    var userId = java.util.UUID.randomUUID();
+    var clientAppId = java.util.UUID.randomUUID();
+    var ex = new MembershipAlreadySuspendedException(userId, clientAppId);
+
+    // When
+    var response = handler.handleMembershipAlreadySuspendedException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handleRoleHierarchyCycleException_returns400() {
+    // Given
+    var childRoleId = java.util.UUID.randomUUID();
+    var parentRoleId = java.util.UUID.randomUUID();
+    var ex = new RoleHierarchyCycleException(childRoleId, parentRoleId);
+
+    // When
+    var response = handler.handleRoleHierarchyCycleException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handleRoleHierarchyDepthExceededException_returns400() {
+    // Given
+    var ex = new RoleHierarchyDepthExceededException();
+
+    // When
+    var response = handler.handleRoleHierarchyDepthExceededException(ex);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+  }
+
+  @Test
+  void handleSessionInvalidStateException_returns422() {
+    // Given
+    var sessionId = java.util.UUID.randomUUID();
+    var ex = new SessionInvalidStateException(sessionId, SessionStatus.TERMINATED, "refresh");
+
+    // When
+    var response = handler.handleSessionInvalidStateException(ex);
+
+    // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())

@@ -8,6 +8,64 @@
 
 ---
 
+### [2026-04-05] Auditoría completa de excepciones personalizadas sin handler en GlobalExceptionHandler
+
+**Contexto:** Tras detectar que `ContractStateViolationException` no tenía handler, se realizó una auditoría exhaustiva de todas las excepciones personalizadas del proyecto para identificar cuáles no estaban cubiertas.
+
+**Problema:** Se identificaron 8 excepciones de dominio y de casos de uso que no tenían handlers específicos en `GlobalExceptionHandler`, por lo que caían en el catch-all genérico (`Exception.class`) retornando HTTP 500 en lugar de códigos apropiados:
+
+1. `AppRoleNotFoundException` (UseCaseException)
+2. `ClientAppAlreadySuspendedException` (DomainException)
+3. `ClientAppSecretRotationException` (DomainException)
+4. `ContractVerificationCodeInvalidException` (DomainException)
+5. `MembershipAlreadySuspendedException` (DomainException)
+6. `RoleHierarchyCycleException` (DomainException)
+7. `RoleHierarchyDepthExceededException` (DomainException)
+8. `SessionInvalidStateException` (DomainException)
+
+**Solución / Buena práctica:**
+- Agregados 8 handlers específicos con los HTTP status apropiados:
+  - `AppRoleNotFoundException` → 404 NOT_FOUND (recurso no encontrado)
+  - `ClientAppAlreadySuspendedException` → 409 CONFLICT (ya está suspendida)
+  - `ClientAppSecretRotationException` → 400 BAD_REQUEST (no se puede rotar secret de app pública)
+  - `ContractVerificationCodeInvalidException` → 400 BAD_REQUEST (código inválido)
+  - `MembershipAlreadySuspendedException` → 409 CONFLICT (ya está suspendida)
+  - `RoleHierarchyCycleException` → 400 BAD_REQUEST (crearía ciclo en jerarquía)
+  - `RoleHierarchyDepthExceededException` → 400 BAD_REQUEST (excede profundidad máxima)
+  - `SessionInvalidStateException` → 422 UNPROCESSABLE_ENTITY (estado inválido)
+- Agregados 8 tests unitarios correspondientes.
+- **Metodología de auditoría:** usar `find` + `grep` para listar todas las excepciones en `keygo-domain` y `keygo-app`, luego comparar con los `@ExceptionHandler` existentes usando `comm -23`.
+- **Criterio HTTP status:**
+  - 404 para recursos no encontrados
+  - 400 para violaciones de reglas de negocio que son validaciones de entrada
+  - 409 para conflictos de estado (intentar hacer algo que ya está hecho)
+  - 422 para violaciones de reglas de negocio sobre estado (operación no válida en el estado actual)
+- Tests pasaron: 23/23 en `GlobalExceptionHandlerTest`, 134/134 en todo `keygo-api`.
+
+**Archivos clave:**
+- `keygo-api/.../error/GlobalExceptionHandler.java` (8 nuevos handlers)
+- `keygo-api/.../error/GlobalExceptionHandlerTest.java` (8 nuevos tests)
+
+---
+
+### [2026-04-05] Handler faltante para ContractStateViolationException → 500 en lugar de 422
+
+**Contexto:** Una excepción de dominio `ContractStateViolationException` se lanzó durante la ejecución de un caso de uso de billing y retornó HTTP 500 Internal Server Error en lugar de un código de estado apropiado.
+
+**Problema:** `ContractStateViolationException` es una `DomainException` que representa violación de reglas de negocio (un contrato no puede ejecutar una operación en su estado actual). Sin embargo, no había un `@ExceptionHandler` específico en `GlobalExceptionHandler`, por lo que caía en el catch-all genérico de `Exception.class` que retorna 500 con `ResponseCode.OPERATION_FAILED`.
+
+**Solución / Buena práctica:**
+- Agregado `@ExceptionHandler(ContractStateViolationException.class)` en `GlobalExceptionHandler` que retorna HTTP 422 Unprocessable Entity con `ResponseCode.BUSINESS_RULE_VIOLATION`.
+- Las excepciones de dominio que representan violaciones de reglas de negocio (no errores de validación de entrada) deben retornar 422, no 400.
+- Siempre agregar tests unitarios para nuevos handlers: `GlobalExceptionHandlerTest.handleContractStateViolationException_returns422()`.
+
+**Archivos clave:**
+- `keygo-api/.../error/GlobalExceptionHandler.java` (nuevo handler)
+- `keygo-api/.../error/GlobalExceptionHandlerTest.java` (nuevo test)
+- `keygo-domain/.../billing/contracting/exception/ContractStateViolationException.java`
+
+---
+
 ### [2026-04-04] Flujo reset-password: requestId en lugar de email, código verificado antes del usuario
 
 **Contexto:** Implementación del endpoint público `POST /account/reset-password` para usuarios en estado `RESET_PASSWORD` que no pueden autenticarse con Bearer token.
