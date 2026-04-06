@@ -136,6 +136,8 @@ public class ApiErrorDataFactory {
           "We couldn't find the requested resource.";
       case CONTRACT_INVALID_STATE -> "The contract can't be processed in its current state.";
       case SUBSCRIPTION_INVALID_STATE -> "The subscription is not active and can't be cancelled.";
+      case CONTRACTOR_EMAIL_ALREADY_EXISTS ->
+          "An account with this email is already registered as a contractor.";
       case UNSUPPORTED_PKCE_METHOD -> "The requested PKCE method is not supported.";
       case CLIENT_APP_INACTIVE -> "The client application is not active.";
       case DUPLICATE_TENANT -> "A tenant with that identifier already exists.";
@@ -166,6 +168,7 @@ public class ApiErrorDataFactory {
           EMAIL_VERIFICATION_STILL_ACTIVE,
           CONTRACT_INVALID_STATE,
           SUBSCRIPTION_INVALID_STATE,
+          CONTRACTOR_EMAIL_ALREADY_EXISTS,
           CLIENT_APP_INACTIVE ->
           ApiErrorOrigin.BUSINESS_RULE;
 

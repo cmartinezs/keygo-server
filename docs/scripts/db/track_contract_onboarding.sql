@@ -85,7 +85,7 @@ LEFT JOIN tenant_users tu_ctr ON ctr.tenant_user_id = tu_ctr.id
 LEFT JOIN app_subscriptions sub ON sub.contract_id = c.id
 LEFT JOIN tenants t ON ctr.id = t.contractor_id
 
-WHERE c.id = 'cef0ea3f-b5eb-4d58-961e-72542baeb71a'  -- 🔧 Reemplazar con tu contract_id
+--WHERE c.id = 'cef0ea3f-b5eb-4d58-961e-72542baeb71a'  -- 🔧 Reemplazar con tu contract_id
 ;
 
 -- ───────────────────────────────────────────────────────────────────────────────

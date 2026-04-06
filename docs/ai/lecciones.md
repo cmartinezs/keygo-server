@@ -8,6 +8,31 @@
 
 ---
 
+### [2026-04-06] i18n: `Accept-Language: en-US` no respetado — mensajes de errores de filtro salen en el locale del JVM
+
+**Contexto:** Peticiones con `Accept-Language: en-US` recibían `client_message` en español en errores de la API (especialmente errores 401/403 generados en filtros de seguridad).
+
+**Problema (raíz real — dos causas):**
+1. **`LocaleContextFilter` nunca fue implementado:** Documentado como "Completada 2026-04-03" en ROADMAP pero el archivo no existía. El `DispatcherServlet` sí usa el `localeResolver` bean para poblar `LocaleContextHolder`, pero los errores generados *antes* del DispatcherServlet (ej: 401 de `BootstrapAdminKeyFilter`, 403 de `TenantResolutionFilter`) nunca pasan por ese mecanismo. Sin el filtro, `LocaleContextHolder.getLocale()` retorna `Locale.getDefault()` del JVM. En un servidor Linux en Chile (`LANG=es_CL.UTF-8`), eso devuelve `Locale(es, CL)` → mensajes en español.
+2. **`I18nConfig.defaultLocale = es-CL`:** Incorrecto per diseño (`I18N_STRATEGY.md §Restricciones`: "Fallback a inglés en-US si el idioma no está soportado"). Esto también afectaba casos donde el locale no se resolvía contra la lista soportada.
+
+**Nota:** El header llegaba como `en-US` (hyphen, BCP 47 estándar), NO con underscore. La normalización de underscore incluida en `KeyGoLocaleResolver` es código defensivo para clientes no estándares, pero no era la causa del bug reportado.
+
+**Solución / Buena práctica:**
+- Crear `KeyGoLocaleResolver implements LocaleResolver` que lee el header crudo `Accept-Language`, normaliza `_` → `-` con `String.replace('_', '-')` (defensivo), y usa `Locale.LanguageRange.parse()` + `Locale.lookup()` para matching contra los locales soportados. No depende del container (`request.getLocales()`).
+- Registrar `KeyGoLocaleResolver` como bean `localeResolver` (nombre que usa el `DispatcherServlet`) con `defaultLocale = Locale.US` y tipo de retorno concreto (no la interfaz) para permitir inyección por tipo en el filtro.
+- Crear `LocaleContextFilter extends OncePerRequestFilter` que inyecta el mismo `KeyGoLocaleResolver` y llama `LocaleContextHolder.setLocale(locale, true)` **antes** de la cadena de filtros. Registrar en `Ordered.HIGHEST_PRECEDENCE + 1`. Esto garantiza que errores de filtros también respetan `Accept-Language`.
+- Para tests de limpieza de `LocaleContextHolder`: NO usar `en-US` como header si el JVM default es también `en-US`, porque `resetLocaleContext()` retorna `Locale.getDefault()`, no `null`. Usar `es-CL` en su lugar para poder verificar con `isNotEqualTo`.
+
+**Archivos clave:**
+- `keygo-api/src/main/java/.../api/shared/KeyGoLocaleResolver.java` (nuevo)
+- `keygo-api/src/main/java/.../api/shared/I18nConfig.java` (defaultLocale corregido, tipo de retorno concreto)
+- `keygo-run/src/main/java/.../run/filter/LocaleContextFilter.java` (nuevo — fix principal)
+- `keygo-run/src/main/java/.../run/config/ApplicationConfig.java` (registro del filtro)
+- Tests: `KeyGoLocaleResolverTest` (16 tests), `LocaleContextFilterTest` (8 tests)
+
+---
+
 ### [2026-04-05] Auditoría completa de excepciones personalizadas sin handler en GlobalExceptionHandler
 
 **Contexto:** Tras detectar que `ContractStateViolationException` no tenía handler, se realizó una auditoría exhaustiva de todas las excepciones personalizadas del proyecto para identificar cuáles no estaban cubiertas.

@@ -116,6 +116,8 @@ import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
 import io.cmartinezs.keygo.run.credential.BCryptCredentialEncoder;
+import io.cmartinezs.keygo.api.shared.KeyGoLocaleResolver;
+import io.cmartinezs.keygo.run.filter.LocaleContextFilter;
 import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
@@ -893,6 +895,26 @@ public class ApplicationConfig {
     return registration;
   }
 
+  /**
+   * Registers {@link LocaleContextFilter} at {@code HIGHEST_PRECEDENCE + 1} so every request
+   * (including those rejected before reaching the DispatcherServlet, e.g. 401 from
+   * {@code BootstrapAdminKeyFilter}) carries a properly resolved locale in
+   * {@code LocaleContextHolder}.
+   *
+   * <p>The filter is injected with the same {@link KeyGoLocaleResolver} instance that Spring MVC's
+   * DispatcherServlet uses, ensuring consistent locale resolution across all layers.
+   */
+  @Bean
+  public FilterRegistrationBean<LocaleContextFilter> localeContextFilterRegistration(
+      KeyGoLocaleResolver keyGoLocaleResolver) {
+    FilterRegistrationBean<LocaleContextFilter> registration = new FilterRegistrationBean<>();
+    registration.setFilter(new LocaleContextFilter(keyGoLocaleResolver));
+    registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1); // After RequestTracingFilter
+    registration.addUrlPatterns("/*");
+    registration.setName("localeContextFilter");
+    return registration;
+  }
+
   // ─── i18n: MessageSource para traducciones ────────────────────────────────
 
   /**
@@ -912,6 +934,10 @@ public class ApplicationConfig {
     ms.setBasename("classpath:i18n/messages");
     ms.setDefaultEncoding("UTF-8");
     ms.setCacheSeconds(3600); // Cache 1 hour; hot reload disabled in prod
+    // Prevent the server's JVM locale from being used as an intermediate fallback step.
+    // Without this, locale "en" (no country) would try the JVM system locale (e.g. "es_CL")
+    // before falling through to the root messages.properties, producing unexpected behavior.
+    ms.setFallbackToSystemLocale(false);
     return ms;
   }
 

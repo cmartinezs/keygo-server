@@ -1,5 +1,11 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.command.CreateAppContractCommand;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractorEmailAlreadyExistsException;
@@ -9,31 +15,26 @@ import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
+import io.cmartinezs.keygo.domain.billing.catalog.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
-import io.cmartinezs.keygo.domain.billing.contracting.model.BillingPeriod;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
-import io.cmartinezs.keygo.domain.shared.TenantId;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for CreateAppContractUseCase — email duplication validation.
@@ -64,70 +65,72 @@ class CreateAppContractUseCaseTest {
 
   @BeforeEach
   void setUp() {
-    useCase = new CreateAppContractUseCase(
-        contractRepo,
-        versionRepo,
-        clientAppRepo,
-        contractorRepo,
-        emailNotification,
-        CONTRACT_EXPIRY_HOURS,
-        VERIFICATION_CODE_EXPIRY_MINUTES
-    );
+    useCase =
+        new CreateAppContractUseCase(
+            contractRepo,
+            versionRepo,
+            clientAppRepo,
+            contractorRepo,
+            emailNotification,
+            CONTRACT_EXPIRY_HOURS,
+            VERIFICATION_CODE_EXPIRY_MINUTES);
   }
 
   @Test
   @DisplayName("Debe crear contrato cuando el email NO existe como contractor")
   void shouldCreateContractWhenEmailDoesNotExist() {
     // Given
-    CreateAppContractCommand cmd = new CreateAppContractCommand(
-        CLIENT_APP_ID,
-        PLAN_VERSION_ID,
-        BillingPeriod.MONTHLY,
-        CONTRACTOR_EMAIL,
-        CONTRACTOR_FIRST_NAME,
-        CONTRACTOR_LAST_NAME,
-        "Acme Corp",
-        "12345678-9",
-        "123 Main St"
-    );
+    CreateAppContractCommand cmd =
+        new CreateAppContractCommand(
+            CLIENT_APP_ID,
+            PLAN_VERSION_ID,
+            BillingPeriod.MONTHLY,
+            CONTRACTOR_EMAIL,
+            CONTRACTOR_FIRST_NAME,
+            CONTRACTOR_LAST_NAME,
+            "Acme Corp",
+            "12345678-9",
+            "123 Main St");
 
     // Mock plan version exists
-    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(Object.class)));
+    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(AppPlanVersion.class)));
 
     // Mock client app exists and return provider tenant
-    ClientApp clientApp = ClientApp.builder()
-        .id(ClientAppId.of(CLIENT_APP_ID))
-        .tenantId(TenantId.of(PROVIDER_TENANT_ID))
-        .name("Test App")
-        .clientId("test-app")
-        .clientSecret("secret")
-        .status(ClientAppStatus.ACTIVE)
-        .build();
-    when(clientAppRepo.findById(CLIENT_APP_ID)).thenReturn(Optional.of(clientApp));
+    ClientApp clientApp =
+        ClientApp.builder()
+            .id(ClientAppId.of(CLIENT_APP_ID))
+            .tenantId(TenantId.of(PROVIDER_TENANT_ID))
+            .name("Test App")
+            .clientId(ClientId.of("test-app"))
+            .status(ClientAppStatus.ACTIVE)
+            .build();
+    when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.of(clientApp));
 
     // Mock contractor does NOT exist (email available)
     when(contractorRepo.findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL))
         .thenReturn(Optional.empty());
 
     // Mock contract save
-    AppContract savedContract = AppContract.builder()
-        .id(UUID.randomUUID())
-        .clientAppId(CLIENT_APP_ID)
-        .selectedPlanVersionId(PLAN_VERSION_ID)
-        .billingPeriod("MONTHLY")
-        .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
-        .contractorEmail(CONTRACTOR_EMAIL)
-        .contractorFirstName(CONTRACTOR_FIRST_NAME)
-        .contractorLastName(CONTRACTOR_LAST_NAME)
-        .companyName("Acme Corp")
-        .companyTaxId("12345678-9")
-        .companyAddress("123 Main St")
-        .verificationCode("123456")
-        .verificationCodeExpiresAt(OffsetDateTime.now().plusMinutes(VERIFICATION_CODE_EXPIRY_MINUTES))
-        .expiresAt(OffsetDateTime.now().plusHours(CONTRACT_EXPIRY_HOURS))
-        .createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now())
-        .build();
+    AppContract savedContract =
+        AppContract.builder()
+            .id(UUID.randomUUID())
+            .clientAppId(CLIENT_APP_ID)
+            .selectedPlanVersionId(PLAN_VERSION_ID)
+            .billingPeriod("MONTHLY")
+            .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
+            .contractorEmail(CONTRACTOR_EMAIL)
+            .contractorFirstName(CONTRACTOR_FIRST_NAME)
+            .contractorLastName(CONTRACTOR_LAST_NAME)
+            .companyName("Acme Corp")
+            .companyTaxId("12345678-9")
+            .companyAddress("123 Main St")
+            .verificationCode("123456")
+            .verificationCodeExpiresAt(
+                OffsetDateTime.now().plusMinutes(VERIFICATION_CODE_EXPIRY_MINUTES))
+            .expiresAt(OffsetDateTime.now().plusHours(CONTRACT_EXPIRY_HOURS))
+            .createdAt(OffsetDateTime.now())
+            .updatedAt(OffsetDateTime.now())
+            .build();
     when(contractRepo.save(any(AppContract.class))).thenReturn(savedContract);
 
     // When
@@ -140,53 +143,54 @@ class CreateAppContractUseCaseTest {
     assertThat(result.contract().getStatus()).isEqualTo(ContractStatus.PENDING_EMAIL_VERIFICATION);
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
-    verify(clientAppRepo).findById(CLIENT_APP_ID);
+    verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
     verify(contractorRepo).findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL);
     verify(contractRepo).save(any(AppContract.class));
-    verify(emailNotification).sendContractVerificationEmail(
-        eq(CONTRACTOR_EMAIL),
-        eq(CONTRACTOR_FIRST_NAME + " " + CONTRACTOR_LAST_NAME),
-        anyString(),
-        any(UUID.class)
-    );
+    verify(emailNotification)
+        .sendContractVerificationEmail(
+            eq(CONTRACTOR_EMAIL),
+            eq(CONTRACTOR_FIRST_NAME + " " + CONTRACTOR_LAST_NAME),
+            anyString(),
+            any(UUID.class));
   }
 
   @Test
   @DisplayName("Debe rechazar creación cuando el email YA existe como contractor")
   void shouldRejectContractWhenEmailAlreadyExists() {
     // Given
-    CreateAppContractCommand cmd = new CreateAppContractCommand(
-        CLIENT_APP_ID,
-        PLAN_VERSION_ID,
-        BillingPeriod.MONTHLY,
-        CONTRACTOR_EMAIL,
-        CONTRACTOR_FIRST_NAME,
-        CONTRACTOR_LAST_NAME,
-        null,
-        null,
-        null
-    );
+    CreateAppContractCommand cmd =
+        new CreateAppContractCommand(
+            CLIENT_APP_ID,
+            PLAN_VERSION_ID,
+            BillingPeriod.MONTHLY,
+            CONTRACTOR_EMAIL,
+            CONTRACTOR_FIRST_NAME,
+            CONTRACTOR_LAST_NAME,
+            null,
+            null,
+            null);
 
     // Mock plan version exists
-    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(Object.class)));
+    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(AppPlanVersion.class)));
 
     // Mock client app exists
-    ClientApp clientApp = ClientApp.builder()
-        .id(ClientAppId.of(CLIENT_APP_ID))
-        .tenantId(TenantId.of(PROVIDER_TENANT_ID))
-        .name("Test App")
-        .clientId("test-app")
-        .clientSecret("secret")
-        .status(ClientAppStatus.ACTIVE)
-        .build();
-    when(clientAppRepo.findById(CLIENT_APP_ID)).thenReturn(Optional.of(clientApp));
+    ClientApp clientApp =
+        ClientApp.builder()
+            .id(ClientAppId.of(CLIENT_APP_ID))
+            .tenantId(TenantId.of(PROVIDER_TENANT_ID))
+            .name("Test App")
+            .clientId(ClientId.of("test-app"))
+            .status(ClientAppStatus.ACTIVE)
+            .build();
+    when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.of(clientApp));
 
     // Mock contractor ALREADY EXISTS (email taken)
-    Contractor existingContractor = Contractor.builder()
-        .id(UUID.randomUUID())
-        .tenantUserId(UUID.randomUUID())
-        .status(ContractorStatus.ACTIVE)
-        .build();
+    Contractor existingContractor =
+        Contractor.builder()
+            .id(UUID.randomUUID())
+            .tenantUserId(UUID.randomUUID())
+            .status(ContractorStatus.ACTIVE)
+            .build();
     when(contractorRepo.findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL))
         .thenReturn(Optional.of(existingContractor));
 
@@ -196,7 +200,7 @@ class CreateAppContractUseCaseTest {
         .hasMessageContaining(CONTRACTOR_EMAIL);
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
-    verify(clientAppRepo).findById(CLIENT_APP_ID);
+    verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
     verify(contractorRepo).findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL);
     verify(contractRepo, never()).save(any());
     verify(emailNotification, never()).sendContractVerificationEmail(any(), any(), any(), any());
@@ -206,17 +210,17 @@ class CreateAppContractUseCaseTest {
   @DisplayName("Debe rechazar si la versión del plan no existe")
   void shouldRejectWhenPlanVersionNotFound() {
     // Given
-    CreateAppContractCommand cmd = new CreateAppContractCommand(
-        CLIENT_APP_ID,
-        PLAN_VERSION_ID,
-        BillingPeriod.MONTHLY,
-        CONTRACTOR_EMAIL,
-        CONTRACTOR_FIRST_NAME,
-        CONTRACTOR_LAST_NAME,
-        null,
-        null,
-        null
-    );
+    CreateAppContractCommand cmd =
+        new CreateAppContractCommand(
+            CLIENT_APP_ID,
+            PLAN_VERSION_ID,
+            BillingPeriod.MONTHLY,
+            CONTRACTOR_EMAIL,
+            CONTRACTOR_FIRST_NAME,
+            CONTRACTOR_LAST_NAME,
+            null,
+            null,
+            null);
 
     // Mock plan version NOT found
     when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.empty());
@@ -236,23 +240,23 @@ class CreateAppContractUseCaseTest {
   @DisplayName("Debe rechazar si el client app no existe")
   void shouldRejectWhenClientAppNotFound() {
     // Given
-    CreateAppContractCommand cmd = new CreateAppContractCommand(
-        CLIENT_APP_ID,
-        PLAN_VERSION_ID,
-        BillingPeriod.MONTHLY,
-        CONTRACTOR_EMAIL,
-        CONTRACTOR_FIRST_NAME,
-        CONTRACTOR_LAST_NAME,
-        null,
-        null,
-        null
-    );
+    CreateAppContractCommand cmd =
+        new CreateAppContractCommand(
+            CLIENT_APP_ID,
+            PLAN_VERSION_ID,
+            BillingPeriod.MONTHLY,
+            CONTRACTOR_EMAIL,
+            CONTRACTOR_FIRST_NAME,
+            CONTRACTOR_LAST_NAME,
+            null,
+            null,
+            null);
 
     // Mock plan version exists
-    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(Object.class)));
+    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(AppPlanVersion.class)));
 
     // Mock client app NOT found
-    when(clientAppRepo.findById(CLIENT_APP_ID)).thenReturn(Optional.empty());
+    when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.empty());
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(cmd))
@@ -260,9 +264,8 @@ class CreateAppContractUseCaseTest {
         .hasMessageContaining("Client app not found");
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
-    verify(clientAppRepo).findById(CLIENT_APP_ID);
+    verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
     verify(contractorRepo, never()).findByTenantUserEmail(any(), any());
     verify(contractRepo, never()).save(any());
   }
 }
-
