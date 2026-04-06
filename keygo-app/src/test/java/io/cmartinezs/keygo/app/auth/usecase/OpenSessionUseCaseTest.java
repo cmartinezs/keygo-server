@@ -38,13 +38,13 @@ class OpenSessionUseCaseTest {
     String clientAppId = UUID.randomUUID().toString();
     String userId = UUID.randomUUID().toString();
 
-    var command = new OpenSessionCommand(tenantId, clientAppId, userId, expiresAt, now, "agent", "1.2.3.4");
+    var command = new OpenSessionCommand(tenantId, clientAppId, userId, expiresAt, now, "agent", "1.2.3.4", null);
 
     Session savedSession = Session.open(
         new io.cmartinezs.keygo.domain.tenant.model.TenantId(UUID.fromString(tenantId)),
         new io.cmartinezs.keygo.domain.clientapp.model.ClientAppId(UUID.fromString(clientAppId)),
         new io.cmartinezs.keygo.domain.user.model.UserId(UUID.fromString(userId)),
-        expiresAt, now, "agent", "1.2.3.4");
+        expiresAt, now, "agent", "1.2.3.4", null);
 
     when(sessionRepository.save(any(Session.class))).thenReturn(savedSession);
 

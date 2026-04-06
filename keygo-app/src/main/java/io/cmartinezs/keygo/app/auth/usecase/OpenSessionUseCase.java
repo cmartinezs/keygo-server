@@ -36,10 +36,10 @@ public class OpenSessionUseCase {
         command.expiresAt(),
         command.now(),
         command.userAgent(),
-        command.ipAddress());
+        command.ipAddress(),
+        command.signingKeyId());   // nuevo campo — UUID de la clave firmante
 
     var saved = sessionRepository.save(session);
     return new OpenSessionResult(saved.getId().value().toString());
   }
 }
-

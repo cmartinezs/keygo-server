@@ -483,8 +483,10 @@ public class ApplicationConfig {
 
   @Bean
   public GetJwksUseCase getJwksUseCase(
-      SigningKeyRepositoryPort signingKeyRepositoryPort, JwksBuilderPort jwksBuilderPort) {
-    return new GetJwksUseCase(signingKeyRepositoryPort, jwksBuilderPort);
+      SigningKeyRepositoryPort signingKeyRepositoryPort,
+      JwksBuilderPort jwksBuilderPort,
+      TenantRepositoryPort tenantRepositoryPort) {
+    return new GetJwksUseCase(signingKeyRepositoryPort, jwksBuilderPort, tenantRepositoryPort);
   }
 
   @Bean

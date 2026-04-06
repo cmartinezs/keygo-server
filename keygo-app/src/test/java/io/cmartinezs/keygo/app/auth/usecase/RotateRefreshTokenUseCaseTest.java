@@ -65,7 +65,7 @@ class RotateRefreshTokenUseCaseTest {
 
   private RefreshToken buildActiveToken(String hash) {
     return RefreshToken.issue(hash, tenantId, clientAppId, userId, sessionId,
-        "openid profile", now.plusSeconds(86400), now);
+        "openid profile", now.plusSeconds(86400), now, null);
   }
 
   private void setupCommonMocks(String rawToken) {
@@ -94,7 +94,7 @@ class RotateRefreshTokenUseCaseTest {
         .status(SigningKeyStatus.ACTIVE)
         .publicMaterial("pub").privateMaterial("priv")
         .activatedAt(now).build();
-    when(signingKeyRepository.findActiveKey()).thenReturn(Optional.of(key));
+    when(signingKeyRepository.findActiveKeyForTenant(any())).thenReturn(Optional.of(key));
 
     when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Map.of());
@@ -127,7 +127,7 @@ class RotateRefreshTokenUseCaseTest {
     String rawToken = "expiredToken";
     String hash = RotateRefreshTokenUseCase.sha256Hex(rawToken);
     RefreshToken expiredToken = RefreshToken.issue(hash, tenantId, clientAppId, userId, sessionId,
-        "openid", now.minusSeconds(1), now.minusSeconds(3600));
+        "openid", now.minusSeconds(1), now.minusSeconds(3600), null);
 
     when(refreshTokenRepository.findByTokenHash(hash)).thenReturn(Optional.of(expiredToken));
     var command = new RotateRefreshTokenCommand("tenant-slug", "my-client", rawToken, null);

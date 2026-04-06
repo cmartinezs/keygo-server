@@ -5,13 +5,14 @@ import java.time.Instant;
 /**
  * Comando: abrir una nueva sesión de usuario tras el canje exitoso de un authorization code.
  *
- * @param tenantId    UUID del tenant como String
- * @param clientAppId UUID de la app cliente como String
- * @param userId      UUID del usuario como String
- * @param expiresAt   momento de expiración de la sesión
- * @param now         instante actual (para auditabilidad)
- * @param userAgent   user-agent del cliente (puede ser null)
- * @param ipAddress   dirección IP del cliente (puede ser null)
+ * @param tenantId     UUID del tenant como String
+ * @param clientAppId  UUID de la app cliente como String
+ * @param userId       UUID del usuario como String
+ * @param expiresAt    momento de expiración de la sesión
+ * @param now          instante actual (para auditabilidad)
+ * @param userAgent    user-agent del cliente (puede ser null)
+ * @param ipAddress    dirección IP del cliente (puede ser null)
+ * @param signingKeyId UUID de la clave RSA que firmó los tokens (puede ser null)
  */
 public record OpenSessionCommand(
     String tenantId,
@@ -20,5 +21,5 @@ public record OpenSessionCommand(
     Instant expiresAt,
     Instant now,
     String userAgent,
-    String ipAddress) {}
-
+    String ipAddress,
+    String signingKeyId) {}

@@ -86,7 +86,7 @@ class RevokeUserSessionUseCaseTest {
     var session = Session.reconstitute(
         SessionId.from(sessionUuid), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(userId), SessionStatus.ACTIVE,
-        Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now(), null);
 
     when(sessionRepository.findById(any())).thenReturn(Optional.of(session));
 
@@ -125,7 +125,7 @@ class RevokeUserSessionUseCaseTest {
     var session = Session.reconstitute(
         SessionId.from(sessionUuid), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(userId), SessionStatus.TERMINATED,
-        Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now(), null);
 
     when(sessionRepository.findById(any())).thenReturn(Optional.of(session));
 
@@ -147,7 +147,7 @@ class RevokeUserSessionUseCaseTest {
     var session = Session.reconstitute(
         SessionId.from(sessionUuid), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(otherUserId), SessionStatus.ACTIVE,
-        Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), "ua", "1.1.1.1", Instant.now(), null);
 
     when(sessionRepository.findById(any())).thenReturn(Optional.of(session));
 

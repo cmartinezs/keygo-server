@@ -81,11 +81,11 @@ class ListUserSessionsUseCaseTest {
     var activeSession = Session.reconstitute(
         SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(userId), SessionStatus.ACTIVE,
-        Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now(), null);
     var terminatedSession = Session.reconstitute(
         SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(userId), SessionStatus.TERMINATED,
-        Instant.now().plusSeconds(3600), Instant.now(), "other-ua", "10.0.0.1", Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), "other-ua", "10.0.0.1", Instant.now(), null);
 
     when(sessionRepository.findAllByUserIdAndTenantId(any(), any()))
         .thenReturn(List.of(activeSession, terminatedSession));
@@ -105,11 +105,11 @@ class ListUserSessionsUseCaseTest {
     var currentSession = Session.reconstitute(
         SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(userId), SessionStatus.ACTIVE,
-        Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now(), null);
     var otherSession = Session.reconstitute(
         SessionId.from(UUID.randomUUID()), tenantId, ClientAppId.of(UUID.randomUUID()),
         new UserId(userId), SessionStatus.ACTIVE,
-        Instant.now().plusSeconds(3600), Instant.now(), "other-ua", "10.0.0.2", Instant.now());
+        Instant.now().plusSeconds(3600), Instant.now(), "other-ua", "10.0.0.2", Instant.now(), null);
 
     when(sessionRepository.findAllByUserIdAndTenantId(any(), any()))
         .thenReturn(List.of(currentSession, otherSession));

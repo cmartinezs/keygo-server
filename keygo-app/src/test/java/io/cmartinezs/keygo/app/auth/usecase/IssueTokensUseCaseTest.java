@@ -63,6 +63,7 @@ class IssueTokensUseCaseTest {
 
     // When
     var result = useCase.execute(
+        null,
         "http://localhost/keygo-server/api/v1/tenants/my-tenant",
         "user-uuid",
         "client-id",
@@ -94,6 +95,7 @@ class IssueTokensUseCaseTest {
 
     // When
     var result = useCase.execute(
+        null,
         "http://localhost/keygo-server/api/v1/tenants/my-tenant",
         "user-uuid", "client-id", "openid profile",
         null, null, null, "code-id-456", List.of());
@@ -110,7 +112,7 @@ class IssueTokensUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
-        "http://localhost", "user", "client", "openid", null, null, null, "code-1", null))
+        null, "http://localhost", "user", "client", "openid", null, null, null, "code-1", null))
         .isInstanceOf(NoActiveSigningKeyException.class);
   }
 }

@@ -119,9 +119,9 @@ public class IssueClientCredentialsTokenUseCase {
           "Invalid client_secret for client: " + command.clientId());
     }
 
-    // 6. Obtener clave activa
+    // 6. Obtener clave activa — tenant-scoped con fallback global
     SigningKey signingKey = signingKeyRepository
-        .findActiveKey()
+        .findActiveKeyForTenant(tenant.getId())
         .orElseThrow(NoActiveSigningKeyException::new);
 
     // 7. Resolver scopes

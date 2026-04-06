@@ -150,8 +150,8 @@ public class RotateRefreshTokenUseCase {
     List<String> roles = membershipRepository.findEffectiveRoleCodesByUserAndClientApp(
         userId.value(), clientApp.getId().value());
 
-    // 5. Firmar nuevos tokens
-    SigningKey signingKey = signingKeyRepository.findActiveKey()
+    // 5. Firmar nuevos tokens — clave tenant-scoped con fallback global
+    SigningKey signingKey = signingKeyRepository.findActiveKeyForTenant(tenantId)
         .orElseThrow(NoActiveSigningKeyException::new);
 
     Instant expiresAt = now.plus(ACCESS_TOKEN_TTL);
@@ -183,7 +183,8 @@ public class RotateRefreshTokenUseCase {
         refreshToken.getSessionId(),
         scope,
         newRtExpiresAt,
-        now);
+        now,
+        signingKey.getId().value());   // auditoría: clave que firmó el nuevo access_token
 
     RefreshToken savedNewToken = refreshTokenRepository.save(newRefreshToken);
 

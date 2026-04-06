@@ -29,7 +29,8 @@ class RefreshTokenTest {
         SESSION_ID,
         "openid profile",
         EXPIRES_FUTURE,
-        NOW);
+        NOW,
+        null);   // signingKeyId (null en tests)
   }
 
   private String nullString() {
@@ -75,7 +76,7 @@ class RefreshTokenTest {
     // Given
     RefreshToken token =
         RefreshToken.issue(
-            "hash", TENANT_ID, CLIENT_APP_ID, USER_ID, SESSION_ID, "openid", EXPIRES_PAST, NOW);
+            "hash", TENANT_ID, CLIENT_APP_ID, USER_ID, SESSION_ID, "openid", EXPIRES_PAST, NOW, null);
 
     // When / Then
     assertThat(token.isExpired()).isTrue();
@@ -139,7 +140,8 @@ class RefreshTokenTest {
             EXPIRES_FUTURE,
             NOW,
             NOW,
-            replacedBy);
+            replacedBy,
+            null);   // signingKeyId
 
     // When / Then
     assertThatThrownBy(token::revoke).isInstanceOf(InvalidRefreshTokenException.class);
@@ -157,7 +159,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -174,7 +177,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("tokenHash");
   }
@@ -192,7 +196,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("TenantId");
   }
@@ -210,7 +215,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ClientAppId");
   }
@@ -228,7 +234,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("UserId");
   }
@@ -246,7 +253,8 @@ class RefreshTokenTest {
                     nullSessionId(),
                     "openid",
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("SessionId");
   }
@@ -264,7 +272,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     nullString(),
                     EXPIRES_FUTURE,
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Scopes");
   }
@@ -282,7 +291,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     nullInstant(),
-                    NOW))
+                    NOW,
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ExpiresAt");
   }
@@ -300,7 +310,8 @@ class RefreshTokenTest {
                     SESSION_ID,
                     "openid",
                     EXPIRES_FUTURE,
-                    nullInstant()))
+                    nullInstant(),
+                    null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Now");
   }

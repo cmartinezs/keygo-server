@@ -5,14 +5,16 @@ import io.cmartinezs.keygo.domain.auth.model.Session;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
-import io.cmartinezs.keygo.supabase.auth.entity.SessionEntity;
+import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.auth.mapper.SessionPersistenceMapper;
 import io.cmartinezs.keygo.supabase.auth.repository.SessionJpaRepository;
+import io.cmartinezs.keygo.supabase.auth.repository.SigningKeyJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
 import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,16 +27,19 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
   private final TenantJpaRepository tenantJpaRepository;
   private final ClientAppJpaRepository clientAppJpaRepository;
   private final TenantUserJpaRepository tenantUserJpaRepository;
+  private final SigningKeyJpaRepository signingKeyJpaRepository;
 
   public SessionRepositoryAdapter(
       SessionJpaRepository sessionJpaRepository,
       TenantJpaRepository tenantJpaRepository,
       ClientAppJpaRepository clientAppJpaRepository,
-      TenantUserJpaRepository tenantUserJpaRepository) {
+      TenantUserJpaRepository tenantUserJpaRepository,
+      SigningKeyJpaRepository signingKeyJpaRepository) {
     this.sessionJpaRepository = sessionJpaRepository;
     this.tenantJpaRepository = tenantJpaRepository;
     this.clientAppJpaRepository = clientAppJpaRepository;
     this.tenantUserJpaRepository = tenantUserJpaRepository;
+    this.signingKeyJpaRepository = signingKeyJpaRepository;
   }
 
   @Override
@@ -46,8 +51,20 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
     var userEntity = tenantUserJpaRepository.findById(session.getUserId().value())
         .orElseThrow(() -> new IllegalArgumentException("User not found: " + session.getUserId().value()));
 
-    SessionEntity entity = SessionPersistenceMapper.toEntity(session, tenantEntity, clientAppEntity, userEntity);
-    SessionEntity saved = sessionJpaRepository.save(entity);
+    // Resolución opcional del SigningKey para auditoría
+    SigningKeyEntity signingKeyEntity = null;
+    if (session.getSigningKeyId() != null) {
+      try {
+        UUID skId = UUID.fromString(session.getSigningKeyId());
+        signingKeyEntity = signingKeyJpaRepository.getReferenceById(skId);
+      } catch (IllegalArgumentException ignored) {
+        // UUID inválido — no bloqueante, se persiste sin la referencia
+      }
+    }
+
+    var entity = SessionPersistenceMapper.toEntity(
+        session, tenantEntity, clientAppEntity, userEntity, signingKeyEntity);
+    var saved = sessionJpaRepository.save(entity);
     return SessionPersistenceMapper.toDomain(saved);
   }
 
@@ -75,4 +92,3 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
         .toList();
   }
 }
-

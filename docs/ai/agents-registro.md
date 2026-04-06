@@ -20,7 +20,22 @@
 
 ## Registro de cambios
 
-### [2026-04-05] Configuración UI — propiedades YAML para enlaces en emails
+### [2026-04-06] Corrección de entidades JPA huérfanas — tenant scope en signing keys + audit refs en sessions/refresh_tokens
+
+- **`UserNotificationPreferencesEntity`:** campos `UUID userId/tenantId` → `@ManyToOne(LAZY) TenantUserEntity user` + `@ManyToOne(LAZY) TenantEntity tenant`. Repository: `findByUserIdAndTenantId` → `findByUser_IdAndTenant_Id`. Adapter: usa `getReferenceById()` para proxy sin SELECT.
+- **`SigningKeyEntity`:** nueva FK `@ManyToOne(LAZY) TenantEntity tenant` (nullable — null = clave global de plataforma).
+- **`SessionEntity` + `RefreshTokenEntity`:** nueva FK `@ManyToOne(LAZY) SigningKeyEntity signingKey` (nullable — permite auditar qué clave firmó cada token).
+- **Migración:** `V22__signing_key_tenant_scope_and_audit_refs.sql` — agrega columnas `tenant_id` en `signing_keys`, `signing_key_id` en `sessions` y `refresh_tokens`.
+- **Dominio:** `SigningKey` + `tenantId` (nullable); `Session.open()` + `Session.reconstitute()` + `RefreshToken.issue()` + `RefreshToken.reconstitute()` reciben `String signingKeyId` como último param (nullable).
+- **Puertos:** `SigningKeyRepositoryPort` agrega `findActiveKeyForTenant(TenantId)` y `findPublishableKeysForTenant(TenantId)`.
+- **Use cases:** `IssueTokensUseCase.execute()` recibe `TenantId` como primer parámetro; `GetJwksUseCase.execute(tenantSlug)` es ahora tenant-aware con fallback global.
+- **Repository JPA:** `SigningKeyJpaRepository.findFirstByStatus()` → `findFirstByTenantIsNullAndStatus()` y `findFirstByTenant_IdAndStatus()`.
+- **API:** `JwksController` pasa `tenantSlug` al use case.
+- **Próxima migración:** `V23__...`
+- **Tests actualizados:** `RefreshTokenTest`, `SessionTest`, `IssueTokensUseCaseTest`, `GetJwksUseCaseTest`, `RevokeTokenUseCaseTest`, `RotateRefreshTokenUseCaseTest`, `ListUserSessionsUseCaseTest`, `JwksControllerTest`, `SigningKeyRepositoryAdapterTest`, `SigningKeyPersistenceMapperTest`, `CreateAppContractUseCaseTest`.
+- **Fix colateral:** `PlatformDashboardAdapter.findActiveSigningKey()` actualizado a `findFirstByTenantIsNullAndStatus`.
+
+
 
 - **Nueva clase:** `KeyGoUiProperties` (`keygo-run/config/`) con anotación `@ConfigurationProperties(prefix = "keygo.ui")`
   - Propiedades: `baseUrl` (variable de entorno `KEYGO_UI_BASE_URL`), `paths` (mapa de rutas disponibles)

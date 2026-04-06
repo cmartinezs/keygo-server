@@ -58,6 +58,14 @@ public class SessionEntity {
   @Column(name = "ip_address", length = 64)
   private String ipAddress;
 
+  /**
+   * Clave RSA que firmó los tokens de apertura de esta sesión.
+   * Nullable — sesiones legacy anteriores a V22 no tienen este dato.
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "signing_key_id")
+  private SigningKeyEntity signingKey;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;

@@ -37,6 +37,8 @@ public class RefreshToken {
   private final Instant createdAt;
   private Instant usedAt;
   private RefreshTokenId replacedByTokenId;
+  /** UUID (como String) de la clave RSA que firmó el access_token emitido. Nullable para RT legacy. */
+  private final String signingKeyId;
 
   private RefreshToken(
       RefreshTokenId id,
@@ -50,7 +52,8 @@ public class RefreshToken {
       Instant expiresAt,
       Instant createdAt,
       Instant usedAt,
-      RefreshTokenId replacedByTokenId) {
+      RefreshTokenId replacedByTokenId,
+      String signingKeyId) {
     this.id = id;
     this.tokenHash = tokenHash;
     this.tenantId = tenantId;
@@ -63,19 +66,21 @@ public class RefreshToken {
     this.createdAt = createdAt;
     this.usedAt = usedAt;
     this.replacedByTokenId = replacedByTokenId;
+    this.signingKeyId = signingKeyId;
   }
 
   /**
    * Factory method: crea un nuevo refresh token en estado ACTIVE.
    *
-   * @param tokenHash  hash BCrypt del token plano (nunca el plano)
-   * @param tenantId   tenant propietario
-   * @param clientAppId app cliente
-   * @param userId     usuario
-   * @param sessionId  sesión asociada
-   * @param scopes     scopes otorgados (espacio-separados)
-   * @param expiresAt  fecha de expiración
-   * @param now        instante de creación
+   * @param tokenHash    hash SHA-256 del token plano
+   * @param tenantId     tenant propietario
+   * @param clientAppId  app cliente
+   * @param userId       usuario
+   * @param sessionId    sesión asociada
+   * @param scopes       scopes otorgados
+   * @param expiresAt    fecha de expiración
+   * @param now          instante de creación
+   * @param signingKeyId UUID de la clave RSA usada (nullable)
    * @return nuevo RefreshToken en estado ACTIVE
    */
   public static RefreshToken issue(
@@ -86,7 +91,8 @@ public class RefreshToken {
       SessionId sessionId,
       String scopes,
       Instant expiresAt,
-      Instant now) {
+      Instant now,
+      String signingKeyId) {
     if (tokenHash == null || tokenHash.isBlank()) throw new IllegalArgumentException("tokenHash cannot be null or blank");
     if (tenantId == null) throw new IllegalArgumentException("TenantId cannot be null");
     if (clientAppId == null) throw new IllegalArgumentException("ClientAppId cannot be null");
@@ -101,12 +107,11 @@ public class RefreshToken {
         tokenHash,
         tenantId, clientAppId, userId, sessionId, scopes,
         RefreshTokenStatus.ACTIVE,
-        expiresAt, now, null, null);
+        expiresAt, now, null, null,
+        signingKeyId);
   }
 
-  /**
-   * Reconstruye un RefreshToken desde persistencia.
-   */
+  /** Reconstruye un RefreshToken desde persistencia. */
   public static RefreshToken reconstitute(
       RefreshTokenId id,
       String tokenHash,
@@ -119,8 +124,10 @@ public class RefreshToken {
       Instant expiresAt,
       Instant createdAt,
       Instant usedAt,
-      RefreshTokenId replacedByTokenId) {
-    return new RefreshToken(id, tokenHash, tenantId, clientAppId, userId, sessionId, scopes, status, expiresAt, createdAt, usedAt, replacedByTokenId);
+      RefreshTokenId replacedByTokenId,
+      String signingKeyId) {
+    return new RefreshToken(id, tokenHash, tenantId, clientAppId, userId, sessionId, scopes,
+        status, expiresAt, createdAt, usedAt, replacedByTokenId, signingKeyId);
   }
 
   /** @return true si el token ha expirado */
@@ -150,9 +157,7 @@ public class RefreshToken {
     this.replacedByTokenId = replacedById;
   }
 
-  /**
-   * Revoca el token. Idempotente si ya está REVOKED.
-   */
+  /** Revoca el token. Idempotente si ya está REVOKED. */
   public void revoke() {
     if (status == RefreshTokenStatus.USED) {
       throw new InvalidRefreshTokenException("Cannot revoke a refresh token that has already been USED");

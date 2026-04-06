@@ -184,7 +184,8 @@ public class PlatformDashboardAdapter implements PlatformDashboardPort {
 
   @Override
   public Optional<ActiveSigningKeyInfo> findActiveSigningKey() {
-    return signingKeyRepo.findFirstByStatus("ACTIVE")
+    // Busca primero clave global activa (tenant IS NULL) para el dashboard de plataforma
+    return signingKeyRepo.findFirstByTenantIsNullAndStatus("ACTIVE")
         .map(k -> new ActiveSigningKeyInfo(k.getKid(), k.getAlgorithm(), k.getActivatedAt()));
   }
 

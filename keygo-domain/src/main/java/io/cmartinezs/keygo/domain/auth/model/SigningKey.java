@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.auth.model;
 
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import java.time.Instant;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +12,9 @@ import lombok.RequiredArgsConstructor;
  * <p>Una clave ACTIVE es la única usada para firmar nuevos tokens. Las claves RETIRED siguen
  * publicando su clave pública en JWKS para que tokens existentes puedan ser verificados.
  * Las claves REVOKED no participan en ninguna operación.
+ *
+ * <p>El campo {@code tenantId} es nullable: {@code null} indica una clave global de plataforma
+ * compartida por todos los tenants (fallback). Una clave con tenant asociado es exclusiva de ese tenant.
  */
 @Getter
 @Builder
@@ -24,6 +28,12 @@ public class SigningKey {
 
   private final SigningKeyAlgorithm algorithm;
   private final SigningKeyStatus status;
+
+  /**
+   * Tenant propietario de esta clave. {@code null} = clave global de plataforma.
+   * Una clave con tenant asociado solo se usa/publica para ese tenant.
+   */
+  private final TenantId tenantId;
 
   /** Material de clave pública en formato PEM. Siempre presente. */
   private final String publicMaterial;
@@ -55,4 +65,3 @@ public class SigningKey {
     return SigningKeyStatus.ACTIVE.equals(status) || SigningKeyStatus.RETIRED.equals(status);
   }
 }
-

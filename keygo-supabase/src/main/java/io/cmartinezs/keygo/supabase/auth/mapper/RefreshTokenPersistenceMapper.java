@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.supabase.auth.entity.RefreshTokenEntity;
 import io.cmartinezs.keygo.supabase.auth.entity.SessionEntity;
+import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
@@ -24,6 +25,9 @@ public class RefreshTokenPersistenceMapper {
     RefreshTokenId replacedById = entity.getReplacedBy() != null
         ? RefreshTokenId.from(entity.getReplacedBy().getId())
         : null;
+    String signingKeyId = entity.getSigningKey() != null
+        ? entity.getSigningKey().getId().toString()
+        : null;
 
     return RefreshToken.reconstitute(
         RefreshTokenId.from(entity.getId()),
@@ -37,7 +41,8 @@ public class RefreshTokenPersistenceMapper {
         entity.getExpiresAt(),
         entity.getCreatedAt(),
         entity.getUsedAt(),
-        replacedById);
+        replacedById,
+        signingKeyId);
   }
 
   public static RefreshTokenEntity toEntity(
@@ -46,7 +51,8 @@ public class RefreshTokenPersistenceMapper {
       ClientAppEntity clientAppEntity,
       TenantUserEntity userEntity,
       SessionEntity sessionEntity,
-      RefreshTokenEntity replacedByEntity) {
+      RefreshTokenEntity replacedByEntity,
+      SigningKeyEntity signingKeyEntity) {
     return RefreshTokenEntity.builder()
         .id(refreshToken.getId().value())
         .tokenHash(refreshToken.getTokenHash())
@@ -59,7 +65,7 @@ public class RefreshTokenPersistenceMapper {
         .expiresAt(refreshToken.getExpiresAt())
         .usedAt(refreshToken.getUsedAt())
         .replacedBy(replacedByEntity)
+        .signingKey(signingKeyEntity)
         .build();
   }
 }
-

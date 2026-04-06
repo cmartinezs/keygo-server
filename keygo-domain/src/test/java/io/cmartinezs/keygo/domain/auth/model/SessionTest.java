@@ -20,7 +20,7 @@ class SessionTest {
   private static final Instant EXPIRES_AT = NOW.plusSeconds(3600);
 
   private Session newActiveSession() {
-    return Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, EXPIRES_AT, NOW, "agent", "127.0.0.1");
+    return Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, EXPIRES_AT, NOW, "agent", "127.0.0.1", null);
   }
 
   private TenantId nullTenantId() {
@@ -94,7 +94,8 @@ class SessionTest {
             NOW,
             "agent",
             "127.0.0.1",
-            NOW);
+            NOW,
+            null);   // signingKeyId
 
     // When / Then
     assertThatThrownBy(session::terminate)
@@ -126,6 +127,7 @@ class SessionTest {
                     EXPIRES_AT,
                     NOW,
                     null,
+                    null,
                     null))
         .isInstanceOf(IllegalArgumentException.class);
   }
@@ -134,7 +136,7 @@ class SessionTest {
   void open_withNullClientAppId_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () -> Session.open(TENANT_ID, nullClientAppId(), USER_ID, EXPIRES_AT, NOW, null, null))
+            () -> Session.open(TENANT_ID, nullClientAppId(), USER_ID, EXPIRES_AT, NOW, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ClientAppId");
   }
@@ -143,7 +145,7 @@ class SessionTest {
   void open_withNullUserId_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () -> Session.open(TENANT_ID, CLIENT_APP_ID, nullUserId(), EXPIRES_AT, NOW, null, null))
+            () -> Session.open(TENANT_ID, CLIENT_APP_ID, nullUserId(), EXPIRES_AT, NOW, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("UserId");
   }
@@ -152,7 +154,7 @@ class SessionTest {
   void open_withNullExpiresAt_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () -> Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, nullInstant(), NOW, null, null))
+            () -> Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, nullInstant(), NOW, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ExpiresAt");
   }
@@ -161,7 +163,7 @@ class SessionTest {
   void open_withNullNow_throwsException() {
     // Given / When / Then
     assertThatThrownBy(
-            () -> Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, EXPIRES_AT, nullInstant(), null, null))
+            () -> Session.open(TENANT_ID, CLIENT_APP_ID, USER_ID, EXPIRES_AT, nullInstant(), null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Now");
   }

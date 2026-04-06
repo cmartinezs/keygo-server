@@ -21,13 +21,17 @@ import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
+import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
+import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -103,6 +107,8 @@ class CreateAppContractUseCaseTest {
             .name("Test App")
             .clientId(ClientId.of("test-app"))
             .status(ClientAppStatus.ACTIVE)
+            .type(ClientType.PUBLIC)
+            .accessPolicy(new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of()))
             .build();
     when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.of(clientApp));
 
@@ -181,6 +187,8 @@ class CreateAppContractUseCaseTest {
             .name("Test App")
             .clientId(ClientId.of("test-app"))
             .status(ClientAppStatus.ACTIVE)
+            .type(ClientType.PUBLIC)
+            .accessPolicy(new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of()))
             .build();
     when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.of(clientApp));
 

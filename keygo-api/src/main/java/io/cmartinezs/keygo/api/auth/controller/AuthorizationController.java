@@ -431,11 +431,12 @@ public class AuthorizationController {
     String email = null;
     String name = null;
     List<String> roles = List.of();
+    TenantId resolvedTenantId = null;
     var tenantOpt = tenantRepository.findBySlug(new TenantSlug(tenantSlug));
     if (tenantOpt.isPresent()) {
-      TenantId tenantId = tenantOpt.get().getId();
+      resolvedTenantId = tenantOpt.get().getId();
       UUID userUUID = UUID.fromString(exchangeResult.userId());
-      var userOpt = userRepository.findByIdAndTenantId(new UserId(userUUID), tenantId);
+      var userOpt = userRepository.findByIdAndTenantId(new UserId(userUUID), resolvedTenantId);
       if (userOpt.isPresent()) {
         var user = userOpt.get();
         email = user.getEmail() != null ? user.getEmail().value() : null;
@@ -443,17 +444,18 @@ public class AuthorizationController {
       }
       // Resolver clientApp UUID para obtener roles de la membresía
       var clientAppOpt = clientAppRepository.findByClientIdAndTenantId(
-          new ClientId(exchangeResult.clientId()), tenantId);
+          new ClientId(exchangeResult.clientId()), resolvedTenantId);
       if (clientAppOpt.isPresent()) {
         UUID clientAppUUID = clientAppOpt.get().getId().value();
         roles = membershipRepository.findEffectiveRoleCodesByUserAndClientApp(userUUID, clientAppUUID);
       }
     }
 
-    // 3. Emitir access_token + id_token (incluye claim roles)
+    // 3. Emitir access_token + id_token (incluye claim roles y clave tenant-scoped)
     String issuer = issuerBaseUrl + "/api/v1/tenants/" + tenantSlug;
     IssueTokensResult tokenResult =
         issueTokensUseCase.execute(
+            resolvedTenantId,    // nuevo: TenantId para seleccionar la clave correcta
             issuer,
             exchangeResult.userId(),
             exchangeResult.clientId(),
@@ -464,9 +466,11 @@ public class AuthorizationController {
             exchangeResult.authorizationCodeId(),
             roles);
 
-    // 4. Abrir sesión
+    // 4. Abrir sesión — incluye el ID de la clave firmante para auditoría
     Instant sessionExpiresAt = now.plus(REFRESH_TOKEN_TTL);
-    String tenantIdStr = resolveTenantId(tenantSlug);
+    String tenantIdStr = resolvedTenantId != null
+        ? resolvedTenantId.value().toString()
+        : resolveTenantId(tenantSlug);
     String clientAppIdStr = resolveClientAppId(tenantIdStr, request.clientId());
     var sessionResult =
         openSessionUseCase.execute(
@@ -477,9 +481,10 @@ public class AuthorizationController {
                 sessionExpiresAt,
                 now,
                 null,
-                null));
+                null,
+                tokenResult.signingKeyId()));   // nuevo: auditoría de clave firmante
 
-    // 5. Generar refresh token
+    // 5. Generar refresh token — incluye el ID de la clave firmante
     String rawRefreshToken = generateSecureToken();
     String tokenHash = sha256Hex(rawRefreshToken);
     var refreshToken =
@@ -491,7 +496,8 @@ public class AuthorizationController {
             SessionId.from(UUID.fromString(sessionResult.sessionId())),
             exchangeResult.scope(),
             sessionExpiresAt,
-            now);
+            now,
+            tokenResult.signingKeyId());   // nuevo: auditoría de clave firmante
     refreshTokenRepository.save(refreshToken);
 
     var responseData =

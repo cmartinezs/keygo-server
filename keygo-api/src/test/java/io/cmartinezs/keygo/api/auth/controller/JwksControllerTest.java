@@ -37,7 +37,7 @@ class JwksControllerTest {
     var jwkSet =
         Map.<String, Object>of(
             "keys", List.of(Map.of("kid", "kid-1", "kty", "RSA", "use", "sig", "alg", "RS256")));
-    when(getJwksUseCase.execute()).thenReturn(jwkSet);
+    when(getJwksUseCase.execute("my-tenant")).thenReturn(jwkSet);
 
     // When / Then
     mockMvc
@@ -53,7 +53,7 @@ class JwksControllerTest {
     // Given
     setUp();
     var jwkSet = Map.<String, Object>of("keys", List.of());
-    when(getJwksUseCase.execute()).thenReturn(jwkSet);
+    when(getJwksUseCase.execute("my-tenant")).thenReturn(jwkSet);
 
     // When / Then
     mockMvc

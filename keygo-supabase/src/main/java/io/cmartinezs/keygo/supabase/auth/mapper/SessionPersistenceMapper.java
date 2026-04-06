@@ -7,6 +7,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.supabase.auth.entity.SessionEntity;
+import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
@@ -19,6 +20,9 @@ import lombok.experimental.UtilityClass;
 public class SessionPersistenceMapper {
 
   public static Session toDomain(SessionEntity entity) {
+    String signingKeyId = entity.getSigningKey() != null
+        ? entity.getSigningKey().getId().toString()
+        : null;
     return Session.reconstitute(
         SessionId.from(entity.getId()),
         new TenantId(entity.getTenant().getId()),
@@ -29,14 +33,16 @@ public class SessionPersistenceMapper {
         entity.getLastAccessedAt(),
         entity.getUserAgent(),
         entity.getIpAddress(),
-        entity.getCreatedAt());
+        entity.getCreatedAt(),
+        signingKeyId);
   }
 
   public static SessionEntity toEntity(
       Session session,
       TenantEntity tenantEntity,
       ClientAppEntity clientAppEntity,
-      TenantUserEntity userEntity) {
+      TenantUserEntity userEntity,
+      SigningKeyEntity signingKeyEntity) {
     return SessionEntity.builder()
         .id(session.getId().value())
         .tenant(tenantEntity)
@@ -47,7 +53,7 @@ public class SessionPersistenceMapper {
         .lastAccessedAt(session.getLastAccessedAt())
         .userAgent(session.getUserAgent())
         .ipAddress(session.getIpAddress())
+        .signingKey(signingKeyEntity)
         .build();
   }
 }
-

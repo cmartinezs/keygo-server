@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.user.entity;
 
+import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,11 +33,15 @@ public class UserNotificationPreferencesEntity {
   @Column(name = "id", nullable = false)
   private UUID id;
 
-  @Column(name = "user_id", nullable = false)
-  private UUID userId;
+  /** Relación con el usuario tenant propietario de las preferencias. FK: user_id → tenant_users(id) */
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private TenantUserEntity user;
 
-  @Column(name = "tenant_id", nullable = false)
-  private UUID tenantId;
+  /** Relación con el tenant al que pertenece el registro. FK: tenant_id → tenants(id) */
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "tenant_id", nullable = false)
+  private TenantEntity tenant;
 
   @Column(name = "security_alerts_email", nullable = false)
   private boolean securityAlertsEmail;

@@ -14,10 +14,7 @@ public interface NotificationPreferencesJpaRepository
 
   /**
    * Busca las preferencias de notificación de un usuario en un tenant.
-   *
-   * @param userId   UUID del usuario
-   * @param tenantId UUID del tenant
-   * @return preferencias si existen
+   * Usa traversal Spring Data JPA sobre las asociaciones @ManyToOne.
    */
-  Optional<UserNotificationPreferencesEntity> findByUserIdAndTenantId(UUID userId, UUID tenantId);
+  Optional<UserNotificationPreferencesEntity> findByUser_IdAndTenant_Id(UUID userId, UUID tenantId);
 }

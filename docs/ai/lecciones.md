@@ -8,7 +8,49 @@
 
 ---
 
-### [2026-04-06] i18n: `Accept-Language: en-US` no respetado — mensajes de errores de filtro salen en el locale del JVM
+### [2026-04-06] Entidades JPA huérfanas: relaciones `@ManyToOne` en lugar de UUID crudos
+
+**Contexto:** `UserNotificationPreferencesEntity` y `SigningKeyEntity` no tenían FKs JPA correctas. La primera usaba campos `UUID userId/tenantId` sin `@ManyToOne`; la segunda no tenía `tenant_id` en absoluto (genuinamente huérfana en la BD).
+
+**Problema:**
+- `UserNotificationPreferencesEntity`: campos `UUID userId/tenantId` sin `@ManyToOne` — Spring Data no puede derivar queries de traversal (`findByUser_IdAndTenant_Id`) y pierde integridad referencial a nivel JPA.
+- `SigningKeyEntity`: sin `tenant_id` FK. La URL del endpoint JWKS ya era tenant-scoped (`/{slug}/.well-known/jwks.json`) pero el use case ignoraba el tenant al resolver la clave.
+- `sessions` y `refresh_tokens`: sin `signing_key_id` FK → imposible auditar qué clave firmó cada token.
+
+**Solución / Buena práctica:**
+1. Reemplazar campos UUID crudos por `@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="...")` en las entidades.
+2. Usar `getReferenceById()` en adapters (no `findById()`) para setear FKs sin SELECT adicional — Hibernate genera un proxy y solo emite la FK.
+3. Para queries Spring Data con traversal, usar notación `findByUser_IdAndTenant_Id` (separador `_` indica navegación de asociación).
+4. `signingKeyId` en dominio: mantener como `String` (no `SigningKeyId` VO) para evitar acoplamiento entre agregados. Solo la capa de persistencia materializa la FK.
+5. Tenant-scoped signing key con fallback global: `findActiveKeyForTenant(tenantId)` primero busca clave del tenant, luego `tenant IS NULL`. Esto permite migración gradual sin romper tenants existentes.
+
+**Archivos clave:**
+- `keygo-supabase/.../user/entity/UserNotificationPreferencesEntity.java` — `@ManyToOne` reemplaza UUID
+- `keygo-supabase/.../auth/entity/SigningKeyEntity.java` — nueva relación `@ManyToOne TenantEntity tenant` (nullable)
+- `keygo-supabase/.../auth/entity/SessionEntity.java` / `RefreshTokenEntity.java` — nueva FK `signing_key_id` (nullable)
+- `keygo-supabase/.../auth/repository/SigningKeyJpaRepository.java` — métodos tenant-aware reemplazan `findFirstByStatus`
+- `keygo-supabase/src/main/resources/db/migration/V22__signing_key_tenant_scope_and_audit_refs.sql`
+
+---
+
+### [2026-04-06] Tests: actualizar stubs cuando cambian firmas de métodos en repositorios
+
+**Contexto:** Al renombrar métodos en `SigningKeyJpaRepository` (de `findFirstByStatus` a `findFirstByTenantIsNullAndStatus` y `findFirstByTenant_IdAndStatus`), los tests de adapter, mapper y use cases seguían usando los nombres antiguos.
+
+**Problema:** Errores de compilación en cascada en tests de `keygo-supabase`, `keygo-app` y `keygo-api`. También afectó `PlatformDashboardAdapter` que era código de producción usando el método renombrado.
+
+**Solución / Buena práctica:**
+- Al renombrar un método de repositorio JPA, buscar todas las referencias con grep antes de considerar completo el cambio: `grep -r "findFirstByStatus" --include="*.java"`.
+- Los archivos afectados por cambios en firmas de métodos deben actualizarse en la misma sesión de implementación, incluyendo: adapters, mappers, tests de adapters, tests de mappers, y cualquier otro adapter de plataforma que use el mismo repositorio.
+- Para nuevos parámetros opcionales en métodos de dominio (como `signingKeyId` nullable), agregar `null` como último arg en todos los tests existentes para mantener compatibilidad sin cambiar el comportamiento de los tests.
+
+**Archivos clave:**
+- `SigningKeyRepositoryAdapterTest.java` — constructor + stubs actualizados
+- `SigningKeyPersistenceMapperTest.java` — `toEntity(domain, null)` en lugar de `toEntity(domain)`
+- `PlatformDashboardAdapter.java` — `findFirstByTenantIsNullAndStatus("ACTIVE")` en lugar de `findFirstByStatus`
+- `JwksControllerTest.java` — stubs `execute("my-tenant")` en lugar de `execute()`
+
+
 
 **Contexto:** Peticiones con `Accept-Language: en-US` recibían `client_message` en español en errores de la API (especialmente errores 401/403 generados en filtros de seguridad).
 

@@ -38,7 +38,7 @@ class RevokeTokenUseCaseTest {
         new ClientAppId(UUID.randomUUID()),
         new UserId(UUID.randomUUID()),
         SessionId.generate(),
-        "openid", Instant.now().plusSeconds(86400), Instant.now());
+        "openid", Instant.now().plusSeconds(86400), Instant.now(), null);
   }
 
   @Test

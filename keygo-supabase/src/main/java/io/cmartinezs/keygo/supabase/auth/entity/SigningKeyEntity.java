@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.auth.entity;
 
+import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
@@ -49,6 +50,15 @@ public class SigningKeyEntity {
 
   @Column(name = "retired_at")
   private Instant retiredAt;
+
+  /**
+   * Tenant propietario de esta clave.
+   * NULL = clave global de plataforma (fallback para todos los tenants).
+   * FK: tenant_id → tenants(id)
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "tenant_id")
+  private TenantEntity tenant;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

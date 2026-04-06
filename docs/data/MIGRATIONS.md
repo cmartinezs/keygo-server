@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-04-02  
+rfc> **Última actualización:** 2026-04-06  
 > **Reestructuración total (2026-03-30):** V1–V17 reemplazadas por **V1–V18** con modelo v2 de billing integrado desde el origen. Backup en `backup_20260330/`.  
-> **Próxima migración:** `V22__...`
+> **Próxima migración:** `V23__...`
 
 ---
 
@@ -51,6 +51,10 @@ V{numero}__{descripcion_con_underscores}.sql
 | V16 | `V16__seed_foundation.sql`                  | Seed      | Tenants `keygo`+`demo`, apps, usuarios (incluye `keygo_contractor`), roles, memberships |
 | V17 | `V17__seed_billing_plans.sql`               | Seed      | Planes FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE + versiones v1.0 + billing options + entitlements (USD) |
 | V18 | `V18__seed_contractors.sql`                 | Seed      | `keygo_contractor`, `contractors` ACTIVE, contrato ACTIVE plan PERSONAL, suscripción ACTIVE, tenant `acme` |
+| V19 | `V19__user_status_reset_password.sql`       | Auth      | Columna `status=RESET_PASSWORD` en `tenant_users`; tabla `password_reset_tokens` |
+| V20 | `V20__add_app_role_hierarchy.sql`           | Core      | Tabla `app_role_hierarchy` (parent/child, restricciones de ciclo, profundidad ≤5), índices, CTE recursiva |
+| V21 | `V21__user_notification_preferences.sql`   | Core      | Tabla `user_notification_preferences` (5 flags boolean, UNIQUE `user_id+tenant_id`) |
+| V22 | `V22__signing_key_tenant_scope_and_audit_refs.sql` | Auth | `tenant_id` en `signing_keys` (nullable, FK → tenants); `signing_key_id` en `sessions` y `refresh_tokens` (nullable, FK → signing_keys) |
 
 ---
 

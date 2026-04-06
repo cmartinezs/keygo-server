@@ -303,11 +303,13 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 - `V17__seed_billing_plans.sql` — Seed: planes FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE + versiones v1.0 + billing options + entitlements (escalera completa)
 - `V18__seed_contractors.sql` — Seed: `keygo_contractor` (TenantUser en keygo), `contractors` record ACTIVE, contrato ACTIVE plan PERSONAL, suscripción ACTIVE, tenant `acme` vinculado
 
+- `V22__signing_key_tenant_scope_and_audit_refs.sql` — `tenant_id` en `signing_keys` (nullable, FK a tenants); `signing_key_id` en `sessions` y `refresh_tokens` (nullable, FK a signing_keys para auditoría)
+
 - `V19__user_status_reset_password.sql` — Columna `status=RESET_PASSWORD` en `tenant_users`; tabla `password_reset_tokens`
 - `V20__add_app_role_hierarchy.sql` — Tabla `app_role_hierarchy` (parent/child, restricciones de ciclo, profundidad ≤5), índices, CTE recursiva para expansión de roles en JWT
 - `V21__user_notification_preferences.sql` — Tabla `user_notification_preferences` (5 flags boolean, UNIQUE `user_id+tenant_id`)
 
-Next migration must be `V22__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V23__...`. **Never reuse or edit existing migration files.**
 
 **Seed convention — foreign keys via subquery (mandatory):**  
 When a seed row references a parent table's PK, **never hardcode the UUID**. Always use a `SELECT` subquery with a `WHERE` on a unique, human-readable field:
@@ -521,6 +523,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-04-06 | **Entidades JPA huérfanas corregidas:** `UserNotificationPreferencesEntity` — `UUID userId/tenantId` → `@ManyToOne TenantUserEntity user` + `@ManyToOne TenantEntity tenant`; `SigningKeyEntity` — nueva FK `@ManyToOne TenantEntity tenant` (nullable); `SessionEntity` + `RefreshTokenEntity` — nueva FK `@ManyToOne SigningKeyEntity signingKey` (nullable). Migración `V22__signing_key_tenant_scope_and_audit_refs.sql`. Dominios `Session`/`RefreshToken`/`SigningKey` actualizados con `signingKeyId`/`tenantId` nuevos. Puertos `findActiveKeyForTenant`/`findPublishableKeysForTenant` en `SigningKeyRepositoryPort`. `IssueTokensUseCase.execute()` ahora recibe `TenantId` como primer parámetro. `GetJwksUseCase.execute(tenantSlug)` tenant-aware con `TenantRepositoryPort`. `JwksController` pasa `tenantSlug` al use case. Próxima migración: `V23__...`. |
 | 2026-04-04 | **Flujo reset-password con requestId:** `SendPasswordResetCodeUseCase` ahora retorna `SendPasswordResetCodeResult(requestId)` con el UUID persistido. Login bloqueado (401) incluye `reset_code_id` en `data`. `ResetPasswordCommand` usa `requestId` en lugar de `email`. `ResetPasswordUseCase` valida código antes de buscar usuario (seguridad anti-enumeración). `PasswordResetCodeRepositoryPort.findById(UUID)` agregado. Nueva excepción `PasswordResetRequestNotFoundException` (404). Nuevo endpoint `POST /account/reset-password` documentado. 12 tests nuevos/actualizados. |
 | 2026-04-04 | **KeyGoTracingAspect (AOP input/output):** `@Around` en `keygo-run/aop/` intercepta todos los métodos en `io.cmartinezs.keygo.*` (excepto getters/setters y `@NoLog`). Log DEBUG: `[TRACE_IN] Clase.metodo(param=valor)` / `[TRACE_OUT] ... → resultado [Xms]` / `[TRACE_ERR] ... ⚠ ExceptionType: msg [Xms]`. Parámetros con nombres sensibles (password, secret, token, etc.) → `[REDACTED]`. Fast-path si DEBUG no activo. Activable vía `keygo.tracing.method-logging-enabled`. Starter: `spring-boot-starter-aspectj` (Spring Boot 4 renombró `starter-aop`). Anotación `@NoLog` para excluir métodos/clases. 6 tests unitarios. |
 | 2026-04-03 | **Corrección `logback-spring.xml`:** 3 bugs: `%clr` no registrado → `<include resource="org/springframework/boot/logging/logback/defaults.xml"/>` al inicio del XML; appender `CONSOLE` movido dentro de `<springProfile>`; `\[` / `\]` → `[` / `]` (no se escapan en Logback). Condición cambiada de `!local` a `!(desa \| prod)`. `management.metrics.web.server.request.autotime` eliminado (deprecado SB4). `HttpStatus.UNPROCESSABLE_ENTITY` → `UNPROCESSABLE_CONTENT` en `GlobalExceptionHandlerTest`. |

@@ -31,6 +31,8 @@ public class Session {
   private final String userAgent;
   private final String ipAddress;
   private final Instant createdAt;
+  /** UUID (como String) de la clave RSA que firmó los tokens de apertura. Nullable para sesiones legacy. */
+  private final String signingKeyId;
 
   private Session(
       SessionId id,
@@ -42,7 +44,8 @@ public class Session {
       Instant lastAccessedAt,
       String userAgent,
       String ipAddress,
-      Instant createdAt) {
+      Instant createdAt,
+      String signingKeyId) {
     this.id = id;
     this.tenantId = tenantId;
     this.clientAppId = clientAppId;
@@ -53,18 +56,20 @@ public class Session {
     this.userAgent = userAgent;
     this.ipAddress = ipAddress;
     this.createdAt = createdAt;
+    this.signingKeyId = signingKeyId;
   }
 
   /**
    * Factory method: crea una sesión nueva en estado ACTIVE.
    *
-   * @param tenantId    tenant propietario
-   * @param clientAppId app cliente
-   * @param userId      usuario
-   * @param expiresAt   expiración de la sesión
-   * @param now         instante de creación
-   * @param userAgent   user-agent del cliente (nullable)
-   * @param ipAddress   dirección IP del cliente (nullable)
+   * @param tenantId     tenant propietario
+   * @param clientAppId  app cliente
+   * @param userId       usuario
+   * @param expiresAt    expiración de la sesión
+   * @param now          instante de creación
+   * @param userAgent    user-agent del cliente (nullable)
+   * @param ipAddress    dirección IP del cliente (nullable)
+   * @param signingKeyId UUID de la clave RSA usada (nullable)
    * @return nueva sesión en estado ACTIVE
    */
   public static Session open(
@@ -74,7 +79,8 @@ public class Session {
       Instant expiresAt,
       Instant now,
       String userAgent,
-      String ipAddress) {
+      String ipAddress,
+      String signingKeyId) {
     if (tenantId == null) throw new IllegalArgumentException("TenantId cannot be null");
     if (clientAppId == null) throw new IllegalArgumentException("ClientAppId cannot be null");
     if (userId == null) throw new IllegalArgumentException("UserId cannot be null");
@@ -83,20 +89,13 @@ public class Session {
 
     return new Session(
         SessionId.generate(),
-        tenantId,
-        clientAppId,
-        userId,
+        tenantId, clientAppId, userId,
         SessionStatus.ACTIVE,
-        expiresAt,
-        now,
-        userAgent,
-        ipAddress,
-        now);
+        expiresAt, now, userAgent, ipAddress, now,
+        signingKeyId);
   }
 
-  /**
-   * Reconstruye una sesión desde persistencia.
-   */
+  /** Reconstruye una sesión desde persistencia. */
   public static Session reconstitute(
       SessionId id,
       TenantId tenantId,
@@ -107,8 +106,10 @@ public class Session {
       Instant lastAccessedAt,
       String userAgent,
       String ipAddress,
-      Instant createdAt) {
-    return new Session(id, tenantId, clientAppId, userId, status, expiresAt, lastAccessedAt, userAgent, ipAddress, createdAt);
+      Instant createdAt,
+      String signingKeyId) {
+    return new Session(id, tenantId, clientAppId, userId, status, expiresAt,
+        lastAccessedAt, userAgent, ipAddress, createdAt, signingKeyId);
   }
 
   /** @return true si la sesión está activa */
@@ -119,7 +120,7 @@ public class Session {
   /**
    * Termina la sesión. Solo aplicable si está ACTIVE.
    *
-   * @throws IllegalStateException si la sesión no está ACTIVE
+   * @throws SessionInvalidStateException si la sesión no está ACTIVE
    */
   public void terminate() {
     if (status != SessionStatus.ACTIVE) {
@@ -138,4 +139,3 @@ public class Session {
     this.lastAccessedAt = accessedAt;
   }
 }
-

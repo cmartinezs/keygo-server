@@ -67,6 +67,14 @@ public class RefreshTokenEntity {
   @JoinColumn(name = "replaced_by_id")
   private RefreshTokenEntity replacedBy;
 
+  /**
+   * Clave RSA que firmó el access_token emitido junto a este RT.
+   * Nullable — RT legacy anterior a V22 no tiene este dato.
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "signing_key_id")
+  private SigningKeyEntity signingKey;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;

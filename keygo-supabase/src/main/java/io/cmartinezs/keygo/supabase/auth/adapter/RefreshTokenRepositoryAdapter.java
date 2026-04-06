@@ -6,9 +6,11 @@ import io.cmartinezs.keygo.domain.auth.model.RefreshTokenId;
 import io.cmartinezs.keygo.domain.auth.model.RefreshTokenStatus;
 import io.cmartinezs.keygo.domain.auth.model.SessionId;
 import io.cmartinezs.keygo.supabase.auth.entity.RefreshTokenEntity;
+import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.auth.mapper.RefreshTokenPersistenceMapper;
 import io.cmartinezs.keygo.supabase.auth.repository.RefreshTokenJpaRepository;
 import io.cmartinezs.keygo.supabase.auth.repository.SessionJpaRepository;
+import io.cmartinezs.keygo.supabase.auth.repository.SigningKeyJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
 import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
@@ -28,18 +30,21 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort
   private final TenantJpaRepository tenantJpaRepository;
   private final ClientAppJpaRepository clientAppJpaRepository;
   private final TenantUserJpaRepository tenantUserJpaRepository;
+  private final SigningKeyJpaRepository signingKeyJpaRepository;
 
   public RefreshTokenRepositoryAdapter(
       RefreshTokenJpaRepository refreshTokenJpaRepository,
       SessionJpaRepository sessionJpaRepository,
       TenantJpaRepository tenantJpaRepository,
       ClientAppJpaRepository clientAppJpaRepository,
-      TenantUserJpaRepository tenantUserJpaRepository) {
+      TenantUserJpaRepository tenantUserJpaRepository,
+      SigningKeyJpaRepository signingKeyJpaRepository) {
     this.refreshTokenJpaRepository = refreshTokenJpaRepository;
     this.sessionJpaRepository = sessionJpaRepository;
     this.tenantJpaRepository = tenantJpaRepository;
     this.clientAppJpaRepository = clientAppJpaRepository;
     this.tenantUserJpaRepository = tenantUserJpaRepository;
+    this.signingKeyJpaRepository = signingKeyJpaRepository;
   }
 
   @Override
@@ -59,8 +64,20 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort
           .orElse(null);
     }
 
+    // Resolución opcional del SigningKey para auditoría
+    SigningKeyEntity signingKeyEntity = null;
+    if (refreshToken.getSigningKeyId() != null) {
+      try {
+        signingKeyEntity = signingKeyJpaRepository.getReferenceById(
+            java.util.UUID.fromString(refreshToken.getSigningKeyId()));
+      } catch (IllegalArgumentException ignored) {
+        // UUID inválido — no bloqueante
+      }
+    }
+
     var entity = RefreshTokenPersistenceMapper.toEntity(
-        refreshToken, tenantEntity, clientAppEntity, userEntity, sessionEntity, replacedByEntity);
+        refreshToken, tenantEntity, clientAppEntity, userEntity, sessionEntity,
+        replacedByEntity, signingKeyEntity);
     var saved = refreshTokenJpaRepository.save(entity);
     return RefreshTokenPersistenceMapper.toDomain(saved);
   }

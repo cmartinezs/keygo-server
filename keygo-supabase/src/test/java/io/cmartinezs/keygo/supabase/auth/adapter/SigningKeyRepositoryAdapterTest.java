@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.domain.auth.model.SigningKey;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyStatus;
 import io.cmartinezs.keygo.supabase.auth.entity.SigningKeyEntity;
 import io.cmartinezs.keygo.supabase.auth.repository.SigningKeyJpaRepository;
+import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.*;
 class SigningKeyRepositoryAdapterTest {
 
   @Mock SigningKeyJpaRepository jpaRepository;
+  @Mock TenantJpaRepository tenantJpaRepository;
 
   SigningKeyRepositoryAdapter adapter;
 
@@ -38,14 +40,14 @@ class SigningKeyRepositoryAdapterTest {
 
   @BeforeEach
   void setUp() {
-    adapter = new SigningKeyRepositoryAdapter(jpaRepository);
+    adapter = new SigningKeyRepositoryAdapter(jpaRepository, tenantJpaRepository);
   }
 
   @Test
   void givenActiveKey_whenFindActiveKey_thenReturnsDomain() {
     // Given
     var entity = buildEntity("ACTIVE");
-    when(jpaRepository.findFirstByStatus("ACTIVE")).thenReturn(Optional.of(entity));
+    when(jpaRepository.findFirstByTenantIsNullAndStatus("ACTIVE")).thenReturn(Optional.of(entity));
 
     // When
     Optional<SigningKey> result = adapter.findActiveKey();
@@ -59,7 +61,7 @@ class SigningKeyRepositoryAdapterTest {
   @Test
   void givenNoActiveKey_whenFindActiveKey_thenReturnsEmpty() {
     // Given
-    when(jpaRepository.findFirstByStatus("ACTIVE")).thenReturn(Optional.empty());
+    when(jpaRepository.findFirstByTenantIsNullAndStatus("ACTIVE")).thenReturn(Optional.empty());
 
     // When / Then
     assertThat(adapter.findActiveKey()).isEmpty();

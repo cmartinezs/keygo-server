@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import io.cmartinezs.keygo.app.auth.port.JwksBuilderPort;
 import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
+import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.auth.model.SigningKey;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyAlgorithm;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyId;
@@ -23,12 +24,13 @@ class GetJwksUseCaseTest {
 
   @Mock SigningKeyRepositoryPort signingKeyRepository;
   @Mock JwksBuilderPort jwksBuilder;
+  @Mock TenantRepositoryPort tenantRepository;
 
   GetJwksUseCase useCase;
 
   @BeforeEach
   void setUp() {
-    useCase = new GetJwksUseCase(signingKeyRepository, jwksBuilder);
+    useCase = new GetJwksUseCase(signingKeyRepository, jwksBuilder, tenantRepository);
   }
 
   @Test

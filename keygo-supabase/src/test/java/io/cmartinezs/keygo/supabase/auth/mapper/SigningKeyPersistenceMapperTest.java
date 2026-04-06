@@ -52,7 +52,7 @@ class SigningKeyPersistenceMapperTest {
         .build();
 
     // When
-    SigningKeyEntity entity = SigningKeyPersistenceMapper.toEntity(domain);
+    SigningKeyEntity entity = SigningKeyPersistenceMapper.toEntity(domain, null);  // null = clave global, sin tenant
 
     // Then
     assertThat(entity.getKid()).isEqualTo("kid-42");
