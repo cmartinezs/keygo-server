@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.user.repository;
 
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import io.cmartinezs.keygo.supabase.user.entity.VerificationCodeEntity;
 import jakarta.persistence.LockModeType;
@@ -26,18 +27,24 @@ public interface VerificationCodeJpaRepository extends JpaRepository<Verificatio
   /** Busca por tenant_user_id y purpose. */
   Optional<VerificationCodeEntity> findByTenantUser_IdAndPurpose(UUID tenantUserId, String purpose);
 
+  /** Busca por platform_user_id y purpose. */
+  Optional<VerificationCodeEntity> findByPlatformUser_IdAndPurpose(UUID platformUserId, String purpose);
+
   /** Busca por código y propósito. */
   Optional<VerificationCodeEntity> findByCodeAndPurpose(String code, String purpose);
 
-  /** Busca el más reciente para un usuario + propósito, ordenado por created_at DESC. */
-  Optional<VerificationCodeEntity> findTopByTenantUserAndPurposeOrderByCreatedAtDesc(
-      TenantUserEntity tenantUser, String purpose);
-
-  /** Igual al anterior pero con lock pesimista para upsertIfExpiredOrAbsent. */
+  /** Busca el más reciente para un tenant_user + propósito con lock pesimista. */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT v FROM VerificationCodeEntity v WHERE v.tenantUser = :user AND v.purpose = :purpose ORDER BY v.createdAt DESC LIMIT 1")
   Optional<VerificationCodeEntity> findLatestWithLock(
       @Param("user") TenantUserEntity user,
+      @Param("purpose") String purpose);
+
+  /** Busca el más reciente para un platform_user + propósito con lock pesimista. */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT v FROM VerificationCodeEntity v WHERE v.platformUser = :user AND v.purpose = :purpose ORDER BY v.createdAt DESC LIMIT 1")
+  Optional<VerificationCodeEntity> findLatestPlatformUserWithLock(
+      @Param("user") PlatformUserEntity user,
       @Param("purpose") String purpose);
 
   /** Marca el código como usado. */

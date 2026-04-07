@@ -32,6 +32,7 @@ import java.util.UUID;
     name = "verification_codes",
     indexes = {
         @Index(name = "idx_vc_tenant_user", columnList = "tenant_user_id"),
+        @Index(name = "idx_vc_platform_user", columnList = "platform_user_id"),
         @Index(name = "idx_vc_code", columnList = "code"),
         @Index(name = "idx_vc_purpose", columnList = "purpose")
     })
@@ -41,9 +42,13 @@ public class VerificationCodeEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "tenant_user_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "tenant_user_id")
   private TenantUserEntity tenantUser;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "platform_user_id")
+  private PlatformUserEntity platformUser;
 
   @Column(nullable = false, length = 30)
   private String purpose;
@@ -64,4 +69,14 @@ public class VerificationCodeEntity {
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
+
+  /**
+   * Retorna el UUID del usuario propietario (tenant o plataforma).
+   */
+  public UUID getOwnerUserId() {
+    if (platformUser != null) {
+      return platformUser.getId();
+    }
+    return tenantUser != null ? tenantUser.getId() : null;
+  }
 }

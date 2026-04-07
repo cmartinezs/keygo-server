@@ -862,6 +862,26 @@ public class GlobalExceptionHandler {
    * @param ex the exception / la excepción
    * @return ResponseEntity with error details / ResponseEntity con detalles del error
    */
+  /**
+   * Handles database/persistence exceptions — returns 500 without exposing SQL details.
+   * Intercepta DataAccessException y subclases (DataIntegrityViolationException, etc.).
+   * Nunca expone el mensaje original al cliente (contiene SQL y nombres de tablas).
+   */
+  @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDataAccessException(
+      org.springframework.dao.DataAccessException ex) {
+    log.error("Database error: {}", ex.getMessage(), ex);
+    BaseResponse<ErrorData> response = BaseResponse.<ErrorData>builder()
+        .failure(ResponseHelper.message(ResponseCode.DATABASE_ERROR))
+        .data(apiErrorDataFactory.fromDetail(
+            ResponseCode.DATABASE_ERROR,
+            null,
+            null,
+            false))
+        .build();
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<BaseResponse<ErrorData>> handleGenericException(Exception ex) {
     log.error("Unexpected error occurred: {}", ex.getMessage(), ex);

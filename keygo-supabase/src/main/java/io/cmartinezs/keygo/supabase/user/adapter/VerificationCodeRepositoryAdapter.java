@@ -4,8 +4,10 @@ import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.VerificationCode;
 import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import io.cmartinezs.keygo.supabase.user.entity.VerificationCodeEntity;
+import io.cmartinezs.keygo.supabase.user.repository.PlatformUserJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.VerificationCodeJpaRepository;
 import org.springframework.stereotype.Repository;
@@ -18,8 +20,8 @@ import java.util.UUID;
 /**
  * Adaptador JPA unificado para {@link VerificationCodeRepositoryPort}.
  *
- * <p>Consolida los anteriores {@code EmailVerificationRepositoryAdapter},
- * {@code PasswordResetCodeRepositoryAdapter} y {@code PasswordRecoveryTokenRepositoryAdapter}.
+ * <p>Soporta tanto usuarios de tenant ({@code tenant_user_id}) como usuarios de plataforma
+ * ({@code platform_user_id}). Detecta automáticamente a qué tabla pertenece el {@code userId}.
  *
  * @author cmartinezs
  * @version 1.0
@@ -29,23 +31,26 @@ public class VerificationCodeRepositoryAdapter implements VerificationCodeReposi
 
   private final VerificationCodeJpaRepository jpaRepository;
   private final TenantUserJpaRepository tenantUserJpaRepository;
+  private final PlatformUserJpaRepository platformUserJpaRepository;
 
   public VerificationCodeRepositoryAdapter(
       VerificationCodeJpaRepository jpaRepository,
-      TenantUserJpaRepository tenantUserJpaRepository) {
+      TenantUserJpaRepository tenantUserJpaRepository,
+      PlatformUserJpaRepository platformUserJpaRepository) {
     this.jpaRepository = jpaRepository;
     this.tenantUserJpaRepository = tenantUserJpaRepository;
+    this.platformUserJpaRepository = platformUserJpaRepository;
   }
 
   @Override
   @Transactional
   public VerificationCode upsert(VerificationCode domainCode) {
-    TenantUserEntity userProxy = tenantUserJpaRepository.getReferenceById(domainCode.getUserId().value());
+    UUID userId = domainCode.getUserId().value();
+    boolean isPlatformUser = isPlatformUser(userId);
 
-    Optional<VerificationCodeEntity> existing =
-        jpaRepository.findByTenantUser_IdAndPurpose(
-            domainCode.getUserId().value(),
-            domainCode.getPurpose().name());
+    Optional<VerificationCodeEntity> existing = isPlatformUser
+        ? jpaRepository.findByPlatformUser_IdAndPurpose(userId, domainCode.getPurpose().name())
+        : jpaRepository.findByTenantUser_IdAndPurpose(userId, domainCode.getPurpose().name());
 
     VerificationCodeEntity entity;
     if (existing.isPresent()) {
@@ -54,7 +59,7 @@ public class VerificationCodeRepositoryAdapter implements VerificationCodeReposi
       entity.setExpiresAt(domainCode.getExpiresAt());
       entity.setUsedAt(null);
     } else {
-      entity = toEntity(domainCode, userProxy);
+      entity = toEntity(domainCode, isPlatformUser);
     }
 
     VerificationCodeEntity saved = jpaRepository.save(entity);
@@ -68,8 +73,11 @@ public class VerificationCodeRepositoryAdapter implements VerificationCodeReposi
 
   @Override
   public Optional<VerificationCode> findByUserIdAndPurpose(UserId userId, VerificationPurpose purpose) {
-    return jpaRepository.findByTenantUser_IdAndPurpose(userId.value(), purpose.name())
-        .map(this::toDomain);
+    UUID id = userId.value();
+    Optional<VerificationCodeEntity> result = isPlatformUser(id)
+        ? jpaRepository.findByPlatformUser_IdAndPurpose(id, purpose.name())
+        : jpaRepository.findByTenantUser_IdAndPurpose(id, purpose.name());
+    return result.map(this::toDomain);
   }
 
   @Override
@@ -89,47 +97,64 @@ public class VerificationCodeRepositoryAdapter implements VerificationCodeReposi
   public VerificationCode upsertIfExpiredOrAbsent(
       UserId userId, VerificationPurpose purpose, VerificationCode newCode) {
 
-    Optional<TenantUserEntity> userEntityOpt =
-        tenantUserJpaRepository.findById(userId.value());
+    UUID id = userId.value();
+    boolean isPlatform = isPlatformUser(id);
 
-    if (userEntityOpt.isPresent()) {
-      TenantUserEntity userEntity = userEntityOpt.get();
-      Optional<VerificationCodeEntity> latestOpt =
-          jpaRepository.findLatestWithLock(userEntity, purpose.name());
+    Optional<VerificationCodeEntity> latestOpt;
+    if (isPlatform) {
+      PlatformUserEntity userRef = platformUserJpaRepository.getReferenceById(id);
+      latestOpt = jpaRepository.findLatestPlatformUserWithLock(userRef, purpose.name());
+    } else {
+      TenantUserEntity userRef = tenantUserJpaRepository.getReferenceById(id);
+      latestOpt = jpaRepository.findLatestWithLock(userRef, purpose.name());
+    }
 
-      if (latestOpt.isPresent()) {
-        VerificationCodeEntity latest = latestOpt.get();
-        boolean expired = latest.getUsedAt() != null
-            || latest.getExpiresAt().isBefore(Instant.now());
-        if (!expired) {
-          return toDomain(latest);
-        }
+    if (latestOpt.isPresent()) {
+      VerificationCodeEntity latest = latestOpt.get();
+      boolean expired = latest.getUsedAt() != null
+          || latest.getExpiresAt().isBefore(Instant.now());
+      if (!expired) {
+        return toDomain(latest);
       }
     }
 
-    TenantUserEntity userProxy = tenantUserJpaRepository.getReferenceById(newCode.getUserId().value());
-    VerificationCodeEntity entity = toEntity(newCode, userProxy);
+    VerificationCodeEntity entity = toEntity(newCode, isPlatform);
     return toDomain(jpaRepository.save(entity));
   }
 
-  private VerificationCodeEntity toEntity(VerificationCode domain, TenantUserEntity userProxy) {
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  private boolean isPlatformUser(UUID userId) {
+    return platformUserJpaRepository.existsById(userId);
+  }
+
+  private VerificationCodeEntity toEntity(VerificationCode domain, boolean isPlatformUser) {
+    UUID userId = domain.getUserId().value();
     var builder = VerificationCodeEntity.builder()
-        .tenantUser(userProxy)
         .purpose(domain.getPurpose().name())
         .code(domain.getCode())
         .expiresAt(domain.getExpiresAt())
         .usedAt(domain.getUsedAt())
         .createdAt(domain.getCreatedAt());
+
     if (domain.getId() != null) {
       builder.id(domain.getId());
     }
+
+    if (isPlatformUser) {
+      builder.platformUser(platformUserJpaRepository.getReferenceById(userId));
+    } else {
+      builder.tenantUser(tenantUserJpaRepository.getReferenceById(userId));
+    }
+
     return builder.build();
   }
 
   private VerificationCode toDomain(VerificationCodeEntity entity) {
+    UUID ownerUserId = entity.getOwnerUserId();
     return VerificationCode.reconstitute(
         entity.getId(),
-        UserId.of(entity.getTenantUser().getId()),
+        UserId.of(ownerUserId),
         VerificationPurpose.valueOf(entity.getPurpose()),
         entity.getCode(),
         entity.getExpiresAt(),
