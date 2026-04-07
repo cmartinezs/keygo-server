@@ -85,12 +85,25 @@ keygo:
     template-cache-enabled: true
     default-from-address: "${KEYGO_MAIL_FROM:noreply@keygo.local}"
     default-from-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
+    copyright-holder: "KeyGo"
+    footer-links:
+      - label: "keygo.io"
+        url: "https://keygo.io"
+      - label: "Política de privacidad"
+        url: "https://keygo.io/privacy"
+      - label: "Seguridad"
+        url: "https://keygo.io/security"
+      - label: "Soporte"
+        url: "https://keygo.io/support"
     types:
       email-verification:
         subject: "Verifica tu email en KeyGo"
         from-name: "KeyGo - Verificación"
         template: "html/email-validation"
         defaults:
+          theme: "theme-brand"
+          headerTitle: "Verifica tu email"
+          headerSubtitle: "¡Bienvenido a KeyGo!"
           expiresInMinutes: 30
         subjects-i18n:
           en: "Verify your email on KeyGo"
@@ -98,6 +111,10 @@ keygo:
         subject: "Restablecer tu contraseña en KeyGo"
         from-name: "KeyGo - Seguridad"
         template: "html/password-recovery"
+        defaults:
+          theme: "theme-security"
+          headerTitle: "Restablecer contraseña"
+          headerSubtitle: "Recupera tu acceso a KeyGo"
         subjects-i18n:
           en: "Reset your password on KeyGo"
       password-reset-code:
@@ -105,6 +122,9 @@ keygo:
         from-name: "KeyGo - Seguridad"
         template: "html/password-reset-code"
         defaults:
+          theme: "theme-brand"
+          headerTitle: "Cambio de contraseña"
+          headerSubtitle: "Actualiza tu contraseña en KeyGo"
           expiresInMinutes: 15
         links:
           resetPasswordLink: "reset-password"
@@ -114,6 +134,10 @@ keygo:
         subject: "Tu contraseña temporal en KeyGo"
         from-name: "KeyGo - Cuenta"
         template: "html/temporary-password"
+        defaults:
+          theme: "theme-brand"
+          headerTitle: "Contraseña temporal"
+          headerSubtitle: "Acceso inicial a KeyGo"
         subjects-i18n:
           en: "Your temporary password on KeyGo"
       contract-verification:
@@ -121,6 +145,9 @@ keygo:
         from-name: "KeyGo - Suscripción"
         template: "html/contract-verification"
         defaults:
+          theme: "theme-brand"
+          headerTitle: "Confirma tu email"
+          headerSubtitle: "Completa tu suscripción a KeyGo"
           expiresInMinutes: 30
         subjects-i18n:
           en: "Verify your email to complete subscription"
@@ -128,6 +155,10 @@ keygo:
         subject: "Tu acceso ha sido aprobado — KeyGo"
         from-name: "KeyGo - Acceso"
         template: "html/membership-approved"
+        defaults:
+          theme: "theme-success"
+          headerTitle: "✅ Acceso aprobado"
+          headerSubtitle: "¡Tu membresía ha sido activada!"
         subjects-i18n:
           en: "Your access has been approved — KeyGo"
 springdoc:

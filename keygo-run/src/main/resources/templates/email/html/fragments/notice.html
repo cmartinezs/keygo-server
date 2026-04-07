@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!--
+  Fragment: notice — caja de aviso (warning, security, info, success).
+  Parámetros:
+    - type: clase CSS del tipo ("notice-warning", "notice-security", "notice-info", "notice-success")
+    - message: contenido HTML del aviso (se renderiza con th:utext)
+  Uso: <th:block th:replace="~{html/fragments/notice :: notice('notice-warning', '⏱️ Este código expira en 30 min.')}" />
+-->
+<body>
+<th:block th:fragment="notice(type, message)">
+<div class="notice" th:classappend="${type}" th:utext="${message}">Mensaje de aviso</div>
+</th:block>
+</body>
+</html>

@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.infra.mail;
 
 import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties;
 import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties.EmailTypeConfig;
+import java.time.Year;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -97,6 +98,11 @@ public class ConfigurableEmailStrategy extends EmailStrategy {
     variables.putIfAbsent(
         "userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
     variables.putIfAbsent("recipientEmail", cmd.getRecipientEmail());
+
+    // 4. Footer y copyright (compartidos por todos los templates)
+    variables.putIfAbsent("footerLinks", emailProperties.getFooterLinks());
+    variables.putIfAbsent("copyrightHolder", emailProperties.getCopyrightHolder());
+    variables.putIfAbsent("copyrightYear", String.valueOf(Year.now().getValue()));
 
     log.debug(
         "ConfigurableEmailStrategy [{}] rendered with variables: {}",

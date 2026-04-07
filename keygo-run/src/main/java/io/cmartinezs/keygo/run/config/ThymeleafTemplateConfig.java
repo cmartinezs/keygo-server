@@ -2,7 +2,7 @@ package io.cmartinezs.keygo.run.config;
 
 import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.util.Set;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,7 +54,7 @@ public class ThymeleafTemplateConfig {
     final var templateResolver = new ClassLoaderTemplateResolver();
 
     // Patrón de resolución: solo archivos en templates/email/
-    templateResolver.setResolvablePatterns(Collections.singleton("html/*"));
+    templateResolver.setResolvablePatterns(Set.of("html/*", "html/fragments/*"));
 
     // Ubicación base de templates
     templateResolver.setPrefix("templates/email/");

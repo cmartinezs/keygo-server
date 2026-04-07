@@ -1,10 +1,14 @@
 package io.cmartinezs.keygo.infra.config;
 
 import jakarta.validation.constraints.NotBlank;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -60,6 +64,12 @@ public class KeyGoEmailProperties {
 
   /** Registro declarativo de tipos de email. Key = emailType identifier. */
   private Map<String, EmailTypeConfig> types = new LinkedHashMap<>();
+
+  /** Links del footer (comunes a todos los emails). Configurables vía YAML. */
+  private List<FooterLink> footerLinks = new ArrayList<>();
+
+  /** Nombre del titular del copyright en el footer (default: "KeyGo"). */
+  private String copyrightHolder = "KeyGo";
 
   /**
    * Obtiene la configuración de un tipo de email.
@@ -121,5 +131,19 @@ public class KeyGoEmailProperties {
      * "html/email-validation_en". Si no hay entrada para el locale, se usa el template base.
      */
     private Map<String, String> templatesI18n = new HashMap<>();
+  }
+
+  /**
+   * Link del footer del email. Se renderiza en el pie de cada email enviado.
+   *
+   * <p>Configurable vía YAML en {@code keygo.email.footer-links}.
+   */
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class FooterLink {
+    private String label;
+    private String url;
   }
 }
