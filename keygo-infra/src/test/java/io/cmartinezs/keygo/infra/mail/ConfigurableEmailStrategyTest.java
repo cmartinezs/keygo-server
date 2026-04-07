@@ -179,17 +179,17 @@ class ConfigurableEmailStrategyTest {
     }
 
     @Test
-    @DisplayName("agrega userName y recipientEmail automaticamente")
+    @DisplayName("agrega userUsername y recipientEmail automáticamente")
     void addsStandardVariables() {
       var strategy = createStrategy(null);
       var vars = strategy.getTemplateVariables();
-      assertThat(vars).containsEntry("userName", "Test User");
+      assertThat(vars).containsEntry("userUsername", "Test User");
       assertThat(vars).containsEntry("recipientEmail", "user@test.com");
     }
 
     @Test
-    @DisplayName("userName fallback a Usuario si recipientName es null")
-    void userNameFallsBackToDefault() {
+    @DisplayName("userUsername fallback a 'usuario' si recipientName es null")
+    void userUsernameFallsBackToDefault() {
       var cmd =
           SendEmailCommand.builder()
               .emailType("email-verification")
@@ -199,7 +199,55 @@ class ConfigurableEmailStrategyTest {
               .build();
       var strategy = new ConfigurableEmailStrategy(cmd, typeConfig, emailProperties, null);
 
-      assertThat(strategy.getTemplateVariables()).containsEntry("userName", "Usuario");
+      assertThat(strategy.getTemplateVariables()).containsEntry("userUsername", "usuario");
+    }
+
+    @Test
+    @DisplayName("appName tiene fallback a 'la aplicación'")
+    void appNameFallsBackToDefault() {
+      var strategy = createStrategy(null);
+      var vars = strategy.getTemplateVariables();
+      assertThat(vars).containsEntry("appName", "la aplicación");
+    }
+
+    @Test
+    @DisplayName("appName del caller tiene prioridad sobre el fallback")
+    void callerAppNameOverridesDefault() {
+      var cmd =
+          SendEmailCommand.builder()
+              .emailType("email-verification")
+              .recipientEmail("user@test.com")
+              .recipientName("Test User")
+              .variables(new HashMap<>(Map.of("appName", "Mi App Genial")))
+              .build();
+      var strategy = new ConfigurableEmailStrategy(cmd, typeConfig, emailProperties, null);
+
+      assertThat(strategy.getTemplateVariables()).containsEntry("appName", "Mi App Genial");
+    }
+
+    @Test
+    @DisplayName("null defaults no causa NPE")
+    void nullDefaultsDoesNotCauseNpe() {
+      typeConfig.setDefaults(null);
+      var strategy = createStrategy(null);
+      var vars = strategy.getTemplateVariables();
+      assertThat(vars).containsEntry("recipientEmail", "user@test.com");
+      assertThat(vars).doesNotContainKey("expiresInMinutes");
+    }
+
+    @Test
+    @DisplayName("variables del caller tienen prioridad sobre estándar")
+    void callerVariablesTakePrecedenceOverStandard() {
+      var cmd =
+          SendEmailCommand.builder()
+              .emailType("email-verification")
+              .recipientEmail("user@test.com")
+              .recipientName("Test User")
+              .variables(new HashMap<>(Map.of("userUsername", "custom_username", "verificationCode", "123")))
+              .build();
+      var strategy = new ConfigurableEmailStrategy(cmd, typeConfig, emailProperties, null);
+
+      assertThat(strategy.getTemplateVariables()).containsEntry("userUsername", "custom_username");
     }
   }
 

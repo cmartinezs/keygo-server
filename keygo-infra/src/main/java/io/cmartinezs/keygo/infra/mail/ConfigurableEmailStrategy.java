@@ -89,19 +89,19 @@ public class ConfigurableEmailStrategy extends EmailStrategy {
     var variables = new HashMap<String, Object>();
 
     // 1. Cargar defaults del tipo (prioridad baja)
-    variables.putAll(typeConfig.getDefaults());
+    if (typeConfig.getDefaults() != null) {
+      variables.putAll(typeConfig.getDefaults());
+    }
 
     // 2. Sobreescribir con variables del comando (prioridad alta)
     variables.putAll(cmd.getVariables());
 
     // 3. Asegurar variables estándar de identidad
-    variables.putIfAbsent(
-        "userName", cmd.getRecipientName() != null ? cmd.getRecipientName() : "Usuario");
     variables.putIfAbsent("recipientEmail", cmd.getRecipientEmail());
-    // userFirstName, userLastName, userUsername — para el greeting fragment
     variables.putIfAbsent("userUsername", cmd.getRecipientName() != null ? cmd.getRecipientName() : "usuario");
     variables.putIfAbsent("userFirstName", "");
     variables.putIfAbsent("userLastName", "");
+    variables.putIfAbsent("appName", "la aplicación");
 
     // 4. Footer y copyright (compartidos por todos los templates)
     variables.putIfAbsent("footerLinks", emailProperties.getFooterLinks());

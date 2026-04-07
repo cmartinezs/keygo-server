@@ -130,7 +130,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
       throw e;
     } catch (Exception e) {
       throw new EmailNotificationException(
-          "Failed to send email to " + recipientEmail + ": " + e.getMessage());
+          "Failed to send email to " + recipientEmail + ": " + e.getMessage(), e);
     }
   }
 

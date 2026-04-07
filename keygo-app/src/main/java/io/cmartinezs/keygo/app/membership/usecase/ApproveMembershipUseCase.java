@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
@@ -20,7 +21,7 @@ import java.util.Map;
  * Tras la aprobación, envía un email de notificación al usuario.
  *
  * @author cmartinezs
- * @version 1.1
+ * @version 1.2
  */
 public class ApproveMembershipUseCase {
 
@@ -79,7 +80,7 @@ public class ApproveMembershipUseCase {
       }
 
       var appName = clientAppRepositoryPort.findById(membership.getClientAppId())
-          .map(app -> app.getName())
+          .map(ClientApp::getName)
           .orElse("la aplicación");
 
       emailNotificationPort.sendEmail(
@@ -91,8 +92,8 @@ public class ApproveMembershipUseCase {
               "userLastName", user.get().getLastName() != null ? user.get().getLastName() : "",
               "appName", appName));
     } catch (Exception e) {
-      // Email failure must not prevent the approval from completing.
-      // KeyGoTracingAspect will log the error via AOP if tracing is enabled.
+      // Best-effort: el email de notificación no debe impedir la aprobación.
+      // KeyGoTracingAspect captura y logea el error vía AOP ([TRACE_ERR]).
     }
   }
 }

@@ -81,7 +81,8 @@ public class ResendContractVerificationUseCase {
             "userFirstName", contract.getContractorFirstName() != null ? contract.getContractorFirstName() : "",
             "userLastName", contract.getContractorLastName() != null ? contract.getContractorLastName() : "",
             "verificationCode", codeToSend,
-            "contractId", contract.getId().toString(), "expiresInMinutes", 30));
+            "contractId", contract.getId().toString(),
+            "expiresInMinutes", verificationCodeExpiryMinutes));
 
     return new AppContractResult(contract, null);
   }
