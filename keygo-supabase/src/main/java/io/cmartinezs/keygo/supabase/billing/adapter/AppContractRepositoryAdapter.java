@@ -56,7 +56,6 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
   private AppContractEntity toEntity(AppContract c) {
     AppContractEntity.AppContractEntityBuilder builder = AppContractEntity.builder()
         .id(c.getId())
-        .clientApp(clientAppRepo.getReferenceById(c.getClientAppId()))
         .selectedPlanVersion(versionRepo.getReferenceById(c.getSelectedPlanVersionId()))
         .billingPeriod(c.getBillingPeriod())
         .status(c.getStatus())
@@ -72,6 +71,9 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .paymentVerifiedAt(c.getPaymentVerifiedAt())
         .expiresAt(c.getExpiresAt());
 
+    if (c.getClientAppId() != null) {
+      builder.clientApp(clientAppRepo.getReferenceById(c.getClientAppId()));
+    }
     if (c.getContractorId() != null) {
       builder.contractor(contractorRepo.getReferenceById(c.getContractorId()));
     }
