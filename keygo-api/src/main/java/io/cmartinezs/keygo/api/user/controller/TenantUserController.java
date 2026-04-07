@@ -216,7 +216,7 @@ public class TenantUserController {
   public ResponseEntity<BaseResponse<UserData>> updateUser(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId,
-      @RequestBody UpdateUserRequest request) {
+      @Valid @RequestBody UpdateUserRequest request) {
 
     User user = updateUserUseCase.execute(new UpdateUserCommand(
         tenantSlug, userId,

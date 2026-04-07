@@ -97,11 +97,12 @@ public class CreateAppContractUseCase {
     emailNotification.sendEmail(
         EmailNotificationPort.TYPE_CONTRACT_VERIFICATION,
         contract.getContractorEmail(), recipientName,
-        Map.of("userUsername", recipientName,
+        Map.of("userUsername", contract.generateUsername(),
             "userFirstName", contract.getContractorFirstName() != null ? contract.getContractorFirstName() : "",
             "userLastName", contract.getContractorLastName() != null ? contract.getContractorLastName() : "",
             "verificationCode", verificationCode,
-            "contractId", contract.getId().toString(),
+            "contract_id", contract.getId().toString(),
+            "resume", "1",
             "expiresInMinutes", verificationCodeExpiryMinutes));
 
     return new AppContractResult(contract, null);

@@ -166,16 +166,15 @@ public class AppContract {
   }
 
   /**
-   * Verifies the email verification code and advances the status to PENDING_PAYMENT.
-   * Also links the given contractorId to this contract.
+   * Validates the verification code without mutating state.
+   * Call this BEFORE any side effects (user/contractor creation).
+   *
+   * @throws ContractStateViolationException       if contract is not in PENDING_EMAIL_VERIFICATION
+   * @throws ContractVerificationCodeInvalidException if code is wrong or expired
    */
-  public void verifyCode(String inputCode, UUID resolvedContractorId, OffsetDateTime now) {
-    if (ContractStatus.ACTIVE.equals(this.status) || ContractStatus.CANCELLED.equals(this.status)
-        || ContractStatus.EXPIRED.equals(this.status) || ContractStatus.FAILED.equals(this.status)) {
-      throw new ContractStateViolationException(this.id, this.status, "verifyCode");
-    }
+  public void validateVerificationCode(String inputCode, OffsetDateTime now) {
     if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
-      throw new ContractStateViolationException(this.id, this.status, "verifyCode");
+      throw new ContractStateViolationException(this.id, this.status, "validateVerificationCode");
     }
     if (this.verificationCode == null || !this.verificationCode.equalsIgnoreCase(inputCode)) {
       throw new ContractVerificationCodeInvalidException(this.id);
@@ -183,6 +182,15 @@ public class AppContract {
     if (this.verificationCodeExpiresAt != null && now.isAfter(this.verificationCodeExpiresAt)) {
       throw new ContractVerificationCodeInvalidException(this.id, "code has expired");
     }
+  }
+
+  /**
+   * Verifies the email verification code and advances the status to PENDING_PAYMENT.
+   * Also links the given contractorId to this contract.
+   * Assumes {@link #validateVerificationCode(String, OffsetDateTime)} was already called.
+   */
+  public void verifyCode(String inputCode, UUID resolvedContractorId, OffsetDateTime now) {
+    validateVerificationCode(inputCode, now);
     this.contractorId = resolvedContractorId;
     markEmailVerified(now);
   }

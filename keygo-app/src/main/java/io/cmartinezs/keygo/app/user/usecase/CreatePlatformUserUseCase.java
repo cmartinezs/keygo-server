@@ -63,7 +63,6 @@ public class CreatePlatformUserUseCase {
     String hashedPassword = credentialEncoderPort.encode(command.rawPassword());
 
     PlatformUser user = PlatformUser.builder()
-        .id(UserId.generate())
         .username(username)
         .email(email)
         .passwordHash(PasswordHash.of(hashedPassword))

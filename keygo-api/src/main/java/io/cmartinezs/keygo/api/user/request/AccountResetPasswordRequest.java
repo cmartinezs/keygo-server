@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.api.user.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -27,11 +29,18 @@ import jakarta.validation.constraints.Size;
  * @param confirmNewPassword confirmación de la nueva contraseña (debe coincidir con newPassword)
  * @param verificationCode   código de 6 dígitos enviado al email al intentar el login bloqueado
  * @author cmartinezs
- * @version 3.0
+ * @version 3.1
  */
 public record AccountResetPasswordRequest(
     @NotBlank String requestId,
     @NotBlank String temporaryPassword,
     @NotBlank @Size(min = 8, message = "newPassword must be at least 8 characters") String newPassword,
     @NotBlank String confirmNewPassword,
-    @NotBlank @Size(min = 6, max = 6) @Pattern(regexp = "\\d{6}") String verificationCode) {}
+    @NotBlank @Size(min = 6, max = 6) @Pattern(regexp = "\\d{6}") String verificationCode) {
+
+  @JsonIgnore
+  @AssertTrue(message = "new_password and confirm_new_password must match")
+  public boolean isPasswordMatch() {
+    return newPassword != null && newPassword.equals(confirmNewPassword);
+  }
+}

@@ -141,7 +141,7 @@ public class AccountSettingsController {
   public ResponseEntity<BaseResponse<ForgotPasswordResult>> forgotPassword(
       @Parameter(description = "Tenant slug", example = "my-company")
       @PathVariable String tenantSlug,
-      @RequestBody ForgotPasswordRequest request) {
+      @Valid @RequestBody ForgotPasswordRequest request) {
 
     ForgotPasswordResult result = forgotPasswordUseCase.execute(
         new ForgotPasswordCommand(tenantSlug, request.email()));
@@ -184,7 +184,7 @@ public class AccountSettingsController {
   public ResponseEntity<BaseResponse<RecoverPasswordResult>> recoverPassword(
       @Parameter(description = "Tenant slug", example = "my-company")
       @PathVariable String tenantSlug,
-      @RequestBody RecoverPasswordRequest request) {
+      @Valid @RequestBody RecoverPasswordRequest request) {
 
     RecoverPasswordResult result = recoverPasswordUseCase.execute(
         new RecoverPasswordCommand(
@@ -295,7 +295,7 @@ public class AccountSettingsController {
       @Parameter(description = "Tenant slug", example = "my-company")
       @PathVariable String tenantSlug,
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @RequestBody ChangePasswordRequest request) {
+      @Valid @RequestBody ChangePasswordRequest request) {
 
     String bearerToken = extractBearerToken(authorization);
 
@@ -487,7 +487,7 @@ public class AccountSettingsController {
       @Parameter(description = "Tenant slug", example = "my-company")
       @PathVariable String tenantSlug,
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @RequestBody UpdateNotificationPreferencesRequest request) {
+      @Valid @RequestBody UpdateNotificationPreferencesRequest request) {
 
     String bearerToken = extractBearerToken(authorization);
 

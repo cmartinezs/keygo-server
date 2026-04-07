@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -78,7 +79,7 @@ public class AppBillingContractController {
   @ApiResponse(responseCode = "409", description = "A contractor with this email already exists (code: CONTRACTOR_EMAIL_ALREADY_EXISTS)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> createContract(
-      @RequestBody CreateAppContractRequest request) {
+      @Valid @RequestBody CreateAppContractRequest request) {
 
     CreateAppContractCommand cmd = new CreateAppContractCommand(
         request.clientAppId() != null ? UUID.fromString(request.clientAppId()) : null,
@@ -179,7 +180,7 @@ public class AppBillingContractController {
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<AppContractData>> verifyEmail(
       @Parameter(description = "Contract UUID") @PathVariable UUID contractId,
-      @RequestBody VerifyContractEmailRequest request) {
+      @Valid @RequestBody VerifyContractEmailRequest request) {
 
     var result = verifyContractEmailUseCase.execute(contractId, request.code());
     return ResponseEntity.ok(BaseResponse.<AppContractData>builder()

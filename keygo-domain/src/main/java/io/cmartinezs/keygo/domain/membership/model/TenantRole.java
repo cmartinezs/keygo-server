@@ -27,7 +27,6 @@ public class TenantRole {
 
   @Builder
   private TenantRole(TenantRoleId id, TenantId tenantId, String code, String name, String description, Boolean active) {
-    if (id == null) throw new IllegalArgumentException("TenantRole id cannot be null");
     if (tenantId == null) throw new IllegalArgumentException("TenantRole tenantId cannot be null");
     if (code == null || code.isBlank()) throw new IllegalArgumentException("TenantRole code cannot be null or blank");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("TenantRole name cannot be null or blank");

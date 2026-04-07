@@ -23,6 +23,10 @@ keygo-common   ← shared utils                               [🚧 stub]
 
 **Golden rule:** never add Spring dependencies to `keygo-domain`; never cross module boundaries backwards.
 
+**Nullability rule (`keygo-domain`):** every field that can be `null` **must** be typed as `Optional<T>` — never raw `null`. This makes nullability explicit in the API surface and prevents NPE bugs in adapters and use cases (e.g. `getReferenceById(null)`). Getters return `Optional<T>`; builders accept `T` (nullable).
+
+**ID generation rule:** when creating a **new** domain object that will be persisted, **never** set the `id` field — leave it `null`. Hibernate generates UUIDs via `@GeneratedValue(strategy = GenerationType.UUID)`. Setting a manual `UUID.randomUUID()` causes Hibernate to treat the entity as detached (existing) → `ObjectOptimisticLockingFailureException`. The adapter's `toEntity()` must skip `id` when it is `null`; the `save()` return carries the generated `id` back to the domain.
+
 ## Essential commands
 
 ```bash
@@ -132,6 +136,23 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 4. **Wiring** — `@Bean` factory in `keygo-run/config/ApplicationConfig.java`
 5. **Controller** — `@RestController` in `keygo-api/<feature>/controller/`, path `/api/v1/<resource>/...`  
    Response DTOs go in `keygo-api/<feature>/response/`
+5b. **OpenAPI / Swagger** — every controller **must** have complete Swagger annotations **before closing the task**:
+   - `@Tag(name, description)` on the class
+   - `@Operation(summary, description)` on every public endpoint method
+   - `@ApiResponse(responseCode, description)` for each HTTP status returned
+   - `@Parameter(description)` on every `@PathVariable` and `@RequestParam`
+   - `@io.swagger.v3.oas.annotations.parameters.RequestBody(description)` on `@RequestBody` params
+   - If the controller introduces a **new path prefix**, add it to `OpenApiConfig.java` (`GroupedOpenApi` beans)
+   This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
+5c. **Bean Validation** — every request DTO (`@RequestBody`) **must** use Jakarta Bean Validation annotations:
+   - `@Valid` on every `@RequestBody` parameter in controller methods
+   - **`@NotBlank`** for `String` fields with required content (rejects `null`, `""`, `"   "`)
+   - **`@NotNull`** for non-String objects: enums, `UUID`, `BigDecimal` (only rejects `null`; accepts `""`)
+   - **`@NotEmpty`** for collections (`Set`, `List`) that must have at least one element (rejects `null` and empty)
+   - `@Email`, `@Size`, `@Pattern`, `@PositiveOrZero`, `@Min`, `@Max` as appropriate
+   - For PATCH DTOs (all-optional fields), add format/size constraints but **not** `@NotNull`/`@NotBlank`
+   - Nested records must be annotated with `@Valid` on the field and validated recursively
+   - `GlobalExceptionHandler` already handles `MethodArgumentNotValidException` → 400 response
 6. **Postman** — add or update the request in `docs/postman/KeyGo-Server.postman_collection.json` **before closing the task**.  
    Include: HTTP method, URL with env variables (`{{fullBaseUrl}}/api/v1/...`), required headers, example body (if applicable), and `pm.test()` scripts validating status code, `BaseResponse` structure and business fields.  
    This update **does not require explicit user instruction** — it is a mandatory part of the endpoint workflow.
@@ -251,6 +272,19 @@ Set `keygo.bootstrap.enabled=false` in `application.yml` (or `KEYGO_BOOTSTRAP_EN
 ## JPA entities (keygo-supabase)
 
 Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@CreationTimestamp`/`@UpdateTimestamp` for timestamps, Lombok `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`. **Do NOT use `@Data`** — it generates `equals()`/`hashCode()`/`toString()` over all fields including lazy collections, causing performance issues and potential `LazyInitializationException`. Schema is managed by Flyway (`db/migration/V<n>__description.sql`). `ddl-auto: validate`.
+
+**Columnas JSONB (PostgreSQL):** toda columna `JSONB` debe llevar **ambas** anotaciones en la entidad JPA:
+
+```java
+@JdbcTypeCode(SqlTypes.JSON)        // Hibernate 6: indica al driver JDBC que envíe el valor como tipo JSON
+@Column(columnDefinition = "jsonb")  // DDL hint para validación de schema
+private String myJsonField;
+```
+
+Sin `@JdbcTypeCode(SqlTypes.JSON)`, Hibernate 6 envía el valor como `VARCHAR` y PostgreSQL rechaza el insert con:
+`ERROR: column "x" is of type jsonb but expression is of type character varying`.
+
+Imports necesarios: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.type.SqlTypes`.
 
 **Existing entities (packages under `io.cmartinezs.keygo.supabase`):**
 

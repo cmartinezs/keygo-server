@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.domain.billing.contracting.model;
 
 import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -120,6 +121,82 @@ class AppContractTest {
         .build())
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("contractorEmail");
+  }
+
+  // ── validateVerificationCode ──────────────────────────────────────────────
+
+  @Test
+  void validateVerificationCode_validCode_doesNotThrow() {
+    // Given
+    AppContract contract = pendingEmailContractWithCode("123456", OffsetDateTime.now().plusMinutes(30));
+    // When / Then
+    assertThatNoException().isThrownBy(
+        () -> contract.validateVerificationCode("123456", OffsetDateTime.now()));
+  }
+
+  @Test
+  void validateVerificationCode_wrongCode_throwsInvalidException() {
+    // Given
+    AppContract contract = pendingEmailContractWithCode("123456", OffsetDateTime.now().plusMinutes(30));
+    // When / Then
+    assertThatThrownBy(() -> contract.validateVerificationCode("999999", OffsetDateTime.now()))
+        .isInstanceOf(ContractVerificationCodeInvalidException.class)
+        .hasMessageContaining("invalid");
+  }
+
+  @Test
+  void validateVerificationCode_expiredCode_throwsExpiredException() {
+    // Given — code expired 1 minute ago
+    AppContract contract = pendingEmailContractWithCode("123456", OffsetDateTime.now().minusMinutes(1));
+    // When / Then
+    assertThatThrownBy(() -> contract.validateVerificationCode("123456", OffsetDateTime.now()))
+        .isInstanceOf(ContractVerificationCodeInvalidException.class)
+        .hasMessageContaining("expired");
+  }
+
+  @Test
+  void validateVerificationCode_wrongStatus_throwsStateViolation() {
+    // Given — contract already in PENDING_PAYMENT
+    AppContract contract = AppContract.builder()
+        .id(UUID.randomUUID()).clientAppId(UUID.randomUUID())
+        .selectedPlanVersionId(UUID.randomUUID()).billingPeriod("MONTHLY")
+        .status(ContractStatus.PENDING_PAYMENT)
+        .contractorEmail("admin@acme.com")
+        .contractorFirstName("John").contractorLastName("Doe")
+        .verificationCode("123456")
+        .verificationCodeExpiresAt(OffsetDateTime.now().plusMinutes(30))
+        .expiresAt(OffsetDateTime.now().plusHours(48))
+        .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now())
+        .build();
+    // When / Then
+    assertThatThrownBy(() -> contract.validateVerificationCode("123456", OffsetDateTime.now()))
+        .isInstanceOf(ContractStateViolationException.class);
+  }
+
+  @Test
+  void validateVerificationCode_doesNotMutateState() {
+    // Given
+    AppContract contract = pendingEmailContractWithCode("123456", OffsetDateTime.now().plusMinutes(30));
+    ContractStatus statusBefore = contract.getStatus();
+    // When
+    contract.validateVerificationCode("123456", OffsetDateTime.now());
+    // Then — status unchanged, contractorId still null
+    assertThat(contract.getStatus()).isEqualTo(statusBefore);
+    assertThat(contract.getContractorId()).isNull();
+    assertThat(contract.isEmailVerified()).isFalse();
+  }
+
+  private AppContract pendingEmailContractWithCode(String code, OffsetDateTime codeExpiry) {
+    return AppContract.builder()
+        .id(UUID.randomUUID()).clientAppId(UUID.randomUUID())
+        .selectedPlanVersionId(UUID.randomUUID()).billingPeriod("MONTHLY")
+        .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
+        .contractorEmail("admin@acme.com")
+        .contractorFirstName("John").contractorLastName("Doe")
+        .verificationCode(code).verificationCodeExpiresAt(codeExpiry)
+        .expiresAt(OffsetDateTime.now().plusHours(48))
+        .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now())
+        .build();
   }
 
   // ── generateUsername ────────────────────────────────────────────────────────

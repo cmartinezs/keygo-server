@@ -150,7 +150,28 @@ public class OpenApiConfig {
         .displayName("👤 Users")
         .pathsToMatch(
             "/api/v1/tenants/*/users/**",
+            "/api/v1/platform/users/**",
             "/api/v1/tenants/*/account/profile")
+        .build();
+  }
+
+  /**
+   * Grouped API for self-service Account Settings endpoints: password management,
+   * sessions, notification preferences, access info.
+   * <p>Grupo de API para endpoints de auto-gestión de cuenta: contraseñas,
+   * sesiones, preferencias de notificación, acceso.
+   *
+   * @return {@link GroupedOpenApi} bean for account settings group
+   */
+  @Bean
+  public GroupedOpenApi accountSettingsGroup() {
+    return GroupedOpenApi.builder()
+        .group("4b-account")
+        .displayName("⚙️ Account Settings")
+        .pathsToMatch("/api/v1/tenants/*/account/**")
+        .pathsToExclude(
+            "/api/v1/tenants/*/account/profile",
+            "/api/v1/tenants/*/account/login")
         .build();
   }
 
@@ -225,6 +246,7 @@ public class OpenApiConfig {
         .displayName("💳 Billing")
         .pathsToMatch(
             "/api/v1/billing/**",
+            "/api/v1/platform/billing/**",
             "/api/v1/tenants/*/apps/*/billing/**")
         .build();
   }

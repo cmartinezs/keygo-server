@@ -90,6 +90,7 @@ keygo:
         route: "/subscribe"
         query-params:
           - contract_id
+          - resume
       dashboard:
         route: "/dashboard"
         query-params: []

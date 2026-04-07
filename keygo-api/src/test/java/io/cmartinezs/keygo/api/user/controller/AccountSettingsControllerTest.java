@@ -78,10 +78,28 @@ class AccountSettingsControllerTest {
     // When
     ResponseEntity<?> response = controller.recoverPassword(
         TENANT_SLUG,
-        new RecoverPasswordRequest("abc123token", "NewSecure@2026!"));
+        new RecoverPasswordRequest("abc123token", "NewSecure@2026!", "NewSecure@2026!"));
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  void recoverPassword_passwordMatchValidation_returnsFalseOnMismatch() {
+    // Given
+    var request = new RecoverPasswordRequest("abc123token", "NewSecure@2026!", "DifferentPass!");
+
+    // Then — Bean Validation @AssertTrue
+    assertThat(request.isPasswordMatch()).isFalse();
+  }
+
+  @Test
+  void recoverPassword_passwordMatchValidation_returnsTrueOnMatch() {
+    // Given
+    var request = new RecoverPasswordRequest("abc123token", "NewSecure@2026!", "NewSecure@2026!");
+
+    // Then
+    assertThat(request.isPasswordMatch()).isTrue();
   }
 
   @Test

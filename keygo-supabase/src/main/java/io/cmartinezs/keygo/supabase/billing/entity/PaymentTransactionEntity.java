@@ -3,6 +3,8 @@ package io.cmartinezs.keygo.supabase.billing.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -62,6 +64,7 @@ public class PaymentTransactionEntity {
   @Column(name = "paid_at")
   private OffsetDateTime paidAt;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "raw_response", columnDefinition = "jsonb")
   private String rawResponse;
 

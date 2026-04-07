@@ -86,7 +86,6 @@ public class CreateClientAppUseCase {
     AccessPolicy accessPolicy = new AccessPolicy(command.grants(), scopes);
 
     ClientApp clientApp = ClientApp.builder()
-        .id(ClientAppId.generate())
         .tenantId(tenant.getId())
         .clientId(clientId)
         .name(command.name())

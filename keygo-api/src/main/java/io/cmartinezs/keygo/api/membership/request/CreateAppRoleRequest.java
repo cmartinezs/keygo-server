@@ -1,6 +1,6 @@
 package io.cmartinezs.keygo.api.membership.request;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * Request DTO for creating an app role.
@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
  * @version 1.0
  */
 public record CreateAppRoleRequest(
-    @NotNull(message = "code is required")
+    @NotBlank(message = "code is required")
     String code,
     String displayName,
     String description

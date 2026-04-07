@@ -113,15 +113,17 @@ public class VerificationCodeRepositoryAdapter implements VerificationCodeReposi
   }
 
   private VerificationCodeEntity toEntity(VerificationCode domain, TenantUserEntity userProxy) {
-    return VerificationCodeEntity.builder()
-        .id(domain.getId())
+    var builder = VerificationCodeEntity.builder()
         .tenantUser(userProxy)
         .purpose(domain.getPurpose().name())
         .code(domain.getCode())
         .expiresAt(domain.getExpiresAt())
         .usedAt(domain.getUsedAt())
-        .createdAt(domain.getCreatedAt())
-        .build();
+        .createdAt(domain.getCreatedAt());
+    if (domain.getId() != null) {
+      builder.id(domain.getId());
+    }
+    return builder.build();
   }
 
   private VerificationCode toDomain(VerificationCodeEntity entity) {

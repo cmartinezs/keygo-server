@@ -121,6 +121,7 @@ import io.cmartinezs.keygo.app.user.usecase.ResetPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
@@ -140,7 +141,7 @@ import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
 import io.cmartinezs.keygo.run.config.properties.KeyGoPlatformProperties;
 import io.cmartinezs.keygo.run.credential.BCryptCredentialEncoder;
-import io.cmartinezs.keygo.api.platform.controller.PlatformAuthController;
+import io.cmartinezs.keygo.app.platform.port.PlatformConfigPort;
 import io.cmartinezs.keygo.api.shared.KeyGoLocaleResolver;
 import io.cmartinezs.keygo.run.filter.LocaleContextFilter;
 import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
@@ -1055,6 +1056,15 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public SendPlatformPasswordResetCodeUseCase sendPlatformPasswordResetCodeUseCase(
+      PlatformUserRepositoryPort platformUserRepository,
+      VerificationCodeRepositoryPort codeRepository,
+      EmailNotificationPort emailNotification) {
+    return new SendPlatformPasswordResetCodeUseCase(
+        platformUserRepository, codeRepository, emailNotification);
+  }
+
+  @Bean
   public GetPlatformUserUseCase getPlatformUserUseCase(
       PlatformUserRepositoryPort platformUserRepository) {
     return new GetPlatformUserUseCase(platformUserRepository);
@@ -1098,20 +1108,21 @@ public class ApplicationConfig {
         issueTokensUseCase, clock, issuerBaseUrl);
   }
 
-  // ─── Platform Auth Controller ─────────────────────────────────────────────
+  // ─── Platform Config Port ───────────────────────────────────────────────
 
   @Bean
-  public PlatformAuthController platformAuthController(
-      AuthenticatePlatformUserUseCase authenticateUseCase,
-      IssuePlatformTokensUseCase issueTokensUseCase,
-      RotatePlatformRefreshTokenUseCase rotateRefreshTokenUseCase,
-      GetPlatformUserUseCase getPlatformUserUseCase,
-      KeyGoPlatformProperties platformProperties) {
-    return new PlatformAuthController(
-        authenticateUseCase, issueTokensUseCase,
-        rotateRefreshTokenUseCase, getPlatformUserUseCase,
-        platformProperties.getAllowedRedirectUris(),
-        platformProperties.getApplicationName());
+  public PlatformConfigPort platformConfigPort(KeyGoPlatformProperties props) {
+    return new PlatformConfigPort() {
+      @Override
+      public java.util.List<String> getAllowedRedirectUris() {
+        return props.getAllowedRedirectUris();
+      }
+
+      @Override
+      public String getApplicationName() {
+        return props.getApplicationName();
+      }
+    };
   }
 
   // ─── i18n: MessageSource para traducciones ────────────────────────────────

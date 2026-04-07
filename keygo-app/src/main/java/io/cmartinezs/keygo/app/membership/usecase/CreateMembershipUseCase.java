@@ -88,7 +88,6 @@ public class CreateMembershipUseCase {
 
     // Create membership
     Membership membership = Membership.builder()
-        .id(MembershipId.generate())
         .userId(userId)
         .clientAppId(io.cmartinezs.keygo.domain.clientapp.model.ClientAppId.of(command.clientAppId()))
         .status(MembershipStatus.PENDING)

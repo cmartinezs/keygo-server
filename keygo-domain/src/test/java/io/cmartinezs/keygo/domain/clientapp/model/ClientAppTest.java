@@ -184,20 +184,22 @@ class ClientAppTest {
   }
 
   @Test
-  void build_nullId_shouldThrow() {
+  void build_nullId_shouldCreateObjectForPersistence() {
     // Given
     AccessPolicy accessPolicy = new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of());
-    var builder = ClientApp.builder()
+
+    // When
+    ClientApp app = ClientApp.builder()
         .tenantId(TenantId.generate())
         .clientId(ClientId.of(CLIENT_ID_VALUE))
         .name(CLIENT_NAME)
         .type(ClientType.PUBLIC)
         .accessPolicy(accessPolicy)
-        .status(ClientAppStatus.ACTIVE);
+        .status(ClientAppStatus.ACTIVE)
+        .build();
 
-    // When / Then
-    assertThatThrownBy(builder::build)
-        .isInstanceOf(IllegalArgumentException.class);
+    // Then — null ID is valid for new objects (Hibernate generates UUID on persist)
+    assertThat(app.getId()).isNull();
   }
 
   @Test

@@ -146,6 +146,42 @@ class AuthenticatePlatformUserUseCaseTest {
         .hasMessageContaining(USERNAME);
   }
 
+  @Test
+  void execute_withUsername_happyPath_returnsAuthenticatedUser() {
+    // Given
+    AuthenticatePlatformUserCommand command =
+        new AuthenticatePlatformUserCommand(USERNAME, RAW_PASSWORD);
+
+    PlatformUser activeUser = buildUser(UserStatus.ACTIVE);
+
+    when(platformUserRepositoryPort.findByUsername(any(Username.class)))
+        .thenReturn(Optional.of(activeUser));
+    when(credentialEncoderPort.matches(RAW_PASSWORD, HASHED_PASSWORD)).thenReturn(true);
+
+    // When
+    PlatformUser result = useCase.execute(command);
+
+    // Then
+    assertThat(result).isNotNull();
+    assertThat(result.getUsername().value()).isEqualTo(USERNAME);
+    assertThat(result.isActive()).isTrue();
+  }
+
+  @Test
+  void execute_withUsername_userNotFound_throwsUserNotFoundException() {
+    // Given
+    AuthenticatePlatformUserCommand command =
+        new AuthenticatePlatformUserCommand(USERNAME, RAW_PASSWORD);
+
+    when(platformUserRepositoryPort.findByUsername(any(Username.class)))
+        .thenReturn(Optional.empty());
+
+    // When / Then
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(UserNotFoundException.class)
+        .hasMessageContaining(USERNAME);
+  }
+
   private PlatformUser buildUser(UserStatus status) {
     return PlatformUser.builder()
         .id(UserId.generate())

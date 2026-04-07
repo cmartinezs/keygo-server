@@ -54,7 +54,7 @@ class CreatePlatformUserUseCaseTest {
         .thenAnswer(invocation -> {
           PlatformUser input = invocation.getArgument(0);
           return PlatformUser.builder()
-              .id(input.getId())
+              .id(UserId.of(UUID.randomUUID()))
               .username(input.getUsername())
               .email(input.getEmail())
               .passwordHash(input.getPasswordHash())

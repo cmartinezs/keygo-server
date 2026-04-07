@@ -34,7 +34,6 @@ public class CreateTenantRoleUseCase {
     }
 
     TenantRole tenantRole = TenantRole.builder()
-        .id(TenantRoleId.generate())
         .tenantId(new TenantId(command.tenantId()))
         .code(command.code())
         .name(command.name())

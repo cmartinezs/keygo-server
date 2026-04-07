@@ -140,31 +140,33 @@ class VerifyContractEmailUseCaseTest {
   }
 
   @Test
-  void execute_wrongCode_throwsCodeInvalidException() {
-    // Given — downstream deps are resolved before verifyCode throws
+  void execute_wrongCode_throwsCodeInvalidException_noUserCreated() {
+    // Given — code validated BEFORE any user/contractor creation
     AppContract contract = pendingEmailContract("123456", OffsetDateTime.now().plusMinutes(30));
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    stubExistingPlatformUserFlow();
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "999999"))
         .isInstanceOf(ContractVerificationCodeInvalidException.class)
         .hasMessageContaining("invalid");
     verify(contractRepo, never()).save(any());
+    verify(platformUserRepo, never()).save(any());
+    verify(emailNotification, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test
-  void execute_expiredCode_throwsCodeInvalidException() {
-    // Given — code expired 1 minute ago
+  void execute_expiredCode_throwsCodeInvalidException_noUserCreated() {
+    // Given — code expired 1 minute ago; validated BEFORE user creation
     AppContract contract = pendingEmailContract("123456", OffsetDateTime.now().minusMinutes(1));
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    stubExistingPlatformUserFlow();
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
         .isInstanceOf(ContractVerificationCodeInvalidException.class)
         .hasMessageContaining("expired");
     verify(contractRepo, never()).save(any());
+    verify(platformUserRepo, never()).save(any());
+    verify(emailNotification, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test
@@ -180,8 +182,8 @@ class VerifyContractEmailUseCaseTest {
   }
 
   @Test
-  void execute_alreadyInPendingPayment_throwsContractStateViolation() {
-    // Given — contract already verified (PENDING_PAYMENT)
+  void execute_alreadyInPendingPayment_throwsContractStateViolation_noUserCreated() {
+    // Given — contract already verified (PENDING_PAYMENT); validated BEFORE user creation
     AppContract contract = AppContract.builder()
         .id(UUID.randomUUID())
         .clientAppId(UUID.randomUUID())
@@ -196,11 +198,12 @@ class VerifyContractEmailUseCaseTest {
         .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now())
         .build();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    stubExistingPlatformUserFlow();
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
         .isInstanceOf(ContractStateViolationException.class);
+    verify(platformUserRepo, never()).save(any());
+    verify(emailNotification, never()).sendEmail(any(), any(), any(), any());
   }
 
   // ── Tests: new platform user (RESET_PASSWORD + temp password email) ───────

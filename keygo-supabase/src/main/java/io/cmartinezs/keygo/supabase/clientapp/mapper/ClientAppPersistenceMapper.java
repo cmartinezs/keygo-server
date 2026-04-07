@@ -32,15 +32,17 @@ public class ClientAppPersistenceMapper {
    * @return the corresponding JPA entity
    */
   public ClientAppEntity toEntity(ClientApp clientApp) {
-    ClientAppEntity entity = ClientAppEntity.builder()
-        .id(clientApp.getId().value())
+    var builder = ClientAppEntity.builder()
         .clientId(clientApp.getClientId().value())
         .name(clientApp.getName())
         .description(clientApp.getDescription())
         .type(clientApp.getType())
         .hashedSecret(clientApp.getHashedSecret())
-        .status(clientApp.getStatus())
-        .build();
+        .status(clientApp.getStatus());
+    if (clientApp.getId() != null) {
+      builder.id(clientApp.getId().value());
+    }
+    ClientAppEntity entity = builder.build();
 
     // Map redirect URIs
     List<ClientRedirectUriEntity> uriEntities = clientApp.getRedirectUris().stream()

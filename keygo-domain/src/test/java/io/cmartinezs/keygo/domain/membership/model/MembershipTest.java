@@ -33,18 +33,16 @@ class MembershipTest {
   }
 
   @Test
-  void builder_withNullId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () ->
-                Membership.builder()
-                    .id(null)
-                    .userId(UserId.generate())
-                    .clientAppId(new ClientAppId(UUID.randomUUID()))
-                    .status(MembershipStatus.ACTIVE)
-                    .build())
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("id");
+  void builder_withNullId_createsObjectForPersistence() {
+    // Given / When
+    Membership membership = Membership.builder()
+        .id(null)
+        .userId(UserId.generate())
+        .clientAppId(new ClientAppId(UUID.randomUUID()))
+        .status(MembershipStatus.ACTIVE)
+        .build();
+    // Then — null ID is valid for new objects (Hibernate generates UUID on persist)
+    assertThat(membership.getId()).isNull();
   }
 
   @Test

@@ -67,6 +67,7 @@ Evaluar los siguientes eventos y actualizar el documento correspondiente **antes
 | Cambio en módulos, rutas, comandos o patrones del quick-start | `AGENTS.md` + `docs/ai/agents-registro.md` | Sección + entrada en registro |
 | Nuevo endpoint REST creado o modificado | `docs/postman/KeyGo-Server.postman_collection.json` | Agregar/actualizar request con `pm.test()` |
 | Nuevo endpoint REST creado o modificado | `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` | Sección §14 — inventario de endpoints |
+| Nuevo endpoint REST creado o modificado | Controller + `OpenApiConfig.java` | Swagger: `@Tag`, `@Operation`, `@ApiResponse`, `@Parameter`; grupo en `GroupedOpenApi` |
 | Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/DATA_MODEL.md` | Diccionario de nuevas tablas |
 | Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/ENTITY_RELATIONSHIPS.md` | Diagramas de contexto afectados |
 | Nueva migración Flyway (`V{n}__*.sql`) | `docs/data/MIGRATIONS.md` | Sección "Próximas migraciones" |
@@ -101,11 +102,16 @@ Nunca ejecutar comandos `git` (commit, push, merge, rebase…). Listar los coman
 Antes de entregar cualquier implementación, verificar:
 
 - [ ] `keygo-domain` no tiene dependencias Spring ni de otros módulos del proyecto
+- [ ] En `keygo-domain`, todo campo nullable está tipado como `Optional<T>` — **nunca** `null` crudo
+- [ ] Objetos de dominio nuevos (a persistir) **no** llevan `id` — Hibernate lo genera vía `@GeneratedValue`
 - [ ] Los endpoints usan `BaseResponse<T>` como envelope y `ResponseCode` del enum en `keygo-api`
 - [ ] Todas las URLs incluyen `/keygo-server` como `context-path`
 - [ ] Imports Jackson son `tools.jackson.databind.*` — **nunca** `com.fasterxml.jackson.databind.*`
 - [ ] Las entidades JPA usan `@Getter @Setter @Builder` — **nunca `@Data`**
+- [ ] Columnas `JSONB` llevan `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`
 - [ ] La autenticación es `Authorization: Bearer <jwt>` — no `X-KEYGO-ADMIN`
+- [ ] Controllers tienen anotaciones Swagger completas: `@Tag`, `@Operation`, `@ApiResponse`, `@Parameter`
+- [ ] Paths nuevos de controller están en `OpenApiConfig.java` (`GroupedOpenApi`)
 - [ ] La próxima migración Flyway es `V19__...` (nunca reutilizar ni editar migraciones existentes)
 - [ ] No hay secretos, tokens ni `.env` en el código
 - [ ] Se sugieren los comandos de verificación: `./mvnw test` y `./mvnw clean package`

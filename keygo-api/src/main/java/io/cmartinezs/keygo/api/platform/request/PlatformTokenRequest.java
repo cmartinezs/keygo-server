@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.api.platform.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * DTO de petición para intercambio de tokens de plataforma.
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param codeVerifier verificador PKCE (para grant_type=authorization_code)
  */
 public record PlatformTokenRequest(
+    @NotBlank(message = "grant_type is required")
     @JsonProperty("grant_type") String grantType,
     @JsonProperty("refresh_token") String refreshToken,
     @JsonProperty("code") String code,

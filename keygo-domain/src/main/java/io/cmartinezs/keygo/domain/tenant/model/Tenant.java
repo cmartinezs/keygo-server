@@ -36,7 +36,6 @@ public class Tenant {
       String ownerEmail,
       TenantStatus status,
       UUID contractorId) {
-    if (id == null) throw new IllegalArgumentException("Tenant id cannot be null");
     if (slug == null) throw new IllegalArgumentException("Tenant slug cannot be null");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("Tenant name cannot be null or blank");
     if (ownerEmail == null || ownerEmail.isBlank()) throw new IllegalArgumentException("Tenant ownerEmail cannot be null or blank");

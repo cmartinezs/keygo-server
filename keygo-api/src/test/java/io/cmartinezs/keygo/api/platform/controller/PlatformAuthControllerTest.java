@@ -10,14 +10,17 @@ import io.cmartinezs.keygo.api.platform.session.PlatformAuthorizationSessionStat
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.platform.command.RotatePlatformRefreshTokenCommand;
+import io.cmartinezs.keygo.app.platform.port.PlatformConfigPort;
 import io.cmartinezs.keygo.app.platform.result.IssuePlatformTokensResult;
 import io.cmartinezs.keygo.app.platform.usecase.IssuePlatformTokensUseCase;
 import io.cmartinezs.keygo.app.platform.usecase.RotatePlatformRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.user.command.AuthenticatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
@@ -49,6 +52,7 @@ class PlatformAuthControllerTest {
   @Mock IssuePlatformTokensUseCase issueTokensUseCase;
   @Mock RotatePlatformRefreshTokenUseCase rotateRefreshTokenUseCase;
   @Mock GetPlatformUserUseCase getPlatformUserUseCase;
+  @Mock SendPlatformPasswordResetCodeUseCase sendPlatformPasswordResetCodeUseCase;
   @Mock HttpServletRequest httpRequest;
   @Mock HttpSession httpSession;
 
@@ -60,11 +64,16 @@ class PlatformAuthControllerTest {
       "http://localhost:5173/callback", "http://localhost:5173/platform/callback");
   private static final String APP_NAME = "KeyGo Platform";
 
+  private final PlatformConfigPort platformConfig = new PlatformConfigPort() {
+    @Override public List<String> getAllowedRedirectUris() { return ALLOWED_URIS; }
+    @Override public String getApplicationName() { return APP_NAME; }
+  };
+
   @BeforeEach
   void setUp() {
     controller = new PlatformAuthController(
         authenticateUseCase, issueTokensUseCase, rotateRefreshTokenUseCase,
-        getPlatformUserUseCase, ALLOWED_URIS, APP_NAME);
+        getPlatformUserUseCase, sendPlatformPasswordResetCodeUseCase, platformConfig);
 
     activePlatformUser = PlatformUser.builder()
         .id(UserId.of(userId))
@@ -227,6 +236,36 @@ class PlatformAuthControllerTest {
       // When / Then
       assertThatThrownBy(() -> controller.login(request, httpRequest))
           .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void givenResetPasswordRequired_whenLogin_thenReturns401WithResetCodeId() {
+      // Given
+      var authState = new PlatformAuthorizationSessionState(
+          "http://localhost:5173/callback", "openid", "challenge", "S256");
+      when(httpRequest.getSession(false)).thenReturn(httpSession);
+      when(httpSession.getAttribute(PlatformAuthController.SESSION_ATTR_AUTH_STATE))
+          .thenReturn(authState);
+      when(authenticateUseCase.execute(any(AuthenticatePlatformUserCommand.class)))
+          .thenThrow(new UserPasswordResetRequiredException("platform_admin"));
+
+      UUID resetId = UUID.randomUUID();
+      when(sendPlatformPasswordResetCodeUseCase.execute("admin@keygo.local"))
+          .thenReturn(new io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult(resetId));
+
+      var request = new PlatformLoginRequest("admin@keygo.local", "temp123");
+
+      // When
+      var response = controller.login(request, httpRequest);
+
+      // Then
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+      assertThat(response.getBody()).isNotNull();
+      assertThat(response.getBody().getFailure()).isNotNull();
+      assertThat(response.getBody().getFailure().getCode())
+          .isEqualTo(ResponseCode.RESET_PASSWORD_REQUIRED.name());
+      assertThat(response.getBody().getData()).isNotNull();
+      assertThat(response.getBody().getData().resetCodeId()).isEqualTo(resetId.toString());
     }
   }
 
@@ -487,10 +526,13 @@ class PlatformAuthControllerTest {
       // Then
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isNotNull();
-      assertThat(response.getBody().getSuccess().getCode())
+
+      @SuppressWarnings("unchecked")
+      var body = (BaseResponse<PlatformTokenData>) response.getBody();
+      assertThat(body.getSuccess().getCode())
           .isEqualTo(ResponseCode.PLATFORM_TOKEN_ISSUED.getCode());
 
-      PlatformTokenData data = response.getBody().getData();
+      PlatformTokenData data = body.getData();
       assertThat(data.accessToken()).isEqualTo("access.jwt");
       assertThat(data.refreshToken()).isEqualTo("refresh.token");
       assertThat(data.tokenType()).isEqualTo("Bearer");
@@ -519,6 +561,34 @@ class PlatformAuthControllerTest {
       // When / Then
       assertThatThrownBy(() -> controller.directLogin(request, httpRequest))
           .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    void givenResetPasswordRequired_whenDirectLogin_thenReturns401WithResetCodeId() {
+      // Given
+      when(authenticateUseCase.execute(any(AuthenticatePlatformUserCommand.class)))
+          .thenThrow(new UserPasswordResetRequiredException("platform_admin"));
+
+      UUID resetId = UUID.randomUUID();
+      when(sendPlatformPasswordResetCodeUseCase.execute("admin@keygo.local"))
+          .thenReturn(new io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult(resetId));
+
+      var request = new PlatformLoginRequest("admin@keygo.local", "temp123");
+
+      // When
+      var response = controller.directLogin(request, httpRequest);
+
+      // Then
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+      assertThat(response.getBody()).isNotNull();
+
+      @SuppressWarnings("unchecked")
+      var body = (BaseResponse<PlatformLoginData>) response.getBody();
+      assertThat(body.getFailure()).isNotNull();
+      assertThat(body.getFailure().getCode())
+          .isEqualTo(ResponseCode.RESET_PASSWORD_REQUIRED.name());
+      assertThat(body.getData()).isNotNull();
+      assertThat(body.getData().resetCodeId()).isEqualTo(resetId.toString());
     }
 
     @Test

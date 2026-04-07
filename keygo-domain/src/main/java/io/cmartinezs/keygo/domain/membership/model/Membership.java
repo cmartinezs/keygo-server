@@ -29,7 +29,6 @@ public class Membership {
 
   @Builder
   private Membership(MembershipId id, UserId userId, ClientAppId clientAppId, MembershipStatus status) {
-    if (id == null) throw new IllegalArgumentException("Membership id cannot be null");
     if (userId == null) throw new IllegalArgumentException("Membership userId cannot be null");
     if (clientAppId == null) throw new IllegalArgumentException("Membership clientAppId cannot be null");
     if (status == null) throw new IllegalArgumentException("Membership status cannot be null");

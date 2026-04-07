@@ -30,17 +30,15 @@ class AppRoleTest {
   }
 
   @Test
-  void builder_withNullId_throwsException() {
-    // Given / When / Then
-    assertThatThrownBy(
-            () ->
-                AppRole.builder()
-                    .id(null)
-                    .clientAppId(new ClientAppId(UUID.randomUUID()))
-                    .code(RoleCode.viewerRole())
-                    .build())
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("id");
+  void builder_withNullId_createsObjectForPersistence() {
+    // Given / When
+    AppRole role = AppRole.builder()
+        .id(null)
+        .clientAppId(new ClientAppId(UUID.randomUUID()))
+        .code(RoleCode.viewerRole())
+        .build();
+    // Then — null ID is valid for new objects (Hibernate generates UUID on persist)
+    assertThat(role.getId()).isNull();
   }
 
   @Test

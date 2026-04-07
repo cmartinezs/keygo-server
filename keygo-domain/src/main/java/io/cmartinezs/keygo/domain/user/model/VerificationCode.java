@@ -51,11 +51,11 @@ public class VerificationCode {
    * @param purpose   propósito del código
    * @param code      código o token generado
    * @param expiresAt timestamp de expiración
-   * @return nueva instancia con {@code id = UUID aleatorio}, {@code usedAt = null}
+   * @return nueva instancia con {@code id = null} (Hibernate genera el UUID al persistir), {@code usedAt = null}
    */
   public static VerificationCode create(
       UserId userId, VerificationPurpose purpose, String code, Instant expiresAt) {
-    return new VerificationCode(UUID.randomUUID(), userId, purpose, code, expiresAt, null, Instant.now());
+    return new VerificationCode(null, userId, purpose, code, expiresAt, null, Instant.now());
   }
 
   /**

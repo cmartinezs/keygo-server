@@ -1283,5 +1283,16 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 **Problema:** Al construir `AppSubscription` en tests, omitir `appPlanVersionId` lanza `IllegalArgumentException: appPlanVersionId cannot be null`. Esto afectó 7 tests en 3 archivos distintos.
 **Solución / Buena práctica:** Siempre incluir `.appPlanVersionId(UUID.randomUUID())` al construir `AppSubscription` en tests. Verificar las validaciones no-null del domain model antes de escribir tests que usen builders.
 
+### [2026-04-07] Columnas JSONB requieren @JdbcTypeCode(SqlTypes.JSON) en Hibernate 6
+**Contexto:** Al persistir un `VerificationCodeEntity` con campo `metadata` (columna JSONB en PostgreSQL), Hibernate lanzaba `InvalidDataAccessResourceUsageException: column "metadata" is of type jsonb but expression is of type character varying`.
+**Problema:** En Hibernate 6+, `@Column(columnDefinition = "jsonb")` solo es un hint de DDL; **no cambia cómo el driver JDBC envía el valor**. Por defecto, un `String` se envía como `VARCHAR`, y PostgreSQL rechaza el tipo incompatible con JSONB. El mismo problema existía en `PaymentTransactionEntity.rawResponse`.
+**Solución / Buena práctica:** Toda columna JSONB debe llevar **ambas** anotaciones:
+```java
+@JdbcTypeCode(SqlTypes.JSON)
+@Column(columnDefinition = "jsonb")
+private String myJsonField;
+```
+Imports: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.type.SqlTypes`. Regla agregada a `AGENTS.md` y `CLAUDE.md`.
+**Archivos clave:** `VerificationCodeEntity.java`, `PaymentTransactionEntity.java`.
 
 

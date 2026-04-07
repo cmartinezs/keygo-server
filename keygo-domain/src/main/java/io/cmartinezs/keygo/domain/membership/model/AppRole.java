@@ -23,7 +23,6 @@ public class AppRole {
 
   @Builder
   private AppRole(AppRoleId id, ClientAppId clientAppId, RoleCode code, String displayName, String description) {
-    if (id == null) throw new IllegalArgumentException("AppRole id cannot be null");
     if (clientAppId == null) throw new IllegalArgumentException("AppRole clientAppId cannot be null");
     if (code == null) throw new IllegalArgumentException("AppRole code cannot be null");
 

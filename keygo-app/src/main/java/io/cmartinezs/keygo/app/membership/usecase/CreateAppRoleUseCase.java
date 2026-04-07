@@ -61,7 +61,6 @@ public class CreateAppRoleUseCase {
     }
 
     AppRole role = AppRole.builder()
-        .id(AppRoleId.generate())
         .clientAppId(ClientAppId.of(command.clientAppId()))
         .code(roleCode)
         .displayName(command.displayName())

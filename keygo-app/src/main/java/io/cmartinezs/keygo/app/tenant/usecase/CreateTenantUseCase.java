@@ -38,7 +38,6 @@ public class CreateTenantUseCase {
     }
 
     Tenant tenant = Tenant.builder()
-        .id(TenantId.generate())
         .slug(slug)
         .name(command.name())
         .ownerEmail(command.ownerEmail())

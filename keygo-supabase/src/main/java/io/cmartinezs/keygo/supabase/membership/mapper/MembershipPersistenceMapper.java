@@ -48,7 +48,9 @@ public class MembershipPersistenceMapper {
     if (entity == null) {
       entity = new MembershipEntity();
     }
-    entity.setId(domain.getId().value());
+    if (domain.getId() != null) {
+      entity.setId(domain.getId().value());
+    }
     entity.setStatus(domain.getStatus());
     // Note: user and clientApp FK should be set by the adapter before saving
     return entity;
@@ -70,7 +72,9 @@ public class MembershipPersistenceMapper {
     if (entity == null) {
       entity = new AppRoleEntity();
     }
-    entity.setId(domain.getId().value());
+    if (domain.getId() != null) {
+      entity.setId(domain.getId().value());
+    }
     entity.setCode(domain.getCode().value());
     entity.setDisplayName(domain.getDisplayName());
     entity.setDescription(domain.getDescription());

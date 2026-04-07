@@ -43,7 +43,6 @@ public class ClientApp {
       Set<RedirectUri> redirectUris,
       AccessPolicy accessPolicy,
       ClientAppStatus status) {
-    if (id == null) throw new IllegalArgumentException("ClientApp id cannot be null");
     if (tenantId == null) throw new IllegalArgumentException("ClientApp tenantId cannot be null");
     if (clientId == null) throw new IllegalArgumentException("ClientApp clientId cannot be null");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("ClientApp name cannot be null or blank");

@@ -22,7 +22,7 @@ class VerificationCodeTest {
         Instant.now().plus(30, ChronoUnit.MINUTES));
 
     // Then
-    assertThat(code.getId()).isNotNull();
+    assertThat(code.getId()).isNull(); // null = new object, Hibernate generates UUID on persist
     assertThat(code.getUserId()).isEqualTo(USER_ID);
     assertThat(code.getPurpose()).isEqualTo(VerificationPurpose.EMAIL_VERIFICATION);
     assertThat(code.getCode()).isEqualTo("123456");

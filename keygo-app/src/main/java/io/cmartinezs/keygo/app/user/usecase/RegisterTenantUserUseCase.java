@@ -107,7 +107,6 @@ public class RegisterTenantUserUseCase {
     // 5. Create user with PENDING status
     String hashedPassword = credentialEncoderPort.encode(command.rawPassword());
     User user = User.builder()
-        .id(UserId.generate())
         .tenantId(tenant.getId())
         .username(username)
         .email(email)

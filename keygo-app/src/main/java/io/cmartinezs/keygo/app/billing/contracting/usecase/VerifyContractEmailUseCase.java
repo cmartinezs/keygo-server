@@ -73,19 +73,21 @@ public class VerifyContractEmailUseCase {
 
     OffsetDateTime now = OffsetDateTime.now();
 
+    // ── Validate code FIRST — before any side effects ──
+    contract.validateVerificationCode(inputCode, now);
+
     final String contractorEmail = contract.getContractorEmail();
     final String contractorFirst = contract.getContractorFirstName();
     final String contractorLast  = contract.getContractorLastName();
+    final String generatedUsername = contract.generateUsername();
 
     // Find or create PlatformUser
     PlatformUser platformUser = platformUserRepo.findByEmail(EmailAddress.of(contractorEmail))
         .orElseGet(() -> {
           String rawPassword = generateTemporaryPassword();
           String hashedPwd   = credentialEncoder.encode(rawPassword);
-          String generatedUsername = generateUsername(contractorFirst, contractorLast);
 
           PlatformUser newUser = PlatformUser.builder()
-              .id(UserId.of(UUID.randomUUID()))
               .username(Username.of(generatedUsername))
               .email(EmailAddress.of(contractorEmail))
               .passwordHash(PasswordHash.of(hashedPwd))
@@ -120,26 +122,17 @@ public class VerifyContractEmailUseCase {
     Contractor contractor = contractorRepo.findByPlatformUserId(platformUserId)
         .orElseGet(() -> {
           Contractor newContractor = Contractor.builder()
-              .id(UUID.randomUUID())
               .platformUserId(platformUserId)
               .status(ContractorStatus.PENDING)
               .build();
           return contractorRepo.save(newContractor);
         });
 
-    // Verify code and link contractor — advances status to PENDING_PAYMENT
+    // Link contractor and advance status to PENDING_PAYMENT
     contract.verifyCode(inputCode, contractor.getId(), now);
     contract = contractRepo.save(contract);
 
     return new AppContractResult(contract, null);
-  }
-
-  /**
-   * Generate a username from first and last name, lowercase, joined by underscore.
-   */
-  private String generateUsername(String firstName, String lastName) {
-    String base = (firstName + "_" + lastName).toLowerCase().replaceAll("[^a-z0-9_]", "");
-    return base.isEmpty() ? "user_" + UUID.randomUUID().toString().substring(0, 8) : base;
   }
 
   /**

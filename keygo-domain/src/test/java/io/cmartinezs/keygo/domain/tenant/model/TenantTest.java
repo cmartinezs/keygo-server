@@ -85,19 +85,18 @@ class TenantTest {
 
   @Test
   @DisplayName("should reject null id in builder")
-  void shouldRejectNullId() {
-    // Given
-    var builder = Tenant.builder()
+  void shouldAcceptNullIdForNewObjects() {
+    // Given / When
+    Tenant tenant = Tenant.builder()
         .id(null)
         .slug(TenantSlug.of("abc"))
         .name("Name")
         .ownerEmail("e@e.com")
-        .status(TenantStatus.ACTIVE);
+        .status(TenantStatus.ACTIVE)
+        .build();
 
-    // When / Then
-    assertThatThrownBy(builder::build)
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("id cannot be null");
+    // Then — null ID is valid for new objects (Hibernate generates UUID on persist)
+    assertThat(tenant.getId()).isNull();
   }
 
   @Test

@@ -22,13 +22,15 @@ public class TenantPersistenceMapper {
    * @return the corresponding JPA entity
    */
   public TenantEntity toEntity(Tenant tenant) {
-    return TenantEntity.builder()
-        .id(tenant.getId().value())
+    var builder = TenantEntity.builder()
         .slug(tenant.getSlug().value())
         .name(tenant.getName())
         .ownerEmail(tenant.getOwnerEmail())
-        .status(tenant.getStatus())
-        .build();
+        .status(tenant.getStatus());
+    if (tenant.getId() != null) {
+      builder.id(tenant.getId().value());
+    }
+    return builder.build();
   }
 
   /**

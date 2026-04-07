@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -112,7 +113,7 @@ public class AccountProfileController {
   public ResponseEntity<BaseResponse<UserProfileData>> updateProfile(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @RequestHeader(value = "Authorization", required = false) String authorization,
-      @RequestBody UpdateUserProfileRequest request) {
+      @Valid @RequestBody UpdateUserProfileRequest request) {
 
     String bearerToken = extractBearerToken(authorization);
 
