@@ -27,9 +27,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -67,11 +65,11 @@ public class PlatformBillingController {
   @GetMapping("/catalog")
   @Operation(
       summary = "Get platform plan catalog",
-      description = "Returns all active public platform-level plans (clientAppId IS NULL). No authentication required.")
+      description = "Returns all active public platform-level plans (clientAppId IS NULL) with versions, billing options and entitlements. No authentication required.")
   @ApiResponse(responseCode = "200", description = "Platform plan catalog retrieved (code: PLATFORM_PLAN_CATALOG_RETRIEVED)")
   public ResponseEntity<BaseResponse<List<AppPlanData>>> getCatalog() {
     List<AppPlanData> data = getPlanCatalogUseCase.execute().stream()
-        .map(plan -> AppPlanData.from(plan, List.of(), Map.of(), List.of()))
+        .map(r -> AppPlanData.from(r.plan(), r.versions(), r.billingOptionsByVersion(), r.entitlements()))
         .toList();
 
     return ResponseEntity.ok(BaseResponse.<List<AppPlanData>>builder()
@@ -91,8 +89,8 @@ public class PlatformBillingController {
   public ResponseEntity<BaseResponse<AppPlanData>> getPlan(
       @Parameter(description = "Plan code (e.g. FREE, PERSONAL, TEAM)") @PathVariable String planCode) {
 
-    var plan = getPlanUseCase.execute(planCode);
-    AppPlanData data = AppPlanData.from(plan, List.of(), Map.of(), List.of());
+    var result = getPlanUseCase.execute(planCode);
+    AppPlanData data = AppPlanData.from(result.plan(), result.versions(), result.billingOptionsByVersion(), result.entitlements());
 
     return ResponseEntity.ok(BaseResponse.<AppPlanData>builder()
         .data(data)

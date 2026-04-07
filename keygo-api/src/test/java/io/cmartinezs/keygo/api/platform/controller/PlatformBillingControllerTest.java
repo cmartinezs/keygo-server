@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.api.billing.response.AppPlanData;
 import io.cmartinezs.keygo.api.billing.response.AppSubscriptionData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.billing.catalog.result.AppPlanResult;
 import io.cmartinezs.keygo.app.billing.platform.exception.ContractorNotFoundException;
 import io.cmartinezs.keygo.app.billing.platform.exception.PlanNotFoundException;
 import io.cmartinezs.keygo.app.billing.platform.usecase.CancelPlatformSubscriptionUseCase;
@@ -18,6 +19,8 @@ import io.cmartinezs.keygo.app.billing.platform.usecase.GetPlatformSubscriptionU
 import io.cmartinezs.keygo.app.billing.platform.usecase.ListPlatformInvoicesUseCase;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlan;
 import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanStatus;
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersion;
+import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersionStatus;
 import io.cmartinezs.keygo.domain.billing.invoice.model.Invoice;
 import io.cmartinezs.keygo.domain.billing.invoice.model.InvoiceStatus;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
@@ -26,6 +29,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,13 +81,20 @@ class PlatformBillingControllerTest {
   class CatalogTests {
 
     @Test
-    @DisplayName("Debe retornar 200 con lista de planes de plataforma")
+    @DisplayName("Debe retornar 200 con lista de planes de plataforma incluyendo versions y entitlements")
     void getCatalog_returns200WithPlans() {
       // Given
+      var planId = UUID.randomUUID();
+      var versionId = UUID.randomUUID();
       AppPlan plan = AppPlan.builder()
-          .id(UUID.randomUUID()).code("FREE").name("Free")
+          .id(planId).code("FREE").name("Free")
           .status(AppPlanStatus.ACTIVE).isPublic(true).sortOrder(1).build();
-      when(getPlanCatalogUseCase.execute()).thenReturn(List.of(plan));
+      AppPlanVersion version = AppPlanVersion.builder()
+          .id(versionId).appPlanId(planId).version("v1.0")
+          .currency("USD").setupFee(BigDecimal.ZERO).trialDays(0)
+          .effectiveFrom(LocalDate.now()).status(AppPlanVersionStatus.ACTIVE).build();
+      var result = new AppPlanResult(plan, List.of(version), Map.of(versionId, List.of()), List.of());
+      when(getPlanCatalogUseCase.execute()).thenReturn(List.of(result));
 
       // When
       ResponseEntity<BaseResponse<List<AppPlanData>>> response = controller.getCatalog();
@@ -92,6 +103,7 @@ class PlatformBillingControllerTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
       assertThat(response.getBody()).isNotNull();
       assertThat(response.getBody().getData()).hasSize(1);
+      assertThat(response.getBody().getData().getFirst().versions()).hasSize(1);
       assertThat(response.getBody().getSuccess().getCode())
           .isEqualTo(ResponseCode.PLATFORM_PLAN_CATALOG_RETRIEVED.getCode());
       verify(getPlanCatalogUseCase).execute();
@@ -120,14 +132,16 @@ class PlatformBillingControllerTest {
   class PlanDetailTests {
 
     @Test
-    @DisplayName("Debe retornar 200 con detalle de plan")
+    @DisplayName("Debe retornar 200 con detalle de plan incluyendo versions")
     void getPlan_returns200WithPlanDetail() {
       // Given
       String planCode = "PERSONAL";
+      var planId = UUID.randomUUID();
       AppPlan plan = AppPlan.builder()
-          .id(UUID.randomUUID()).code(planCode).name("Personal")
+          .id(planId).code(planCode).name("Personal")
           .status(AppPlanStatus.ACTIVE).isPublic(true).sortOrder(2).build();
-      when(getPlanUseCase.execute(planCode)).thenReturn(plan);
+      var result = new AppPlanResult(plan, List.of(), Map.of(), List.of());
+      when(getPlanUseCase.execute(planCode)).thenReturn(result);
 
       // When
       ResponseEntity<BaseResponse<AppPlanData>> response = controller.getPlan(planCode);

@@ -959,14 +959,20 @@ public class ApplicationConfig {
 
   @Bean
   public GetPlatformPlanCatalogUseCase getPlatformPlanCatalogUseCase(
-      AppPlanRepositoryPort planRepo) {
-    return new GetPlatformPlanCatalogUseCase(planRepo);
+      AppPlanRepositoryPort planRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo) {
+    return new GetPlatformPlanCatalogUseCase(planRepo, versionRepo, billingOptionRepo, entitlementRepo);
   }
 
   @Bean
   public GetPlatformPlanUseCase getPlatformPlanUseCase(
-      AppPlanRepositoryPort planRepo) {
-    return new GetPlatformPlanUseCase(planRepo);
+      AppPlanRepositoryPort planRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      AppPlanBillingOptionRepositoryPort billingOptionRepo,
+      AppPlanEntitlementRepositoryPort entitlementRepo) {
+    return new GetPlatformPlanUseCase(planRepo, versionRepo, billingOptionRepo, entitlementRepo);
   }
 
   @Bean

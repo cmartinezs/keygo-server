@@ -16,17 +16,6 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.UUID;
-
-/**
- * Use case: create a new app contract (beginning of the contracting flow) — billing model v2.
- * Generates a verification code and sends it to the contractor's email.
- * <p>If {@code clientAppId} is null, this is a platform-level contract;
- * if set, it is an app-level contract and the ClientApp must exist.
- *
- * @author cmartinezs
- * @version 1.1
- */
 
 /**
  * Use case: create a new app contract (beginning of the contracting flow) — billing model v2.
