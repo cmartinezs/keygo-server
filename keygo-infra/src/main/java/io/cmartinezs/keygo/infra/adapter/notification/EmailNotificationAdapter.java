@@ -134,7 +134,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
     }
   }
 
-  private Map<String, String> generateLinks(String emailType) {
+  private Map<String, String> generateLinks(String emailType, Map<String, Object> variables) {
     var typeConfig = emailProperties.getType(emailType);
     if (typeConfig == null || typeConfig.getLinks().isEmpty()) {
       return Map.of();
@@ -145,7 +145,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey,
-                e -> generateLink(uiProperties.getPaths().get(e.getValue()))));
+                e -> generateLink(uiProperties.getPaths().get(e.getValue()), variables)));
   }
 
   private void sendEmailInternal(SendEmailCommand cmd) throws EmailNotificationException {
@@ -158,7 +158,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
       var strategy = resolveStrategy(cmd);
 
       // Inyectar links generados como variables de template
-      var links = generateLinks(cmd.getEmailType());
+      var links = generateLinks(cmd.getEmailType(), cmd.getVariables());
       if (!links.isEmpty()) {
         var enrichedVars = new HashMap<>(cmd.getVariables());
         links.forEach(enrichedVars::putIfAbsent);
@@ -258,12 +258,17 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
     }
   }
 
-  private String generateLink(KeyGoUiProperties.UiPath uiPath) {
+  private String generateLink(KeyGoUiProperties.UiPath uiPath, Map<String, Object> variables) {
     var uriBuilder =
         UriComponentsBuilder.fromUri(URI.create(uiProperties.getBaseUrl())).path(uiPath.getRoute());
     var queryParams = uiPath.getQueryParams();
     if (queryParams != null && !queryParams.isEmpty()) {
-      queryParams.forEach(uriBuilder::queryParam);
+      for (var param : queryParams) {
+        var value = variables.get(param);
+        if (value != null) {
+          uriBuilder.queryParam(param, value.toString());
+        }
+      }
     }
     return uriBuilder.build().toUriString();
   }

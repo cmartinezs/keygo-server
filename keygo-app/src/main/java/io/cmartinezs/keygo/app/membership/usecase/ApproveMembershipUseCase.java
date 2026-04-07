@@ -86,7 +86,10 @@ public class ApproveMembershipUseCase {
           EmailNotificationPort.TYPE_MEMBERSHIP_APPROVED,
           user.get().getEmail().value(),
           user.get().getUsername().value(),
-          Map.of("userName", user.get().getUsername().value(), "appName", appName));
+          Map.of("userUsername", user.get().getUsername().value(),
+              "userFirstName", user.get().getFirstName() != null ? user.get().getFirstName() : "",
+              "userLastName", user.get().getLastName() != null ? user.get().getLastName() : "",
+              "appName", appName));
     } catch (Exception e) {
       // Email failure must not prevent the approval from completing.
       // KeyGoTracingAspect will log the error via AOP if tracing is enabled.

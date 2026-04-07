@@ -77,7 +77,10 @@ public class ResendContractVerificationUseCase {
     emailNotification.sendEmail(
         EmailNotificationPort.TYPE_CONTRACT_VERIFICATION,
         contract.getContractorEmail(), recipientName,
-        Map.of("userName", recipientName, "verificationCode", codeToSend,
+        Map.of("userUsername", recipientName,
+            "userFirstName", contract.getContractorFirstName() != null ? contract.getContractorFirstName() : "",
+            "userLastName", contract.getContractorLastName() != null ? contract.getContractorLastName() : "",
+            "verificationCode", codeToSend,
             "contractId", contract.getId().toString(), "expiresInMinutes", 30));
 
     return new AppContractResult(contract, null);

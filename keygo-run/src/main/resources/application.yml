@@ -71,14 +71,28 @@ keygo:
   ui:
     base-url: "${KEYGO_UI_BASE_URL:http://localhost:5173}"
     paths:
+      verify-email:
+        route: "/verify-email"
+        query-params:
+          - email
       reset-password:
         route: "/reset-password"
         query-params:
           - request_id
+      recovery:
+        route: "/forgot-password"
+        query-params:
+          - tenant_slug
+      login:
+        route: "/login"
+        query-params: []
       subscribe:
         route: "/subscribe"
         query-params:
           - contract_id
+      dashboard:
+        route: "/dashboard"
+        query-params: []
   email:
     smtp-host: "${SMTP_HOST:localhost}"
     smtp-port: "${SMTP_PORT:587}"
@@ -105,6 +119,10 @@ keygo:
           headerTitle: "Verifica tu email"
           headerSubtitle: "¡Bienvenido a KeyGo!"
           expiresInMinutes: 30
+          ctaLabel: "Verificar mi email"
+          ctaHint: "O haz clic para ir directamente a la verificación:"
+        links:
+          actionUrl: "verify-email"
         subjects-i18n:
           en: "Verify your email on KeyGo"
       password-recovery:
@@ -115,6 +133,10 @@ keygo:
           theme: "theme-security"
           headerTitle: "Restablecer contraseña"
           headerSubtitle: "Recupera tu acceso a KeyGo"
+          ctaLabel: "Restablecer contraseña"
+          ctaHint: "O accede directamente al formulario:"
+        links:
+          actionUrl: "recovery"
         subjects-i18n:
           en: "Reset your password on KeyGo"
       password-reset-code:
@@ -126,8 +148,10 @@ keygo:
           headerTitle: "Cambio de contraseña"
           headerSubtitle: "Actualiza tu contraseña en KeyGo"
           expiresInMinutes: 15
+          ctaLabel: "Cambiar contraseña"
+          ctaHint: "O accede directamente al formulario:"
         links:
-          resetPasswordLink: "reset-password"
+          actionUrl: "reset-password"
         subjects-i18n:
           en: "Password reset code — KeyGo"
       temporary-password:
@@ -138,6 +162,10 @@ keygo:
           theme: "theme-brand"
           headerTitle: "Contraseña temporal"
           headerSubtitle: "Acceso inicial a KeyGo"
+          ctaLabel: "Iniciar sesión"
+          ctaHint: "O accede directamente para iniciar sesión:"
+        links:
+          actionUrl: "login"
         subjects-i18n:
           en: "Your temporary password on KeyGo"
       contract-verification:
@@ -149,6 +177,10 @@ keygo:
           headerTitle: "Confirma tu email"
           headerSubtitle: "Completa tu suscripción a KeyGo"
           expiresInMinutes: 30
+          ctaLabel: "Continuar con mi suscripción"
+          ctaHint: "O haz clic para continuar directamente:"
+        links:
+          actionUrl: "subscribe"
         subjects-i18n:
           en: "Verify your email to complete subscription"
       membership-approved:
@@ -159,6 +191,10 @@ keygo:
           theme: "theme-success"
           headerTitle: "✅ Acceso aprobado"
           headerSubtitle: "¡Tu membresía ha sido activada!"
+          ctaLabel: "Ir a mi panel"
+          ctaHint: "Accede directamente a tu panel:"
+        links:
+          actionUrl: "dashboard"
         subjects-i18n:
           en: "Your access has been approved — KeyGo"
 springdoc:

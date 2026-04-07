@@ -99,7 +99,10 @@ public class VerifyContractEmailUseCase {
           emailNotification.sendEmail(
               EmailNotificationPort.TYPE_TEMPORARY_PASSWORD,
               contractorEmail, generatedUsername,
-              Map.of("userName", generatedUsername, "temporaryPassword", rawPassword));
+              Map.of("userUsername", generatedUsername,
+                  "userFirstName", contractorFirst != null ? contractorFirst : "",
+                  "userLastName", contractorLast != null ? contractorLast : "",
+                  "temporaryPassword", rawPassword));
 
           return saved;
         });

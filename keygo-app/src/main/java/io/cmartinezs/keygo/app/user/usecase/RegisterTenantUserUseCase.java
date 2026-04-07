@@ -130,7 +130,10 @@ public class RegisterTenantUserUseCase {
     emailNotificationPort.sendEmail(
         EmailNotificationPort.TYPE_EMAIL_VERIFICATION,
         email.value(), username.value(),
-        Map.of("userName", username.value(), "verificationCode", code, "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
+        Map.of("userUsername", username.value(),
+            "userFirstName", command.firstName() != null ? command.firstName() : "",
+            "userLastName", command.lastName() != null ? command.lastName() : "",
+            "verificationCode", code, "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
 
     return savedUser;
   }

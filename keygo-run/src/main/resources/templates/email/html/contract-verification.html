@@ -13,12 +13,8 @@
         <th:block th:replace="~{html/fragments/header :: header(${headerTitle}, ${headerSubtitle})}" />
 
         <div class="email-body">
-            <div class="greeting">
-                <p>Hola <strong th:text="${userName}">Usuario</strong>,</p>
-                <p>¡Gracias por tu interés en suscribirte a KeyGo! Necesitamos confirmar tu dirección de email para completar tu contrato.</p>
-            </div>
-
-            <!-- Info del contrato -->
+            <th:block th:replace="~{html/fragments/greeting :: greeting(${userFirstName}, ${userLastName}, ${userUsername})}" />
+            <p style="margin-bottom: 24px;">¡Gracias por tu interés en suscribirte a KeyGo! Necesitamos confirmar tu dirección de email para completar tu contrato.</p>
             <div class="highlight-box">
                 <p style="margin: 0 0 8px 0;"><strong>ID de Contrato:</strong></p>
                 <p class="highlight-value" style="margin: 0;" th:text="${contractId}">contract-id-123456</p>
@@ -27,9 +23,8 @@
             <div class="section-title">Tu código de verificación</div>
             <th:block th:replace="~{html/fragments/code-box :: codeBox(${verificationCode}, 'Copia este código y úsalo en tu panel de contratación.', '')}" />
 
-            <!-- CTA directo (si hay URL) -->
-            <th:block th:if="${subscribeUrl}">
-                <th:block th:replace="~{html/fragments/button :: button(${subscribeUrl}, 'Continuar con mi suscripción', 'O haz clic en el botón para acceder directamente:')}" />
+            <th:block th:if="${actionUrl}">
+                <th:block th:replace="~{html/fragments/button :: button(${actionUrl}, ${ctaLabel}, ${ctaHint})}" />
             </th:block>
 
             <th:block th:replace="~{html/fragments/notice :: notice('notice-warning', '⏱️ &lt;strong&gt;Este código expira en ' + ${expiresInMinutes} + ' minutos.&lt;/strong&gt; Verifica tu email antes de que expire para continuar con tu suscripción.')}" />
@@ -43,10 +38,7 @@
                 <li>¡Listo! Tendrás acceso completo a KeyGo inmediatamente.</li>
             </ol>
 
-            <div class="disclaimer">
-                <p><strong>⚠️ Si no solicitaste este email:</strong> Simplemente ignóralo. Tu dirección de email no será utilizada sin tu confirmación explícita.</p>
-                <p style="margin-top: 12px;">Este email fue enviado porque se inició un nuevo contrato de suscripción con esta dirección de email en KeyGo.</p>
-            </div>
+            <th:block th:replace="~{html/fragments/disclaimer :: disclaimer('se inició un nuevo contrato de suscripción con esta dirección de email en KeyGo', false)}" />
         </div>
 
         <th:block th:replace="~{html/fragments/footer :: footer(${footerLinks}, ${copyrightHolder}, ${copyrightYear})}" />

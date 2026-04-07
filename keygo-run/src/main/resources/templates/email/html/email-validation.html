@@ -13,10 +13,8 @@
         <th:block th:replace="~{html/fragments/header :: header(${headerTitle}, ${headerSubtitle})}" />
 
         <div class="email-body">
-            <div class="greeting">
-                <p>Hola <strong th:text="${userName}">Usuario</strong>,</p>
-                <p>Gracias por registrarte en KeyGo. Para completar tu cuenta, necesitamos verificar tu dirección de email.</p>
-            </div>
+            <th:block th:replace="~{html/fragments/greeting :: greeting(${userFirstName}, ${userLastName}, ${userUsername})}" />
+            <p style="margin-bottom: 24px;">Gracias por registrarte en KeyGo. Para completar tu cuenta, necesitamos verificar tu dirección de email.</p>
 
             <div class="section-title">Tu código de verificación</div>
             <th:block th:replace="~{html/fragments/code-box :: codeBox(${verificationCode}, 'Copia este código y úsalo en la app de verificación.', '')}" />
@@ -30,10 +28,11 @@
                 <li>¡Listo! Tu cuenta estará activa y lista para usar.</li>
             </ol>
 
-            <div class="disclaimer">
-                <p><strong>⚠️ Si no solicitaste este email:</strong> Simplemente ignóralo. Tu dirección de email no será utilizada sin tu confirmación.</p>
-                <p style="margin-top: 12px;">Este email fue enviado porque se registró una nueva cuenta en KeyGo con esta dirección de email.</p>
-            </div>
+            <th:block th:if="${actionUrl}">
+                <th:block th:replace="~{html/fragments/button :: button(${actionUrl}, ${ctaLabel}, ${ctaHint})}" />
+            </th:block>
+
+            <th:block th:replace="~{html/fragments/disclaimer :: disclaimer('se registró una nueva cuenta en KeyGo con esta dirección de email', false)}" />
         </div>
 
         <th:block th:replace="~{html/fragments/footer :: footer(${footerLinks}, ${copyrightHolder}, ${copyrightYear})}" />

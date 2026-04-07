@@ -87,7 +87,9 @@ public class SendPasswordResetCodeUseCase {
         user.getEmail().value(),
         user.getUsername().value(),
         Map.of(
-            "userName", user.getUsername().value(),
+            "userUsername", user.getUsername().value(),
+            "userFirstName", user.getFirstName() != null ? user.getFirstName() : "",
+            "userLastName", user.getLastName() != null ? user.getLastName() : "",
             "verificationCode", rawCode,
             "expiresInMinutes", CODE_TTL_MINUTES));
 

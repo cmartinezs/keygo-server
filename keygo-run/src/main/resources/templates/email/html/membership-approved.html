@@ -13,10 +13,8 @@
         <th:block th:replace="~{html/fragments/header :: header(${headerTitle}, ${headerSubtitle})}" />
 
         <div class="email-body">
-            <div class="greeting">
-                <p>Hola <strong th:text="${userName}">Usuario</strong>,</p>
-                <p>¡Buenas noticias! Tu solicitud de acceso ha sido aprobada por un administrador.</p>
-            </div>
+            <th:block th:replace="~{html/fragments/greeting :: greeting(${userFirstName}, ${userLastName}, ${userUsername})}" />
+            <p style="margin-bottom: 24px;">¡Buenas noticias! Tu solicitud de acceso ha sido aprobada por un administrador.</p>
 
             <div class="section-title">Detalle del acceso</div>
             <div class="highlight-box">
@@ -31,9 +29,11 @@
                 <li>Si tienes dudas, contacta al administrador de tu organización.</li>
             </ol>
 
-            <div class="disclaimer">
-                <p>Este email fue enviado porque tu solicitud de acceso fue aprobada en KeyGo.</p>
-            </div>
+            <th:block th:if="${actionUrl}">
+                <th:block th:replace="~{html/fragments/button :: button(${actionUrl}, ${ctaLabel}, ${ctaHint})}" />
+            </th:block>
+
+            <th:block th:replace="~{html/fragments/disclaimer :: disclaimer('tu solicitud de acceso fue aprobada por un administrador en KeyGo', false)}" />
         </div>
 
         <th:block th:replace="~{html/fragments/footer :: footer(${footerLinks}, ${copyrightHolder}, ${copyrightYear})}" />

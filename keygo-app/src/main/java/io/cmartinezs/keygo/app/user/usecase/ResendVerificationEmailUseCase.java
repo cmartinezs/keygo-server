@@ -103,7 +103,10 @@ public class ResendVerificationEmailUseCase {
     emailNotificationPort.sendEmail(
         EmailNotificationPort.TYPE_EMAIL_VERIFICATION,
         email.value(), user.getUsername().value(),
-        Map.of("userName", user.getUsername().value(), "verificationCode", active.getCode(),
+        Map.of("userUsername", user.getUsername().value(),
+            "userFirstName", user.getFirstName() != null ? user.getFirstName() : "",
+            "userLastName", user.getLastName() != null ? user.getLastName() : "",
+            "verificationCode", active.getCode(),
             "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
   }
 

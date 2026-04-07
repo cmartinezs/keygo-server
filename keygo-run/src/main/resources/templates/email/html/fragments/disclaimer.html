@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org" lang="es">
+<body>
+<!--
+  Fragment: disclaimer
+  Pie de seguridad estandarizado para todos los emails.
+
+  Parámetros:
+    - reason : razón contextual del envío (texto breve, se renderiza con th:utext)
+               Ejemplo: "se registró una nueva cuenta en KeyGo con esta dirección de email"
+    - sensitive : true si el email contiene info sensible (contraseñas, tokens)
+-->
+<div th:fragment="disclaimer(reason, sensitive)" class="disclaimer">
+    <th:block th:if="${sensitive}">
+        <p><strong>🔒 Confidencialidad:</strong> Este email contiene información sensible. Nunca compartas su contenido con terceros. El equipo de KeyGo nunca te pedirá contraseñas ni códigos por email.</p>
+    </th:block>
+    <p th:if="${!sensitive}"><strong>⚠️ ¿No reconoces esta actividad?</strong> Tu cuenta permanece segura. Simplemente ignora este email y no compartas su contenido con nadie.</p>
+    <p style="margin-top: 12px;" th:utext="'Este email fue enviado porque ' + ${reason} + '.'">Este email fue enviado porque se realizó una acción en KeyGo.</p>
+    <p style="margin-top: 8px;">Si tienes dudas o necesitas ayuda, contacta a nuestro <a href="mailto:soporte@keygo.io">equipo de soporte</a>.</p>
+</div>
+</body>
+</html>

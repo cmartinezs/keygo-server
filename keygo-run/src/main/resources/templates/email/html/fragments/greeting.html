@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org" lang="es">
+<body>
+<!--
+  Fragment: greeting
+  Muestra saludo personalizado con nombre completo y username.
+
+  Parámetros:
+    - firstName : nombre (puede ser null/vacío)
+    - lastName  : apellido (puede ser null/vacío)
+    - username  : nombre de usuario (obligatorio, fallback)
+
+  Resultado visual:
+    - Con nombre completo: "Hola Carlos Martínez (@cmartinezs),"
+    - Sin nombre:          "Hola @cmartinezs,"
+-->
+<div th:fragment="greeting(firstName, lastName, username)" class="greeting">
+    <!-- Con nombre y apellido -->
+    <th:block th:if="${firstName != null and !firstName.isBlank()}">
+        <p>
+            Hola <strong th:text="${firstName + (lastName != null and !lastName.isBlank() ? ' ' + lastName : '')}">Nombre Apellido</strong>
+            <span class="greeting-username" th:text="'(@' + ${username} + ')'">(@usuario)</span>,
+        </p>
+    </th:block>
+    <!-- Solo username (sin nombre) -->
+    <th:block th:if="${firstName == null or firstName.isBlank()}">
+        <p>
+            Hola <strong th:text="'@' + ${username}">@usuario</strong>,
+        </p>
+    </th:block>
+</div>
+</body>
+</html>
