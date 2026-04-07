@@ -20,10 +20,11 @@ public record LoginData(
     @com.fasterxml.jackson.annotation.JsonProperty("message") String message,
     @com.fasterxml.jackson.annotation.JsonProperty("code") String code,
     @com.fasterxml.jackson.annotation.JsonProperty("redirect_uri") String redirectUri,
-    @com.fasterxml.jackson.annotation.JsonProperty("reset_code_id") String resetCodeId) {
+    @com.fasterxml.jackson.annotation.JsonProperty("reset_code_id") String resetCodeId,
+    @com.fasterxml.jackson.annotation.JsonProperty("notification_email") String notificationEmail) {
 
-  /** Constructor de conveniencia para login exitoso (sin resetCodeId). */
+  /** Constructor de conveniencia para login exitoso (sin resetCodeId ni notificationEmail). */
   public LoginData(String message, String code, String redirectUri) {
-    this(message, code, redirectUri, null);
+    this(message, code, redirectUri, null, null);
   }
 }

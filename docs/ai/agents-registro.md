@@ -297,3 +297,40 @@
 - 7 tests `ApproveMembershipUseCaseTest` (incl. email sent, email failure no bloquea approve)
 - 5 tests `CreateMembershipUseCaseTest`
 - Suite completa: 952 tests, 0 fallos
+
+### [2026-04-07] Identidad de plataforma — endpoints de cuenta, bugs críticos, validación
+
+**Nuevos endpoints (`PlatformAccountController`):**
+- `POST /api/v1/platform/account/forgot-password` — solicitar recovery token (anti-enumeración: siempre 200)
+- `POST /api/v1/platform/account/recover-password` — restablecer contraseña con recovery token
+- `POST /api/v1/platform/account/reset-password` — reset con contraseña temporal + verification code + request_id
+- `POST /api/v1/platform/oauth2/revoke` — revocar token RFC 7009 (reusa `RevokeTokenUseCase`)
+
+**Nuevos use cases de plataforma:**
+- `ForgotPlatformPasswordUseCase` — busca en `PlatformUserRepositoryPort`, envía email, anti-enumeración
+- `RecoverPlatformPasswordUseCase` — valida token, resetea contraseña, activa si PENDING
+- `ResetPlatformPasswordUseCase` — valida requestId + verification code + temporary password
+
+**Bugs críticos corregidos:**
+- Hibernate UUID persistence: `id=null` para `persist()` vs `merge()` → `ObjectOptimisticLockingFailureException`
+- JSONB mapping: `@JdbcTypeCode(SqlTypes.JSON)` requerido además de `@Column(columnDefinition = "jsonb")` en Hibernate 6+
+- `verification_codes` FK constraint: V32 agrega `platform_user_id` nullable FK + CHECK dual-user
+- `DataAccessException` SQL leak: nuevo handler dedicado en `GlobalExceptionHandler` que nunca expone SQL
+- SB4 `UserDetailsServiceAutoConfiguration`: paquete movido a `org.springframework.boot.security.autoconfigure`
+
+**Convenciones nuevas:**
+- `@Valid` obligatorio en todos los `@RequestBody`
+- Anotaciones de validación (`@NotBlank`, `@NotNull`, `@Email`) en todos los Request DTOs
+- `@NotBlank` para strings (más restrictivo que `@NotNull` o `@NotEmpty`)
+
+**Migraciones V27–V32:**
+- V27: Tabla `platform_users`
+- V28: Refactor `sessions` para platform users
+- V29: Seed platform_users + rename role
+- V30: Billing contractor → PlatformUser
+- V31: Tabla unificada `verification_codes`
+- V32: `platform_user_id` en `verification_codes`
+
+**Bootstrap filter:** 8 nuevos path prefixes públicos para plataforma en `BootstrapAdminKeyFilter`
+**Tests:** 14 tests nuevos (3 test files: ForgotPlatformPasswordUseCaseTest, RecoverPlatformPasswordUseCaseTest, ResetPlatformPasswordUseCaseTest)
+**Próxima migración:** `V33__...`

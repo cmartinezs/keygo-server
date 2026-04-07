@@ -226,7 +226,7 @@ public class PlatformAuthController {
       var resetResult = sendPlatformPasswordResetCodeUseCase.execute(request.emailOrUsername());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
           BaseResponse.<PlatformLoginData>builder()
-              .data(new PlatformLoginData(null, null, null, resetResult.requestId().toString()))
+              .data(new PlatformLoginData(null, null, null, resetResult.requestId().toString(), resetResult.maskedEmail()))
               .failure(ResponseHelper.message(ResponseCode.RESET_PASSWORD_REQUIRED))
               .build());
     }
@@ -297,7 +297,7 @@ public class PlatformAuthController {
       var resetResult = sendPlatformPasswordResetCodeUseCase.execute(request.emailOrUsername());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
           BaseResponse.<PlatformLoginData>builder()
-              .data(new PlatformLoginData(null, null, null, resetResult.requestId().toString()))
+              .data(new PlatformLoginData(null, null, null, resetResult.requestId().toString(), resetResult.maskedEmail()))
               .failure(ResponseHelper.message(ResponseCode.RESET_PASSWORD_REQUIRED))
               .build());
     }
@@ -313,7 +313,7 @@ public class PlatformAuthController {
 
     var data =
         new PlatformTokenData(
-            result.accessToken(), result.refreshToken(),
+            result.accessToken(), result.idToken(), result.refreshToken(),
             result.tokenType(), result.expiresIn());
 
     return ResponseEntity.ok(
@@ -380,7 +380,7 @@ public class PlatformAuthController {
 
     var data =
         new PlatformTokenData(
-            result.accessToken(), result.refreshToken(),
+            result.accessToken(), result.idToken(), result.refreshToken(),
             result.tokenType(), result.expiresIn());
 
     return ResponseEntity.ok(
@@ -408,7 +408,7 @@ public class PlatformAuthController {
 
     var data =
         new PlatformTokenData(
-            result.accessToken(), result.refreshToken(),
+            result.accessToken(), result.idToken(), result.refreshToken(),
             result.tokenType(), result.expiresIn());
 
     return ResponseEntity.ok(

@@ -60,7 +60,7 @@ class AccountSettingsControllerTest {
   @Test
   void forgotPassword_returns200WithSentTrue() {
     // Given
-    when(forgotPasswordUseCase.execute(any())).thenReturn(new ForgotPasswordResult(true));
+    when(forgotPasswordUseCase.execute(any())).thenReturn(new ForgotPasswordResult(true, "j********n@a****.com"));
 
     // When
     ResponseEntity<?> response = controller.forgotPassword(

@@ -81,7 +81,7 @@ keygo:
       reset-password:
         route: "/reset-password"
         query-params:
-          - request_id
+          - reset_code_id
       recovery:
         route: "/forgot-password"
         query-params:

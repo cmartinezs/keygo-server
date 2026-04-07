@@ -22,10 +22,11 @@ public record PlatformLoginData(
     String message,
     String code,
     @JsonProperty("redirect_uri") String redirectUri,
-    @JsonProperty("reset_code_id") String resetCodeId) {
+    @JsonProperty("reset_code_id") String resetCodeId,
+    @JsonProperty("notification_email") String notificationEmail) {
 
-  /** Constructor de conveniencia para login exitoso (sin resetCodeId). */
+  /** Constructor de conveniencia para login exitoso (sin resetCodeId ni notificationEmail). */
   public PlatformLoginData(String message, String code, String redirectUri) {
-    this(message, code, redirectUri, null);
+    this(message, code, redirectUri, null, null);
   }
 }

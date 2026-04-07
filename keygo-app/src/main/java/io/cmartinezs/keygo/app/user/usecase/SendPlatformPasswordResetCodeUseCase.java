@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult;
+import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PlatformUser;
@@ -70,9 +71,10 @@ public class SendPlatformPasswordResetCodeUseCase {
             "userFirstName", user.getFirstName() != null ? user.getFirstName() : "",
             "userLastName", user.getLastName() != null ? user.getLastName() : "",
             "verificationCode", rawCode,
+            "reset_code_id", persisted.getId().toString(),
             "expiresInMinutes", CODE_TTL_MINUTES));
 
-    return new SendPasswordResetCodeResult(persisted.getId());
+    return new SendPasswordResetCodeResult(persisted.getId(), EmailMasker.mask(user.getEmail().value()));
   }
 
   private PlatformUser findUser(String emailOrUsername) {

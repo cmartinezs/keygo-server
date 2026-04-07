@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.app.membership.usecase;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.app.membership.result.ApproveMembershipResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
@@ -9,7 +10,9 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
+import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import io.cmartinezs.keygo.domain.user.model.User;
 import java.util.Map;
 
 /**
@@ -54,7 +57,7 @@ public class ApproveMembershipUseCase {
    * @throws io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadyActiveException if already active
    * @throws io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException if suspended
    */
-  public Membership execute(MembershipId membershipId, String tenantSlug) {
+  public ApproveMembershipResult execute(MembershipId membershipId, String tenantSlug) {
     Membership membership = membershipRepositoryPort.findByIdAndTenantSlug(membershipId, tenantSlug)
         .orElseThrow(() -> new MembershipNotFoundException("id", String.valueOf(membershipId.value())));
 
@@ -62,22 +65,24 @@ public class ApproveMembershipUseCase {
 
     var approved = membershipRepositoryPort.update(membership);
 
-    sendApprovalNotification(approved, tenantSlug);
+    String maskedEmail = sendApprovalNotification(approved, tenantSlug);
 
-    return approved;
+    return new ApproveMembershipResult(approved, maskedEmail);
   }
 
-  private void sendApprovalNotification(Membership membership, String tenantSlug) {
+  private String sendApprovalNotification(Membership membership, String tenantSlug) {
     try {
       var tenant = tenantRepositoryPort.findBySlug(TenantSlug.of(tenantSlug));
       if (tenant.isEmpty()) {
-        return;
+        return null;
       }
 
-      var user = userRepositoryPort.findByIdAndTenantId(membership.getUserId(), tenant.get().getId());
-      if (user.isEmpty()) {
-        return;
+      var userOpt = userRepositoryPort.findByIdAndTenantId(membership.getUserId(), tenant.get().getId());
+      if (userOpt.isEmpty()) {
+        return null;
       }
+
+      User user = userOpt.get();
 
       var appName = clientAppRepositoryPort.findById(membership.getClientAppId())
           .map(ClientApp::getName)
@@ -85,15 +90,17 @@ public class ApproveMembershipUseCase {
 
       emailNotificationPort.sendEmail(
           EmailNotificationPort.TYPE_MEMBERSHIP_APPROVED,
-          user.get().getEmail().value(),
-          user.get().getUsername().value(),
-          Map.of("userUsername", user.get().getUsername().value(),
-              "userFirstName", user.get().getFirstName() != null ? user.get().getFirstName() : "",
-              "userLastName", user.get().getLastName() != null ? user.get().getLastName() : "",
+          user.getEmail().value(),
+          user.getUsername().value(),
+          Map.of("userUsername", user.getUsername().value(),
+              "userFirstName", user.getFirstName() != null ? user.getFirstName() : "",
+              "userLastName", user.getLastName() != null ? user.getLastName() : "",
               "appName", appName));
+
+      return EmailMasker.mask(user.getEmail().value());
     } catch (Exception e) {
       // Best-effort: el email de notificación no debe impedir la aprobación.
-      // KeyGoTracingAspect captura y logea el error vía AOP ([TRACE_ERR]).
+      return null;
     }
   }
 }

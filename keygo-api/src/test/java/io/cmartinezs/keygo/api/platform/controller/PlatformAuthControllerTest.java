@@ -251,7 +251,7 @@ class PlatformAuthControllerTest {
 
       UUID resetId = UUID.randomUUID();
       when(sendPlatformPasswordResetCodeUseCase.execute("admin@keygo.local"))
-          .thenReturn(new io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult(resetId));
+          .thenReturn(new io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult(resetId, "a********n@k****.local"));
 
       var request = new PlatformLoginRequest("admin@keygo.local", "temp123");
 
@@ -300,7 +300,7 @@ class PlatformAuthControllerTest {
           .thenReturn(activePlatformUser);
       when(issueTokensUseCase.execute(eq(activePlatformUser), anyString(), any(), any()))
           .thenReturn(new IssuePlatformTokensResult(
-              "access.jwt", "refresh.token", "Bearer", 3600L, "key-1"));
+              "access.jwt", "id.jwt", "refresh.token", "Bearer", 3600L, "key-1"));
       when(httpRequest.getScheme()).thenReturn("http");
       when(httpRequest.getServerName()).thenReturn("localhost");
       when(httpRequest.getServerPort()).thenReturn(8080);
@@ -451,7 +451,7 @@ class PlatformAuthControllerTest {
           "refresh_token", "raw-refresh-token", null, null, null);
       when(rotateRefreshTokenUseCase.execute(any(RotatePlatformRefreshTokenCommand.class)))
           .thenReturn(new IssuePlatformTokensResult(
-              "new-access.jwt", "new-refresh.token", "Bearer", 3600L, "key-2"));
+              "new-access.jwt", "new-id.jwt", "new-refresh.token", "Bearer", 3600L, "key-2"));
 
       // When
       var response = controller.token(request, httpRequest);
@@ -513,7 +513,7 @@ class PlatformAuthControllerTest {
           .thenReturn(activePlatformUser);
       when(issueTokensUseCase.execute(eq(activePlatformUser), anyString(), any(), any()))
           .thenReturn(new IssuePlatformTokensResult(
-              "access.jwt", "refresh.token", "Bearer", 3600L, "key-1"));
+              "access.jwt", "id.jwt", "refresh.token", "Bearer", 3600L, "key-1"));
       when(httpRequest.getScheme()).thenReturn("http");
       when(httpRequest.getServerName()).thenReturn("localhost");
       when(httpRequest.getServerPort()).thenReturn(8080);
@@ -571,7 +571,7 @@ class PlatformAuthControllerTest {
 
       UUID resetId = UUID.randomUUID();
       when(sendPlatformPasswordResetCodeUseCase.execute("admin@keygo.local"))
-          .thenReturn(new io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult(resetId));
+          .thenReturn(new io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult(resetId, "a********n@k****.local"));
 
       var request = new PlatformLoginRequest("admin@keygo.local", "temp123");
 

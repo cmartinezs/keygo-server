@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "col-keygo-server-v1",
     "name": "KeyGo Server API",
-    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, `/billing/catalog`, etc.) no requieren autenticación.\n\n## Folders\n- **🏠 Platform** — service/info, response-codes, stats, dashboard\n- **🏥 Actuator** — health check\n- **🏢 Tenants** — CRUD + suspend/activate\n- **⚠️ Escenarios de Error** — casos de error comunes\n- **📦 Client Apps** — CRUD + rotate-secret + roles\n- **👤 Users** — CRUD + reset-password + validate-credentials\n- **🔐 OAuth2 Authorization** — authorize → login → token\n- **🔑 OIDC & JWKS** — discovery, jwks, refresh, client_credentials, revoke, userinfo\n- **Registration** — register, verify-email, resend-verification\n- **👤 Account Profile** — GET/PATCH perfil propio (Bearer)\n- **⚙️ Account Settings** — change-password, sessions, notification-preferences, access\n- **💳 Billing — Contracts** — initiate, status, resume, verify-email, resend, mock-payment, activate\n- **💳 Billing — Catalog** — GET catalog, GET plan detail, POST create plan\n- **💳 Billing — Subscription** — GET active subscription, POST cancel, GET invoices",
+    "description": "Colección de pruebas funcionales manuales para KeyGo Server.\n\n## Cómo usar\n1. Importar también el entorno `KeyGo-Server-Local.postman_environment.json`.\n2. Seleccionar el entorno **KeyGo Server — Local** en el selector de entornos de Postman.\n3. Asegurarte de que la app esté corriendo: `./mvnw spring-boot:run -pl keygo-run`.\n4. Ejecutar primero el flujo OAuth2 para obtener tokens y setear `{{accessToken}}`.\n\n## Context-path\nTodos los endpoints se sirven bajo `/keygo-server` (variable `{{contextPath}}`).\n\n## Autenticación\nLos endpoints admin bajo `/api/**` requieren `Authorization: Bearer {{accessToken}}`.\nLos endpoints públicos (`/service/info`, `/.well-known/**`, `/oauth2/authorize`, `/oauth2/token`, `/billing/catalog`, etc.) no requieren autenticación.\n\n## Folders\n- **🏠 Platform** — service/info, response-codes, stats, dashboard\n- **🏥 Actuator** — health check\n- **🏢 Tenants** — CRUD + suspend/activate\n- **⚠️ Escenarios de Error** — casos de error comunes\n- **📦 Client Apps** — CRUD + rotate-secret + roles\n- **👤 Users** — CRUD + reset-password + validate-credentials\n- **🔐 OAuth2 Authorization** — authorize → login → token\n- **🔑 OIDC & JWKS** — discovery, jwks, refresh, client_credentials, revoke, userinfo\n- **Registration** — register, verify-email, resend-verification\n- **👤 Account Profile** — GET/PATCH perfil propio (Bearer)\n- **⚙️ Account Settings** — change-password, sessions, notification-preferences, access\n- **💳 Billing — Contracts** — initiate, status, resume, verify-email, resend, mock-payment, activate\n- **💳 Billing — Catalog** — GET catalog, GET plan detail, POST create plan\n- **💳 Billing — Subscription** — GET active subscription, POST cancel, GET invoices\n- **🔒 Platform Account** — forgot-password, recover-password, reset-password, revoke token",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -4584,6 +4584,152 @@
                   "pm.test(\"data is an array\", () => {",
                   "  const body = pm.response.json();",
                   "  pm.expect(body.data).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔒 Platform Account",
+      "description": "Platform account self-service endpoints — forgot/recover/reset password and token revocation",
+      "item": [
+        {
+          "name": "POST Platform Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@keygo.local\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/forgot-password",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "account", "forgot-password"]
+            },
+            "description": "Solicita un token de recuperación de contraseña para un usuario de plataforma. Siempre retorna 200 (anti-enumeración).\n\n**Auth:** Público | **ResponseCode:** `ACCOUNT_PASSWORD_RECOVERY_SENT` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is ACCOUNT_PASSWORD_RECOVERY_SENT\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_PASSWORD_RECOVERY_SENT\");",
+                  "});",
+                  "pm.test(\"data.sent is true\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.sent).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Platform Recover Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recoveryToken\": \"{{recoveryToken}}\",\n  \"newPassword\": \"NuevaContraseña123!\",\n  \"confirmPassword\": \"NuevaContraseña123!\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/recover-password",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "account", "recover-password"]
+            },
+            "description": "Restablece la contraseña usando el recovery token recibido por email.\n\n**Auth:** Público | **ResponseCode:** `ACCOUNT_PASSWORD_RECOVERED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is ACCOUNT_PASSWORD_RECOVERED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_PASSWORD_RECOVERED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Platform Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_id\": \"{{resetCodeId}}\",\n  \"temporary_password\": \"TempPass123!\",\n  \"new_password\": \"NuevaPermanente123!\",\n  \"confirm_new_password\": \"NuevaPermanente123!\",\n  \"verification_code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/reset-password",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "account", "reset-password"]
+            },
+            "description": "Reset de contraseña para usuario en estado RESET_PASSWORD. Requiere request_id (del 401 del login bloqueado), contraseña temporal, nueva contraseña y código de verificación.\n\n**Auth:** Público | **ResponseCode:** `ACCOUNT_PASSWORD_RESET` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is ACCOUNT_PASSWORD_RESET\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_PASSWORD_RESET\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Platform Revoke Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{platformRefreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/oauth2/revoke",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "oauth2", "revoke"]
+            },
+            "description": "Revoca un refresh token de plataforma. Idempotente — retorna 200 incluso si el token no existe o ya fue revocado (RFC 7009).\n\n**Auth:** Público | **ResponseCode:** `TOKEN_REVOKED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is TOKEN_REVOKED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"TOKEN_REVOKED\");",
                   "});"
                 ]
               }

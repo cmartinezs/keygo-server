@@ -316,7 +316,7 @@ public class AuthorizationController {
 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
           BaseResponse.<LoginData>builder()
-              .data(new LoginData(null, null, null, resetResult.requestId().toString()))
+              .data(new LoginData(null, null, null, resetResult.requestId().toString(), resetResult.maskedEmail()))
               .failure(ResponseHelper.message(ResponseCode.RESET_PASSWORD_REQUIRED))
               .build());
     }

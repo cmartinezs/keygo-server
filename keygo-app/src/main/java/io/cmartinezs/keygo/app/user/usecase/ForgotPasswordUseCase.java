@@ -8,6 +8,7 @@ import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ForgotPasswordResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.VerificationCode;
 import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
@@ -72,8 +73,8 @@ public class ForgotPasswordUseCase {
         tenant.getId(), EmailAddress.of(command.email()));
 
     if (userOpt.isEmpty()) {
-      // Anti-enumeration: retornar éxito silencioso
-      return new ForgotPasswordResult(true);
+      // Anti-enumeration: retornar éxito silencioso con email de entrada ofuscado
+      return new ForgotPasswordResult(true, EmailMasker.mask(command.email()));
     }
 
     var user = userOpt.get();
@@ -99,6 +100,6 @@ public class ForgotPasswordUseCase {
             "recoveryToken", rawToken,
             "tenant_slug", command.tenantSlug()));
 
-    return new ForgotPasswordResult(true);
+    return new ForgotPasswordResult(true, EmailMasker.mask(user.getEmail().value()));
   }
 }

@@ -1295,4 +1295,34 @@ private String myJsonField;
 Imports: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.type.SqlTypes`. Regla agregada a `AGENTS.md` y `CLAUDE.md`.
 **Archivos clave:** `VerificationCodeEntity.java`, `PaymentTransactionEntity.java`.
 
+### [2026-04-07] Hibernate UUID persistence — entidades nuevas deben tener `id = null`
+**Contexto:** Al persistir entidades JPA nuevas (e.g., `VerificationCodeEntity`) con `@GeneratedValue(strategy = GenerationType.UUID)`.
+**Problema:** Si el dominio genera un UUID y lo pasa a la entidad, Hibernate interpreta que la entidad ya existe → llama `merge()` en vez de `persist()` → `ObjectOptimisticLockingFailureException: Row was already updated or deleted`.
+**Solución / Buena práctica:** Las entidades para primera persistencia deben llegar con `id = null`. Hibernate genera el UUID automáticamente en el `INSERT`. No copiar IDs del dominio a la entidad al crear. Al reconvertir a dominio, usar el ID generado por Hibernate.
+**Archivos clave:** `VerificationCodeRepositoryAdapter.java`, `TenantTest.java`, `ClientAppTest.java`.
+
+### [2026-04-07] verification_codes — soporte dual tenant_user / platform_user
+**Contexto:** Tabla `verification_codes` tenía FK solo a `tenant_users`. Los usuarios de plataforma (`platform_users`) no podían generar códigos de verificación.
+**Problema:** FK constraint violation al intentar insertar un código para un `platform_user_id` que no existe en `tenant_users`.
+**Solución / Buena práctica:** Migración V32: agregar `platform_user_id` nullable FK a `platform_users`, relajar `tenant_user_id` a nullable, CHECK constraint `(tenant_user_id IS NOT NULL OR platform_user_id IS NOT NULL)`. En la entidad: dos `@ManyToOne` opcionales + helper `getOwnerUserId()`. En el adapter: `isPlatformUser(UUID)` para rutear queries.
+**Archivos clave:** `V32__verification_codes_platform_user.sql`, `VerificationCodeEntity.java`, `VerificationCodeRepositoryAdapter.java`.
+
+### [2026-04-07] DataAccessException — nunca exponer SQL al cliente
+**Contexto:** Un error de FK constraint propagaba el SQL completo en la respuesta JSON del API.
+**Problema:** `DataAccessException` no tenía handler en `GlobalExceptionHandler` → caía al catch-all que incluía detalles técnicos → SQL leak en respuesta HTTP (riesgo de seguridad).
+**Solución / Buena práctica:** Handler dedicado `@ExceptionHandler(DataAccessException.class)` que retorna 500 con código `DATABASE_ERROR` y **nunca** expone SQL ni detalles técnicos al cliente. Log completo server-side. Requiere `spring-tx` en `keygo-api/pom.xml`.
+**Archivos clave:** `GlobalExceptionHandler.java`, `keygo-api/pom.xml`.
+
+### [2026-04-07] Spring Boot 4 — UserDetailsServiceAutoConfiguration cambió de paquete
+**Contexto:** Al excluir `UserDetailsServiceAutoConfiguration` para evitar el password auto-generado de Spring Security.
+**Problema:** En SB3: `org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration`. En SB4: la clase se movió a `org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration` (jar `spring-boot-security-4.0.4.jar`, no `spring-boot-autoconfigure`).
+**Solución / Buena práctica:** Usar `@SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)` con el import correcto de SB4. El jar `spring-boot-autoconfigure` de SB4 ya no contiene clases de security.
+**Archivos clave:** `KeygoApplication.java`.
+
+### [2026-04-07] @Valid + anotaciones de validación en Request DTOs
+**Contexto:** Los controladores no validaban los DTOs de entrada.
+**Problema:** Campos vacíos o nulos pasaban sin validación → excepciones en capas internas con mensajes poco claros. `@NotNull` acepta `""`, `@NotBlank` rechaza `""` y `"   "`, `@NotEmpty` rechaza `""` pero acepta `"   "`.
+**Solución / Buena práctica:** Agregar `@Valid` en `@RequestBody` de todos los controllers. Anotar records/DTOs con `@NotBlank` (strings), `@NotNull` (UUIDs), `@Email` (emails). Usar `@NotBlank` por defecto para strings (es el más restrictivo). Spring devuelve 400 automáticamente con `MethodArgumentNotValidException`.
+**Archivos clave:** `PlatformAccountController.java`, `ForgotPasswordRequest.java`, `RecoverPasswordRequest.java`, `AccountResetPasswordRequest.java`.
+
 

@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ForgotPasswordResult;
+import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.VerificationCode;
 import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
@@ -49,7 +50,7 @@ public class ForgotPlatformPasswordUseCase {
     var userOpt = platformUserRepository.findByEmail(EmailAddress.of(email));
 
     if (userOpt.isEmpty()) {
-      return new ForgotPasswordResult(true);
+      return new ForgotPasswordResult(true, EmailMasker.mask(email));
     }
 
     var user = userOpt.get();
@@ -71,6 +72,6 @@ public class ForgotPlatformPasswordUseCase {
             "userLastName", user.getLastName() != null ? user.getLastName() : "",
             "recoveryToken", rawToken));
 
-    return new ForgotPasswordResult(true);
+    return new ForgotPasswordResult(true, EmailMasker.mask(user.getEmail().value()));
   }
 }

@@ -170,6 +170,20 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 All endpoints are served under `/keygo-server`. Local URLs:
 - `http://localhost:8080/keygo-server/api/v1/service/info` (GET — info del servicio: title, name, versión, **environment**, **status**)
 - `http://localhost:8080/keygo-server/api/v1/platform/stats` (GET — **ADMIN** — estadísticas agregadas: tenants/users/apps/signingKeys por estado)
+- `http://localhost:8080/keygo-server/api/v1/platform/oauth2/authorize` (GET — **público** — iniciar flujo PKCE de plataforma)
+- `http://localhost:8080/keygo-server/api/v1/platform/account/login` (POST — **público** — login de plataforma, genera authorization code)
+- `http://localhost:8080/keygo-server/api/v1/platform/oauth2/token` (POST — **público** — intercambio code → JWT tokens de plataforma)
+- `http://localhost:8080/keygo-server/api/v1/platform/account/direct-login` (POST — **público** — login directo API/CLI, sin PKCE)
+- `http://localhost:8080/keygo-server/api/v1/platform/oauth2/revoke` (POST — **público** — revocar token, RFC 7009)
+- `http://localhost:8080/keygo-server/api/v1/platform/account/forgot-password` (POST — **público** — solicitar token de recuperación; anti-enumeración: siempre 200)
+- `http://localhost:8080/keygo-server/api/v1/platform/account/recover-password` (POST — **público** — restablecer contraseña con recovery token)
+- `http://localhost:8080/keygo-server/api/v1/platform/account/reset-password` (POST — **público** — reset con contraseña temporal + verification code + request_id)
+- `http://localhost:8080/keygo-server/api/v1/platform/users` (POST — **KEYGO_ADMIN** — crear usuario de plataforma)
+- `http://localhost:8080/keygo-server/api/v1/platform/users/{userId}` (GET — **KEYGO_ADMIN** — obtener usuario de plataforma)
+- `http://localhost:8080/keygo-server/api/v1/platform/users/{userId}/suspend` (PUT — **KEYGO_ADMIN** — suspender usuario)
+- `http://localhost:8080/keygo-server/api/v1/platform/users/{userId}/activate` (PUT — **KEYGO_ADMIN** — activar usuario)
+- `http://localhost:8080/keygo-server/api/v1/platform/users/{userId}/platform-roles` (POST — **KEYGO_ADMIN** — asignar rol de plataforma)
+- `http://localhost:8080/keygo-server/api/v1/platform/users/{userId}/platform-roles/{roleCode}` (DELETE — **KEYGO_ADMIN** — revocar rol de plataforma)
 - `http://localhost:8080/keygo-server/api/v1/platform/billing/catalog` (GET — **público** — catálogo de planes de plataforma, `clientAppId IS NULL`)
 - `http://localhost:8080/keygo-server/api/v1/platform/billing/catalog/{planCode}` (GET — **público** — detalle de un plan de plataforma)
 - `http://localhost:8080/keygo-server/api/v1/platform/billing/subscription` (GET — **KEYGO_ADMIN / KEYGO_TENANT_ADMIN** — suscripción activa del contractor de plataforma)
@@ -260,6 +274,14 @@ The filter has three path categories (see `KeyGoBootstrapProperties`):
 | `keygo.bootstrap.authorize-path-suffix` | `/oauth2/authorize` | Public — browser navigates here to start the OAuth2 flow |
 | `keygo.bootstrap.login-path-suffix` | `/account/login` | Public — user POSTs credentials during the authorization code flow |
 | `keygo.bootstrap.token-path-suffix` | `/oauth2/token` | Public — code exchange (PKCE-protected) and token rotation |
+| `keygo.bootstrap.platform-login-path-prefix` | `/api/v1/platform/account/login` | Public — platform login |
+| `keygo.bootstrap.platform-token-path-prefix` | `/api/v1/platform/oauth2/token` | Public — platform token exchange |
+| `keygo.bootstrap.platform-revoke-path-prefix` | `/api/v1/platform/oauth2/revoke` | Public — platform token revocation |
+| `keygo.bootstrap.platform-authorize-path-prefix` | `/api/v1/platform/oauth2/authorize` | Public — platform PKCE authorize |
+| `keygo.bootstrap.platform-direct-login-path-prefix` | `/api/v1/platform/account/direct-login` | Public — platform API/CLI login |
+| `keygo.bootstrap.platform-forgot-password-path-prefix` | `/api/v1/platform/account/forgot-password` | Public — platform forgot password |
+| `keygo.bootstrap.platform-recover-password-path-prefix` | `/api/v1/platform/account/recover-password` | Public — platform recover password |
+| `keygo.bootstrap.platform-reset-password-path-prefix` | `/api/v1/platform/account/reset-password` | Public — platform reset password |
 
 ## Security header
 
@@ -310,6 +332,9 @@ Imports necesarios: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.ty
 | `PlatformUserRoleEntity` | `membership.entity` | `platform_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity` (platform admins = TenantUsers en keygo), `PlatformRoleEntity`; UNIQUE(tenant_user_id, platform_role_id) |
 | `TenantRoleEntity` | `membership.entity` | `tenant_roles` | `@ManyToOne(LAZY)` → `TenantEntity`; `code` UPPERCASE `^[A-Z][A-Z0-9_]*$`; UNIQUE(tenant_id, code); `active` boolean |
 | `TenantUserRoleEntity` | `membership.entity` | `tenant_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity`, `TenantRoleEntity`; soft-delete vía `removed_at`; partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL |
+| `PlatformUserEntity` | `user.entity` | `platform_users` | `email` UNIQUE; `username` UNIQUE; `status` default `ACTIVE`; campos OIDC (firstName, lastName, locale, zoneinfo, etc.) |
+| `VerificationCodeEntity` | `user.entity` | `verification_codes` | `@ManyToOne(LAZY)` → `TenantUserEntity` (nullable) + `PlatformUserEntity` (nullable); CHECK(al menos uno no nulo); `purpose` VARCHAR; `metadata` JSONB con `@JdbcTypeCode(SqlTypes.JSON)` |
+| `TenantUserRoleEntity` | `membership.entity` | `tenant_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity`, `TenantRoleEntity`; soft-delete vía `removed_at`; partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -329,6 +354,8 @@ Imports necesarios: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.ty
 | `PlatformUserRoleJpaRepository` | `membership.repository` |
 | `TenantRoleJpaRepository` | `membership.repository` |
 | `TenantUserRoleJpaRepository` | `membership.repository` |
+| `PlatformUserJpaRepository` | `user.repository` |
+| `VerificationCodeJpaRepository` | `user.repository` |
 
 **Flyway migrations already applied:**
 - `V1__drop_all.sql` — **Drop ALL** (pizarrón limpio, idempotente; incluye `contractors`)
@@ -350,8 +377,6 @@ Imports necesarios: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.ty
 - `V17__seed_billing_plans.sql` — Seed: planes FREE/PERSONAL/TEAM/BUSINESS/FLEX/ENTERPRISE + versiones v1.0 + billing options + entitlements (escalera completa)
 - `V18__seed_contractors.sql` — Seed: `keygo_contractor` (TenantUser en keygo), `contractors` record ACTIVE, contrato ACTIVE plan PERSONAL, suscripción ACTIVE, tenant `acme` vinculado
 
-- `V22__signing_key_tenant_scope_and_audit_refs.sql` — `tenant_id` en `signing_keys` (nullable, FK a tenants); `signing_key_id` en `sessions` y `refresh_tokens` (nullable, FK a signing_keys para auditoría)
-
 - `V19__user_status_reset_password.sql` — Columna `status=RESET_PASSWORD` en `tenant_users`; tabla `password_reset_tokens`
 - `V20__add_app_role_hierarchy.sql` — Tabla `app_role_hierarchy` (parent/child, restricciones de ciclo, profundidad ≤5), índices, CTE recursiva para expansión de roles en JWT
 - `V21__user_notification_preferences.sql` — Tabla `user_notification_preferences` (5 flags boolean, UNIQUE `user_id+tenant_id`)
@@ -360,8 +385,14 @@ Imports necesarios: `org.hibernate.annotations.JdbcTypeCode` + `org.hibernate.ty
 - `V24__platform_roles_and_user_roles.sql` — Tablas `platform_roles` + `platform_user_roles`; FK `platform_user_roles.tenant_user_id → tenant_users`; UNIQUE(tenant_user_id, platform_role_id)
 - `V25__tenant_roles_and_user_roles.sql` — Tablas `tenant_roles` + `tenant_user_roles`; UNIQUE(tenant_id, code); partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL
 - `V26__seed_platform_and_tenant_roles.sql` — Seed: 3 platform_roles (keygo_admin/keygo_account_admin/keygo_user), 5 tenant_roles (keygo: ADMIN_INTERNAL/EDITOR/VIEWER; demo: ADMIN/USER), 5 platform_user_role assignments
+- `V27__platform_users.sql` — Tabla `platform_users` (identidad global de plataforma, separada de `tenant_users`)
+- `V28__sessions_platform_refactor.sql` — Refactor `sessions` para soporte de platform users + corrección FK `platform_user_roles`
+- `V29__platform_users_seed_and_role_rename.sql` — Seed `platform_users` + rename role `keygo_account_admin`
+- `V30__billing_contractor_to_platform_user.sql` — Billing Contractor → PlatformUser + billing unificado
+- `V31__verification_codes.sql` — Tabla unificada `verification_codes` (reemplaza `email_verifications` + `password_reset_codes`; `purpose` VARCHAR, `metadata` JSONB)
+- `V32__verification_codes_platform_user.sql` — `platform_user_id` nullable FK a `platform_users` en `verification_codes`; CHECK constraint dual-user
 
-Next migration must be `V27__...`. **Never reuse or edit existing migration files.**
+Next migration must be `V33__...`. **Never reuse or edit existing migration files.**
 
 **Seed convention — foreign keys vía subquery (mandatory):**  
 When a seed row references a parent table's PK, **never hardcode the UUID**. Always use a `SELECT` subquery with a `WHERE` on a unique, human-readable field:
@@ -575,6 +606,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 
 | Fecha | Cambio |
 |---|---|
+| 2026-04-07 | **Identidad de plataforma — endpoints de cuenta y bugs críticos:** 4 endpoints en `PlatformAccountController` (`forgot-password`, `recover-password`, `reset-password`, `oauth2/revoke`); 6 endpoints en `PlatformUserController` (CRUD + roles); flujo OAuth2 PKCE completo para plataforma (`PlatformAuthController`); `PlatformUserEntity` + `PlatformUserJpaRepository`; 6 migraciones V27–V32 (`platform_users`, `sessions` refactor, seed, billing→platform, `verification_codes` unificada + dual-user); fix Hibernate UUID persistence (`id=null` para `persist()`); fix JSONB `@JdbcTypeCode(SqlTypes.JSON)` en `VerificationCodeEntity`/`PaymentTransactionEntity`; fix `DataAccessException` SQL leak en `GlobalExceptionHandler`; fix SB4 `UserDetailsServiceAutoConfiguration` package (`org.springframework.boot.security.autoconfigure`); `@Valid` + anotaciones de validación en Request DTOs; 8 paths públicos de plataforma en `BootstrapAdminKeyFilter`; 14 tests nuevos para use cases de plataforma; próxima migración: `V33__...`. |
 | 2026-04-08 | **RFC billing-contractor-refactor (Fases F/G/H):** 5 nuevos endpoints en `PlatformBillingController` (`/api/v1/platform/billing/*`); `BootstrapAdminKeyFilter` fix `hasSuffix`→`hasSegment` para `/billing/catalog` (cubre sub-paths); 24 tests nuevos (15 use case + 9 controller); 5 use cases de plataforma billing (`GetPlatformPlanCatalogUseCase`, `GetPlatformPlanUseCase`, `GetPlatformSubscriptionUseCase`, `CancelPlatformSubscriptionUseCase`, `ListPlatformInvoicesUseCase`); 636 tests totales, 0 fallos. |
 | 2026-04-07 | **T-111 — RBAC multi-ámbito (plataforma + tenant):** 4 entidades JPA nuevas (`PlatformRoleEntity`, `PlatformUserRoleEntity`, `TenantRoleEntity`, `TenantUserRoleEntity`); 4 repositorios nuevos; 4 puertos OUT nuevos; 4 adaptadores nuevos; 5 use cases nuevos (`AssignPlatformRoleUseCase`, `RevokePlatformRoleUseCase`, `CreateTenantRoleUseCase`, `AssignTenantRoleUseCase`, `RevokeTenantRoleUseCase`); 3 migraciones (V24–V26); 5 beans en `ApplicationConfig`; dominio: `PlatformRole`, `PlatformUserRole`, `TenantRole`, `TenantUserRole`. Próxima migración: `V27__...`. |
 | 2026-04-06 | **Entidades JPA huérfanas corregidas:** `UserNotificationPreferencesEntity` — `UUID userId/tenantId` → `@ManyToOne TenantUserEntity user` + `@ManyToOne TenantEntity tenant`; `SigningKeyEntity` — nueva FK `@ManyToOne TenantEntity tenant` (nullable); `SessionEntity` + `RefreshTokenEntity` — nueva FK `@ManyToOne SigningKeyEntity signingKey` (nullable). Migración `V22__signing_key_tenant_scope_and_audit_refs.sql`. Dominios `Session`/`RefreshToken`/`SigningKey` actualizados con `signingKeyId`/`tenantId` nuevos. Puertos `findActiveKeyForTenant`/`findPublishableKeysForTenant` en `SigningKeyRepositoryPort`. `IssueTokensUseCase.execute()` ahora recibe `TenantId` como primer parámetro. `GetJwksUseCase.execute(tenantSlug)` tenant-aware con `TenantRepositoryPort`. `JwksController` pasa `tenantSlug` al use case. Próxima migración: `V23__...`. |

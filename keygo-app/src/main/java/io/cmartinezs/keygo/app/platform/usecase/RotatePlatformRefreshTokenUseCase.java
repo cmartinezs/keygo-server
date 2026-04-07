@@ -144,6 +144,7 @@ public class RotatePlatformRefreshTokenUseCase {
 
     return new IssuePlatformTokensResult(
         tokensResult.accessToken(),
+        tokensResult.idToken(),
         newRawToken,
         tokensResult.tokenType(),
         tokensResult.expiresIn(),

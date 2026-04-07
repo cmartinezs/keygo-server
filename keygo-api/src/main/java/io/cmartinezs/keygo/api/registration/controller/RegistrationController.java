@@ -7,12 +7,14 @@ import io.cmartinezs.keygo.api.registration.response.RegistrationData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.NotificationSentData;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.command.ResendVerificationCommand;
 import io.cmartinezs.keygo.app.user.command.VerifyEmailCommand;
 import io.cmartinezs.keygo.app.user.usecase.RegisterTenantUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResendVerificationEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -87,7 +89,7 @@ public class RegistrationController {
     RegistrationData data = new RegistrationData(
         user.getId().value(),
         user.getUsername().value(),
-        user.getEmail().value(),
+        EmailMasker.mask(user.getEmail().value()),
         user.getStatus());
 
     BaseResponse<RegistrationData> response = BaseResponse.<RegistrationData>builder()
@@ -145,7 +147,7 @@ public class RegistrationController {
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "409", description = "Current code is still active — wait until it expires (code: BUSINESS_RULE_VIOLATION)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<Void>> resendVerification(
+  public ResponseEntity<BaseResponse<NotificationSentData>> resendVerification(
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Client app ID") @PathVariable String clientId,
       @Valid @RequestBody ResendVerificationRequest request) {
@@ -155,7 +157,10 @@ public class RegistrationController {
 
     resendVerificationEmailUseCase.execute(command);
 
-    BaseResponse<Void> response = BaseResponse.<Void>builder()
+    var data = new NotificationSentData(EmailMasker.mask(request.email()));
+
+    BaseResponse<NotificationSentData> response = BaseResponse.<NotificationSentData>builder()
+        .data(data)
         .success(ResponseHelper.message(ResponseCode.EMAIL_VERIFICATION_RESENT))
         .build();
 

@@ -9,9 +9,10 @@ import java.util.UUID;
  * lo incluya en el body del 401 y el frontend pueda redirigir al formulario de reset sin conocer
  * el email del usuario.
  *
- * @param requestId UUID de la fila en {@code password_reset_codes} persistida durante el upsert.
+ * @param requestId     UUID de la fila en {@code password_reset_codes} persistida durante el upsert.
+ * @param maskedEmail   email ofuscado al que se envió el código de reset
  * @author cmartinezs
- * @version 1.0
+ * @version 1.1
  */
-public record SendPasswordResetCodeResult(UUID requestId) {}
+public record SendPasswordResetCodeResult(UUID requestId, String maskedEmail) {}
 

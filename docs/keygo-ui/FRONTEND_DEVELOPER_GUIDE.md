@@ -2461,6 +2461,9 @@ Esto vincula el evento de Sentry con la búsqueda en Kibana/CloudWatch usando el
 | Intercambio code → tokens | POST | `/api/v1/platform/oauth2/token` | Público | `TOKEN_ISSUED` | ✅ |
 | Login directo (API/CLI) | POST | `/api/v1/platform/account/direct-login` | Público | `PLATFORM_LOGIN_SUCCESS` | ✅ |
 | Revocar token de plataforma | POST | `/api/v1/platform/oauth2/revoke` | Público | `TOKEN_REVOKED` | ✅ |
+| Olvidé contraseña (plataforma) | POST | `/api/v1/platform/account/forgot-password` | Público | `ACCOUNT_PASSWORD_RECOVERY_SENT` | ✅ |
+| Recuperar contraseña (plataforma) | POST | `/api/v1/platform/account/recover-password` | Público | `ACCOUNT_PASSWORD_RECOVERED` | ✅ |
+| Reset contraseña (plataforma) | POST | `/api/v1/platform/account/reset-password` | Público | `ACCOUNT_PASSWORD_RESET` | ✅ |
 
 **Iniciar autorización — `GET /keygo-server/api/v1/platform/oauth2/authorize`:**
 
@@ -2564,6 +2567,40 @@ Request body:
 ```json
 { "token": "rt_..." }
 ```
+
+**Olvidé contraseña — `POST /keygo-server/api/v1/platform/account/forgot-password`:**
+
+Request body:
+```json
+{ "email": "admin@keygo.local" }
+```
+Siempre retorna `200 OK` con `sent: true` (anti-enumeración). Envía email con recovery token si el usuario existe.
+
+**Recuperar contraseña — `POST /keygo-server/api/v1/platform/account/recover-password`:**
+
+Request body:
+```json
+{
+  "recoveryToken": "uuid-del-token",
+  "newPassword": "NuevaContraseña123!",
+  "confirmPassword": "NuevaContraseña123!"
+}
+```
+Retorna `200 OK` si el token es válido y no expirado. `404` si el token no existe. `422` si expirado o ya usado.
+
+**Reset contraseña — `POST /keygo-server/api/v1/platform/account/reset-password`:**
+
+Request body:
+```json
+{
+  "request_id": "uuid-del-request",
+  "temporary_password": "TempPass123!",
+  "new_password": "NuevaPermanente123!",
+  "confirm_new_password": "NuevaPermanente123!",
+  "verification_code": "123456"
+}
+```
+Para usuarios en estado `RESET_PASSWORD`. El `request_id` viene en el `data.reset_code_id` del 401 del login bloqueado.
 
 ### 14.0.1. Gestión de usuarios de plataforma ✅ NUEVO
 

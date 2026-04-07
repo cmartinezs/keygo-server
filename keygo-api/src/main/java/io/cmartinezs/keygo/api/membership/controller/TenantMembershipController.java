@@ -174,9 +174,10 @@ public class TenantMembershipController {
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Membership ID") @PathVariable UUID membershipId) {
 
-    Membership membership = approveMembershipUseCase.execute(
+    var result = approveMembershipUseCase.execute(
         MembershipId.of(membershipId), tenantSlug);
 
+    var membership = result.membership();
     MembershipData data = MembershipData.builder()
         .id(membership.getId().value())
         .userId(membership.getUserId().value())
@@ -185,6 +186,7 @@ public class TenantMembershipController {
         .roleIds(membership.getRoles().stream()
             .map(r -> r.roleId().value())
             .collect(java.util.stream.Collectors.toSet()))
+        .notificationEmail(result.maskedEmail())
         .build();
 
     BaseResponse<MembershipData> response = BaseResponse.<MembershipData>builder()

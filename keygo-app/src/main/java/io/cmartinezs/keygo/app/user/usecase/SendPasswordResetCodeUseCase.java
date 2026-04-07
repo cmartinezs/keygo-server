@@ -12,6 +12,7 @@ import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.VerificationCode;
 import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult;
+import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.Username;
 
@@ -91,9 +92,10 @@ public class SendPasswordResetCodeUseCase {
             "userFirstName", user.getFirstName() != null ? user.getFirstName() : "",
             "userLastName", user.getLastName() != null ? user.getLastName() : "",
             "verificationCode", rawCode,
+            "reset_code_id", persisted.getId().toString(),
             "expiresInMinutes", CODE_TTL_MINUTES));
 
-    return new SendPasswordResetCodeResult(persisted.getId());
+    return new SendPasswordResetCodeResult(persisted.getId(), EmailMasker.mask(user.getEmail().value()));
   }
 
   private User findUser(io.cmartinezs.keygo.domain.tenant.model.TenantId tenantId, String emailOrUsername) {

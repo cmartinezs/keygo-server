@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.membership.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
 
 import java.time.OffsetDateTime;
@@ -11,16 +12,17 @@ import lombok.Builder;
  * Response DTO for membership data.
  * <p>DTO de response para datos de membresía.
  * @author cmartinezs
- * @version 1.0
+ * @version 1.1
  */
 @Builder
 public record MembershipData(
     UUID id,
-    UUID userId,
-    UUID clientAppId,
+    @JsonProperty("user_id") UUID userId,
+    @JsonProperty("client_app_id") UUID clientAppId,
     MembershipStatus status,
-    Set<UUID> roleIds,
-    OffsetDateTime createdAt
+    @JsonProperty("role_ids") Set<UUID> roleIds,
+    @JsonProperty("created_at") OffsetDateTime createdAt,
+    @JsonProperty("notification_email") String notificationEmail
 ) {
 
 }

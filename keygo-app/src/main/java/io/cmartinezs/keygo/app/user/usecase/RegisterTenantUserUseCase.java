@@ -132,7 +132,9 @@ public class RegisterTenantUserUseCase {
         Map.of("userUsername", username.value(),
             "userFirstName", command.firstName() != null ? command.firstName() : "",
             "userLastName", command.lastName() != null ? command.lastName() : "",
-            "verificationCode", code, "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
+            "verificationCode", code,
+            "email", email.value(),
+            "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
 
     return savedUser;
   }

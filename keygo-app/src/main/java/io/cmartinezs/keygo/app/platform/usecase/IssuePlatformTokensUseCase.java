@@ -110,6 +110,7 @@ public class IssuePlatformTokensUseCase {
     // 5. Retornar resultado
     return new IssuePlatformTokensResult(
         tokensResult.accessToken(),
+        tokensResult.idToken(),
         rawRefreshToken,
         tokensResult.tokenType(),
         tokensResult.expiresIn(),

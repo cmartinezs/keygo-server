@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
+import io.cmartinezs.keygo.app.membership.result.ApproveMembershipResult;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
@@ -83,10 +84,10 @@ class ApproveMembershipUseCaseTest {
         .thenAnswer(inv -> inv.getArgument(0));
 
     // When
-    Membership result = useCase.execute(membershipId, TENANT_SLUG);
+    ApproveMembershipResult result = useCase.execute(membershipId, TENANT_SLUG);
 
     // Then
-    assertThat(result.getStatus()).isEqualTo(MembershipStatus.ACTIVE);
+    assertThat(result.membership().getStatus()).isEqualTo(MembershipStatus.ACTIVE);
     verify(membershipRepositoryPort).update(pending);
   }
 
@@ -113,11 +114,12 @@ class ApproveMembershipUseCaseTest {
         .thenReturn(Optional.of(clientApp(clientAppId)));
 
     // When
-    useCase.execute(membershipId, TENANT_SLUG);
+    ApproveMembershipResult result = useCase.execute(membershipId, TENANT_SLUG);
 
     // Then
     verify(emailNotificationPort).sendEmail(
         eq(EmailNotificationPort.TYPE_MEMBERSHIP_APPROVED), anyString(), anyString(), any(Map.class));
+    assertThat(result.maskedEmail()).isNotNull();
   }
 
   @Test
@@ -145,10 +147,11 @@ class ApproveMembershipUseCaseTest {
         .when(emailNotificationPort).sendEmail(anyString(), anyString(), anyString(), any(Map.class));
 
     // When
-    Membership result = useCase.execute(membershipId, TENANT_SLUG);
+    ApproveMembershipResult result = useCase.execute(membershipId, TENANT_SLUG);
 
     // Then — approval persists even if email fails
-    assertThat(result.getStatus()).isEqualTo(MembershipStatus.ACTIVE);
+    assertThat(result.membership().getStatus()).isEqualTo(MembershipStatus.ACTIVE);
+    assertThat(result.maskedEmail()).isNull();
     verify(membershipRepositoryPort).update(pending);
   }
 

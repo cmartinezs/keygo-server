@@ -6,7 +6,6 @@ import io.cmartinezs.keygo.app.user.port.notification.exception.EmailSmtpExcepti
 import io.cmartinezs.keygo.app.user.port.notification.exception.EmailTemplateException;
 import io.cmartinezs.keygo.app.user.port.notification.exception.EmailValidationException;
 import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties;
-import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties.EmailTypeConfig;
 import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
 import io.cmartinezs.keygo.infra.mail.ConfigurableEmailStrategy;
 import io.cmartinezs.keygo.infra.mail.EmailStrategy;
