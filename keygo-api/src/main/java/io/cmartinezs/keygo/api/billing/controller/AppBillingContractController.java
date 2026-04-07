@@ -81,7 +81,7 @@ public class AppBillingContractController {
       @RequestBody CreateAppContractRequest request) {
 
     CreateAppContractCommand cmd = new CreateAppContractCommand(
-        UUID.fromString(request.clientAppId()),
+        request.clientAppId() != null ? UUID.fromString(request.clientAppId()) : null,
         UUID.fromString(request.planVersionId()),
         request.billingPeriod(),
         request.contractorEmail(),

@@ -44,7 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Unit tests for CreateAppContractUseCase — email duplication validation.
  *
  * @author cmartinezs
- * @version 1.0
+ * @version 1.1
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateAppContractUseCase — Validación de email duplicado")
@@ -99,7 +99,7 @@ class CreateAppContractUseCaseTest {
     // Mock plan version exists
     when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(AppPlanVersion.class)));
 
-    // Mock client app exists and return provider tenant
+    // Mock client app exists (validates when clientAppId != null)
     ClientApp clientApp =
         ClientApp.builder()
             .id(ClientAppId.of(CLIENT_APP_ID))
@@ -112,8 +112,8 @@ class CreateAppContractUseCaseTest {
             .build();
     when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.of(clientApp));
 
-    // Mock contractor does NOT exist (email available)
-    when(contractorRepo.findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL))
+    // Mock contractor does NOT exist (email available — platform-level check)
+    when(contractorRepo.findByPlatformUserEmail(CONTRACTOR_EMAIL))
         .thenReturn(Optional.empty());
 
     // Mock contract save
@@ -150,7 +150,7 @@ class CreateAppContractUseCaseTest {
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
     verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
-    verify(contractorRepo).findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL);
+    verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
     verify(contractRepo).save(any(AppContract.class));
     verify(emailNotification)
         .sendContractVerificationEmail(
@@ -192,14 +192,14 @@ class CreateAppContractUseCaseTest {
             .build();
     when(clientAppRepo.findById(ClientAppId.of(CLIENT_APP_ID))).thenReturn(Optional.of(clientApp));
 
-    // Mock contractor ALREADY EXISTS (email taken)
+    // Mock contractor ALREADY EXISTS (email taken — platform-level check)
     Contractor existingContractor =
         Contractor.builder()
             .id(UUID.randomUUID())
-            .tenantUserId(UUID.randomUUID())
+            .platformUserId(UUID.randomUUID())
             .status(ContractorStatus.ACTIVE)
             .build();
-    when(contractorRepo.findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL))
+    when(contractorRepo.findByPlatformUserEmail(CONTRACTOR_EMAIL))
         .thenReturn(Optional.of(existingContractor));
 
     // When / Then
@@ -209,7 +209,7 @@ class CreateAppContractUseCaseTest {
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
     verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
-    verify(contractorRepo).findByTenantUserEmail(PROVIDER_TENANT_ID, CONTRACTOR_EMAIL);
+    verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
     verify(contractRepo, never()).save(any());
     verify(emailNotification, never()).sendContractVerificationEmail(any(), any(), any(), any());
   }
@@ -240,7 +240,7 @@ class CreateAppContractUseCaseTest {
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
     verify(clientAppRepo, never()).findById(any());
-    verify(contractorRepo, never()).findByTenantUserEmail(any(), any());
+    verify(contractorRepo, never()).findByPlatformUserEmail(any());
     verify(contractRepo, never()).save(any());
   }
 
@@ -273,7 +273,53 @@ class CreateAppContractUseCaseTest {
 
     verify(versionRepo).findById(PLAN_VERSION_ID);
     verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
-    verify(contractorRepo, never()).findByTenantUserEmail(any(), any());
+    verify(contractorRepo, never()).findByPlatformUserEmail(any());
     verify(contractRepo, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Debe crear contrato de plataforma cuando clientAppId es null")
+  void shouldCreatePlatformContractWhenClientAppIdIsNull() {
+    // Given — platform contract (no clientAppId)
+    CreateAppContractCommand cmd =
+        new CreateAppContractCommand(
+            null,
+            PLAN_VERSION_ID,
+            BillingPeriod.MONTHLY,
+            CONTRACTOR_EMAIL,
+            CONTRACTOR_FIRST_NAME,
+            CONTRACTOR_LAST_NAME,
+            null,
+            null,
+            null);
+
+    when(versionRepo.findById(PLAN_VERSION_ID)).thenReturn(Optional.of(mock(AppPlanVersion.class)));
+    when(contractorRepo.findByPlatformUserEmail(CONTRACTOR_EMAIL)).thenReturn(Optional.empty());
+
+    AppContract savedContract =
+        AppContract.builder()
+            .id(UUID.randomUUID())
+            .selectedPlanVersionId(PLAN_VERSION_ID)
+            .billingPeriod("MONTHLY")
+            .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
+            .contractorEmail(CONTRACTOR_EMAIL)
+            .contractorFirstName(CONTRACTOR_FIRST_NAME)
+            .contractorLastName(CONTRACTOR_LAST_NAME)
+            .verificationCode("123456")
+            .verificationCodeExpiresAt(OffsetDateTime.now().plusMinutes(VERIFICATION_CODE_EXPIRY_MINUTES))
+            .expiresAt(OffsetDateTime.now().plusHours(CONTRACT_EXPIRY_HOURS))
+            .createdAt(OffsetDateTime.now())
+            .updatedAt(OffsetDateTime.now())
+            .build();
+    when(contractRepo.save(any(AppContract.class))).thenReturn(savedContract);
+
+    // When
+    AppContractResult result = useCase.execute(cmd);
+
+    // Then — clientApp was NOT validated
+    assertThat(result).isNotNull();
+    assertThat(result.contract().getClientAppId()).isNull();
+    verify(clientAppRepo, never()).findById(any());
+    verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
   }
 }

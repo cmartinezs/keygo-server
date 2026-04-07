@@ -9,7 +9,7 @@ import java.util.UUID;
 /**
  * Domain model for a Contractor — the central entity of billing v2.
  * A Contractor is the person or company that signs contracts with the platform.
- * It has a 1:1 link to a TenantUser in the provider's tenant.
+ * It has a 1:1 link to a PlatformUser (the identity that exists at platform level).
  *
  * @author cmartinezs
  * @version 1.0
@@ -18,8 +18,8 @@ import java.util.UUID;
 public class Contractor {
 
   private final UUID id;
-  /** 1:1 link to TenantUser in the provider's tenant. */
-  private final UUID tenantUserId;
+  /** 1:1 link to PlatformUser (platform-level identity). */
+  private final UUID platformUserId;
   private ContractorStatus status;
   private final OffsetDateTime createdAt;
   private OffsetDateTime updatedAt;
@@ -27,15 +27,15 @@ public class Contractor {
   @Builder
   private Contractor(
       UUID id,
-      UUID tenantUserId,
+      UUID platformUserId,
       ContractorStatus status,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt) {
-    if (tenantUserId == null) throw new IllegalArgumentException("tenantUserId cannot be null");
+    if (platformUserId == null) throw new IllegalArgumentException("platformUserId cannot be null");
     if (status == null) throw new IllegalArgumentException("status cannot be null");
 
     this.id = id;
-    this.tenantUserId = tenantUserId;
+    this.platformUserId = platformUserId;
     this.status = status;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;

@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface AppSubscriptionJpaRepository extends JpaRepository<AppSubscriptionEntity, UUID> {
   Optional<AppSubscriptionEntity> findByClientAppIdAndContractorId(UUID clientAppId, UUID contractorId);
+
+  // Platform-level subscriptions (clientApp is NULL)
+  Optional<AppSubscriptionEntity> findByClientAppIsNullAndContractor_Id(UUID contractorId);
 }

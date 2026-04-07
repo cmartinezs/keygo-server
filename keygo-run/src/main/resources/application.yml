@@ -49,6 +49,8 @@ keygo:
     platform-login-path-prefix: "/api/v1/platform/account/login"
     platform-token-path-prefix: "/api/v1/platform/oauth2/token"
     platform-revoke-path-prefix: "/api/v1/platform/oauth2/revoke"
+    platform-authorize-path-prefix: "/api/v1/platform/oauth2/authorize"
+    platform-direct-login-path-prefix: "/api/v1/platform/account/direct-login"
   tracing:
     # Habilita el log DEBUG de input/output por método (KeyGoTracingAspect).
     # Requiere que el nivel DEBUG esté activo para io.cmartinezs.keygo en logback-spring.xml.
@@ -58,6 +60,11 @@ keygo:
     mock-payment-enabled: true
     contract-expiry-hours: 48
     default-currency: MXN
+  platform:
+    allowed-redirect-uris:
+      - "${KEYGO_PLATFORM_REDIRECT_URI:http://localhost:5173/callback}"
+      - "http://localhost:5173/platform/callback"
+    application-name: "${KEYGO_PLATFORM_APP_NAME:KeyGo Platform}"
   mail:
     from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
     app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"

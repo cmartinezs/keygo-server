@@ -135,7 +135,9 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasPrefix(path, bootstrapProperties.getApiDocsPathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformLoginPathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformTokenPathPrefix())
-        || hasPrefix(path, bootstrapProperties.getPlatformRevokePathPrefix());
+        || hasPrefix(path, bootstrapProperties.getPlatformRevokePathPrefix())
+        || hasPrefix(path, bootstrapProperties.getPlatformAuthorizePathPrefix())
+        || hasPrefix(path, bootstrapProperties.getPlatformDirectLoginPathPrefix());
   }
   private boolean isPublicBySegment(String path) {
     return hasSegment(path, bootstrapProperties.getWellKnownPathPrefix());
@@ -150,7 +152,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasSuffix(path, bootstrapProperties.getAuthorizePathSuffix())
         || hasSuffix(path, bootstrapProperties.getLoginPathSuffix())
         || hasSuffix(path, bootstrapProperties.getTokenPathSuffix())
-        || hasSuffix(path, bootstrapProperties.getBillingCatalogPathSuffix())
+        || hasSegment(path, bootstrapProperties.getBillingCatalogPathSuffix())
         || hasSegment(path, bootstrapProperties.getBillingContractsPathSuffix())
         || hasSuffix(path, bootstrapProperties.getAccountChangePasswordPathSuffix())
         || hasSegment(path, bootstrapProperties.getAccountSessionsPathSuffix())

@@ -55,7 +55,9 @@ public class AppPlanRepositoryAdapter implements AppPlanRepositoryPort {
 
   @Override
   public AppPlan save(AppPlan plan) {
-    ClientAppEntity clientApp = clientAppRepo.getReferenceById(plan.getClientAppId());
+    ClientAppEntity clientApp = plan.getClientAppId() != null
+        ? clientAppRepo.getReferenceById(plan.getClientAppId())
+        : null;
     AppPlanEntity entity = AppPlanEntity.builder()
         .id(plan.getId())
         .clientApp(clientApp)
@@ -67,5 +69,16 @@ public class AppPlanRepositoryAdapter implements AppPlanRepositoryPort {
         .sortOrder(plan.getSortOrder())
         .build();
     return BillingPersistenceMapper.toDomain(jpaRepo.save(entity));
+  }
+
+  @Override
+  public List<AppPlan> findPlatformPlans() {
+    return jpaRepo.findByClientAppIsNullAndStatusAndIsPublicTrue(AppPlanStatus.ACTIVE)
+        .stream().map(BillingPersistenceMapper::toDomain).toList();
+  }
+
+  @Override
+  public Optional<AppPlan> findPlatformPlanByCode(String code) {
+    return jpaRepo.findByClientAppIsNullAndCode(code).map(BillingPersistenceMapper::toDomain);
   }
 }

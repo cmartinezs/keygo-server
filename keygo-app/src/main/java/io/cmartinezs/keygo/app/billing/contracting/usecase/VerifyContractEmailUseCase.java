@@ -1,28 +1,18 @@
 package io.cmartinezs.keygo.app.billing.contracting.usecase;
 
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
-import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
-import io.cmartinezs.keygo.app.membership.exception.AppRoleNotFoundException;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
-import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
-import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
-import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
-import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.membership.model.AppRole;
-import io.cmartinezs.keygo.domain.membership.model.Membership;
-import io.cmartinezs.keygo.domain.membership.model.MembershipId;
-import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
-import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.User;
+import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
@@ -32,18 +22,19 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Use case: verify the email code of a contract — billing model v2.
+ * Use case: verify the email code of a contract — billing model v2 (platform-centric).
  * <ol>
  *   <li>Validates the 6-digit code.</li>
- *   <li>Finds or creates a TenantUser in the provider's tenant using the contractor email.</li>
+ *   <li>Finds or creates a PlatformUser using the contractor email.</li>
  *   <li>If the user is new, generates a secure temporary password, hashes it, assigns status
  *       RESET_PASSWORD and sends the credentials by email.</li>
- *   <li>Finds or creates a Contractor linked to that TenantUser.</li>
+ *   <li>Assigns platform roles (keygo_user, keygo_tenant_admin) if not already present.</li>
+ *   <li>Finds or creates a Contractor linked to that PlatformUser.</li>
  *   <li>Links the Contractor to the contract and advances status to PENDING_PAYMENT.</li>
  * </ol>
  *
  * @author cmartinezs
- * @version 2.0
+ * @version 3.0
  */
 public class VerifyContractEmailUseCase {
 
@@ -52,30 +43,24 @@ public class VerifyContractEmailUseCase {
   private static final int PASSWORD_LENGTH = 14;
 
   private final AppContractRepositoryPort contractRepo;
-  private final ClientAppRepositoryPort clientAppRepo;
-  private final UserRepositoryPort userRepo;
+  private final PlatformUserRepositoryPort platformUserRepo;
+  private final PlatformUserRoleRepositoryPort platformUserRoleRepo;
   private final ContractorRepositoryPort contractorRepo;
-  private final MembershipRepositoryPort membershipRepo;
-  private final AppRoleRepositoryPort appRoleRepo;
   private final CredentialEncoderPort credentialEncoder;
   private final EmailNotificationPort emailNotification;
   private final SecureRandom secureRandom;
 
   public VerifyContractEmailUseCase(
       AppContractRepositoryPort contractRepo,
-      ClientAppRepositoryPort clientAppRepo,
-      UserRepositoryPort userRepo,
+      PlatformUserRepositoryPort platformUserRepo,
+      PlatformUserRoleRepositoryPort platformUserRoleRepo,
       ContractorRepositoryPort contractorRepo,
-      MembershipRepositoryPort membershipRepo,
-      AppRoleRepositoryPort appRoleRepo,
       CredentialEncoderPort credentialEncoder,
       EmailNotificationPort emailNotification) {
     this.contractRepo = contractRepo;
-    this.clientAppRepo = clientAppRepo;
-    this.userRepo = userRepo;
+    this.platformUserRepo = platformUserRepo;
+    this.platformUserRoleRepo = platformUserRoleRepo;
     this.contractorRepo = contractorRepo;
-    this.membershipRepo = membershipRepo;
-    this.appRoleRepo = appRoleRepo;
     this.credentialEncoder = credentialEncoder;
     this.emailNotification = emailNotification;
     this.secureRandom = new SecureRandom();
@@ -87,89 +72,75 @@ public class VerifyContractEmailUseCase {
 
     OffsetDateTime now = OffsetDateTime.now();
 
-    // Extract fields before lambdas (contract gets reassigned later → not effectively final)
-    final UUID clientAppId = contract.getClientAppId();
-    final String contractorEmail   = contract.getContractorEmail();
-    final String contractorFirst   = contract.getContractorFirstName();
-    final String contractorLast    = contract.getContractorLastName();
-    final String generatedUsername = contract.generateUsername();
+    final String contractorEmail = contract.getContractorEmail();
+    final String contractorFirst = contract.getContractorFirstName();
+    final String contractorLast  = contract.getContractorLastName();
 
-    // Resolve provider tenant from the contract's client app
-    var providerApp = clientAppRepo.findById(ClientAppId.of(clientAppId))
-        .orElseThrow(() -> new ProviderAppNotFoundException(clientAppId));
-
-    // Find or create TenantUser in the provider's tenant
-    final EmailAddress email   = EmailAddress.of(contractorEmail);
-    final var tenantId         = providerApp.getTenantId();
-
-    User tenantUser = userRepo.findByTenantIdAndEmail(tenantId, email)
+    // Find or create PlatformUser
+    PlatformUser platformUser = platformUserRepo.findByEmail(EmailAddress.of(contractorEmail))
         .orElseGet(() -> {
-           String rawPassword  = generateTemporaryPassword();
-           String hashedPwd    = credentialEncoder.encode(rawPassword);
+          String rawPassword = generateTemporaryPassword();
+          String hashedPwd   = credentialEncoder.encode(rawPassword);
+          String generatedUsername = generateUsername(contractorFirst, contractorLast);
 
-          User newUser = User.builder()
-              .tenantId(tenantId)
-              .email(email)
+          PlatformUser newUser = PlatformUser.builder()
+              .id(UserId.of(UUID.randomUUID()))
               .username(Username.of(generatedUsername))
-              .firstName(contractorFirst)
-              .lastName(contractorLast)
+              .email(EmailAddress.of(contractorEmail))
               .passwordHash(PasswordHash.of(hashedPwd))
               .status(UserStatus.RESET_PASSWORD)
+              .firstName(contractorFirst)
+              .lastName(contractorLast)
               .build();
 
-          User saved = userRepo.save(newUser);
+          PlatformUser saved = platformUserRepo.save(newUser);
 
-          // Send temporary password by email (fire-and-forget; IllegalStateException on failure)
           emailNotification.sendTemporaryPasswordEmail(
               contractorEmail, generatedUsername, rawPassword);
 
           return saved;
         });
 
-    // Find or create Contractor linked to this TenantUser
-    final UUID tenantUserIdFinal = tenantUser.getId().value();
-    Contractor contractor = contractorRepo.findByTenantUserId(tenantUserIdFinal)
+    // Assign platform roles if not already present
+    UUID platformUserId = platformUser.getId().value();
+    if (!platformUserRoleRepo.hasRole(platformUserId, "keygo_user")) {
+      platformUserRoleRepo.assign(platformUserId, "keygo_user");
+    }
+    if (!platformUserRoleRepo.hasRole(platformUserId, "keygo_tenant_admin")) {
+      platformUserRoleRepo.assign(platformUserId, "keygo_tenant_admin");
+    }
+
+    // Find or create Contractor linked to this PlatformUser
+    Contractor contractor = contractorRepo.findByPlatformUserId(platformUserId)
         .orElseGet(() -> {
           Contractor newContractor = Contractor.builder()
               .id(UUID.randomUUID())
-              .tenantUserId(tenantUserIdFinal)
+              .platformUserId(platformUserId)
               .status(ContractorStatus.PENDING)
               .build();
           return contractorRepo.save(newContractor);
         });
 
-    // Ensure membership exists for this user in the provider's client app
-    if (!membershipRepo.existsByUserAndClientApp(tenantUserIdFinal, clientAppId)) {
-      Membership membership = Membership.builder()
-          .id(MembershipId.generate())
-          .userId(UserId.of(tenantUserIdFinal))
-          .clientAppId(ClientAppId.of(clientAppId))
-          .status(MembershipStatus.ACTIVE)
-          .build();
-
-      // Assign ADMIN_TENANT role so the contractor can manage their own tenant
-      AppRole adminTenantRole = appRoleRepo.findByClientAppAndCode(clientAppId, RoleCode.adminTenantRole())
-          .orElseThrow(() -> new AppRoleNotFoundException(clientAppId, RoleCode.adminTenantRole()));
-      membership.assignRole(adminTenantRole);
-
-      membershipRepo.save(membership);
-    }
-
     // Verify code and link contractor — advances status to PENDING_PAYMENT
     contract.verifyCode(inputCode, contractor.getId(), now);
     contract = contractRepo.save(contract);
 
-    // subscription is null at this stage — it is created during ActivateAppContractUseCase
     return new AppContractResult(contract, null);
+  }
+
+  /**
+   * Generate a username from first and last name, lowercase, joined by underscore.
+   */
+  private String generateUsername(String firstName, String lastName) {
+    String base = (firstName + "_" + lastName).toLowerCase().replaceAll("[^a-z0-9_]", "");
+    return base.isEmpty() ? "user_" + UUID.randomUUID().toString().substring(0, 8) : base;
   }
 
   /**
    * Generates a cryptographically secure temporary password of {@value #PASSWORD_LENGTH} characters.
    * Contains at least one uppercase letter, one lowercase letter, one digit and one special character.
-   * <p>Genera una contraseña temporal criptográficamente segura de {@value #PASSWORD_LENGTH} caracteres.
    */
   String generateTemporaryPassword() {
-    // Guarantee at least one char from each required class
     String upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     String lower   = "abcdefghijklmnopqrstuvwxyz";
     String digits  = "0123456789";

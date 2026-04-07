@@ -8,8 +8,9 @@ import java.util.UUID;
 
 /**
  * Domain model for an active subscription — billing model v2 (contractor-centric).
- * A subscription links a Contractor to a specific plan version of a ClientApp.
- * Only one active subscription per Contractor per ClientApp is allowed.
+ * A subscription links a Contractor to a specific plan version of a ClientApp (or to the platform itself).
+ * Only one active subscription per Contractor per ClientApp (or platform) is allowed.
+ * <p>{@code clientAppId}: NULL = platform subscription, NOT NULL = app subscription.
  * @author cmartinezs
  * @version 1.0
  */
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class AppSubscription {
 
   private final UUID id;
+  /** NULL = platform subscription, NOT NULL = app subscription. */
   private final UUID clientAppId;
   private final UUID appPlanVersionId;
   private final UUID contractId;
@@ -48,7 +50,6 @@ public class AppSubscription {
       boolean autoRenew,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt) {
-    if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (appPlanVersionId == null) throw new IllegalArgumentException("appPlanVersionId cannot be null");
     if (contractorId == null) throw new IllegalArgumentException("contractorId cannot be null");
     if (status == null) throw new IllegalArgumentException("status cannot be null");

@@ -4407,6 +4407,190 @@
           ]
         }
       ]
+    },
+    {
+      "name": "💳 Platform Billing",
+      "description": "Billing a nivel de plataforma: catálogo de planes, suscripción y facturas del contractor de plataforma.",
+      "item": [
+        {
+          "name": "GET Platform Billing Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/billing/catalog",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "billing", "catalog"]
+            },
+            "description": "Retorna todos los planes públicos de plataforma (clientAppId IS NULL).\n\n**Auth:** Público | **ResponseCode:** `PLATFORM_PLAN_CATALOG_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is PLATFORM_PLAN_CATALOG_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"PLATFORM_PLAN_CATALOG_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data is an array\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Platform Billing Plan Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/billing/catalog/PERSONAL",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "billing", "catalog", "PERSONAL"]
+            },
+            "description": "Retorna el detalle de un plan de plataforma por código.\n\n**Auth:** Público | **ResponseCode:** `PLATFORM_PLAN_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is PLATFORM_PLAN_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"PLATFORM_PLAN_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data has planCode\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.plan_code).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Platform Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{platformAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/billing/subscription",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "billing", "subscription"]
+            },
+            "description": "Retorna la suscripción activa del contractor de plataforma asociado al usuario autenticado.\n\n**Auth:** Bearer JWT con rol `KEYGO_ADMIN` o `KEYGO_TENANT_ADMIN` | **ResponseCode:** `PLATFORM_SUBSCRIPTION_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is PLATFORM_SUBSCRIPTION_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"PLATFORM_SUBSCRIPTION_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data has status\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.status).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Cancel Platform Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{platformAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/billing/subscription/cancel",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "billing", "subscription", "cancel"]
+            },
+            "description": "Marca la suscripción de plataforma para cancelación al fin del período actual.\n\n**Auth:** Bearer JWT con rol `KEYGO_ADMIN` o `KEYGO_TENANT_ADMIN` | **ResponseCode:** `PLATFORM_SUBSCRIPTION_CANCELLED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is PLATFORM_SUBSCRIPTION_CANCELLED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"PLATFORM_SUBSCRIPTION_CANCELLED\");",
+                  "});",
+                  "pm.test(\"data.cancelAtPeriodEnd is true\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.cancel_at_period_end).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Platform Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{platformAccessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/billing/invoices",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "billing", "invoices"]
+            },
+            "description": "Retorna todas las facturas del contractor de plataforma asociado al usuario autenticado.\n\n**Auth:** Bearer JWT con rol `KEYGO_ADMIN` o `KEYGO_TENANT_ADMIN` | **ResponseCode:** `PLATFORM_INVOICES_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is PLATFORM_INVOICES_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"PLATFORM_INVOICES_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data is an array\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

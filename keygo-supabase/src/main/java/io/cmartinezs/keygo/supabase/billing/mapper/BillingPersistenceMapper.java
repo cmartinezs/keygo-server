@@ -23,7 +23,7 @@ public final class BillingPersistenceMapper {
   public static AppPlan toDomain(AppPlanEntity e) {
     return AppPlan.builder()
         .id(e.getId())
-        .clientAppId(e.getClientApp().getId())
+        .clientAppId(e.getClientApp() != null ? e.getClientApp().getId() : null)
         .code(e.getCode())
         .name(e.getName())
         .description(e.getDescription())
@@ -81,7 +81,7 @@ public final class BillingPersistenceMapper {
   public static AppContract toDomain(AppContractEntity e) {
     return AppContract.builder()
         .id(e.getId())
-        .clientAppId(e.getClientApp().getId())
+        .clientAppId(e.getClientApp() != null ? e.getClientApp().getId() : null)
         .selectedPlanVersionId(e.getSelectedPlanVersion().getId())
         .billingPeriod(e.getBillingPeriod())
         .status(e.getStatus())
@@ -107,7 +107,7 @@ public final class BillingPersistenceMapper {
   public static AppSubscription toDomain(AppSubscriptionEntity e) {
     return AppSubscription.builder()
         .id(e.getId())
-        .clientAppId(e.getClientApp().getId())
+        .clientAppId(e.getClientApp() != null ? e.getClientApp().getId() : null)
         .appPlanVersionId(e.getAppPlanVersion().getId())
         .contractId(e.getContract() != null ? e.getContract().getId() : null)
         .contractorId(e.getContractor().getId())

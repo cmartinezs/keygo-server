@@ -13,4 +13,8 @@ public interface AppPlanJpaRepository extends JpaRepository<AppPlanEntity, UUID>
   List<AppPlanEntity> findByClientAppId(UUID clientAppId);
   Optional<AppPlanEntity> findByClientAppIdAndCode(UUID clientAppId, String code);
   boolean existsByClientAppIdAndCode(UUID clientAppId, String code);
+
+  // Platform-level plans (clientApp is NULL)
+  List<AppPlanEntity> findByClientAppIsNullAndStatusAndIsPublicTrue(AppPlanStatus status);
+  Optional<AppPlanEntity> findByClientAppIsNullAndCode(String code);
 }

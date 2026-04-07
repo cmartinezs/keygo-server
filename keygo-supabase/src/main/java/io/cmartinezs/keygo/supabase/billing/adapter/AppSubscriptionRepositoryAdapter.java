@@ -45,7 +45,6 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
   public AppSubscription save(AppSubscription sub) {
     AppSubscriptionEntity.AppSubscriptionEntityBuilder builder = AppSubscriptionEntity.builder()
         .id(sub.getId())
-        .clientApp(clientAppRepo.getReferenceById(sub.getClientAppId()))
         .appPlanVersion(versionRepo.getReferenceById(sub.getAppPlanVersionId()))
         .contractor(contractorRepo.getReferenceById(sub.getContractorId()))
         .status(sub.getStatus())
@@ -56,6 +55,9 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
         .nextBillingAt(sub.getNextBillingAt())
         .autoRenew(sub.isAutoRenew());
 
+    if (sub.getClientAppId() != null) {
+      builder.clientApp(clientAppRepo.getReferenceById(sub.getClientAppId()));
+    }
     if (sub.getContractId() != null) {
       builder.contract(contractRepo.getReferenceById(sub.getContractId()));
     }
@@ -65,6 +67,12 @@ public class AppSubscriptionRepositoryAdapter implements AppSubscriptionReposito
   @Override
   public Optional<AppSubscription> findByClientAppIdAndContractorId(UUID clientAppId, UUID contractorId) {
     return jpaRepo.findByClientAppIdAndContractorId(clientAppId, contractorId)
+        .map(BillingPersistenceMapper::toDomain);
+  }
+
+  @Override
+  public Optional<AppSubscription> findPlatformSubscriptionByContractorId(UUID contractorId) {
+    return jpaRepo.findByClientAppIsNullAndContractor_Id(contractorId)
         .map(BillingPersistenceMapper::toDomain);
   }
 }

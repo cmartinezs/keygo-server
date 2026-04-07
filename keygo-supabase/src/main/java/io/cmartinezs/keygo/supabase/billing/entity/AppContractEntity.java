@@ -37,7 +37,7 @@ public class AppContractEntity {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")  // nullable for platform contracts
   private ClientAppEntity clientApp;
 
   @ManyToOne(fetch = FetchType.LAZY)

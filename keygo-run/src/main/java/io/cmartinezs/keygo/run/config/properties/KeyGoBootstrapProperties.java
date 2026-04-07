@@ -147,4 +147,10 @@ public class KeyGoBootstrapProperties {
   /** Platform revoke path prefix that is public (RFC 7009 revocation). */
   private String platformRevokePathPrefix;
 
+  /** Platform OAuth2 authorize path prefix that is public (PKCE flow initiation). */
+  private String platformAuthorizePathPrefix;
+
+  /** Platform direct-login path prefix that is public (API/CLI direct auth). */
+  private String platformDirectLoginPathPrefix;
+
 }

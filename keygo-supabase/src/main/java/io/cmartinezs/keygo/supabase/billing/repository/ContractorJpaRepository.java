@@ -12,12 +12,12 @@ import java.util.UUID;
  * @version 1.0
  */
 public interface ContractorJpaRepository extends JpaRepository<ContractorEntity, UUID> {
-  Optional<ContractorEntity> findByTenantUserId(UUID tenantUserId);
+  Optional<ContractorEntity> findByPlatformUserId(UUID platformUserId);
 
   /**
-   * Finds a contractor by the email and tenant of its linked TenantUser.
-   * Uses Spring Data JPA nested property traversal: tenantUser → tenant.id + email.
+   * Finds a contractor by the email of its linked PlatformUser.
+   * Uses Spring Data JPA nested property traversal: platformUser → email.
    */
-  Optional<ContractorEntity> findByTenantUser_Tenant_IdAndTenantUser_Email(UUID tenantId, String email);
+  Optional<ContractorEntity> findByPlatformUser_Email(String email);
 }
 

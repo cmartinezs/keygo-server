@@ -57,9 +57,14 @@ public class ActivateAppContractUseCase {
 
     // Idempotent — already active
     if (ContractStatus.ACTIVE.equals(contract.getStatus())) {
-      var existingSub = subscriptionRepo
-          .findByClientAppIdAndContractorId(contract.getClientAppId(), contract.getContractorId())
-          .orElse(null);
+      AppSubscription existingSub;
+      if (contract.getClientAppId() == null) {
+        existingSub = subscriptionRepo.findPlatformSubscriptionByContractorId(contract.getContractorId())
+            .orElse(null);
+      } else {
+        existingSub = subscriptionRepo.findByClientAppIdAndContractorId(
+            contract.getClientAppId(), contract.getContractorId()).orElse(null);
+      }
       return new AppContractResult(contract, existingSub);
     }
 

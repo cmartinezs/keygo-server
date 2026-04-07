@@ -8,6 +8,8 @@ package io.cmartinezs.keygo.domain.billing.subscription.model;
  * @version 1.0
  */
 public enum SubscriberType {
+  /** The subscriber is the platform itself (platform-level plans/subscriptions). */
+  PLATFORM,
   /** The subscriber is a Tenant (organization). */
   TENANT,
   /** The subscriber is an individual TenantUser. */

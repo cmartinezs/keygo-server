@@ -480,15 +480,22 @@ class BootstrapAdminKeyFilterTest {
 
   // ─── Regression: billing catalog and contracts public paths (T-082) ─────────
 
-  @Test
-  void doFilterInternal_shouldAllowBillingCatalogPathWithoutAuth()
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/acme/apps/xyz/billing/catalog",
+        "/api/v1/tenants/acme/apps/xyz/billing/catalog/PERSONAL",
+        "/api/v1/platform/billing/catalog",
+        "/api/v1/platform/billing/catalog/FREE"
+      })
+  void doFilterInternal_shouldAllowBillingCatalogPathWithoutAuth(String path)
       throws ServletException, IOException {
-    // Given — hasSuffix: path must END with /billing/catalog
+    // Given — hasSegment: path must CONTAIN /billing/catalog
     when(bootstrapProperties.isEnabled()).thenReturn(true);
     lenient()
         .when(bootstrapProperties.getBillingCatalogPathSuffix())
         .thenReturn("/billing/catalog");
-    request.setServletPath("/api/v1/billing/catalog");
+    request.setServletPath(path);
 
     // When
     filter.doFilterInternal(request, response, filterChain);

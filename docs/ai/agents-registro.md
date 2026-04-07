@@ -241,3 +241,20 @@
 - Added V19 (billing seeds), V20 (role hierarchy), V21 (user_notification_preferences) migration descriptions
 - Updated "Próxima migración" from V19 → V22
 - Added 4 bootstrap property rows: `accountChangePasswordPathSuffix`, `accountSessionsPathSuffix`, `accountNotificationPreferencesPathSuffix`, `accountAccessPathSuffix`
+
+---
+
+### [2026-04-08] RFC billing-contractor-refactor — Fases F/G/H (Platform Billing)
+
+- **Fase F (Seguridad):** `BootstrapAdminKeyFilter` — cambio `hasSuffix` → `hasSegment` para `billingCatalogPathSuffix` (cubre sub-paths `/catalog/{planCode}` tanto en app como plataforma); test convertido a `@ParameterizedTest` con 4 paths
+- **Fase G (Tests):** 24 tests nuevos:
+  - 5 use case tests: `GetPlatformPlanCatalogUseCaseTest` (2), `GetPlatformPlanUseCaseTest` (2), `GetPlatformSubscriptionUseCaseTest` (3), `CancelPlatformSubscriptionUseCaseTest` (4), `ListPlatformInvoicesUseCaseTest` (4)
+  - 1 controller test: `PlatformBillingControllerTest` (9 tests en 5 `@Nested` groups)
+- **Fase H (Documentación):** `AGENTS.md` endpoints de plataforma billing, `FRONTEND_DEVELOPER_GUIDE.md` §14.3.1 con tabla de 5 endpoints nuevos, `lecciones.md` con 2 entradas (hasSuffix bug, AppSubscription builder), `propuestas.md` actualizado, Postman collection con 5 requests
+- **Endpoints nuevos documentados:**
+  - `GET /api/v1/platform/billing/catalog` (público)
+  - `GET /api/v1/platform/billing/catalog/{planCode}` (público)
+  - `GET /api/v1/platform/billing/subscription` (Bearer KEYGO_ADMIN/KEYGO_TENANT_ADMIN)
+  - `POST /api/v1/platform/billing/subscription/cancel` (Bearer KEYGO_ADMIN/KEYGO_TENANT_ADMIN)
+  - `GET /api/v1/platform/billing/invoices` (Bearer KEYGO_ADMIN/KEYGO_TENANT_ADMIN)
+- Suite completa: 636 tests, 0 fallos

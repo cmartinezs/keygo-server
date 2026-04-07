@@ -1,7 +1,7 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
-import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,7 +13,7 @@ import java.util.UUID;
 /**
  * JPA entity for contractors table (billing model v2).
  * A Contractor is the central billing entity — a person or company that signs
- * contracts with the platform. Has a 1:1 link to a TenantUser in the provider's tenant.
+ * contracts with the platform. Has a 1:1 link to a PlatformUser.
  * @author cmartinezs
  * @version 1.0
  */
@@ -32,8 +32,8 @@ public class ContractorEntity {
   private UUID id;
 
   @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "tenant_user_id", nullable = false, unique = true)
-  private TenantUserEntity tenantUser;
+  @JoinColumn(name = "platform_user_id", nullable = false, unique = true)
+  private PlatformUserEntity platformUser;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)

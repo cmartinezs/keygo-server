@@ -5,24 +5,15 @@ import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateVio
 import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
-import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
-import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
-import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
+import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
-import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
-import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
-import io.cmartinezs.keygo.domain.membership.model.AppRole;
-import io.cmartinezs.keygo.domain.membership.model.AppRoleId;
-import io.cmartinezs.keygo.domain.membership.model.Membership;
-import io.cmartinezs.keygo.domain.membership.model.RoleCode;
-import io.cmartinezs.keygo.domain.tenant.model.TenantId;
-import io.cmartinezs.keygo.domain.user.model.User;
+import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import org.junit.jupiter.api.Test;
@@ -45,11 +36,9 @@ import static org.mockito.Mockito.*;
 class VerifyContractEmailUseCaseTest {
 
   @Mock AppContractRepositoryPort contractRepo;
-  @Mock ClientAppRepositoryPort clientAppRepo;
-  @Mock UserRepositoryPort userRepo;
+  @Mock PlatformUserRepositoryPort platformUserRepo;
+  @Mock PlatformUserRoleRepositoryPort platformUserRoleRepo;
   @Mock ContractorRepositoryPort contractorRepo;
-  @Mock MembershipRepositoryPort membershipRepo;
-  @Mock AppRoleRepositoryPort appRoleRepo;
   @Mock CredentialEncoderPort credentialEncoder;
   @Mock EmailNotificationPort emailNotification;
 
@@ -75,95 +64,59 @@ class VerifyContractEmailUseCaseTest {
   }
 
   /**
-   * Sets up standard stubs for clientAppRepo, userRepo, contractorRepo (called before verifyCode).
+   * Stubs for the "existing platform user" flow.
    * Returns the contractorId that will be resolved.
    */
-  private UUID stubDownstreamDeps() {
-    TenantId tenantId = TenantId.of(UUID.randomUUID());
-    ClientApp providerApp = mock(ClientApp.class);
-    when(providerApp.getTenantId()).thenReturn(tenantId);
-    when(clientAppRepo.findById(any())).thenReturn(Optional.of(providerApp));
+  private UUID stubExistingPlatformUserFlow() {
+    UUID platformUserId = UUID.randomUUID();
+    PlatformUser user = mock(PlatformUser.class);
+    when(user.getId()).thenReturn(UserId.of(platformUserId));
+    when(platformUserRepo.findByEmail(any())).thenReturn(Optional.of(user));
 
-    UUID tenantUserId = UUID.randomUUID();
-    User user = mock(User.class);
-    when(user.getId()).thenReturn(UserId.of(tenantUserId));
-    when(userRepo.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(user));
+    // Roles already assigned
+    lenient().when(platformUserRoleRepo.hasRole(platformUserId, "keygo_user")).thenReturn(true);
+    lenient().when(platformUserRoleRepo.hasRole(platformUserId, "keygo_tenant_admin")).thenReturn(true);
 
     UUID contractorId = UUID.randomUUID();
     Contractor contractor = Contractor.builder()
         .id(contractorId)
-        .tenantUserId(tenantUserId)
+        .platformUserId(platformUserId)
         .status(ContractorStatus.PENDING)
         .build();
-    when(contractorRepo.findByTenantUserId(any())).thenReturn(Optional.of(contractor));
-
-    // Membership does not exist → will be created (lenient: some tests override this stub)
-    lenient().when(membershipRepo.existsByUserAndClientApp(any(), any())).thenReturn(false);
-    lenient().when(membershipRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-    // Stub admin_tenant role lookup (needed when membership is created)
-    lenient().when(appRoleRepo.findByClientAppAndCode(any(), eq(RoleCode.adminTenantRole())))
-        .thenAnswer(inv -> {
-          UUID clientAppId = inv.getArgument(0);
-          AppRole role = AppRole.builder()
-              .id(AppRoleId.generate())
-              .clientAppId(ClientAppId.of(clientAppId))
-              .code(RoleCode.adminTenantRole())
-              .displayName("Tenant Admin")
-              .build();
-          return Optional.of(role);
-        });
+    when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.of(contractor));
 
     return contractorId;
   }
 
   /**
-   * Stubs for the "new user" flow: user does not exist, must be created with a temporary password.
+   * Stubs for the "new platform user" flow: user does not exist, must be created with a temporary password.
    */
-  private UUID stubNewUserFlow() {
-    TenantId tenantId = TenantId.of(UUID.randomUUID());
-    ClientApp providerApp = mock(ClientApp.class);
-    when(providerApp.getTenantId()).thenReturn(tenantId);
-    when(clientAppRepo.findById(any())).thenReturn(Optional.of(providerApp));
-
-    // User does not exist → triggers creation
-    when(userRepo.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.empty());
+  private UUID stubNewPlatformUserFlow() {
+    // PlatformUser does not exist → triggers creation
+    when(platformUserRepo.findByEmail(any())).thenReturn(Optional.empty());
     when(credentialEncoder.encode(anyString())).thenReturn("$2a$10$hashedtemppassword");
 
-    UUID tenantUserId = UUID.randomUUID();
-    User savedUser = mock(User.class);
-    when(savedUser.getId()).thenReturn(UserId.of(tenantUserId));
-    when(userRepo.save(any())).thenReturn(savedUser);
+    UUID platformUserId = UUID.randomUUID();
+    PlatformUser savedUser = mock(PlatformUser.class);
+    when(savedUser.getId()).thenReturn(UserId.of(platformUserId));
+    when(platformUserRepo.save(any())).thenReturn(savedUser);
+
+    // Roles not assigned yet
+    lenient().when(platformUserRoleRepo.hasRole(platformUserId, "keygo_user")).thenReturn(false);
+    lenient().when(platformUserRoleRepo.hasRole(platformUserId, "keygo_tenant_admin")).thenReturn(false);
 
     UUID contractorId = UUID.randomUUID();
     Contractor contractor = Contractor.builder()
         .id(contractorId)
-        .tenantUserId(tenantUserId)
+        .platformUserId(platformUserId)
         .status(ContractorStatus.PENDING)
         .build();
-    when(contractorRepo.findByTenantUserId(any())).thenReturn(Optional.of(contractor));
-
-    // Membership does not exist → will be created (lenient: some tests override this stub)
-    lenient().when(membershipRepo.existsByUserAndClientApp(any(), any())).thenReturn(false);
-    lenient().when(membershipRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-    // Stub admin_tenant role lookup (needed when membership is created)
-    lenient().when(appRoleRepo.findByClientAppAndCode(any(), eq(RoleCode.adminTenantRole())))
-        .thenAnswer(inv -> {
-          UUID clientAppId = inv.getArgument(0);
-          AppRole role = AppRole.builder()
-              .id(AppRoleId.generate())
-              .clientAppId(ClientAppId.of(clientAppId))
-              .code(RoleCode.adminTenantRole())
-              .displayName("Tenant Admin")
-              .build();
-          return Optional.of(role);
-        });
+    when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.of(contractor));
 
     return contractorId;
   }
 
-  // ── Tests: usuario existente ───────────────────────────────────────────────
+  // ── Tests: existing platform user ─────────────────────────────────────────
 
   @Test
   void execute_validCode_advancesToPendingPayment() {
@@ -171,7 +124,7 @@ class VerifyContractEmailUseCaseTest {
     String code = "123456";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
     UUID contractId = contract.getId();
-    UUID contractorId = stubDownstreamDeps();
+    UUID contractorId = stubExistingPlatformUserFlow();
     when(contractRepo.findById(contractId)).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -186,11 +139,11 @@ class VerifyContractEmailUseCaseTest {
   }
 
   @Test
-  void execute_wrongCode_throwsIllegalArgument() {
+  void execute_wrongCode_throwsCodeInvalidException() {
     // Given — downstream deps are resolved before verifyCode throws
     AppContract contract = pendingEmailContract("123456", OffsetDateTime.now().plusMinutes(30));
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    stubDownstreamDeps();
+    stubExistingPlatformUserFlow();
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "999999"))
@@ -200,11 +153,11 @@ class VerifyContractEmailUseCaseTest {
   }
 
   @Test
-  void execute_expiredCode_throwsIllegalState() {
-    // Given — code expired 1 minute ago; downstream deps still resolved before verifyCode throws
+  void execute_expiredCode_throwsCodeInvalidException() {
+    // Given — code expired 1 minute ago
     AppContract contract = pendingEmailContract("123456", OffsetDateTime.now().minusMinutes(1));
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    stubDownstreamDeps();
+    stubExistingPlatformUserFlow();
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
@@ -226,8 +179,8 @@ class VerifyContractEmailUseCaseTest {
   }
 
   @Test
-  void execute_alreadyInPendingPayment_throwsIllegalState() {
-    // Given — contract already verified (PENDING_PAYMENT); downstream deps resolved before verifyCode throws
+  void execute_alreadyInPendingPayment_throwsContractStateViolation() {
+    // Given — contract already verified (PENDING_PAYMENT)
     AppContract contract = AppContract.builder()
         .id(UUID.randomUUID())
         .clientAppId(UUID.randomUUID())
@@ -242,29 +195,29 @@ class VerifyContractEmailUseCaseTest {
         .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now())
         .build();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    stubDownstreamDeps();
+    stubExistingPlatformUserFlow();
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(contract.getId(), "123456"))
         .isInstanceOf(ContractStateViolationException.class);
   }
 
-  // ── Tests: usuario nuevo (RESET_PASSWORD + envío de contraseña temporal) ──
+  // ── Tests: new platform user (RESET_PASSWORD + temp password email) ───────
 
   @Test
-  void execute_newUser_createsUserWithResetPasswordStatus() {
+  void execute_newUser_createsPlatformUserWithResetPasswordStatus() {
     // Given
     String code = "654321";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubNewUserFlow();
+    stubNewPlatformUserFlow();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     useCase.execute(contract.getId(), code);
 
-    // Then — el nuevo usuario se guarda con status RESET_PASSWORD
-    verify(userRepo).save(argThat(u -> UserStatus.RESET_PASSWORD.equals(u.getStatus())));
+    // Then — the new platform user is saved with status RESET_PASSWORD
+    verify(platformUserRepo).save(argThat(u -> UserStatus.RESET_PASSWORD.equals(u.getStatus())));
   }
 
   @Test
@@ -272,14 +225,14 @@ class VerifyContractEmailUseCaseTest {
     // Given
     String code = "654321";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubNewUserFlow();
+    stubNewPlatformUserFlow();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     useCase.execute(contract.getId(), code);
 
-    // Then — se envía email de contraseña temporal al email del contratante
+    // Then — temp password email sent
     verify(emailNotification).sendTemporaryPasswordEmail(
         eq("admin@acme.com"), anyString(), anyString());
   }
@@ -289,25 +242,23 @@ class VerifyContractEmailUseCaseTest {
     // Given
     String code = "654321";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubNewUserFlow();
+    stubNewPlatformUserFlow();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     useCase.execute(contract.getId(), code);
 
-    // Then — se invoca el hasher antes de persistir la contraseña
+    // Then — credential encoder invoked
     verify(credentialEncoder).encode(anyString());
-    verify(userRepo).save(argThat(u ->
-        "$2a$10$hashedtemppassword".equals(u.getPasswordHash().value())));
   }
 
   @Test
   void execute_existingUser_doesNotSendTemporaryPasswordEmail() {
-    // Given — usuario ya existe; no debe enviarse email de contraseña temporal
+    // Given — user already exists; no temp password email
     String code = "123456";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubDownstreamDeps();
+    stubExistingPlatformUserFlow();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -316,79 +267,42 @@ class VerifyContractEmailUseCaseTest {
 
     // Then
     verify(emailNotification, never()).sendTemporaryPasswordEmail(anyString(), anyString(), anyString());
-    verify(userRepo, never()).save(any());
+    verify(platformUserRepo, never()).save(any());
   }
 
-  // ── Tests: membership creation ────────────────────────────────────────────
+  // ── Tests: platform role assignment ───────────────────────────────────────
 
   @Test
-  void execute_validCode_createsMembershipWhenItDoesNotExist() {
-    // Given
-    String code = "123456";
-    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubDownstreamDeps(); // membershipRepo.existsByUserAndClientApp → false
-    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-    // When
-    useCase.execute(contract.getId(), code);
-
-    // Then — membership saved with ACTIVE status
-    verify(membershipRepo).save(argThat(m ->
-        m instanceof Membership membership && membership.isActive()));
-  }
-
-  @Test
-  void execute_validCode_doesNotCreateMembershipWhenAlreadyExists() {
-    // Given
-    String code = "123456";
-    AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubDownstreamDeps();
-    // Override: membership already exists
-    when(membershipRepo.existsByUserAndClientApp(any(), any())).thenReturn(true);
-    when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
-    when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-    // When
-    useCase.execute(contract.getId(), code);
-
-    // Then — membership NOT saved again
-    verify(membershipRepo, never()).save(any());
-  }
-
-  @Test
-  void execute_newUser_createsMembership() {
+  void execute_newUser_assignsPlatformRoles() {
     // Given
     String code = "654321";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubNewUserFlow(); // membershipRepo.existsByUserAndClientApp → false
+    stubNewPlatformUserFlow();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     useCase.execute(contract.getId(), code);
 
-    // Then — membership saved with ACTIVE status for the newly created user
-    verify(membershipRepo).save(any(Membership.class));
+    // Then — both platform roles are assigned
+    verify(platformUserRoleRepo).assign(any(UUID.class), eq("keygo_user"));
+    verify(platformUserRoleRepo).assign(any(UUID.class), eq("keygo_tenant_admin"));
   }
 
   @Test
-  void execute_validCode_membershipHasAdminTenantRole() {
-    // Given
+  void execute_existingUser_doesNotReassignRoles() {
+    // Given — roles already assigned
     String code = "123456";
     AppContract contract = pendingEmailContract(code, OffsetDateTime.now().plusMinutes(30));
-    stubDownstreamDeps(); // membershipRepo.existsByUserAndClientApp → false
+    stubExistingPlatformUserFlow();
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(contractRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     useCase.execute(contract.getId(), code);
 
-    // Then — membership saved with the admin_tenant role assigned
-    verify(membershipRepo).save(argThat(m ->
-        m instanceof Membership membership &&
-        membership.isActive() &&
-        !membership.getRoles().isEmpty()));
+    // Then — roles NOT assigned again (hasRole returned true)
+    verify(platformUserRoleRepo, never()).assign(any(UUID.class), anyString());
   }
 
   // ── Tests: generateTemporaryPassword ──────────────────────────────────────

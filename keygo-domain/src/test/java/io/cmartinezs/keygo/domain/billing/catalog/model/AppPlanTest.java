@@ -47,11 +47,13 @@ class AppPlanTest {
   }
 
   @Test
-  void builder_throwsException_whenClientAppIdIsNull() {
-    assertThatThrownBy(() -> AppPlan.builder()
-        .code("X").name("X").status(AppPlanStatus.ACTIVE).isPublic(true).build())
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("clientAppId");
+  void builder_buildsSuccessfully_whenClientAppIdIsNull() {
+    // Given / When — platform-level plan (clientAppId is null)
+    AppPlan plan = AppPlan.builder()
+        .code("PLATFORM").name("Platform Plan").status(AppPlanStatus.ACTIVE).isPublic(true).build();
+    // Then
+    assertThat(plan.getClientAppId()).isNull();
+    assertThat(plan.getCode()).isEqualTo("PLATFORM");
   }
 
   @Test

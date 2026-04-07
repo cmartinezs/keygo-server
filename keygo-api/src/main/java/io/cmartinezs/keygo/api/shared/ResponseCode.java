@@ -22,6 +22,7 @@ public enum ResponseCode {
   PLATFORM_DASHBOARD_RETRIEVED("PLATFORM_DASHBOARD_RETRIEVED", "Platform dashboard retrieved successfully"),
 
   // Platform Authentication
+  PLATFORM_AUTHORIZATION_INITIATED("PLATFORM_AUTHORIZATION_INITIATED", "Platform authorization initiated successfully"),
   PLATFORM_LOGIN_SUCCESS("PLATFORM_LOGIN_SUCCESS", "Platform login successful"),
   PLATFORM_TOKEN_ISSUED("PLATFORM_TOKEN_ISSUED", "Platform tokens issued successfully"),
   PLATFORM_TOKEN_ROTATED("PLATFORM_TOKEN_ROTATED", "Platform token rotated successfully"),
@@ -184,6 +185,13 @@ public enum ResponseCode {
   // Billing — Usage
   APP_USAGE_RETRIEVED("APP_USAGE_RETRIEVED", "App usage retrieved successfully"),
   APP_LIMITS_RETRIEVED("APP_LIMITS_RETRIEVED", "App limits retrieved successfully"),
+
+  // Billing — Platform
+  PLATFORM_PLAN_CATALOG_RETRIEVED("PLATFORM_PLAN_CATALOG_RETRIEVED", "Platform plan catalog retrieved successfully"),
+  PLATFORM_PLAN_RETRIEVED("PLATFORM_PLAN_RETRIEVED", "Platform plan retrieved successfully"),
+  PLATFORM_SUBSCRIPTION_RETRIEVED("PLATFORM_SUBSCRIPTION_RETRIEVED", "Platform subscription retrieved successfully"),
+  PLATFORM_SUBSCRIPTION_CANCELLED("PLATFORM_SUBSCRIPTION_CANCELLED", "Platform subscription marked for cancellation"),
+  PLATFORM_INVOICES_RETRIEVED("PLATFORM_INVOICES_RETRIEVED", "Platform invoices retrieved successfully"),
 
   // System Errors
   OPERATION_FAILED("OPERATION_FAILED", "Operation failed to complete"),

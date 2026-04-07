@@ -1213,5 +1213,22 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 - `keygo-app/src/main/java/.../user/port/notification/exception/EmailValidationException.java`
 - `keygo-infra/src/main/java/.../adapter/notification/EmailNotificationAdapter.java`
 
+---
+
+### [2026-04-08] `hasSuffix` vs `hasSegment` en BootstrapAdminKeyFilter — rutas con sub-paths
+**Contexto:** RFC billing contractor refactor, Fase F (Seguridad).
+**Problema:** El path público `/billing/catalog` usaba `hasSuffix` (endsWith) en el filtro de seguridad. Esto hacía match con `/billing/catalog` pero **no** con sub-paths como `/billing/catalog/FREE` o `/platform/billing/catalog/TEAM`. Resultado: el detalle de un plan requería Bearer token erróneamente.
+**Solución / Buena práctica:** Cambiar `hasSuffix` → `hasSegment` (contains) para sufijos que representan **prefijos de grupo** de rutas públicas. Regla: usar `hasSegment` cuando el path puede tener sub-recursos (ej. `/catalog/{planCode}`); usar `hasSuffix` solo para rutas terminales exactas (ej. `/userinfo`).
+**Archivos clave:**
+- `keygo-run/src/main/java/.../filter/BootstrapAdminKeyFilter.java` (línea 155)
+- `keygo-run/src/test/java/.../filter/BootstrapAdminKeyFilterTest.java` (test parametrizado)
+
+---
+
+### [2026-04-08] `AppSubscription.builder()` requiere `appPlanVersionId` no-null
+**Contexto:** RFC billing contractor refactor, Fase G (Tests).
+**Problema:** Al construir `AppSubscription` en tests, omitir `appPlanVersionId` lanza `IllegalArgumentException: appPlanVersionId cannot be null`. Esto afectó 7 tests en 3 archivos distintos.
+**Solución / Buena práctica:** Siempre incluir `.appPlanVersionId(UUID.randomUUID())` al construir `AppSubscription` en tests. Verificar las validaciones no-null del domain model antes de escribir tests que usen builders.
+
 
 

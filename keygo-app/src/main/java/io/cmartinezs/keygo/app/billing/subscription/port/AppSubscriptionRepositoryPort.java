@@ -13,4 +13,7 @@ import java.util.UUID;
 public interface AppSubscriptionRepositoryPort {
   AppSubscription save(AppSubscription subscription);
   Optional<AppSubscription> findByClientAppIdAndContractorId(UUID clientAppId, UUID contractorId);
+
+  /** Platform subscription: WHERE client_app_id IS NULL AND contractor_id = ? */
+  Optional<AppSubscription> findPlatformSubscriptionByContractorId(UUID contractorId);
 }

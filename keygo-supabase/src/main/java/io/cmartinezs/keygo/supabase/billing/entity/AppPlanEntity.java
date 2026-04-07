@@ -30,7 +30,7 @@ public class AppPlanEntity {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")  // nullable for platform plans
   private ClientAppEntity clientApp;
 
   @Column(nullable = false, length = 50)

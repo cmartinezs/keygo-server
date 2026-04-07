@@ -12,6 +12,7 @@ import java.util.UUID;
  * Domain model for an app contract (the contracting process) — billing model v2.
  * A contract transitions through states until it is ACTIVE,
  * at which point a Subscription is created for the Contractor.
+ * <p>{@code clientAppId}: NULL = platform contract, NOT NULL = app contract.
  * @author cmartinezs
  * @version 1.0
  */
@@ -19,6 +20,7 @@ import java.util.UUID;
 public class AppContract {
 
   private final UUID id;
+  /** NULL = platform contract, NOT NULL = app contract. */
   private final UUID clientAppId;
   private final UUID selectedPlanVersionId;
   private final String billingPeriod;
@@ -69,7 +71,6 @@ public class AppContract {
       OffsetDateTime expiresAt,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt) {
-    if (clientAppId == null) throw new IllegalArgumentException("clientAppId cannot be null");
     if (selectedPlanVersionId == null) throw new IllegalArgumentException("selectedPlanVersionId cannot be null");
     if (contractorEmail == null || contractorEmail.isBlank()) throw new IllegalArgumentException("contractorEmail cannot be blank");
     if (contractorFirstName == null || contractorFirstName.isBlank()) throw new IllegalArgumentException("contractorFirstName cannot be blank");

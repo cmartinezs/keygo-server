@@ -2,27 +2,28 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-03-30** | Estado: ✅ Sincronizado con migraciones V1–V17 + diseño de datos v2
+> Fecha de actualización: **2026-04-07** | Estado: ✅ Sincronizado con migraciones V1–V29 + diseño de datos v2 + identidad de plataforma
 
 ---
 
 ## Tabla de contenidos
 
 1. [Tablas activas (multi-tenancy)](#tablas-activas-multi-tenancy)
-2. [Tablas legado (V1/V3)](#tablas-legado-v1v3)
-3. [Tablas planificadas (fases futuras)](#tablas-planificadas-fases-futuras)
-4. [Modelo E/R (Diagrama Mermaid)](#modelo-er-diagrama-mermaid)
-5. [Relaciones de dependencia](#relaciones-de-dependencia)
-6. [Guías de consulta común](#guías-de-consulta-común)
-7. [Notas sobre enumeraciones](#notas-sobre-enumeraciones)
-8. [Referencia rápida de constraints únicos](#referencia-rápida-de-constraints-únicos)
+2. [Tablas de identidad de plataforma (V24–V29)](#tablas-de-identidad-de-plataforma-v24v29)
+3. [Tablas legado (V1/V3)](#tablas-legado-v1v3)
+4. [Tablas planificadas (fases futuras)](#tablas-planificadas-fases-futuras)
+5. [Modelo E/R (Diagrama Mermaid)](#modelo-er-diagrama-mermaid)
+6. [Relaciones de dependencia](#relaciones-de-dependencia)
+7. [Guías de consulta común](#guías-de-consulta-común)
+8. [Notas sobre enumeraciones](#notas-sobre-enumeraciones)
+9. [Referencia rápida de constraints únicos](#referencia-rápida-de-constraints-únicos)
 
 ---
 
 ## Tablas activas (multi-tenancy)
 
 > Estas tablas forman el núcleo del sistema.
-> **Identidad y autenticación:** V3–V9 | **Billing:** V10–V14 | **Seeds:** V15–V17.
+> **Identidad y autenticación:** V3–V9 | **Billing:** V10–V14 | **Seeds:** V15–V18 | **Identidad de plataforma:** V24–V29.
 
 ### Tabla: `tenants` — V3
 
@@ -122,12 +123,13 @@
 
 ---
 
-### Tabla: `tenant_users` — V5
+### Tabla: `tenant_users` — V5 (modificada V28)
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del usuario |
 | `tenant_id` | UUID | FK | NO | Referencia al tenant propietario |
+| `platform_user_id` | UUID | FK → `platform_users.id` | SÍ | Vínculo a la identidad global de plataforma. `NULL` = usuario legacy sin cuenta de plataforma. |
 | `username` | VARCHAR(100) | UNIQUE (tenant) | NO | Username único dentro del tenant |
 | `email` | VARCHAR(255) | UNIQUE (tenant) | NO | Email único dentro del tenant |
 | `password_hash` | VARCHAR(255) | | NO | Hash seguro de contraseña (BCrypt) |
@@ -142,11 +144,14 @@
 - `UNIQUE(tenant_id, username)` — username único por tenant
 - `status IN ('ACTIVE', 'SUSPENDED', 'PENDING')`
 - FK: `tenant_id` → `tenants(id)` ON DELETE CASCADE
+- FK: `platform_user_id` → `platform_users(id)` (nullable — permite usuarios legacy sin cuenta de plataforma)
 
 **Reglas de negocio:**
 - Email y username son únicos por tenant, no globalmente.
 - La contraseña nunca se almacena en claro; siempre como hash BCrypt.
 - Un usuario `SUSPENDED` no puede autenticarse.
+- `platform_user_id IS NOT NULL` vincula esta identidad de tenant a una cuenta de plataforma global (`platform_users`).
+- `platform_user_id IS NULL` indica un usuario legacy o creado antes del RFC `restructure-multitenant`.
 
 ---
 
@@ -281,6 +286,191 @@
 
 ---
 
+---
+
+## Tablas de identidad de plataforma (V24–V29)
+
+> Estas tablas implementan la **identidad global de plataforma** (RFC `restructure-multitenant`).
+> La identidad de plataforma es **independiente de cualquier tenant**: un `platform_user` puede tener múltiples
+> `tenant_users` vinculados en distintos tenants. Los roles de plataforma (`platform_roles`) controlan
+> el acceso a operaciones administrativas globales, mientras que los roles de tenant (`tenant_roles`)
+> controlan permisos dentro de un tenant específico.
+>
+> **Migraciones:** V24 (platform_roles seed), V25 (tenant_roles + tenant_user_roles), V26 (seed tenant_roles),
+> V27 (platform_users), V28 (platform_user_roles refactor + sessions/refresh_tokens refactor + tenant_users.platform_user_id),
+> V29 (seed platform_users + rename platform_roles).
+
+### Tabla: `platform_users` — V27
+
+Tabla de identidad global, **NO** asociada a ningún tenant. Representa la cuenta única de plataforma de un usuario.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único (`gen_random_uuid()`) |
+| `email` | VARCHAR(255) | UNIQUE | NO | Email globalmente único en la plataforma |
+| `username` | VARCHAR(100) | UNIQUE | NO | Username globalmente único en la plataforma |
+| `password_hash` | VARCHAR(255) | — | NO | Hash seguro de contraseña (BCrypt) |
+| `first_name` | VARCHAR(100) | — | SÍ | Nombre de pila |
+| `last_name` | VARCHAR(100) | — | SÍ | Apellido |
+| `status` | VARCHAR(30) | — | NO | Estado: `ACTIVE`, `SUSPENDED`, `PENDING`, `RESET_PASSWORD` (default `ACTIVE`) |
+| `email_verified_at` | TIMESTAMPTZ | — | SÍ | Timestamp de verificación de email (`NULL` = no verificado) |
+| `phone_number` | VARCHAR(30) | — | SÍ | Número de teléfono (OIDC phone scope) |
+| `locale` | VARCHAR(10) | — | SÍ | Locale del usuario (BCP47, e.g. `es-MX`, `en-US`) |
+| `zoneinfo` | VARCHAR(50) | — | SÍ | Zona horaria IANA (e.g. `America/Mexico_City`) |
+| `profile_picture_url` | TEXT | — | SÍ | URL externa de foto de perfil |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (`DEFAULT now()`) |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización (auto-actualizado por trigger) |
+
+**Índices:** `idx_platform_users_email(email)`, `idx_platform_users_username(username)`, `idx_platform_users_status(status)`
+
+**Constraints:**
+- `UNIQUE(email)` — email globalmente único
+- `UNIQUE(username)` — username globalmente único
+- `CHECK(status IN ('ACTIVE', 'SUSPENDED', 'PENDING', 'RESET_PASSWORD'))`
+
+**Reglas de negocio:**
+- A diferencia de `tenant_users`, esta tabla es **global**: email y username son únicos en toda la plataforma.
+- Un `platform_user` puede estar vinculado a múltiples `tenant_users` en distintos tenants vía `tenant_users.platform_user_id`.
+- Los campos OIDC (`phone_number`, `locale`, `zoneinfo`, `profile_picture_url`) permiten el enriquecimiento del perfil sin depender de un tenant.
+- `email_verified_at IS NOT NULL` indica que el email ha sido verificado.
+- `status = RESET_PASSWORD` bloquea el login hasta completar el restablecimiento.
+
+---
+
+### Tabla: `platform_roles` — V24 (seed V26, renombrado V29)
+
+Catálogo de roles de plataforma. Define permisos administrativos globales independientes de cualquier tenant.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `code` | VARCHAR(50) | UNIQUE | NO | Código del rol (e.g. `keygo_admin`, `keygo_tenant_admin`, `keygo_user`) |
+| `name` | VARCHAR(255) | — | NO | Nombre legible del rol |
+| `description` | TEXT | — | SÍ | Descripción de responsabilidades/permisos |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Índices:** `idx_platform_roles_code(code)`
+
+**Constraints:**
+- `UNIQUE(code)` — código de rol globalmente único
+
+**Datos semilla (V26, renombrados V29):**
+
+| `code` | `name` | Descripción |
+|---|---|---|
+| `keygo_admin` | KeyGo Admin | Acceso completo a la plataforma |
+| `keygo_tenant_admin` | KeyGo Tenant Admin | Onboarding de tenants y billing |
+| `keygo_user` | KeyGo User | Acceso básico autenticado |
+
+**Reglas de negocio:**
+- Los roles de plataforma son globales y no pertenecen a ningún tenant.
+- Se asignan a `platform_users` a través de `platform_user_roles`.
+- El rol `keygo_admin` otorga acceso total al panel de administración de la plataforma.
+- El rol `keygo_tenant_admin` permite gestionar onboarding de tenants y operaciones de billing.
+
+---
+
+### Tabla: `platform_user_roles` — V24 (refactorizada V28)
+
+Tabla de asignación N:N entre usuarios de plataforma y roles de plataforma.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `platform_user_id` | UUID | FK → `platform_users.id` | NO | Usuario de plataforma |
+| `platform_role_id` | UUID | FK → `platform_roles.id` | NO | Rol de plataforma asignado |
+| `assigned_at` | TIMESTAMPTZ | — | NO | Timestamp de asignación (`DEFAULT now()`) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Constraints:**
+- `UNIQUE(platform_user_id, platform_role_id)` — no hay asignaciones duplicadas
+- FK: `platform_user_id` → `platform_users(id)` ON DELETE CASCADE
+- FK: `platform_role_id` → `platform_roles(id)` ON DELETE CASCADE
+
+**Datos semilla (V29, UUIDs estables):**
+
+| Platform User | Email | Roles asignados |
+|---|---|---|
+| `keygo_admin` (`00000000-0000-4000-a000-000000000001`) | `admin@keygo.local` | `keygo_admin`, `keygo_user` |
+| `keygo_tenant_admin` (`00000000-0000-4000-a000-000000000002`) | `tenant-admin@keygo.local` | `keygo_tenant_admin`, `keygo_user` |
+| `keygo_user` (`00000000-0000-4000-a000-000000000003`) | `user@keygo.local` | `keygo_user` |
+| `keygo_contractor` (`00000000-0000-4000-a000-000000000004`) | `contractor@keygo.local` | `keygo_tenant_admin`, `keygo_user` |
+
+**Reglas de negocio:**
+- Al eliminar un `platform_user`, se eliminan en cascada todas sus asignaciones de roles.
+- Al eliminar un `platform_role`, se eliminan en cascada todas las asignaciones de ese rol.
+- Un usuario puede tener múltiples roles de plataforma simultáneamente.
+
+---
+
+### Tabla: `tenant_roles` — V25
+
+Catálogo de roles a nivel de tenant. Define permisos dentro de un tenant específico.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `tenant_id` | UUID | FK → `tenants.id` | NO | Tenant propietario del rol |
+| `code` | VARCHAR(50) | UNIQUE (tenant) | NO | Código del rol, único dentro del tenant |
+| `name` | VARCHAR(255) | — | NO | Nombre legible del rol |
+| `description` | TEXT | — | SÍ | Descripción de responsabilidades/permisos |
+| `active` | BOOLEAN | — | NO | Si el rol está activo (`DEFAULT true`) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Constraints:**
+- `UNIQUE(tenant_id, code)` — código de rol único dentro del tenant
+- FK: `tenant_id` → `tenants(id)`
+
+**Datos semilla (V26):**
+
+| Tenant | `code` | `name` |
+|---|---|---|
+| `keygo` | `KEYGO_ADMIN_INTERNAL` | KeyGo Admin Interno |
+| `keygo` | `KEYGO_EDITOR` | KeyGo Editor |
+| `keygo` | `KEYGO_VIEWER` | KeyGo Viewer |
+| `demo` | `DEMO_ADMIN` | Demo Admin |
+| `demo` | `DEMO_USER` | Demo User |
+
+**Reglas de negocio:**
+- Los roles de tenant son independientes de las apps: aplican a nivel de tenant completo.
+- Diferentes tenants pueden tener roles con el mismo `code` sin conflicto (scoped por `tenant_id`).
+- `active = false` desactiva el rol sin eliminarlo (soft disable).
+- No confundir con `app_roles` (V6): aquellos están scoped a una `ClientApp`, estos al `Tenant`.
+
+---
+
+### Tabla: `tenant_user_roles` — V25
+
+Asignación N:N entre usuarios de tenant y roles de tenant. Soporta **soft-delete** con auditoría de remoción.
+
+| Campo | Tipo | Clave | Nulable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID | PK | NO | Identificador único |
+| `tenant_user_id` | UUID | FK → `tenant_users.id` | NO | Usuario del tenant |
+| `tenant_role_id` | UUID | FK → `tenant_roles.id` | NO | Rol de tenant asignado |
+| `assigned_at` | TIMESTAMPTZ | — | NO | Timestamp de asignación (`DEFAULT now()`) |
+| `removed_at` | TIMESTAMPTZ | — | SÍ | Timestamp de remoción (`NULL` = asignación activa, soft-delete) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
+
+**Índices:** Índice único parcial: `UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL`
+
+**Constraints:**
+- Índice único parcial: `(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL` — no hay asignaciones activas duplicadas
+- FK: `tenant_user_id` → `tenant_users(id)`
+- FK: `tenant_role_id` → `tenant_roles(id)`
+
+**Reglas de negocio:**
+- `removed_at IS NULL` indica una asignación activa.
+- `removed_at IS NOT NULL` indica una asignación revocada (soft-delete) — se conserva para auditoría.
+- El índice parcial permite reasignar un rol previamente removido sin violar unicidad.
+- Las consultas de roles activos **deben** filtrar por `WHERE removed_at IS NULL`.
+
+---
+
 ## Tablas legado (V1/V3)
 
 > Estas tablas existen en la DB por las migraciones iniciales pero **no se usan** en el sistema multi-tenancy actual. Se conservan por compatibilidad; no crear nuevos endpoints sobre ellas.
@@ -313,19 +503,30 @@
 
 ---
 
-## Modelo E/R — Identidad y Autenticación (V3–V9)
+## Modelo E/R — Identidad y Autenticación (V3–V9, V24–V29)
 
-> Tablas del núcleo de identidad: tenants, apps, usuarios, auth codes, signing keys, sesiones, refresh tokens y verificación de email.
-> Las tablas del modelo legacy anterior (V1: `users`, `roles`, `permissions`) se omiten — ver sección §2.
+> Tablas del núcleo de identidad: plataforma (platform_users, platform_roles), tenants, apps, usuarios,
+> roles de tenant, auth codes, signing keys, sesiones, refresh tokens y verificación de email.
+> Las tablas del modelo legacy anterior (V1: `users`, `roles`, `permissions`) se omiten — ver sección §3.
 > Para las tablas de billing ver el diagrama de la sección siguiente (V10–V14).
+>
+> **V28 refactor:** las sesiones (`sessions`) y refresh tokens (`refresh_tokens`) ya no dependen directamente
+> de `tenants`/`tenant_users`. Las sesiones se vinculan a `platform_users`; los refresh tokens a `tenant_users`
+> (para lookup rápido de roles). `client_app_id` es nullable en ambas tablas (NULL = sesión de plataforma).
 
 ```mermaid
 erDiagram
+    %% Identidad de plataforma (V24–V29)
+    PLATFORM_USERS ||--o{ PLATFORM_USER_ROLES : "has (platform_user_id)"
+    PLATFORM_ROLES ||--o{ PLATFORM_USER_ROLES : "assigned (platform_role_id)"
+    PLATFORM_USERS ||--o{ TENANT_USERS : "linked (platform_user_id)"
+    PLATFORM_USERS ||--o{ SESSIONS : "owns (platform_user_id)"
+
+    %% Tenancy
     TENANTS ||--o{ CLIENT_APPS : "owns (tenant_id)"
     TENANTS ||--o{ TENANT_USERS : "contains (tenant_id)"
     TENANTS ||--o{ AUTHORIZATION_CODES : "issues (tenant_id)"
-    TENANTS ||--o{ SESSIONS : "has (tenant_id)"
-    TENANTS ||--o{ REFRESH_TOKENS : "owns (tenant_id)"
+    TENANTS ||--o{ TENANT_ROLES : "defines (tenant_id)"
 
     CLIENT_APPS ||--o{ CLIENT_REDIRECT_URIS : "registers (client_app_id)"
     CLIENT_APPS ||--o{ CLIENT_ALLOWED_GRANTS : "permits (client_app_id)"
@@ -333,20 +534,57 @@ erDiagram
     CLIENT_APPS ||--o{ APP_ROLES : "defines (client_app_id)"
     CLIENT_APPS ||--o{ MEMBERSHIPS : "accessed-by (client_app_id)"
     CLIENT_APPS ||--o{ AUTHORIZATION_CODES : "requests (client_app_id)"
-    CLIENT_APPS ||--o{ SESSIONS : "used-in (client_app_id)"
-    CLIENT_APPS ||--o{ REFRESH_TOKENS : "issued-to (client_app_id)"
+    CLIENT_APPS ||--o{ SESSIONS : "used-in (client_app_id, nullable)"
+    CLIENT_APPS ||--o{ REFRESH_TOKENS : "issued-to (client_app_id, nullable)"
 
     TENANT_USERS ||--o{ MEMBERSHIPS : "has (user_id)"
     TENANT_USERS ||--o{ AUTHORIZATION_CODES : "authenticates (user_id)"
-    TENANT_USERS ||--o{ SESSIONS : "owns (user_id)"
-    TENANT_USERS ||--o{ REFRESH_TOKENS : "owns (user_id)"
+    TENANT_USERS ||--o{ REFRESH_TOKENS : "owns (tenant_user_id)"
     TENANT_USERS ||--o{ EMAIL_VERIFICATIONS : "has (tenant_user_id)"
+    TENANT_USERS ||--o{ TENANT_USER_ROLES : "has (tenant_user_id)"
+
+    TENANT_ROLES ||--o{ TENANT_USER_ROLES : "assigned (tenant_role_id)"
 
     MEMBERSHIPS ||--o{ MEMBERSHIP_ROLES : "assigned (membership_id)"
     APP_ROLES ||--o{ MEMBERSHIP_ROLES : "grants (role_id)"
 
     SESSIONS ||--o{ REFRESH_TOKENS : "contains (session_id)"
     REFRESH_TOKENS ||--o| REFRESH_TOKENS : "replaced-by (replaced_by_id)"
+
+    PLATFORM_USERS {
+        UUID id PK
+        VARCHAR email UK
+        VARCHAR username UK
+        VARCHAR password_hash
+        VARCHAR first_name
+        VARCHAR last_name
+        VARCHAR status
+        TIMESTAMPTZ email_verified_at
+        VARCHAR phone_number
+        VARCHAR locale
+        VARCHAR zoneinfo
+        TEXT profile_picture_url
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    PLATFORM_ROLES {
+        UUID id PK
+        VARCHAR code UK
+        VARCHAR name
+        TEXT description
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    PLATFORM_USER_ROLES {
+        UUID id PK
+        UUID platform_user_id FK
+        UUID platform_role_id FK
+        TIMESTAMPTZ assigned_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
     TENANTS {
         UUID id PK
@@ -393,12 +631,34 @@ erDiagram
     TENANT_USERS {
         UUID id PK
         UUID tenant_id FK
+        UUID platform_user_id FK
         VARCHAR username
         VARCHAR email
         VARCHAR password_hash
         VARCHAR first_name
         VARCHAR last_name
         VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    TENANT_ROLES {
+        UUID id PK
+        UUID tenant_id FK
+        VARCHAR code
+        VARCHAR name
+        TEXT description
+        BOOLEAN active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    TENANT_USER_ROLES {
+        UUID id PK
+        UUID tenant_user_id FK
+        UUID tenant_role_id FK
+        TIMESTAMPTZ assigned_at
+        TIMESTAMPTZ removed_at
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -457,9 +717,8 @@ erDiagram
 
     SESSIONS {
         UUID id PK
-        UUID tenant_id FK
+        UUID platform_user_id FK
         UUID client_app_id FK
-        UUID user_id FK
         VARCHAR status
         TIMESTAMPTZ expires_at
         TIMESTAMPTZ last_accessed_at
@@ -472,9 +731,8 @@ erDiagram
         UUID id PK
         VARCHAR token_hash UK
         UUID session_id FK
-        UUID tenant_id FK
+        UUID tenant_user_id FK
         UUID client_app_id FK
-        UUID user_id FK
         TEXT requested_scopes
         VARCHAR status
         TIMESTAMPTZ expires_at
@@ -705,14 +963,20 @@ erDiagram
 
 ```mermaid
 graph TD
-    subgraph "Identidad (V3–V9)"
+    subgraph "Identidad de plataforma (V24–V29)"
+        PU["🌐 PLATFORM_USERS"] -->|CASCADE| PUR["🏷️ PLATFORM_USER_ROLES"]
+        PR["🔑 PLATFORM_ROLES"] -->|CASCADE| PUR
+        PU -->|SET NULL| TU_LINK["👤 TENANT_USERS (platform_user_id)"]
+        PU -->|SET NULL| SES["🖥️ SESSIONS"]
+    end
+
+    subgraph "Identidad por tenant (V3–V9)"
         A["🏢 TENANTS"] -->|CASCADE| B["🔐 CLIENT_APPS"]
         A -->|CASCADE| C["👤 TENANT_USERS"]
         A -->|CASCADE| K["🎫 AUTHORIZATION_CODES"]
-        A -->|CASCADE| SES["🖥️ SESSIONS"]
-        A -->|CASCADE| RT["🔄 REFRESH_TOKENS"]
         A -->|CASCADE| TBP["🧾 TENANT_BILLING_PROFILES"]
         A -->|CASCADE| PM["💳 PAYMENT_METHODS"]
+        A -->|CASCADE| TR_ROLE["🎭 TENANT_ROLES"]
 
         B -->|CASCADE| F["↩️ CLIENT_REDIRECT_URIS"]
         B -->|CASCADE| G["✅ CLIENT_ALLOWED_GRANTS"]
@@ -720,14 +984,14 @@ graph TD
         B -->|CASCADE| E["🎭 APP_ROLES"]
         B -->|CASCADE| D["📊 MEMBERSHIPS"]
         B -->|CASCADE| K
-        B -->|CASCADE| SES
-        B -->|CASCADE| RT
 
         C -->|CASCADE| D
         C -->|CASCADE| K
-        C -->|CASCADE| SES
-        C -->|CASCADE| RT
+        C -->|SET NULL| RT["🔄 REFRESH_TOKENS"]
         C -->|CASCADE| EV["📧 EMAIL_VERIFICATIONS"]
+        C -->|CASCADE| TUR["🔗 TENANT_USER_ROLES"]
+
+        TR_ROLE -->|CASCADE| TUR
 
         D -->|CASCADE| J["🔗 MEMBERSHIP_ROLES"]
         E -->|CASCADE| J
@@ -754,11 +1018,14 @@ graph TD
 ```
 
 **Implicaciones:**
-- Si se elimina un **tenant**: se eliminan en cascada apps, usuarios, auth codes, sesiones, refresh tokens, perfiles de facturación y métodos de pago.
-- Si se elimina una **app**: se eliminan redirect URIs, grants, scopes, roles, memberships, auth codes, sesiones y refresh tokens. Las relaciones de billing usan `ON DELETE RESTRICT` para evitar borrar planes/contratos/suscripciones activos.
-- Si se elimina un **usuario**: se eliminan sus memberships, auth codes, sesiones, refresh tokens y verificaciones de email.
+- Si se elimina un **platform_user**: se eliminan en cascada sus `platform_user_roles`; se pone a `NULL` `platform_user_id` en `tenant_users` y `sessions`.
+- Si se elimina un **tenant**: se eliminan en cascada apps, usuarios, auth codes, tenant_roles, perfiles de facturación y métodos de pago.
+- Si se elimina una **app**: se eliminan redirect URIs, grants, scopes, roles, memberships y auth codes. Las relaciones de billing usan `ON DELETE RESTRICT`.
+- Si se elimina un **tenant_user**: se eliminan sus memberships, auth codes, verificaciones de email y `tenant_user_roles`; se pone a `NULL` `tenant_user_id` en `refresh_tokens`.
 - Si se elimina una **sesión**: se eliminan en cascada sus refresh tokens.
 - `SIGNING_KEYS` **no tiene FK hacia tenants** — son claves globales del servidor.
+- **Sesiones (V28):** ya no dependen de `tenants`/`tenant_users` directamente. Dependen de `platform_users` (nullable) y `client_apps` (nullable).
+- **Refresh tokens (V28):** ya no dependen de `tenants` directamente. Dependen de `sessions` (cascade), `tenant_users` (nullable, para lookup de roles) y `client_apps` (nullable).
 - Las tablas de billing (`app_contracts`, `app_subscriptions`, `invoices`) usan `ON DELETE RESTRICT` para proteger el historial financiero.
 
 ---
@@ -839,6 +1106,53 @@ SET status = 'used', used_at = NOW()
 WHERE id = :id;
 ```
 
+### 9. Obtener roles de plataforma de un platform_user
+
+```sql
+SELECT pr.code, pr.name
+FROM platform_roles pr
+JOIN platform_user_roles pur ON pur.platform_role_id = pr.id
+WHERE pur.platform_user_id = :platformUserId;
+```
+
+### 10. Obtener los tenant_users vinculados a un platform_user
+
+```sql
+SELECT tu.*, t.slug AS tenant_slug, t.name AS tenant_name
+FROM tenant_users tu
+JOIN tenants t ON t.id = tu.tenant_id
+WHERE tu.platform_user_id = :platformUserId
+  AND tu.status = 'ACTIVE';
+```
+
+### 11. Crear una sesión de plataforma (sin client_app)
+
+```sql
+INSERT INTO sessions (platform_user_id, status, expires_at, last_accessed_at, user_agent, ip_address)
+VALUES (:platformUserId, 'ACTIVE', :expiresAt, NOW(), :userAgent, :ipAddress);
+-- client_app_id = NULL indica sesión de plataforma (no vinculada a una app de tenant)
+```
+
+### 12. Obtener roles de tenant activos de un usuario
+
+```sql
+SELECT tr.code, tr.name
+FROM tenant_roles tr
+JOIN tenant_user_roles tur ON tur.tenant_role_id = tr.id
+WHERE tur.tenant_user_id = :tenantUserId
+  AND tur.removed_at IS NULL
+  AND tr.active = true;
+```
+
+### 13. Obtener platform_user a partir de un tenant_user
+
+```sql
+SELECT pu.*
+FROM platform_users pu
+JOIN tenant_users tu ON tu.platform_user_id = pu.id
+WHERE tu.id = :tenantUserId;
+```
+
 ---
 
 ## Notas sobre enumeraciones
@@ -850,6 +1164,7 @@ WHERE id = :id;
 | `tenants` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING`, `DELETED` | UPPERCASE |
 | `client_apps` | `type` | `PUBLIC`, `CONFIDENTIAL` | UPPERCASE |
 | `client_apps` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
+| `platform_users` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING`, `RESET_PASSWORD` | UPPERCASE |
 | `tenant_users` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
 | `memberships` | `status` | `ACTIVE`, `SUSPENDED`, `PENDING` | UPPERCASE |
 | `authorization_codes` | `status` | `pending`, `used`, `expired`, `revoked` | **lowercase** |
@@ -874,6 +1189,7 @@ WHERE id = :id;
 | `payment_methods` | `provider` | `STRIPE`, `MERCADOPAGO`, `PAYPAL`, `MANUAL`, `MOCK` | UPPERCASE |
 | `payment_methods` | `method_type` | `CARD`, `PAYPAL`, `BANK_TRANSFER`, `MOCK` | UPPERCASE |
 | `payment_methods` | `status` | `ACTIVE`, `EXPIRED`, `REVOKED` | UPPERCASE |
+| `contractors` | `status` | `PENDING`, `ACTIVE`, `SUSPENDED` | UPPERCASE |
 
 > ⚠️ Los valores de `authorization_codes.status` son **minúsculas** (distinto al resto). Tener en cuenta en comparaciones de código Java.
 
@@ -886,8 +1202,14 @@ WHERE id = :id;
 | `tenants` | `UNIQUE(slug)` | Slug global único |
 | `client_apps` | `UNIQUE(client_id)` | Client ID único globalmente |
 | `client_redirect_uris` | — | Sin constraint; múltiples URIs por app |
+| `platform_users` | `UNIQUE(email)` | Email globalmente único en la plataforma |
+| `platform_users` | `UNIQUE(username)` | Username globalmente único en la plataforma |
+| `platform_roles` | `UNIQUE(code)` | Código de rol de plataforma globalmente único |
+| `platform_user_roles` | `UNIQUE(platform_user_id, platform_role_id)` | No hay asignaciones duplicadas |
 | `tenant_users` | `UNIQUE(tenant_id, email)` | Email único por tenant |
 | `tenant_users` | `UNIQUE(tenant_id, username)` | Username único por tenant |
+| `tenant_roles` | `UNIQUE(tenant_id, code)` | Código de rol único por tenant |
+| `tenant_user_roles` | Parcial `(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL` | Asignación activa única (permite reassignación post soft-delete) |
 | `memberships` | `UNIQUE(user_id, client_app_id)` | No hay memberships duplicadas |
 | `app_roles` | `UNIQUE(client_app_id, code)` | Código de rol único por app |
 | `membership_roles` | PK `(membership_id, role_id)` | PK compuesta; sin columna `id` propia |
@@ -906,14 +1228,17 @@ WHERE id = :id;
 
 ---
 
-## Tabla: `sessions` — V8
+## Tabla: `sessions` — V8 (refactorizada V28)
+
+> ⚡ **V28 refactor:** se eliminaron las columnas `tenant_id` y `user_id` (FKs a `tenants` y `tenant_users`).
+> La sesión ahora se vincula a `platform_users` (identidad global). `client_app_id` pasa a ser nullable
+> (`NULL` = sesión de plataforma, `NOT NULL` = sesión de app de tenant).
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único de la sesión |
-| `tenant_id` | UUID | FK → `tenants.id` | NO | Tenant de la sesión |
-| `client_app_id` | UUID | FK → `client_apps.id` | NO | App cliente que inició la sesión |
-| `user_id` | UUID | FK → `tenant_users.id` | NO | Usuario propietario de la sesión |
+| `platform_user_id` | UUID | FK → `platform_users.id` | SÍ | Usuario de plataforma propietario. `NULL` = sesión legacy (pre-V28). |
+| `client_app_id` | UUID | FK → `client_apps.id` | SÍ | App cliente que inició la sesión. `NULL` = sesión de plataforma. |
 | `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `TERMINATED`, `EXPIRED` |
 | `expires_at` | TIMESTAMPTZ | — | NO | Expiración de la sesión (configurado en 30 días) |
 | `last_accessed_at` | TIMESTAMPTZ | — | NO | Último acceso (se actualiza en cada rotación de RT) |
@@ -921,25 +1246,35 @@ WHERE id = :id;
 | `ip_address` | VARCHAR(64) | — | SÍ | IP de origen (para auditoría) |
 | `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (auto, `CURRENT_TIMESTAMP`) |
 
-**Índices:** `idx_sessions_user_tenant(user_id, tenant_id)`, `idx_sessions_status(status)`
+**Columnas eliminadas (V28):**
+- ~~`tenant_id`~~ — eliminado; la sesión ya no está scoped a un tenant directamente
+- ~~`user_id`~~ — eliminado; reemplazado por `platform_user_id` (identidad global)
+
+**Índices:** `idx_sessions_platform_user(platform_user_id) WHERE platform_user_id IS NOT NULL`, `idx_sessions_client_app(client_app_id) WHERE client_app_id IS NOT NULL`, `idx_sessions_status(status)`
 
 **Reglas de negocio:**
 - Una sesión ACTIVE puede tener múltiples refresh tokens, pero solo uno es válido (ACTIVE) en un momento dado.
 - Al terminar la sesión (`TERMINATED`), todos sus refresh tokens se revocan.
 - El `last_accessed_at` se actualiza en cada rotación de refresh token exitosa.
+- `platform_user_id IS NULL` indica una sesión legacy creada antes del refactor V28.
+- `client_app_id IS NULL` indica una sesión de plataforma (no vinculada a una app de tenant).
+- `client_app_id IS NOT NULL` indica una sesión iniciada desde una app de tenant.
 
 ---
 
-## Tabla: `refresh_tokens` — V8
+## Tabla: `refresh_tokens` — V8 (refactorizada V28)
+
+> ⚡ **V28 refactor:** se eliminaron las columnas `tenant_id` y `user_id` (FKs a `tenants` y `tenant_users`).
+> Se agregó `tenant_user_id` (FK nullable a `tenant_users`) para lookup rápido de roles en rotación de tokens.
+> `client_app_id` pasa a ser nullable (espejo de `sessions`).
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del refresh token |
 | `token_hash` | VARCHAR(64) | UNIQUE | NO | Hash SHA-256 (hex) del token plano — 64 caracteres |
 | `session_id` | UUID | FK → `sessions.id` | NO | Sesión a la que pertenece este token |
-| `tenant_id` | UUID | FK → `tenants.id` | NO | Tenant propietario |
-| `client_app_id` | UUID | FK → `client_apps.id` | NO | App que recibió el token |
-| `user_id` | UUID | FK → `tenant_users.id` | NO | Usuario propietario |
+| `tenant_user_id` | UUID | FK → `tenant_users.id` | SÍ | Usuario del tenant, para lookup rápido de roles en rotación. `NULL` = sesión de plataforma sin contexto de tenant. |
+| `client_app_id` | UUID | FK → `client_apps.id` | SÍ | App que recibió el token. `NULL` = token de sesión de plataforma. |
 | `requested_scopes` | TEXT | — | NO | Scopes otorgados (espacio separado, e.g. `openid profile`) |
 | `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `USED`, `EXPIRED`, `REVOKED` |
 | `expires_at` | TIMESTAMPTZ | — | NO | Expiración del token (mismo que la sesión, 30 días) |
@@ -947,7 +1282,11 @@ WHERE id = :id;
 | `replaced_by_id` | UUID | FK → `refresh_tokens.id` | SÍ | Auto-referencia al nuevo RT que lo reemplazó |
 | `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (auto, `CURRENT_TIMESTAMP`) |
 
-**Índices:** `idx_refresh_tokens_hash(token_hash)`, `idx_refresh_tokens_session(session_id)`, `idx_refresh_tokens_user_tenant(user_id, tenant_id)`, `idx_refresh_tokens_status(status)`
+**Columnas eliminadas (V28):**
+- ~~`tenant_id`~~ — eliminado; ya no se referencia al tenant directamente
+- ~~`user_id`~~ — eliminado; reemplazado por `tenant_user_id` (nullable, para lookup de roles)
+
+**Índices:** `idx_refresh_tokens_hash(token_hash)`, `idx_refresh_tokens_session(session_id)`, `idx_refresh_tokens_tenant_user(tenant_user_id) WHERE tenant_user_id IS NOT NULL`, `idx_refresh_tokens_status(status)`
 
 **Reglas de negocio:**
 - El token plano (`raw`) **nunca se almacena** en DB; solo el hash SHA-256 determinista.
@@ -1367,5 +1706,5 @@ Si no hay registro para un usuario, el backend retorna valores por defecto (`sec
 
 ---
 
-**Última actualización:** 2026-04-02 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V21
+**Última actualización:** 2026-04-07 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V29
 

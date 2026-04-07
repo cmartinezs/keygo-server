@@ -134,6 +134,7 @@
 | T-121 | **LocaleResolver + LocaleContextFilter** — resolver locale desde `Accept-Language` header; propagar vía `LocaleContextHolder`; fallback en-US | ✅ Completada 2026-04-03 (20 tests, 100% coverage) |
 | T-122 | **Refactorizar `ApiErrorDataFactory.clientMessage()`** — integrar `MessageSource`; cache `ReloadableResourceBundleMessageSource` con TTL 3600 s en prod | ✅ Completada 2026-04-03 |
 | T-123 | **Tests de i18n** — unitarios de `LocaleResolver`, `LocaleContextFilter`, `ApiErrorDataFactory` con múltiples locales × ResponseCode | ✅ Completada 2026-04-03 |
+| ~~T-124~~ | ~~**RFC billing-contractor-refactor — Platform Billing:** 5 endpoints en `PlatformBillingController` (`/platform/billing/*`), 5 use cases de plataforma, seguridad `hasSegment` para catálogo billing, 24 tests nuevos (15 use case + 9 controller), documentación completa~~ | ✅ Completada 2026-04-08 |
 | F-041 | **Épica futura — SSO multi-app para ecosistema KeyGo:** diseñar sesión compartida explícita entre múltiples UIs/apps con contrato formal distinto al hosted login actual | 🔲 Pendiente |
 | F-040 | RBAC granular para control-plane: autorización por permiso/acción en endpoints admin (más fino que rol global `ADMIN`) | 🔲 Pendiente |
 | ~~F-043~~ | ~~**Flujo forgot/recover-password:** `POST /account/forgot-password` (anti-enumeración) + `POST /account/recover-password` (token 32-hex, TTL 30 min, upsert), tabla `V22__password_recovery_tokens.sql`, `PasswordRecoveryToken` domain model, `ForgotPasswordUseCase`, `RecoverPasswordUseCase`, email HTML~~ | ✅ Completada 2026-04-02 |
@@ -152,4 +153,4 @@
 
 ---
 
-**Última actualización:** 2026-04-03 (T-120 🟡 Parcial, T-121 ✅, T-122 ✅, T-123 ✅ — i18n completo: locale resolver + context filter + message source) | **Responsable:** AI Agent
+**Última actualización:** 2026-04-08 (T-124 ✅ — RFC billing-contractor-refactor completado: platform billing endpoints, seguridad, tests, documentación) | **Responsable:** AI Agent

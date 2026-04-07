@@ -4,7 +4,7 @@ import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.supabase.billing.entity.ContractorEntity;
 import io.cmartinezs.keygo.supabase.billing.repository.ContractorJpaRepository;
-import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
+import io.cmartinezs.keygo.supabase.user.repository.PlatformUserJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -19,13 +19,13 @@ import java.util.UUID;
 public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
 
   private final ContractorJpaRepository jpaRepo;
-  private final TenantUserJpaRepository tenantUserRepo;
+  private final PlatformUserJpaRepository platformUserRepo;
 
   public ContractorRepositoryAdapter(
       ContractorJpaRepository jpaRepo,
-      TenantUserJpaRepository tenantUserRepo) {
+      PlatformUserJpaRepository platformUserRepo) {
     this.jpaRepo = jpaRepo;
-    this.tenantUserRepo = tenantUserRepo;
+    this.platformUserRepo = platformUserRepo;
   }
 
   @Override
@@ -40,19 +40,19 @@ public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
   }
 
   @Override
-  public Optional<Contractor> findByTenantUserId(UUID tenantUserId) {
-    return jpaRepo.findByTenantUserId(tenantUserId).map(this::toDomain);
+  public Optional<Contractor> findByPlatformUserId(UUID platformUserId) {
+    return jpaRepo.findByPlatformUserId(platformUserId).map(this::toDomain);
   }
 
   @Override
-  public Optional<Contractor> findByTenantUserEmail(UUID tenantId, String email) {
-    return jpaRepo.findByTenantUser_Tenant_IdAndTenantUser_Email(tenantId, email)
+  public Optional<Contractor> findByPlatformUserEmail(String email) {
+    return jpaRepo.findByPlatformUser_Email(email)
         .map(this::toDomain);
   }
 
   private ContractorEntity toEntity(Contractor c) {
     return ContractorEntity.builder()
-        .tenantUser(tenantUserRepo.getReferenceById(c.getTenantUserId()))
+        .platformUser(platformUserRepo.getReferenceById(c.getPlatformUserId()))
         .status(c.getStatus())
         .build();
   }
@@ -60,7 +60,7 @@ public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
   private Contractor toDomain(ContractorEntity e) {
     return Contractor.builder()
         .id(e.getId())
-        .tenantUserId(e.getTenantUser().getId())
+        .platformUserId(e.getPlatformUser().getId())
         .status(e.getStatus())
         .createdAt(e.getCreatedAt())
         .updatedAt(e.getUpdatedAt())

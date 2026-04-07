@@ -36,7 +36,7 @@ public class AppSubscriptionEntity {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")  // nullable for platform subscriptions
   private ClientAppEntity clientApp;
 
   @ManyToOne(fetch = FetchType.LAZY)

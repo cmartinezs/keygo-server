@@ -20,6 +20,16 @@ import java.util.UUID;
 /**
  * Use case: create a new app contract (beginning of the contracting flow) — billing model v2.
  * Generates a verification code and sends it to the contractor's email.
+ * <p>If {@code clientAppId} is null, this is a platform-level contract;
+ * if set, it is an app-level contract and the ClientApp must exist.
+ *
+ * @author cmartinezs
+ * @version 1.1
+ */
+
+/**
+ * Use case: create a new app contract (beginning of the contracting flow) — billing model v2.
+ * Generates a verification code and sends it to the contractor's email.
  * No B2B/B2C branch distinction here; that was removed in model v2.
  *
  * @author cmartinezs
@@ -58,13 +68,14 @@ public class CreateAppContractUseCase {
     versionRepo.findById(cmd.planVersionId())
         .orElseThrow(() -> new PlanVersionNotFoundException(cmd.planVersionId()));
 
-    // Validate clientAppId exists and resolve provider tenantId
-    var clientApp = clientAppRepo.findById(ClientAppId.of(cmd.clientAppId()))
-        .orElseThrow(() -> new IllegalArgumentException("Client app not found: " + cmd.clientAppId()));
-    UUID providerTenantId = clientApp.getTenantId().value();
+    // Validate clientAppId exists only for app-level contracts
+    if (cmd.clientAppId() != null) {
+      clientAppRepo.findById(ClientAppId.of(cmd.clientAppId()))
+          .orElseThrow(() -> new IllegalArgumentException("Client app not found: " + cmd.clientAppId()));
+    }
 
-    // Check if email already registered as contractor in provider tenant
-    contractorRepo.findByTenantUserEmail(providerTenantId, cmd.contractorEmail())
+    // Check if email already registered as contractor (platform-level, email is globally unique)
+    contractorRepo.findByPlatformUserEmail(cmd.contractorEmail())
         .ifPresent(existingContractor -> {
           throw new ContractorEmailAlreadyExistsException(cmd.contractorEmail());
         });

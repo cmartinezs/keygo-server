@@ -17,4 +17,10 @@ public interface AppPlanRepositoryPort {
   Optional<AppPlan> findByClientAppIdAndCode(UUID clientAppId, String code);
   boolean existsByClientAppIdAndCode(UUID clientAppId, String code);
   AppPlan save(AppPlan plan);
+
+  /** Platform plans: WHERE client_app_id IS NULL AND status = ACTIVE AND is_public = true */
+  List<AppPlan> findPlatformPlans();
+
+  /** Single platform plan by code: WHERE client_app_id IS NULL AND code = ? */
+  Optional<AppPlan> findPlatformPlanByCode(String code);
 }

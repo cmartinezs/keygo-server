@@ -47,6 +47,11 @@ import io.cmartinezs.keygo.app.billing.subscription.usecase.CancelAppSubscriptio
 import io.cmartinezs.keygo.app.billing.subscription.usecase.GetAppSubscriptionUseCase;
 import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
 import io.cmartinezs.keygo.app.billing.usage.usecase.CheckAppEntitlementUseCase;
+import io.cmartinezs.keygo.app.billing.platform.usecase.GetPlatformPlanCatalogUseCase;
+import io.cmartinezs.keygo.app.billing.platform.usecase.GetPlatformPlanUseCase;
+import io.cmartinezs.keygo.app.billing.platform.usecase.GetPlatformSubscriptionUseCase;
+import io.cmartinezs.keygo.app.billing.platform.usecase.CancelPlatformSubscriptionUseCase;
+import io.cmartinezs.keygo.app.billing.platform.usecase.ListPlatformInvoicesUseCase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.clientapp.usecase.CreateClientAppUseCase;
@@ -132,7 +137,9 @@ import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
+import io.cmartinezs.keygo.run.config.properties.KeyGoPlatformProperties;
 import io.cmartinezs.keygo.run.credential.BCryptCredentialEncoder;
+import io.cmartinezs.keygo.api.platform.controller.PlatformAuthController;
 import io.cmartinezs.keygo.api.shared.KeyGoLocaleResolver;
 import io.cmartinezs.keygo.run.filter.LocaleContextFilter;
 import io.cmartinezs.keygo.run.filter.RequestTracingFilter;
@@ -843,20 +850,16 @@ public class ApplicationConfig {
   @Bean
   public VerifyContractEmailUseCase verifyContractEmailUseCase(
       AppContractRepositoryPort contractRepo,
-      ClientAppRepositoryPort clientAppRepositoryPort,
-      UserRepositoryPort userRepo,
+      PlatformUserRepositoryPort platformUserRepositoryPort,
+      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort,
       ContractorRepositoryPort contractorRepositoryPort,
-      MembershipRepositoryPort membershipRepositoryPort,
-      AppRoleRepositoryPort appRoleRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
       EmailNotificationPort emailNotificationPort) {
     return new VerifyContractEmailUseCase(
         contractRepo,
-        clientAppRepositoryPort,
-        userRepo,
+        platformUserRepositoryPort,
+        platformUserRoleRepositoryPort,
         contractorRepositoryPort,
-        membershipRepositoryPort,
-        appRoleRepositoryPort,
         credentialEncoderPort,
         emailNotificationPort);
   }
@@ -931,6 +934,42 @@ public class ApplicationConfig {
       UsageCounterRepositoryPort usageRepo) {
     return new CheckAppEntitlementUseCase(
         subscriptionRepo, versionRepo, entitlementRepo, usageRepo);
+  }
+
+  // ─── Billing: Plataforma ──────────────────────────────────────────────────
+
+  @Bean
+  public GetPlatformPlanCatalogUseCase getPlatformPlanCatalogUseCase(
+      AppPlanRepositoryPort planRepo) {
+    return new GetPlatformPlanCatalogUseCase(planRepo);
+  }
+
+  @Bean
+  public GetPlatformPlanUseCase getPlatformPlanUseCase(
+      AppPlanRepositoryPort planRepo) {
+    return new GetPlatformPlanUseCase(planRepo);
+  }
+
+  @Bean
+  public GetPlatformSubscriptionUseCase getPlatformSubscriptionUseCase(
+      ContractorRepositoryPort contractorRepo,
+      AppSubscriptionRepositoryPort subscriptionRepo) {
+    return new GetPlatformSubscriptionUseCase(contractorRepo, subscriptionRepo);
+  }
+
+  @Bean
+  public CancelPlatformSubscriptionUseCase cancelPlatformSubscriptionUseCase(
+      ContractorRepositoryPort contractorRepo,
+      AppSubscriptionRepositoryPort subscriptionRepo) {
+    return new CancelPlatformSubscriptionUseCase(contractorRepo, subscriptionRepo);
+  }
+
+  @Bean
+  public ListPlatformInvoicesUseCase listPlatformInvoicesUseCase(
+      ContractorRepositoryPort contractorRepo,
+      AppSubscriptionRepositoryPort subscriptionRepo,
+      InvoiceRepositoryPort invoiceRepo) {
+    return new ListPlatformInvoicesUseCase(contractorRepo, subscriptionRepo, invoiceRepo);
   }
 
   // ─── Trazabilidad: RequestTracingFilter ──────────────────────────────────
@@ -1032,6 +1071,22 @@ public class ApplicationConfig {
     return new RotatePlatformRefreshTokenUseCase(
         refreshTokenRepository, sessionRepository, platformUserRoleRepository,
         issueTokensUseCase, clock, issuerBaseUrl);
+  }
+
+  // ─── Platform Auth Controller ─────────────────────────────────────────────
+
+  @Bean
+  public PlatformAuthController platformAuthController(
+      AuthenticatePlatformUserUseCase authenticateUseCase,
+      IssuePlatformTokensUseCase issueTokensUseCase,
+      RotatePlatformRefreshTokenUseCase rotateRefreshTokenUseCase,
+      GetPlatformUserUseCase getPlatformUserUseCase,
+      KeyGoPlatformProperties platformProperties) {
+    return new PlatformAuthController(
+        authenticateUseCase, issueTokensUseCase,
+        rotateRefreshTokenUseCase, getPlatformUserUseCase,
+        platformProperties.getAllowedRedirectUris(),
+        platformProperties.getApplicationName());
   }
 
   // ─── i18n: MessageSource para traducciones ────────────────────────────────
