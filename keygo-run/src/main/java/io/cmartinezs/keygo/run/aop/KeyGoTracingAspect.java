@@ -40,7 +40,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <ul>
  *   <li>Getters, setters and boolean accessors (noise reduction)
- *   <li>Methods or classes annotated with {@link NoLog}
+ *   <li>Methods or classes annotated with {@link NotLog}
  *   <li>Classes inside {@code *.filter.*} packages (Servlet filters — CGLIB incompatibility)
  *   <li>This aspect itself (recursion guard)
  * </ul>
@@ -178,7 +178,7 @@ public class KeyGoTracingAspect {
    * Around advice that traces every eligible method call.
    * Early-exits without any overhead when DEBUG is disabled for the target class logger.
    */
-  @Around("keygoMethods() && !@annotation(NoLog) && !@within(NoLog)")
+  @Around("keygoMethods() && !@annotation(io.cmartinezs.keygo.run.aop.NotLog) && !@within(io.cmartinezs.keygo.run.aop.NotLog)")
   public Object traceMethodExecution(ProceedingJoinPoint pjp) throws Throwable {
     MethodSignature signature = (MethodSignature) pjp.getSignature();
 

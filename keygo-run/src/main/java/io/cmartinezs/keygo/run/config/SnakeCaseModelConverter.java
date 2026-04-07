@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.run.config;
 
+import io.cmartinezs.keygo.run.aop.NotLog;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverter;
 import io.swagger.v3.core.converter.ModelConverterContext;
@@ -25,6 +26,7 @@ import java.util.Map;
  * @version 1.0
  * @see OpenApiConfig#snakeCaseModelConverter()
  */
+@NotLog
 public class SnakeCaseModelConverter implements ModelConverter {
 
   /**

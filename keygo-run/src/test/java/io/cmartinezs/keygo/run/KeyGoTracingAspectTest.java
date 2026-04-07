@@ -7,7 +7,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.cmartinezs.keygo.run.aop.KeyGoTracingAspect;
-import io.cmartinezs.keygo.run.aop.NoLog;
+import io.cmartinezs.keygo.run.aop.NotLog;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
  *   <li>Exceptions produce a {@code [TRACE_ERR]} log line and are re-thrown unchanged.</li>
  *   <li>Sensitive parameter names are masked with {@code [REDACTED]}.</li>
  *   <li>Sensitive fields inside complex objects are masked in the JSON output.</li>
- *   <li>Methods annotated with {@link NoLog} are skipped entirely.</li>
+ *   <li>Methods annotated with {@link NotLog} are skipped entirely.</li>
  *   <li>Getter/setter methods are excluded from tracing.</li>
  * </ul>
  */
@@ -217,7 +217,7 @@ class KeyGoTracingAspectTest {
       return new TokenResult("eyJsecretJWT");
     }
 
-    @NoLog
+    @NotLog
     public String excludedMethod(String data) {
       return "excluded: " + data;
     }

@@ -133,6 +133,7 @@ import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
 import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
+import io.cmartinezs.keygo.run.aop.NotLog;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
 import io.cmartinezs.keygo.run.config.auth.SystemClockProvider;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBillingProperties;
@@ -164,6 +165,7 @@ import tools.jackson.databind.PropertyNamingStrategies;
  * @author cmartinezs
  * @version 1.0
  */
+@NotLog
 @Configuration
 public class ApplicationConfig {
 

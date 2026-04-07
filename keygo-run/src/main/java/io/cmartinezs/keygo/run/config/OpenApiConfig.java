@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.run.config;
 
-import io.cmartinezs.keygo.api.shared.response.BaseResponse;
-import io.cmartinezs.keygo.run.aop.NoLog;
+import io.cmartinezs.keygo.run.aop.NotLog;
 import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
 import io.swagger.v3.core.converter.ModelConverter;
 import io.swagger.v3.oas.models.Components;
@@ -29,7 +28,7 @@ import org.springframework.context.annotation.Configuration;
  * @author cmartinezs
  * @version 1.0
  */
-@NoLog
+@NotLog
 @Configuration
 public class OpenApiConfig {
 
