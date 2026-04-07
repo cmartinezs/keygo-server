@@ -39,6 +39,7 @@ import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -115,8 +116,8 @@ class ApproveMembershipUseCaseTest {
     useCase.execute(membershipId, TENANT_SLUG);
 
     // Then
-    verify(emailNotificationPort).sendMembershipApprovedEmail(
-        "user@acme.local", "acme_user", "Test App");
+    verify(emailNotificationPort).sendEmail(
+        eq(EmailNotificationPort.TYPE_MEMBERSHIP_APPROVED), anyString(), anyString(), any(Map.class));
   }
 
   @Test
@@ -141,7 +142,7 @@ class ApproveMembershipUseCaseTest {
     when(clientAppRepositoryPort.findById(clientAppId))
         .thenReturn(Optional.of(clientApp(clientAppId)));
     doThrow(new RuntimeException("SMTP down"))
-        .when(emailNotificationPort).sendMembershipApprovedEmail(anyString(), anyString(), anyString());
+        .when(emailNotificationPort).sendEmail(anyString(), anyString(), anyString(), any(Map.class));
 
     // When
     Membership result = useCase.execute(membershipId, TENANT_SLUG);

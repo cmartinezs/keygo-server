@@ -232,7 +232,7 @@ import org.thymeleaf.spring6.SpringTemplateEngine;  // ← Spring 6 (SB4)
     <artifactId>spring-boot-starter-thymeleaf</artifactId>
 </dependency>
 
-<!-- Automático via spring-boot-starter -->
+<!-- Automático vía spring-boot-starter -->
 <!-- - jakarta.mail -->
 <!-- - spring-boot-starter-mail -->
 ```

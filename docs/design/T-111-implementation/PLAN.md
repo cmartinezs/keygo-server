@@ -402,8 +402,8 @@ Una vez completado T-111, el siguiente paso lógico es:
 ## 9. Referencias
 
 - RFC documento 08-diagramas-mermaid.md (diagrama 08-2)
-- RFC documento 10-estado-implementacion-actual.md (sección 2.3)
-- RFC documento 07-recomendaciones-de-implementacion.md (sección 2.1)
+- RFC documento 10-estado-implementación-actual.md (sección 2.3)
+- RFC documento 07-recomendaciones-de-implementación.md (sección 2.1)
 - `AGENTS.md` — Convenciones de naming, patrones JPA
 - `ARCHITECTURE.md` — Decisiones de diseño
 - `docs/design/email/` — Ejemplo de documentación de feature

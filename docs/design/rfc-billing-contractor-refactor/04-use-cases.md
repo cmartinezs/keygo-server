@@ -17,11 +17,11 @@
 
 3. **Si es contrato de plataforma** (`clientAppId == null`):
    - No se valida ClientApp
-   - El plan version debe pertenecer a un plan de plataforma (`client_app_id IS NULL`)
+   - El plan versión debe pertenecer a un plan de plataforma (`client_app_id IS NULL`)
 
 4. **Si es contrato de app** (`clientAppId != null`):
    - Se valida que ClientApp exista (igual que antes)
-   - El plan version debe pertenecer a un plan de esa app
+   - El plan versión debe pertenecer a un plan de esa app
 
 ### Dependencias que cambian
 
@@ -265,7 +265,7 @@ public AppSubscription execute(UUID platformUserId) {
 ### `ListPlatformInvoicesUseCase`
 
 ```java
-// Facturas del contractor autenticado (via suscripción de plataforma)
+// Facturas del contractor autenticado (vía suscripción de plataforma)
 public List<Invoice> execute(UUID platformUserId) {
     var contractor = contractorRepo.findByPlatformUserId(platformUserId)
         .orElseThrow(() -> ...);

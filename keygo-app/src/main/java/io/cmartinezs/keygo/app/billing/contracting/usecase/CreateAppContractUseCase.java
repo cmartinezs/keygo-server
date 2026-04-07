@@ -15,6 +15,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -104,8 +105,11 @@ public class CreateAppContractUseCase {
     contract = contractRepo.save(contract);
 
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
-    emailNotification.sendContractVerificationEmail(
-        contract.getContractorEmail(), recipientName, verificationCode, contract.getId());
+    emailNotification.sendEmail(
+        EmailNotificationPort.TYPE_CONTRACT_VERIFICATION,
+        contract.getContractorEmail(), recipientName,
+        Map.of("userName", recipientName, "verificationCode", verificationCode,
+            "contractId", contract.getId().toString(), "expiresInMinutes", 30));
 
     return new AppContractResult(contract, null);
   }

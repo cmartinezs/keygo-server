@@ -28,13 +28,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -99,7 +101,6 @@ class SendPasswordResetCodeUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     when(codeRepositoryPort.upsert(any())).thenReturn(persisted);
-    doNothing().when(emailNotificationPort).sendPasswordResetCodeEmail(any(), any(), any(), any(Integer.class));
 
     // When
     SendPasswordResetCodeResult result = useCase.execute(
@@ -109,8 +110,8 @@ class SendPasswordResetCodeUseCaseTest {
     assertThat(result).isNotNull();
     assertThat(result.requestId()).isEqualTo(persistedCodeId);
     verify(codeRepositoryPort).upsert(any());
-    verify(emailNotificationPort).sendPasswordResetCodeEmail(
-        any(), any(), any(), any(Integer.class));
+    verify(emailNotificationPort).sendEmail(
+        eq(EmailNotificationPort.TYPE_PASSWORD_RESET_CODE), anyString(), anyString(), any(Map.class));
   }
 
   @Test
@@ -124,7 +125,6 @@ class SendPasswordResetCodeUseCaseTest {
     // "johndoe" is not a valid email → tryFindByEmail throws IAE → caught → try username
     when(userRepositoryPort.findByTenantIdAndUsername(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     when(codeRepositoryPort.upsert(any())).thenReturn(persisted);
-    doNothing().when(emailNotificationPort).sendPasswordResetCodeEmail(any(), any(), any(), any(Integer.class));
 
     // When
     SendPasswordResetCodeResult result = useCase.execute(
@@ -146,7 +146,6 @@ class SendPasswordResetCodeUseCaseTest {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     when(codeRepositoryPort.upsert(any())).thenReturn(newPersisted);
-    doNothing().when(emailNotificationPort).sendPasswordResetCodeEmail(any(), any(), any(), any(Integer.class));
 
     // When
     SendPasswordResetCodeResult result = useCase.execute(
@@ -169,7 +168,7 @@ class SendPasswordResetCodeUseCaseTest {
         .isInstanceOf(TenantNotFoundException.class);
 
     verify(codeRepositoryPort, never()).upsert(any());
-    verify(emailNotificationPort, never()).sendPasswordResetCodeEmail(any(), any(), any(), any(Integer.class));
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test

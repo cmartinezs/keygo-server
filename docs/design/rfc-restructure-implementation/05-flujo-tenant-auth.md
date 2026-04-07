@@ -55,8 +55,8 @@ El método actualmente:
 2. Resuelve `user_id` (UUID de `tenant_user`)
 3. Obtiene roles de membresía: `membershipRepository.findEffectiveRoleCodesByUserAndClientApp()`
 4. Llama `IssueTokensUseCase`
-5. Crea sesión via `OpenSessionUseCase`
-6. Crea refresh token via `SaveRefreshTokenUseCase`
+5. Crea sesión vía `OpenSessionUseCase`
+6. Crea refresh token vía `SaveRefreshTokenUseCase`
 
 **Cambios necesarios:**
 

@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class SendEmailCommand {
 
   /** Tipo de email: determina qué Strategy + Template usar */

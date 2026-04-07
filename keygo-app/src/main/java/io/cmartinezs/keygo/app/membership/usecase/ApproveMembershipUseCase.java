@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundExcepti
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import java.util.Map;
 
 /**
  * Use case: approve a pending membership, transitioning it to ACTIVE.
@@ -81,10 +82,11 @@ public class ApproveMembershipUseCase {
           .map(app -> app.getName())
           .orElse("la aplicación");
 
-      emailNotificationPort.sendMembershipApprovedEmail(
+      emailNotificationPort.sendEmail(
+          EmailNotificationPort.TYPE_MEMBERSHIP_APPROVED,
           user.get().getEmail().value(),
           user.get().getUsername().value(),
-          appName);
+          Map.of("userName", user.get().getUsername().value(), "appName", appName));
     } catch (Exception e) {
       // Email failure must not prevent the approval from completing.
       // KeyGoTracingAspect will log the error via AOP if tracing is enabled.

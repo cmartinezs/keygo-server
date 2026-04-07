@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-rfc> **Última actualización:** 2026-04-06  
+> **Última actualización:** 2026-04-07  
 > **Reestructuración total (2026-03-30):** V1–V17 reemplazadas por **V1–V18** con modelo v2 de billing integrado desde el origen. Backup en `backup_20260330/`.  
-> **Próxima migración:** `V23__...`
+> **Próxima migración:** `V32__...`
 
 ---
 
@@ -16,7 +16,7 @@ rfc> **Última actualización:** 2026-04-06
 ### Convención de nombres
 
 ```
-V{numero}__{descripcion_con_underscores}.sql
+V{número}__{descripción_con_underscores}.sql
 ```
 
 - Número: incremental, entero, sin ceros a la izquierda
@@ -55,6 +55,15 @@ V{numero}__{descripcion_con_underscores}.sql
 | V20 | `V20__add_app_role_hierarchy.sql`           | Core      | Tabla `app_role_hierarchy` (parent/child, restricciones de ciclo, profundidad ≤5), índices, CTE recursiva |
 | V21 | `V21__user_notification_preferences.sql`   | Core      | Tabla `user_notification_preferences` (5 flags boolean, UNIQUE `user_id+tenant_id`) |
 | V22 | `V22__signing_key_tenant_scope_and_audit_refs.sql` | Auth | `tenant_id` en `signing_keys` (nullable, FK → tenants); `signing_key_id` en `sessions` y `refresh_tokens` (nullable, FK → signing_keys) |
+| V23 | `V23__password_reset_codes.sql`             | Auth      | Tabla `password_reset_codes` (código 6 dígitos, TTL 15 min, UNIQUE por usuario) |
+| V24 | `V24__platform_roles_and_user_roles.sql`    | RBAC      | Tablas `platform_roles` (UNIQUE code), `platform_user_roles` (UNIQUE user+role) |
+| V25 | `V25__tenant_roles_and_user_roles.sql`      | RBAC      | Tablas `tenant_roles` (UNIQUE tenant_id+code), `tenant_user_roles` (partial UNIQUE, soft-delete) |
+| V26 | `V26__seed_platform_and_tenant_roles.sql`   | Seed      | 3 platform_roles, 3 platform_user_role assignments, 5 tenant_roles (keygo+demo), 2 tenant_user_roles |
+| V27 | `V27__platform_users.sql`                   | Identity  | Tabla `platform_users` (email+username UNIQUE, status CHECK, perfil OIDC) |
+| V28 | `V28__sessions_platform_refactor.sql`       | Identity  | `platform_user_id` en `tenant_users`; refactor `platform_user_roles` FK; `sessions`+`refresh_tokens` refactorizados con `platform_user_id` |
+| V29 | `V29__platform_users_seed_and_role_rename.sql` | Seed   | 4 platform_users (keygo), role rename `keygo_account_admin`→`keygo_tenant_admin`, vinculación `tenant_users.platform_user_id` |
+| V30 | `V30__billing_contractor_to_platform_user.sql` | Billing | `contractors.tenant_user_id`→`platform_user_id`; `app_plans`/`app_contracts`/`app_subscriptions` nullable `client_app_id` + `subscriber_type=PLATFORM` |
+| V31 | `V31__verification_codes.sql`               | Auth      | Tabla unificada `verification_codes` (purpose discriminator); drop `email_verifications`+`password_reset_codes` |
 
 ---
 
@@ -84,7 +93,7 @@ V{numero}__{descripcion_con_underscores}.sql
 | `contractor_id` | UUID | FK → `contractors(id)` agregada en V11; NULL = tenant de sistema |
 | `created_at` / `updated_at` | TIMESTAMPTZ | Trigger auto-actualiza `updated_at` |
 
-> `contractor_id` se declara sin FK en V3 (la tabla `contractors` aún no existe). La FK se agrega via `ALTER TABLE` en V11.
+> `contractor_id` se declara sin FK en V3 (la tabla `contractors` aún no existe). La FK se agrega vía `ALTER TABLE` en V11.
 
 ---
 
@@ -345,20 +354,244 @@ Incluye los 6 campos de perfil OIDC 5.3 desde el inicio:
 
 ---
 
+### V23 — `password_reset_codes`
+
+**Propósito:** Tabla para códigos de verificación en el flujo de cambio de contraseña forzado (`status=RESET_PASSWORD`).
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `tenant_user_id` | UUID FK NOT NULL | — | Usuario al que pertenece el código → `tenant_users(id)` ON DELETE CASCADE |
+| `code` | VARCHAR(6) NOT NULL | — | Código numérico de 6 dígitos |
+| `expires_at` | TIMESTAMPTZ NOT NULL | — | Expiración (creación + 15 minutos) |
+| `used_at` | TIMESTAMPTZ | — | `NULL` = activo; timestamp cuando se verificó |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+
+- UNIQUE `(tenant_user_id)` — un código activo por usuario
+- Índice `idx_password_reset_codes_user` sobre `password_reset_codes(tenant_user_id)`
+
+> ⚠️ **Nota:** Esta tabla fue consolidada en V31 dentro de `verification_codes` con `purpose='PASSWORD_RESET'`.
+
+---
+
+### V24 — `platform_roles` + `platform_user_roles`
+
+**Propósito:** Primer nivel de RBAC multi-ámbito — roles a nivel de plataforma.
+
+#### Tabla `platform_roles`
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `code` | VARCHAR(50) NOT NULL UNIQUE | — | Código del rol (ej. `keygo_admin`) |
+| `name` | VARCHAR(255) NOT NULL | — | Nombre legible |
+| `description` | TEXT | — | Descripción del rol |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Última modificación |
+
+- UNIQUE `(code)` — `uq_platform_roles_code`
+- Índice `idx_platform_roles_code`
+- Trigger `platform_roles_updated_at`
+
+#### Tabla `platform_user_roles`
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `tenant_user_id` | UUID FK NOT NULL | — | → `tenant_users(id)` ON DELETE CASCADE |
+| `platform_role_id` | UUID FK NOT NULL | — | → `platform_roles(id)` ON DELETE CASCADE |
+| `assigned_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Fecha de asignación |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Última modificación |
+
+- UNIQUE `(tenant_user_id, platform_role_id)` — `uq_platform_user_roles_user_role`
+- Índices `idx_platform_user_roles_tenant_user_id`, `idx_platform_user_roles_platform_role_id`
+- Trigger `platform_user_roles_updated_at`
+
+> ⚠️ **Nota:** En V28, la FK `tenant_user_id` se migró a `platform_user_id` → `platform_users(id)`.
+
+---
+
+### V25 — `tenant_roles` + `tenant_user_roles`
+
+**Propósito:** Segundo nivel de RBAC multi-ámbito — roles definidos por cada tenant con soporte de soft-delete para auditoría.
+
+#### Tabla `tenant_roles`
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `tenant_id` | UUID FK NOT NULL | — | → `tenants(id)` ON DELETE CASCADE |
+| `code` | VARCHAR(50) NOT NULL | — | Código del rol (UPPERCASE por convención) |
+| `name` | VARCHAR(255) NOT NULL | — | Nombre legible |
+| `description` | TEXT | — | Descripción del rol |
+| `active` | BOOLEAN NOT NULL | `true` | Roles inactivos no se pueden asignar, pero asignaciones existentes permanecen |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Última modificación |
+
+- UNIQUE `(tenant_id, code)` — `uq_tenant_roles_tenant_code`
+- Índices `idx_tenant_roles_tenant_id`, `idx_tenant_roles_code`, `idx_tenant_roles_active`
+- Trigger `tenant_roles_updated_at`
+
+#### Tabla `tenant_user_roles`
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `tenant_user_id` | UUID FK NOT NULL | — | → `tenant_users(id)` ON DELETE CASCADE |
+| `tenant_role_id` | UUID FK NOT NULL | — | → `tenant_roles(id)` ON DELETE CASCADE |
+| `assigned_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Fecha de asignación |
+| `removed_at` | TIMESTAMPTZ | — | `NULL` = activo; timestamp de revocación (soft-delete) |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Última modificación |
+
+- UNIQUE parcial `(tenant_user_id, tenant_role_id)` WHERE `removed_at IS NULL` — `uq_tenant_user_roles_active`
+- Índices `idx_tenant_user_roles_tenant_user_id`, `idx_tenant_user_roles_tenant_role_id`, `idx_tenant_user_roles_removed_at`
+- Trigger `tenant_user_roles_updated_at`
+
+---
+
+### V26 — Seed: Platform & Tenant Roles
+
+**Propósito:** Datos de desarrollo — roles de plataforma, roles de tenant, y asignaciones de usuarios.
+
+#### Datos insertados
+
+| Tabla | Registros | Detalle |
+|---|---|---|
+| `platform_roles` | 3 | `keygo_admin`, `keygo_account_admin`, `keygo_user` |
+| `platform_user_roles` | 3 | `keygo_admin`→KEYGO_ADMIN, `keygo_tenant_admin`→KEYGO_ACCOUNT_ADMIN, `keygo_contractor`→KEYGO_USER |
+| `tenant_roles` (keygo) | 3 | `KEYGO_ADMIN_INTERNAL`, `KEYGO_EDITOR`, `KEYGO_VIEWER` |
+| `tenant_roles` (demo) | 2 | `DEMO_ADMIN`, `DEMO_USER` |
+| `tenant_user_roles` | 2 | `keygo_admin`→KEYGO_ADMIN_INTERNAL, `demo_admin`→DEMO_ADMIN |
+
+> ⚠️ **Nota:** En V29, el rol `keygo_account_admin` se renombró a `keygo_tenant_admin`.
+
+---
+
+### V27 — `platform_users`
+
+**Propósito:** Tabla de identidad global de plataforma, separada de `tenant_users`. Un `platform_user` puede estar vinculado a múltiples `tenant_users` en distintos tenants.
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `email` | VARCHAR(255) NOT NULL UNIQUE | — | Email global único |
+| `username` | VARCHAR(100) NOT NULL UNIQUE | — | Username global único |
+| `password_hash` | VARCHAR(255) NOT NULL | — | Hash BCrypt |
+| `first_name` | VARCHAR(100) | — | Nombre |
+| `last_name` | VARCHAR(100) | — | Apellido |
+| `status` | VARCHAR(30) NOT NULL | `'ACTIVE'` | CHECK: `ACTIVE`, `SUSPENDED`, `PENDING`, `RESET_PASSWORD` |
+| `email_verified_at` | TIMESTAMPTZ | — | Timestamp de verificación de email |
+| `phone_number` | VARCHAR(30) | — | Teléfono |
+| `locale` | VARCHAR(10) | — | Locale (ej. `es-CL`) |
+| `zoneinfo` | VARCHAR(50) | — | Zona horaria (ej. `America/Santiago`) |
+| `profile_picture_url` | TEXT | — | URL de avatar |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Última modificación |
+
+- UNIQUE `(email)`, UNIQUE `(username)`
+- CHECK `status IN ('ACTIVE', 'SUSPENDED', 'PENDING', 'RESET_PASSWORD')`
+- Índices `idx_platform_users_email`, `idx_platform_users_username`, `idx_platform_users_status`
+- Trigger `trg_platform_users_updated_at`
+
+---
+
+### V28 — Refactor: Sessions + Platform Identity
+
+**Propósito:** Refactorizar sesiones y tokens para soportar identidad de plataforma.
+
+#### Cambios por tabla
+
+| Tabla | Cambio | Detalle |
+|---|---|---|
+| `tenant_users` | ADD COLUMN | `platform_user_id UUID` → FK `platform_users(id)` ON DELETE SET NULL |
+| `platform_user_roles` | RENAME + RE-FK | `tenant_user_id` → `platform_user_id` → FK `platform_users(id)` |
+| `sessions` | DROP + ADD | DROP `user_id`, `tenant_id`; ADD `platform_user_id` (nullable → `platform_users`); `client_app_id` → nullable |
+| `refresh_tokens` | DROP + ADD | DROP `user_id`, `tenant_id`; ADD `tenant_user_id` (nullable → `tenant_users`); `client_app_id` → nullable |
+
+**Índices parciales:**
+- `idx_sessions_platform_user` ON `sessions(platform_user_id)` WHERE `platform_user_id IS NOT NULL`
+- `idx_sessions_client_app` ON `sessions(client_app_id)` WHERE `client_app_id IS NOT NULL`
+- `idx_refresh_tokens_tenant_user` ON `refresh_tokens(tenant_user_id)` WHERE `tenant_user_id IS NOT NULL`
+- `idx_tenant_users_platform_user` ON `tenant_users(platform_user_id)` WHERE `platform_user_id IS NOT NULL`
+
+---
+
+### V29 — Seed: Platform Users + Role Rename
+
+**Propósito:** Datos iniciales de `platform_users`, vinculación a `tenant_users`, y corrección de nombre de rol.
+
+#### Cambios
+
+| Acción | Detalle |
+|---|---|
+| RENAME rol | `keygo_account_admin` → `keygo_tenant_admin` (code + name) |
+| INSERT `platform_users` | 4 usuarios: `keygo_admin`, `keygo_tenant_admin`, `keygo_user`, `keygo_contractor` (contraseña: `Admin1234!`) |
+| INSERT `platform_user_roles` | Todos→`keygo_user`; `keygo_admin`→`keygo_admin`; `keygo_tenant_admin`+`keygo_contractor`→`keygo_tenant_admin` |
+| UPDATE `tenant_users` | Vincular `platform_user_id` para usuarios keygo donde email coincide |
+
+---
+
+### V30 — Refactor: Billing Contractor → Platform User
+
+**Propósito:** Migración del modelo de billing para usar `platform_users` en lugar de `tenant_users`. Planes, contratos y suscripciones ahora pueden ser de plataforma (sin `client_app_id`).
+
+#### Cambios por tabla
+
+| Tabla | Cambio | Detalle |
+|---|---|---|
+| `contractors` | MIGRATE FK | `tenant_user_id` → `platform_user_id` (NOT NULL, UNIQUE, FK → `platform_users`) |
+| `app_plans` | EXTEND | `subscriber_type` CHECK agrega `'PLATFORM'`; `client_app_id` → nullable; índices parciales |
+| `app_contracts` | MODIFY | `client_app_id` → nullable; índices parciales por tipo |
+| `app_subscriptions` | MODIFY | `client_app_id` → nullable; UNIQUE parciales por tipo; índices parciales |
+
+**Migración de datos:**
+- Planes de `keygo-ui` migrados a plataforma (`client_app_id=NULL`, `subscriber_type='PLATFORM'`)
+- Contratos y suscripciones de `keygo-ui` migrados a plataforma
+- Contractor recibe rol `keygo_tenant_admin` en `platform_user_roles`
+
+---
+
+### V31 — `verification_codes` (Consolidada)
+
+**Propósito:** Tabla unificada con discriminador `purpose` que reemplaza 3 tablas específicas de códigos de verificación.
+
+| Campo | Tipo | Default | Descripción |
+|---|---|---|---|
+| `id` | UUID PK | `gen_random_uuid()` | Identificador único |
+| `tenant_user_id` | UUID FK NOT NULL | — | → `tenant_users(id)` ON DELETE CASCADE |
+| `purpose` | VARCHAR(30) NOT NULL | — | CHECK: `EMAIL_VERIFICATION`, `PASSWORD_RESET`, `PASSWORD_RECOVERY` |
+| `code` | VARCHAR(64) NOT NULL | — | Código de verificación |
+| `expires_at` | TIMESTAMPTZ NOT NULL | — | Expiración del código |
+| `used_at` | TIMESTAMPTZ | — | `NULL` = activo; timestamp cuando se verificó |
+| `metadata` | JSONB | — | Datos adicionales (extensible) |
+| `created_at` | TIMESTAMPTZ NOT NULL | `NOW()` | Timestamp de creación |
+
+- CHECK `purpose IN ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'PASSWORD_RECOVERY')`
+- CHECK `tenant_user_id IS NOT NULL`
+- UNIQUE parcial `(tenant_user_id, purpose)` WHERE `used_at IS NULL` — un código activo por propósito
+- Índices `idx_vc_tenant_user`, `idx_vc_code`, `idx_vc_purpose`
+
+**Tablas eliminadas:** `email_verifications`, `password_reset_codes`, `password_recovery_tokens`
+
+---
+
 ## 3. Historial de reestructuraciones
 
 | Fecha | Acción |
 |---|---|
 | 2026-03-29 | Reescritura completa V1–V26 → **V1–V17** por dominio. Elimina parches acumulativos. |
 | 2026-03-30 | Reestructuración V1–V17 → **V1–V18** con modelo v2 de billing integrado desde V1. Nueva entidad `contractors` en V11. Backup en `backup_20260330/`. |
+| 2026-04-07 | Identidad de plataforma (V23–V31): RBAC multi-ámbito, `platform_users`, refactor sessions/billing, tabla unificada `verification_codes`. |
 
 ---
 
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V22)
-touch keygo-supabase/src/main/resources/db/migration/V22__nombre_descriptivo.sql
+# 1. Crear el archivo (próxima es V32)
+touch keygo-supabase/src/main/resources/db/migration/V32__nombre_descriptivo.sql
 
 # 2. Escribir SQL limpio (estado final, no parches)
 # 3. Levantar DB local

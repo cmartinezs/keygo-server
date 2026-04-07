@@ -198,8 +198,8 @@ List<Session> findActivePlatformSessionsByPlatformUserId(UUID platformUserId);
 1. Validar que email y username no existen en `PlatformUserRepositoryPort`
 2. Encodear el password con `CredentialEncoderPort`
 3. Crear `PlatformUser` con `status = ACTIVE` (creado por admin, ya verificado)
-4. Guardar via `PlatformUserRepositoryPort.save()`
-5. **Auto-asignar rol base `KEYGO_USER`** via `PlatformUserRoleRepositoryPort.assign(platformUser.id, "keygo_user")`
+4. Guardar vía `PlatformUserRepositoryPort.save()`
+5. **Auto-asignar rol base `KEYGO_USER`** vía `PlatformUserRoleRepositoryPort.assign(platformUser.id, "keygo_user")`
 6. Retornar `PlatformUser`
 
 > **Regla de negocio:** Todo `platform_user` recibe automáticamente el rol `KEYGO_USER` al ser creado. Es el rol base de plataforma. No requiere ser asignado manualmente.

@@ -3,7 +3,7 @@
 > Sub-documento de [`AGENTS.md`](../../AGENTS.md).
 >
 > Historial cronológico de actualizaciones al quick-start: módulos, comandos, patrones y URLs.
-> Entradas anteriores a 2026-03-25 en [`agents-registro-historico.md`](agents-registro-historico.md).
+> Entradas anteriores a 2026-03-25 en [`agents-registro-historico.md`](agents-registro-histórico.md).
 >
 > **Regla:** Agregar entrada cada vez que cambie estructura de módulos, comandos, patrones o URLs.
 
@@ -51,7 +51,7 @@
 
 - **Dominio (`keygo-domain`):** 8 nuevos tipos en `membership/model/`: `PlatformRoleId`, `PlatformRole`, `PlatformUserRoleId`, `PlatformUserRole`, `TenantRoleId`, `TenantRole`, `TenantUserRoleId`, `TenantUserRole`.
 - **TenantRole:** código UPPERCASE `^[A-Z][A-Z0-9_]*$`; métodos `deactivate()`, `reactivate()`, `updateMetadata()`. Diferente de `AppRole` que usa lowercase.
-- **TenantUserRole:** soft-delete via `removedAt`; método `revoke()` con validación idempotente.
+- **TenantUserRole:** soft-delete vía `removedAt`; método `revoke()` con validación idempotente.
 - **Entidades JPA (`keygo-supabase/membership/entity`):** `PlatformRoleEntity`, `PlatformUserRoleEntity`, `TenantRoleEntity`, `TenantUserRoleEntity`.
 - **Repositorios JPA:** `PlatformRoleJpaRepository`, `PlatformUserRoleJpaRepository`, `TenantRoleJpaRepository`, `TenantUserRoleJpaRepository`.
 - **Mapper:** `MembershipPersistenceMapper` — 4 nuevos `toDomain()` overloads.
@@ -121,7 +121,7 @@
   2. Appender `CONSOLE` definido globalmente pero referenciado solo en `<springProfile>` → movida la definición dentro del bloque de perfil que lo usa.
   3. `\[` / `\]` en el patrón causaba `Illegal char '['` → eliminadas barras de escape (los corchetes son literales en Logback).
 - **`GlobalExceptionHandlerTest.java`:** `HttpStatus.UNPROCESSABLE_ENTITY` → `HttpStatus.UNPROCESSABLE_CONTENT` (renombrado en Spring Boot 4 / RFC 9110).
-- **`logback-spring.xml` (mejoras de diseño):** condición cambiada de `!local` a `!(desa | prod)` para que el perfil `default` también use la consola colorida; `<springProfile name="desa | prod">` agrega archivo JSON rotativo diario (via `LogstashEncoder`) + consola mínima WARN+. `management.metrics.web.server.request.autotime` eliminado (deprecado en Spring Boot 4, habilitado por defecto vía `WebMvcObservationAutoConfiguration`).
+- **`logback-spring.xml` (mejoras de diseño):** condición cambiada de `!local` a `!(desa | prod)` para que el perfil `default` también use la consola colorida; `<springProfile name="desa | prod">` agrega archivo JSON rotativo diario (vía `LogstashEncoder`) + consola mínima WARN+. `management.metrics.web.server.request.autotime` eliminado (deprecado en Spring Boot 4, habilitado por defecto vía `WebMvcObservationAutoConfiguration`).
 - **Header unificado:** `X-Request-ID` (entrada) y `X-Trace-ID` (salida) unificados en un solo header simétrico `X-Trace-ID` en ambas direcciones — `RequestTracingFilter` lo reutiliza si viene en el request o genera un UUID nuevo.
 
 ### [2026-04-02] Trazabilidad end-to-end: RequestTracingFilter + MDC enriquecido + logback-spring.xml

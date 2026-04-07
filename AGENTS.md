@@ -84,7 +84,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.annotation.JsonInclude;  // used in BaseResponse, ApplicationConfig
 ```
 
-Jackson is customized globally in `keygo-run` via a `JsonMapperBuilderCustomizer` bean in `ApplicationConfig`:  
+Jackson is customized globally in `keygo-run` vía a `JsonMapperBuilderCustomizer` bean in `ApplicationConfig`:  
 UTC timezone, `NON_NULL` inclusion, case-insensitive properties, `FAIL_ON_UNKNOWN_PROPERTIES=false`.
 
 ## API response pattern (mandatory)
@@ -147,7 +147,7 @@ To signal an auth error from any layer, throw `UnauthorizedException` (located i
 ## context-path is always active
 
 All endpoints are served under `/keygo-server`. Local URLs:
-- `http://localhost:8080/keygo-server/api/v1/service/info` (GET — info del servicio: title, name, version, **environment**, **status**)
+- `http://localhost:8080/keygo-server/api/v1/service/info` (GET — info del servicio: title, name, versión, **environment**, **status**)
 - `http://localhost:8080/keygo-server/api/v1/platform/stats` (GET — **ADMIN** — estadísticas agregadas: tenants/users/apps/signingKeys por estado)
 - `http://localhost:8080/keygo-server/api/v1/platform/billing/catalog` (GET — **público** — catálogo de planes de plataforma, `clientAppId IS NULL`)
 - `http://localhost:8080/keygo-server/api/v1/platform/billing/catalog/{planCode}` (GET — **público** — detalle de un plan de plataforma)
@@ -256,8 +256,8 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 
 | Entity | Package | Table | Key relationships |
 |---|---|---|---|
-| `UserEntity` | `user.entity` | `users` | `@ManyToMany` → `RoleEntity` via `user_roles` |
-| `RoleEntity` | `membership.entity` | `roles` | `@ManyToMany` → `PermissionEntity` via `role_permissions` |
+| `UserEntity` | `user.entity` | `users` | `@ManyToMany` → `RoleEntity` vía `user_roles` |
+| `RoleEntity` | `membership.entity` | `roles` | `@ManyToMany` → `PermissionEntity` vía `role_permissions` |
 | `PermissionEntity` | `membership.entity` | `permissions` | `action` field is `enum Action {CREATE,READ,UPDATE,DELETE,EXECUTE}` |
 | `TenantEntity` | `tenant.entity` | `tenants` | `slug` unique index; `status` enum `ACTIVE\|SUSPENDED\|PENDING` |
 | `ClientAppEntity` | `clientapp.entity` | `client_apps` | `@ManyToOne` → `TenantEntity`; `@OneToMany(cascade=ALL, orphanRemoval=true)` → redirect URIs, grants, scopes |
@@ -266,7 +266,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `ClientAllowedScopeEntity` | `clientapp.entity` | `client_allowed_scopes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity` |
 | `TenantUserEntity` | `user.entity` | `tenant_users` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`; `UNIQUE(tenant_id, email)`, `UNIQUE(tenant_id, username)` |
 | `AppRoleEntity` | `membership.entity` | `app_roles` | `@ManyToOne` → `ClientAppEntity`; `UNIQUE(client_app_id, code)` |
-| `MembershipEntity` | `membership.entity` | `memberships` | `@ManyToOne` → `TenantUserEntity`, `ClientAppEntity`; `@ManyToMany` → `AppRoleEntity` via `membership_roles` |
+| `MembershipEntity` | `membership.entity` | `memberships` | `@ManyToOne` → `TenantUserEntity`, `ClientAppEntity`; `@ManyToMany` → `AppRoleEntity` vía `membership_roles` |
 | `AuthorizationCodeEntity` | `auth.entity` | `authorization_codes` | `@ManyToOne(fetch=LAZY)` → `ClientAppEntity`, `TenantEntity`, `TenantUserEntity` |
 | `SigningKeyEntity` | `auth.entity` | `signing_keys` | `kid` unique; `status` check `ACTIVE\|RETIRED\|REVOKED`; `algorithm` (RS256/RS384/RS512); `public_material` + `private_material` PEM |
 | `SessionEntity` | `auth.entity` | `sessions` | `@ManyToOne(fetch=LAZY)` → `TenantEntity`, `ClientAppEntity`, `TenantUserEntity`; `status` check `ACTIVE\|TERMINATED\|EXPIRED` |
@@ -275,7 +275,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 | `PlatformRoleEntity` | `membership.entity` | `platform_roles` | `code` UNIQUE; constantes: `keygo_admin`, `keygo_account_admin`, `keygo_user`; `created_at`/`updated_at` |
 | `PlatformUserRoleEntity` | `membership.entity` | `platform_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity` (platform admins = TenantUsers en keygo), `PlatformRoleEntity`; UNIQUE(tenant_user_id, platform_role_id) |
 | `TenantRoleEntity` | `membership.entity` | `tenant_roles` | `@ManyToOne(LAZY)` → `TenantEntity`; `code` UPPERCASE `^[A-Z][A-Z0-9_]*$`; UNIQUE(tenant_id, code); `active` boolean |
-| `TenantUserRoleEntity` | `membership.entity` | `tenant_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity`, `TenantRoleEntity`; soft-delete via `removed_at`; partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL |
+| `TenantUserRoleEntity` | `membership.entity` | `tenant_user_roles` | `@ManyToOne(LAZY)` → `TenantUserEntity`, `TenantRoleEntity`; soft-delete vía `removed_at`; partial UNIQUE(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL |
 
 **Existing repositories (packages under `io.cmartinezs.keygo.supabase`):**
 
@@ -329,7 +329,7 @@ Use `UUID` PK with `@GeneratedValue(strategy = GenerationType.UUID)`, `@Creation
 
 Next migration must be `V27__...`. **Never reuse or edit existing migration files.**
 
-**Seed convention — foreign keys via subquery (mandatory):**  
+**Seed convention — foreign keys vía subquery (mandatory):**  
 When a seed row references a parent table's PK, **never hardcode the UUID**. Always use a `SELECT` subquery with a `WHERE` on a unique, human-readable field:
 
 ```sql
@@ -389,7 +389,7 @@ Preferred semantic fields by parent table:
 # Cargar variables en el shell actual
 set -a; source .env; set +a
 
-# Iniciar / detener Postgres + PgAdmin via Docker
+# Iniciar / detener Postgres + PgAdmin vía Docker
 ./docs/scripts/db/start.sh    # o: ./docs/scripts/keygo.sh 5
 ./docs/scripts/db/stop.sh     # o: ./docs/scripts/keygo.sh 6
 
@@ -431,7 +431,7 @@ Switch env: `./docs/scripts/switch-env.sh <local|desa|prod>`.
 ## Testing conventions
 
 - Unit tests: `@ExtendWith(MockitoExtension.class)` + AssertJ + Mockito — **no Spring context**.
-- UseCases: constructor injection; add `@Mock` for every port — `@InjectMocks` resolves via constructor automatically. When adding a new port to a use case, always add the corresponding `@Mock` in the test.
+- UseCases: constructor injection; add `@Mock` for every port — `@InjectMocks` resolves vía constructor automatically. When adding a new port to a use case, always add the corresponding `@Mock` in the test.
 - Controllers: `@WebMvcTest` or plain Mockito without full Spring context.
 - Integration tests (supabase): Testcontainers PostgreSQL is configured in `pom.xml` and `src/test/resources/application-test.yml` (uses TC JDBC URL `jdbc:tc:postgresql:15-alpine:///testdb`) but **no integration tests are written yet** — prefer Testcontainers over repository mocks when possible.
 - `mockito-junit-jupiter` must be in the module's `pom.xml` when using `@ExtendWith(MockitoExtension.class)`.
@@ -464,7 +464,7 @@ For email notifications, use **Thymeleaf templates** (not HTML inline in Java). 
 **Key points:**
 - Depends on: `spring-boot-starter-thymeleaf` + `spring-boot-starter-mail`
 - Use `@Bean(name = "emailTemplateEngine")` to avoid conflicts with web tier
-- Template cache: `false` in dev, `true` in prod (configured via `KeyGoEmailProperties`)
+- Template cache: `false` in dev, `true` in prod (configured vía `KeyGoEmailProperties`)
 - Render with: `emailTemplateEngine.process(templateName, context)`
 - Send with: `JavaMailSender.send(mimeMessage)` with `MimeMessageHelper` (UTF-8, HTML mode)
 
@@ -561,7 +561,7 @@ Actualizarlo **no requiere orden explícita** del usuario cuando se cumpla algun
 | 2026-03-23 | Fase 8 — Client Credentials grant (M2M): `IssueClientCredentialsTokenUseCase`, rama `client_credentials` en `POST /oauth2/token`, `CLIENT_CREDENTIALS_TOKEN_ISSUED` `ResponseCode`, Postman request |
 | 2026-03-22 | Fase 7 — Refresh token (rotación SHA-256), Session, Revocación RFC 7009, UserInfo OIDC §5.3 |
 | 2026-03-22 | Reorganización de documentos AI a `docs/ai/` |
-| 2026-03-22 | Re-auditoría de inconsistencias — corrección de tablas en singular via V10 |
+| 2026-03-22 | Re-auditoría de inconsistencias — corrección de tablas en singular vía V10 |
 | 2026-03-22 | Refactorización de docs AI en sub-documentos temáticos |
 | 2026-03-22 | Sincronización de documentos de datos con migraciones V1–V9 |
 | 2026-03-22 | Fase 6 — Firma de tokens (RS256) + JWKS + OIDC Discovery completados |

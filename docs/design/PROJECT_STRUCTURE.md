@@ -580,7 +580,7 @@ Te conviene empezar a registrar decisiones arquitectónicas cortas.
 
 ADRs iniciales sugeridos:
 - ADR-001: Modular Monolith as initial architecture
-- ADR-002: Multi-tenant via shared schema + tenant_id
+- ADR-002: Multi-tenant vía shared schema + tenant_id
 - ADR-003: OAuth2/OIDC as auth model
 - ADR-004: User and ClientApp modeled separately
 - ADR-005: Membership as access relation between user and app

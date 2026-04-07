@@ -88,7 +88,7 @@
 | T-076 | Reemplazar `recentActivity` aproximada del dashboard (basada en `created_at`) por tabla de auditoría formal `audit_events` (`V16__add_audit_events.sql`) — habilita consultas eficientes y filtrables por tipo y tenant | 🔲 Pendiente |
 | T-077 | `GET /api/v1/admin/alerts` — feed de alertas activas paginado con filtros por `level` y `category`; desacopla alertas del dashboard principal | 🔲 Pendiente |
 | T-084 | Integración con gateway de pago real (MercadoPago / Stripe) que reemplaza el endpoint `mock-approve-payment`; adapter configurable por `keygo.billing.payment-provider` | 🔲 Pendiente |
-| T-085 | Renovación automática de suscripciones via `@Scheduled` job: detectar suscripciones en `currentPeriodEnd < now()` + `autoRenew=true`, generar nueva factura, actualizar período | 🔲 Pendiente |
+| T-085 | Renovación automática de suscripciones vía `@Scheduled` job: detectar suscripciones en `currentPeriodEnd < now()` + `autoRenew=true`, generar nueva factura, actualizar período | 🔲 Pendiente |
 | T-086 | Soporte Bearer TENANT_USER en `GET /billing/subscription`: resolver `subscriberId` desde JWT claim `sub` en lugar de asumir siempre TENANT | 🔲 Pendiente |
 | T-092 | Script CI que compare columnas `NOT NULL` de todas las entidades JPA con las definiciones de las migraciones correspondientes; detecta desincronías antes del runtime | 🔲 Pendiente |
 | T-097 | `PUT /billing/plans/{planCode}/billing-options` — añadir/actualizar opciones de pago de la versión activa sin crear nueva versión; valida que no se duplique `billing_period` | 🔲 Pendiente |

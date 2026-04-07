@@ -134,7 +134,7 @@ If you find a bug:
    - Clear problem description
    - Steps to reproduce
    - Expected vs actual behavior
-   - Java version and operating system
+   - Java versión and operating system
 
 ### Proposing Features
 

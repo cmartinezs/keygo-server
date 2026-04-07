@@ -46,7 +46,7 @@
 
 **Solución / Buena práctica:** Buscar TODAS las instanciaciones del use case en tests (no solo las que usan @InjectMocks). Usar `grep 'new UseCaseName(' --include='*Test.java'` para encontrar todas antes de modificar la firma del constructor.
 
-### [2026-04-07] T-111 — Patron de soft-delete con índice parcial en PostgreSQL
+### [2026-04-07] T-111 — Patrón de soft-delete con índice parcial en PostgreSQL
 
 **Contexto:** T-111 añade `tenant_user_roles` con soporte de historial de asignaciones revocadas (para auditoría).
 
@@ -457,7 +457,7 @@ void setUp() {
     // ...
 }
 ```
-Esta instancia real devuelve `ErrorData` correctamente populado (código, origin, clientMessage via fallback) sin necesitar un Spring context completo.  
+Esta instancia real devuelve `ErrorData` correctamente populado (código, origin, clientMessage vía fallback) sin necesitar un Spring context completo.  
 Cuando `factory` solo necesita existir (sin verificar campos de `ErrorData`), puede seguir siendo `@Mock` stubbeable.
 **Archivos clave:**
 - `keygo-api/src/test/java/.../error/GlobalExceptionHandlerTest.java`
@@ -531,7 +531,7 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 ### [2026-04-03] PageFilter como base class eliminó duplicación en TenantFilter
 **Contexto:** T-110 — estandarizar paginación en endpoints de lista.
 **Problema:** `TenantFilter` reimplementaba validación de `page`/`size`/`sortBy` en lugar de extender `PageFilter`. Dos clases con lógica de validación idéntica → riesgo de divergencia.
-**Solución:** Refactorizar `TenantFilter` para extender `PageFilter`. Esto automaticamente agregó compatibilidad de `sort`/`order` a `GET /tenants` y estableció un patrón consistente para todos los filtros. El cambio requirió actualizar 5 tests de `PlatformTenantControllerTest` (4 params → 6 params).
+**Solución:** Refactorizar `TenantFilter` para extender `PageFilter`. Esto automáticamente agregó compatibilidad de `sort`/`order` a `GET /tenants` y estableció un patrón consistente para todos los filtros. El cambio requirió actualizar 5 tests de `PlatformTenantControllerTest` (4 params → 6 params).
 **Patrón confirmado escalable:** 4 filtros nuevos (`UserFilter`, `ClientAppFilter`, `MembershipFilter`, `AppRoleFilter`) implementados sin duplicación gracias a `PageFilter` base.
 **Archivos clave:** `PageFilter.java`, `TenantFilter.java`.
 

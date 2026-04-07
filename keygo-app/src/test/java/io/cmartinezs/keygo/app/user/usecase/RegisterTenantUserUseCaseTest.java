@@ -31,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -117,7 +119,7 @@ class RegisterTenantUserUseCaseTest {
     assertThat(result.getUsername().value()).isEqualTo(USERNAME);
 
     verify(verificationCodeRepositoryPort).upsert(any());
-    verify(emailNotificationPort).sendVerificationEmail(anyString(), anyString(), anyString());
+    verify(emailNotificationPort).sendEmail(eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), anyString(), anyString(), any(Map.class));
   }
 
   @Test
@@ -130,7 +132,7 @@ class RegisterTenantUserUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(TenantNotFoundException.class);
-    verify(emailNotificationPort, never()).sendVerificationEmail(any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test
@@ -150,7 +152,7 @@ class RegisterTenantUserUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(TenantSuspendedException.class);
-    verify(emailNotificationPort, never()).sendVerificationEmail(any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test
@@ -164,7 +166,7 @@ class RegisterTenantUserUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(ClientAppNotFoundException.class);
-    verify(emailNotificationPort, never()).sendVerificationEmail(any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test
@@ -179,7 +181,7 @@ class RegisterTenantUserUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(DuplicateUserException.class);
-    verify(emailNotificationPort, never()).sendVerificationEmail(any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test
@@ -195,7 +197,7 @@ class RegisterTenantUserUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(DuplicateUserException.class);
-    verify(emailNotificationPort, never()).sendVerificationEmail(any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 }
 

@@ -83,6 +83,53 @@ keygo:
     smtp-host: "${SMTP_HOST:localhost}"
     smtp-port: "${SMTP_PORT:587}"
     template-cache-enabled: true
+    default-from-address: "${KEYGO_MAIL_FROM:noreply@keygo.local}"
+    default-from-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
+    types:
+      email-verification:
+        subject: "Verifica tu email en KeyGo"
+        from-name: "KeyGo - Verificación"
+        template: "html/email-validation"
+        defaults:
+          expiresInMinutes: 30
+        subjects-i18n:
+          en: "Verify your email on KeyGo"
+      password-recovery:
+        subject: "Restablecer tu contraseña en KeyGo"
+        from-name: "KeyGo - Seguridad"
+        template: "html/password-recovery"
+        subjects-i18n:
+          en: "Reset your password on KeyGo"
+      password-reset-code:
+        subject: "Código para restablecer tu contraseña en KeyGo"
+        from-name: "KeyGo - Seguridad"
+        template: "html/password-reset-code"
+        defaults:
+          expiresInMinutes: 15
+        links:
+          resetPasswordLink: "reset-password"
+        subjects-i18n:
+          en: "Password reset code — KeyGo"
+      temporary-password:
+        subject: "Tu contraseña temporal en KeyGo"
+        from-name: "KeyGo - Cuenta"
+        template: "html/temporary-password"
+        subjects-i18n:
+          en: "Your temporary password on KeyGo"
+      contract-verification:
+        subject: "Verifica tu email para completar la suscripción"
+        from-name: "KeyGo - Suscripción"
+        template: "html/contract-verification"
+        defaults:
+          expiresInMinutes: 30
+        subjects-i18n:
+          en: "Verify your email to complete subscription"
+      membership-approved:
+        subject: "Tu acceso ha sido aprobado — KeyGo"
+        from-name: "KeyGo - Acceso"
+        template: "html/membership-approved"
+        subjects-i18n:
+          en: "Your access has been approved — KeyGo"
 springdoc:
   api-docs:
     path: /v3/api-docs

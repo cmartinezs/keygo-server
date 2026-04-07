@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -73,8 +74,11 @@ public class ResendContractVerificationUseCase {
     }
 
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
-    emailNotification.sendContractVerificationEmail(
-        contract.getContractorEmail(), recipientName, codeToSend, contract.getId());
+    emailNotification.sendEmail(
+        EmailNotificationPort.TYPE_CONTRACT_VERIFICATION,
+        contract.getContractorEmail(), recipientName,
+        Map.of("userName", recipientName, "verificationCode", codeToSend,
+            "contractId", contract.getId().toString(), "expiresInMinutes", 30));
 
     return new AppContractResult(contract, null);
   }

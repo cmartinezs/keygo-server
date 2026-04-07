@@ -62,7 +62,7 @@ flowchart LR
    - `api` — contratos REST, DTOs, endpoints documentados vs. implementados
    - `tests` — tests que no reflejan el comportamiento real
    - `seguridad` — comportamiento de filtros, autenticación
-   - `configuracion` — application.yml, properties, valores incorrectos
+   - `configuración` — application.yml, properties, valores incorrectos
 
 3. **Inconsistencias críticas** (que pueden causar fallo en runtime) deben marcarse con 🔴 y
    resolverse antes de cerrar la tarea que las detectó.
@@ -80,7 +80,7 @@ flowchart LR
 | 2026-03-26 | Flujo de login central multi-tenant en `AUTH_FLOW.md` y `FRONTEND_DEVELOPER_GUIDE.md` | 1 inconsistencia documental sobre tenant/app efectiva del flujo OAuth2 | Mismo día — AI Agent (corrección en docs) |
 | 2026-03-25 | Seguridad Bearer-only vs documentación operativa (`ARCHITECTURE.md`, `docs/api/BOOTSTRAP_FILTER.md`) | 2 inconsistencias de documentación sobre autenticación admin | Pendiente |
 | 2026-03-22 | Migraciones SQL V1–V9 vs `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `AUTH_FLOW.md` | 12 inconsistencias en modelo de datos | Mismo día — AI Agent (corrección en docs) |
-| 2026-03-22 | Re-auditoría: inconsistencias "resueltas" — docs vs DB real | Tablas V7 en singular (`app_role`, `membership`, `membership_role`) — corrección docs-only era insuficiente | Mismo día — AI Agent via `V10__rename_membership_tables_to_plural.sql` |
+| 2026-03-22 | Re-auditoría: inconsistencias "resueltas" — docs vs DB real | Tablas V7 en singular (`app_role`, `membership`, `membership_role`) — corrección docs-only era insuficiente | Mismo día — AI Agent vía `V10__rename_membership_tables_to_plural.sql` |
 
 ---
 

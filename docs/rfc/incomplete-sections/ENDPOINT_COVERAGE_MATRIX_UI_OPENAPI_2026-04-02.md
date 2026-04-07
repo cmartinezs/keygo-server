@@ -1,14 +1,14 @@
-# Matriz de Cobertura: UI vs OpenAPI vs Implementacion Front
+# Matriz de Cobertura: UI vs OpenAPI vs Implementación Front
 
 - Fecha de corte: 2026-04-02
 - Objetivo: validar endpoint por endpoint evitando falsos pendientes por nombres similares o distinto alcance.
 - Fuente de contrato: docs/api-docs.json
-- Fuente de implementacion: src/api/*.ts y paginas/rutas en src/App.tsx + src/pages/**
+- Fuente de implementación: src/api/*.ts y páginas/rutas en src/App.tsx + src/pages/**
 
 ## Leyenda
 
 - OpenAPI: Si = path/method existe en docs/api-docs.json.
-- API Front: Si = existe funcion consumible en src/api.
+- API Front: Si = existe función consumible en src/api.
 - UI: Si = hay pantalla/flujo que lo consume actualmente.
 - Estado:
   - OK = contrato + API + UI alineados.
@@ -25,12 +25,12 @@
 | Editar perfil propio | PATCH /api/v1/tenants/{tenantSlug}/account/profile | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/user/UserProfilePage.tsx |
 | Cambiar contrasena propia | POST /api/v1/tenants/{tenantSlug}/account/change-password | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/ChangePasswordForm.tsx |
 | Ver sesiones propias | GET /api/v1/tenants/{tenantSlug}/account/sessions | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/SessionsList.tsx |
-| Cerrar sesion propia remota | DELETE /api/v1/tenants/{tenantSlug}/account/sessions/{sessionId} | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/SessionsList.tsx |
-| Ver preferencias de notificacion | GET /api/v1/tenants/{tenantSlug}/account/notification-preferences | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/NotificationsPreferencesForm.tsx |
-| Editar preferencias de notificacion | PATCH /api/v1/tenants/{tenantSlug}/account/notification-preferences | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/NotificationsPreferencesForm.tsx |
+| Cerrar sesión propia remota | DELETE /api/v1/tenants/{tenantSlug}/account/sessions/{sessionId} | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/SessionsList.tsx |
+| Ver preferencias de notificación | GET /api/v1/tenants/{tenantSlug}/account/notification-preferences | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/NotificationsPreferencesForm.tsx |
+| Editar preferencias de notificación | PATCH /api/v1/tenants/{tenantSlug}/account/notification-preferences | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/account/NotificationsPreferencesForm.tsx |
 | Ver accesos propios (apps/roles) | GET /api/v1/tenants/{tenantSlug}/account/access | Si | Si | Si | OK | src/api/account.ts, src/pages/dashboard/user/UserProfilePage.tsx |
-| Olvide mi contrasena | POST /api/v1/tenants/keygo/account/forgot-password | No | No | No | GAP_BACKEND | docs/FRONTEND_DEVELOPER_GUIDE.md (seccion 10.4) |
-| Reset por codigo de recuperacion | POST /api/v1/tenants/keygo/account/reset-password | No | No | No | GAP_BACKEND | docs/FRONTEND_DEVELOPER_GUIDE.md (seccion 10.4) |
+| Olvide mi contrasena | POST /api/v1/tenants/keygo/account/forgot-password | No | No | No | GAP_BACKEND | docs/FRONTEND_DEVELOPER_GUIDE.md (sección 10.4) |
+| Reset por código de recuperación | POST /api/v1/tenants/keygo/account/reset-password | No | No | No | GAP_BACKEND | docs/FRONTEND_DEVELOPER_GUIDE.md (sección 10.4) |
 | Conexiones externas (listar/vincular/desvincular) | /api/v1/tenants/{tenantSlug}/account/connections* | No | Si | Si | TEMP_MSW | src/api/account.ts, src/mocks/handlers.ts, src/pages/dashboard/account/ConnectionsPanel.tsx |
 
 ## 2) Usuarios administrados por tenant (ADMIN / ADMIN_TENANT)
@@ -62,9 +62,9 @@
 |---|---|---|---|---|---|---|
 | Dashboard admin agregado | GET /api/v1/admin/platform/dashboard | Si | Si | Si | OK | src/api/dashboard.ts, src/pages/admin/DashboardPage.tsx |
 | Estadisticas plataforma | GET /api/v1/platform/stats | Si | Si | No (no usado en pantalla actual) | GAP_UI | src/api/serviceInfo.ts |
-| Auditoria global plataforma | GET /api/v1/platform/audit | No | No | No | GAP_BACKEND | docs/BACKLOG.md, docs/api-docs.json (sin path) |
+| Auditoría global plataforma | GET /api/v1/platform/audit | No | No | No | GAP_BACKEND | docs/BACKLOG.md, docs/api-docs.json (sin path) |
 
-## 5) Registro y autenticacion
+## 5) Registro y autenticación
 
 | Caso funcional | Endpoint esperado | OpenAPI | API Front | UI | Estado | Evidencia |
 |---|---|---|---|---|---|---|
@@ -72,27 +72,27 @@
 | Login credenciales | POST /api/v1/tenants/{tenantSlug}/account/login | Si | Si | Si | OK | src/api/auth.ts, src/pages/login/LoginPage.tsx |
 | Exchange token | POST /api/v1/tenants/{tenantSlug}/oauth2/token | Si | Si | Si | OK | src/api/auth.ts, src/pages/login/LoginPage.tsx |
 | Revoke token | POST /api/v1/tenants/{tenantSlug}/oauth2/revoke | Si | Si | Si | OK | src/api/auth.ts, src/pages/login/LogoutPage.tsx |
-| Registro usuario publico | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/register | Si | Si | Si | OK | src/api/users.ts, src/pages/register/UserRegisterPage.tsx |
-| Verificar email registro | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/verify-email | Si | Si | Si | OK | src/api/auth.ts/src/api/users.ts + paginas register |
-| Reenviar verificacion registro | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/resend-verification | Si | Si | Si | OK | src/api/auth.ts/src/api/users.ts + paginas register |
+| Registro usuario público | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/register | Si | Si | Si | OK | src/api/users.ts, src/pages/register/UserRegisterPage.tsx |
+| Verificar email registro | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/verify-email | Si | Si | Si | OK | src/api/auth.ts/src/api/users.ts + páginas register |
+| Reenviar verificación registro | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/resend-verification | Si | Si | Si | OK | src/api/auth.ts/src/api/users.ts + páginas register |
 
-## 6) Billing/Contratacion
+## 6) Billing/Contratación
 
 | Caso funcional | Endpoint esperado | OpenAPI | API Front | UI | Estado | Evidencia |
 |---|---|---|---|---|---|---|
-| Catalogo publico | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/catalog | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
-| Detalle plan publico | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/catalog/{planCode} | Si | Si | Si | OK | src/api/billing.ts |
+| Catálogo público | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/catalog | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
+| Detalle plan público | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/catalog/{planCode} | Si | Si | Si | OK | src/api/billing.ts |
 | Crear contrato | POST /api/v1/billing/contracts | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
 | Verificar email contrato | POST /api/v1/billing/contracts/{contractId}/verify-email | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
-| Reenviar verificacion contrato | POST /api/v1/billing/contracts/{contractId}/resend-verification | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
+| Reenviar verificación contrato | POST /api/v1/billing/contracts/{contractId}/resend-verification | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
 | Aprobar pago mock dev | POST /api/v1/billing/contracts/{contractId}/mock-approve-payment | Si | Si | Si (solo DEV) | OK | src/api/billing.ts, src/pages/register/steps/PaymentStep.tsx |
 | Activar contrato | POST /api/v1/billing/contracts/{contractId}/activate | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/NewContractPage.tsx |
 | Estado contrato | GET /api/v1/billing/contracts/{contractId} | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/ResumeContractPage.tsx |
 | Reanudar onboarding contrato | GET /api/v1/billing/contracts/{contractId}/resume | Si | Si | Si | OK | src/api/billing.ts, src/pages/register/ResumeContractPage.tsx |
-| Suscripcion activa tenant | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/subscription | Si | Si | Si | OK | src/api/billing.ts, src/pages/dashboard/account/AccountSettingsPage.tsx |
+| Suscripción activa tenant | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/subscription | Si | Si | Si | OK | src/api/billing.ts, src/pages/dashboard/account/AccountSettingsPage.tsx |
 | Facturas tenant | GET /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/invoices | Si | Si | Si | OK | src/api/billing.ts, src/pages/dashboard/account/AccountSettingsPage.tsx |
-| Cancelar renovacion | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/subscription/cancel | Si | Si | Parcial | GAP_UI | src/api/billing.ts |
-| Pago real PSP produccion | POST /billing/contracts/{id}/pay (definir) | No | No | No | GAP_BACKEND | docs/BACKLOG.md, src/pages/register/steps/PaymentStep.tsx |
+| Cancelar renovación | POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/subscription/cancel | Si | Si | Parcial | GAP_UI | src/api/billing.ts |
+| Pago real PSP producción | POST /billing/contracts/{id}/pay (definir) | No | No | No | GAP_BACKEND | docs/BACKLOG.md, src/pages/register/steps/PaymentStep.tsx |
 
 ## 7) Mapa de confusiones comunes (scope)
 

@@ -54,7 +54,7 @@ User (global)
 
 ### 1.3 Acceso a Apps vía Membership Explícito
 
-**RFC propone:** El acceso a una app no es automático. Requiere asignación explícita via `Membership`.
+**RFC propone:** El acceso a una app no es automático. Requiere asignación explícita vía `Membership`.
 
 **Implementación actual:**
 ```
@@ -264,7 +264,7 @@ Debe incluir layouts y guards separados por superficie.
 
 ### 2.5 Endpoint de Autorización Efectiva (Recomendación 07-2.3)
 
-**RFC propone (07-recomendaciones-de-implementacion.md, §2.3):** Crear endpoint:
+**RFC propone (07-recomendaciones-de-implementación.md, §2.3):** Crear endpoint:
 ```
 GET /api/v1/me
 GET /api/v1/me/authorization
@@ -312,7 +312,7 @@ Devuelve:
 **Impacto:**
 - 🟡 **Medio:** Reduce claridad para onboarding
 - Alineación con RFC: **70%**
-- **SOLUCIONADO:** Este documento (10-estado-implementacion-actual.md) ✅
+- **SOLUCIONADO:** Este documento (10-estado-implementación-actual.md) ✅
 
 ---
 

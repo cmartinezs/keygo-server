@@ -234,7 +234,7 @@
 ```
 
 **Impacto:**
-- RBAC por endpoint via `@PreAuthorize`
+- RBAC por endpoint vía `@PreAuthorize`
 - Tenant resolution automática desde JWT claim `iss` (tenant_slug)
 - Docstring `@PreAuthorize` debe listar roles permitidos
 

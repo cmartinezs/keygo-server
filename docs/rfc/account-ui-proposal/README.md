@@ -30,8 +30,8 @@ La propuesta está inspirada en patrones tipo "Profile" y "Account Settings" per
    - Prioridad sugerida y racional de producto.
 
 4. `04-rfc-account-backend-contract.md`
-   - RFC tecnico detallado para backend.
-   - Incluye request/response, validaciones, mensajes, HTTP y codigos KeyGo.
+   - RFC técnico detallado para backend.
+   - Incluye request/response, validaciones, mensajes, HTTP y códigos KeyGo.
 
 ## Decisión de nomenclatura recomendada
 

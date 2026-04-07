@@ -110,7 +110,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
 | Syntax XML/HTML | ✅ Nativo (válido HTML) | ❌ Directives no-HTML |
 | Browser preview | ✅ Se ve en navegador | ❌ Muestra raw directives |
 | IDE support | ✅ Excelente (IntelliJ) | ✅ Bueno |
-| Spring integration | ✅ First-class support | ✅ Soporte via autoconfigure |
+| Spring integration | ✅ First-class support | ✅ Soporte vía autoconfigure |
 | Curva aprendizaje | ✅ Suave | ⚠️ Media |
 | **Recomendación** | **✅ Usar para emails** | Alternativa si ya usas FreeMarker |
 
@@ -162,7 +162,7 @@ Email.builder()
 │ Adapter: EmailNotificationAdapter                │
 │ • Resuelve Strategy                              │
 │ • Renderiza Template                             │
-│ • Envía via SMTP (JavaMailSender)                │
+│ • Envía vía SMTP (JavaMailSender)                │
 └─────────────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────────────┐

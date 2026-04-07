@@ -113,9 +113,9 @@ Ejecuta [IMPLEMENTATION_CHECKLIST.md](./IMPLEMENTATION_CHECKLIST.md) — secció
 
 | Sección en Estos Docs | RFC Documento | Sección | Decisión |
 |---|---|---|---|
-| Problema (arriba) | 10-estado-implementacion-actual.md | 2.3 | Modelo ER incompleto (50% alineación) |
+| Problema (arriba) | 10-estado-implementación-actual.md | 2.3 | Modelo ER incompleto (50% alineación) |
 | Plan.md — Sección 2 (modelo conceptual) | 08-diagramas-mermaid.md | Sección 2 | Diagrama 08-2: Modelo extendido con roles por ámbito |
-| Plan.md — Sección 3.A-J (desglose) | 07-recomendaciones-de-implementacion.md | 2.1 | Formalizar RBAC de Keygo |
+| Plan.md — Sección 3.A-J (desglose) | 07-recomendaciones-de-implementación.md | 2.1 | Formalizar RBAC de Keygo |
 | Model.md — Tablas nuevas | 02-modelo-identidad-multitenancy.md | 2 | Capas conceptuales (global / tenant / app) |
 
 ---
@@ -216,5 +216,5 @@ T-111 estará **completada** cuando:
 ---
 
 **Última actualización:** 2026-04-06  
-**RFC versión:** 10-estado-implementacion-actual.md (última revisión)  
+**RFC versión:** 10-estado-implementación-actual.md (última revisión)  
 **Próxima propuesta:** T-107 (Renombrado roles Keygo)

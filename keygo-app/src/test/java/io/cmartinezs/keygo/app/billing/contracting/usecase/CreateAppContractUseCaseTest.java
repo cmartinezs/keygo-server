@@ -30,6 +30,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -153,11 +154,11 @@ class CreateAppContractUseCaseTest {
     verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
     verify(contractRepo).save(any(AppContract.class));
     verify(emailNotification)
-        .sendContractVerificationEmail(
-            eq(CONTRACTOR_EMAIL),
-            eq(CONTRACTOR_FIRST_NAME + " " + CONTRACTOR_LAST_NAME),
+        .sendEmail(
+            eq(EmailNotificationPort.TYPE_CONTRACT_VERIFICATION),
             anyString(),
-            any(UUID.class));
+            anyString(),
+            any(Map.class));
   }
 
   @Test
@@ -211,7 +212,7 @@ class CreateAppContractUseCaseTest {
     verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
     verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
     verify(contractRepo, never()).save(any());
-    verify(emailNotification, never()).sendContractVerificationEmail(any(), any(), any(), any());
+    verify(emailNotification, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test

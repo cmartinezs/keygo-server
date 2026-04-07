@@ -27,6 +27,7 @@ import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 /**
  * Use case: register a new user in a tenant's client app.
@@ -126,7 +127,10 @@ public class RegisterTenantUserUseCase {
     verificationCodeRepositoryPort.upsert(verification);
 
     // 6. Send verification email
-    emailNotificationPort.sendVerificationEmail(email.value(), username.value(), code);
+    emailNotificationPort.sendEmail(
+        EmailNotificationPort.TYPE_EMAIL_VERIFICATION,
+        email.value(), username.value(),
+        Map.of("userName", username.value(), "verificationCode", code, "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
 
     return savedUser;
   }

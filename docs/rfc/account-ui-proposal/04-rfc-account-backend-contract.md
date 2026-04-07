@@ -539,12 +539,12 @@ Errors:
 These messages are suggested values for `data.clientMessage` in production:
 
 1. `Contrasena actualizada correctamente.`
-2. `No fue posible actualizar la contrasena. Revisa los requisitos.`
+2. `No fue posible actualizar la contraseña. Revisa los requisitos.`
 3. `La contrasena actual no es valida.`
 4. `Sesiones recuperadas correctamente.`
-5. `La sesion seleccionada fue cerrada.`
-6. `No fue posible cerrar la sesion seleccionada.`
-7. `Preferencias de notificacion actualizadas.`
+5. `La sesión seleccionada fue cerrada.`
+6. `No fue posible cerrar la sesión seleccionada.`
+7. `Preferencias de notificación actualizadas.`
 8. `No fue posible guardar tus preferencias.`
 
 ## 8. OpenAPI snippets (proposed)

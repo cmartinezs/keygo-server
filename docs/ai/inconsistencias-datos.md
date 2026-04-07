@@ -8,7 +8,7 @@
 >
 > Fecha de detección: **2026-03-22** | Revisión: migraciones V1–V9 vs documentos `DATA_MODEL.md`,
 > `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `AUTH_FLOW.md`
-> Segunda revisión: **2026-03-22** | Re-auditoría de inconsistencias "resueltas" — corrección de tablas en singular via `V10__rename_membership_tables_to_plural.sql`
+> Segunda revisión: **2026-03-22** | Re-auditoría de inconsistencias "resueltas" — corrección de tablas en singular vía `V10__rename_membership_tables_to_plural.sql`
 
 ---
 
@@ -29,7 +29,7 @@ Todas las inconsistencias han sido corregidas:
 | Nombre tabla | `memberships` | `membership` (singular) | ✅ `memberships` (V10) |
 | Nombre tabla | `membership_roles` | `membership_role` (singular) | ✅ `membership_roles` (V10) |
 | Nombre tabla | `app_roles` | `app_role` (singular) | ✅ `app_roles` (V10) |
-| Columna `tenant_id` en `membership` | Presente | **NO existe** | ⚠️ No se agrega — es redundante (user_id implica tenant via tenant_users) |
+| Columna `tenant_id` en `membership` | Presente | **NO existe** | ⚠️ No se agrega — es redundante (user_id implica tenant vía tenant_users) |
 | Status values de `membership` | `ACTIVE, INVITED, SUSPENDED, REVOKED` | `ACTIVE, SUSPENDED, PENDING` | ⚠️ Se mantiene implementación — más consistente con el resto del sistema |
 | Constraint UNIQUE en `membership` | `(tenant_id, user_id, client_app_id)` | `(user_id, client_app_id)` | ⚠️ Se mantiene implementación — correcta sin `tenant_id` |
 
@@ -62,7 +62,7 @@ Todas las inconsistencias han sido corregidas:
 | Code constraint | No documentado | `code ~ '^[a-z][a-z0-9_-]*$'` | ✅ Correcto; docs actualizados |
 
 **Impacto:** Código que filtre por `app_role.status` o use `app_role.name` fallaría.
-**Corrección:** `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`. Tabla renombrada a `app_roles` via V10.
+**Corrección:** `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`. Tabla renombrada a `app_roles` vía V10.
 
 ---
 

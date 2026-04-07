@@ -58,7 +58,7 @@ El código analizado en `examples/java-mail/` implementa un patrón altamente pr
 | Aspecto | Spring Boot 3.x | Spring Boot 4.x |
 |---|---|---|
 | **Java mínimo** | 17 | 21 |
-| **Thymeleaf version** | 3.1.x | 3.2.x (compatible, sin cambios de API) |
+| **Thymeleaf versión** | 3.1.x | 3.2.x (compatible, sin cambios de API) |
 | **Jakarta Mail** | ✅ jakarta.mail | ✅ jakarta.mail (sin cambios) |
 | **Jackson namespace** | `com.fasterxml.jackson.*` | `tools.jackson.*` (databind/datatype) |
 | **Spring Security** | 6.2.x | 7.x (SecurityFilterChain, sin WebSecurityConfigurerAdapter) |
@@ -106,7 +106,7 @@ import jakarta.validation.Valid;
 │    • Resuelve tipo → EmailStrategy                          │
 │    • Lee configuración → EmailServiceProperties             │
 │    • Renderiza template                                     │
-│    • Envía via JavaMailSender                               │
+│    • Envía vía JavaMailSender                               │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -597,7 +597,7 @@ import org.thymeleaf.context.Context;
  * 1. Resolver EmailStrategy por tipo
  * 2. Renderizar template Thymeleaf
  * 3. Construir MimeMessage con HTML renderizado
- * 4. Enviar via JavaMailSender
+ * 4. Enviar vía JavaMailSender
  * 5. Logging y manejo de errores
  *
  * Inyectado como @Bean en ApplicationConfig.
@@ -726,7 +726,7 @@ public class ApplicationConfig {
 
   /**
    * Adapter para notificaciones vía email.
-   * Depende de: JavaMailSender (autoconfigured via spring-boot-starter-mail),
+   * Depende de: JavaMailSender (autoconfigured vía spring-boot-starter-mail),
    *             TemplateEngine (bean "emailTemplateEngine" from ThymeleafTemplateConfig)
    */
   @Bean

@@ -117,7 +117,7 @@ Optional<AppSubscription> findPlatformSubscriptionByContractorId(UUID contractor
 #### `InvoiceRepositoryPort` — nuevo método para facturas de plataforma
 
 ```java
-// Facturas de plataforma (via subscription que tiene client_app_id IS NULL)
+// Facturas de plataforma (vía subscription que tiene client_app_id IS NULL)
 List<Invoice> findBySubscriptionId(UUID subscriptionId); // ya existe
 ```
 

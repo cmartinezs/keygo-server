@@ -2,7 +2,7 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-04-07** | Estado: ✅ Sincronizado con migraciones V1–V29 + diseño de datos v2 + identidad de plataforma
+> Fecha de actualización: **2026-04-07** | Estado: ✅ Sincronizado con migraciones V1–V31 + diseño de datos v2 + identidad de plataforma + verification_codes unificada
 
 ---
 
@@ -23,7 +23,7 @@
 ## Tablas activas (multi-tenancy)
 
 > Estas tablas forman el núcleo del sistema.
-> **Identidad y autenticación:** V3–V9 | **Billing:** V10–V14 | **Seeds:** V15–V18 | **Identidad de plataforma:** V24–V29.
+> **Identidad y autenticación:** V3–V9, V31 | **Billing:** V10–V14, V30 | **Seeds:** V15–V18 | **Identidad de plataforma:** V24–V29.
 
 ### Tabla: `tenants` — V3
 
@@ -1173,7 +1173,7 @@ WHERE tu.id = :tenantUserId;
 | `app_roles` | `code` | regex `^[a-z][a-z0-9_-]*$` | solo minúsculas |
 | `sessions` | `status` | `ACTIVE`, `TERMINATED`, `EXPIRED` | UPPERCASE |
 | `refresh_tokens` | `status` | `ACTIVE`, `USED`, `EXPIRED`, `REVOKED` | UPPERCASE |
-| `app_plans` | `subscriber_type` | `TENANT`, `TENANT_USER` | UPPERCASE |
+| `app_plans` | `subscriber_type` | `TENANT`, `TENANT_USER`, `PLATFORM` | UPPERCASE |
 | `app_plans` | `status` | `ACTIVE`, `INACTIVE` | UPPERCASE |
 | `app_plan_versions` | `billing_period` | `MONTHLY`, `YEARLY`, `ONE_TIME` | UPPERCASE |
 | `app_plan_versions` | `status` | `ACTIVE`, `INACTIVE`, `DEPRECATED` | UPPERCASE |
@@ -1297,7 +1297,9 @@ WHERE tu.id = :tenantUserId;
 
 ---
 
-## Tabla: `email_verifications` — V9
+## Tabla: `email_verifications` — V9 *(⚠️ Eliminada en V31 — consolidada en `verification_codes`)*
+
+> ⚠️ **Esta tabla fue eliminada en V31.** Su contenido fue migrado a la tabla unificada `verification_codes` con `purpose='EMAIL_VERIFICATION'`. Ver sección correspondiente abajo.
 
 Almacena códigos de verificación de email generados durante el auto-registro de usuarios. La fila más reciente por usuario (mayor `created_at`) es el código activo.
 
@@ -1334,27 +1336,27 @@ Almacena códigos de verificación de email generados durante el auto-registro d
 ### Tabla: `contractors` — ⚡ NUEVA (modelo v2)
 
 Entidad central del billing. Representa la persona física o legal que firma contratos con la plataforma.
-Tiene una relación **1:1** con un `TenantUser` en el tenant del proveedor.
+Tiene una relación **1:1** con un `PlatformUser` (identidad global de plataforma).
 
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del contratante |
-| `tenant_user_id` | UUID | FK → `tenant_users.id` UNIQUE | NO | Usuario del contratante en el tenant del proveedor (1:1) |
+| `platform_user_id` | UUID | UQ, FK | NO | → `platform_users(id)`; identidad global del contratante. ON DELETE RESTRICT. *(Migrado desde `tenant_user_id` en V30)* |
 | `status` | VARCHAR(20) | — | NO | Estado: `PENDING`, `ACTIVE`, `SUSPENDED` |
 | `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
 | `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
 
 **Constraints:**
-- `UNIQUE(tenant_user_id)` — relación 1:1 estricta
+- `UNIQUE(platform_user_id)` — relación 1:1 estricta
 - `CHECK(status IN ('PENDING','ACTIVE','SUSPENDED'))`
-- FK: `tenant_user_id` → `tenant_users(id)` ON DELETE RESTRICT
+- FK: `platform_user_id` → `platform_users(id)` ON DELETE RESTRICT
 
 **Reglas de negocio:**
 - Se crea durante la verificación de email del primer contrato (al confirmar el email, antes del pago).
 - Pasa a `ACTIVE` al activar el primer contrato.
 - Solo puede tener **1 contrato en estado `ACTIVE`** en cualquier momento (invariante garantizada por índice único parcial en `app_contracts`).
 - Un contratante puede tener muchos tenants propios (dentro del límite `MAX_TENANTS` del plan).
-- El `TenantUser` asociado vive **siempre** en el tenant del proveedor (nunca es NULL).
+- El `PlatformUser` asociado representa la identidad global del contratante (nunca es NULL).
 
 ---
 
@@ -1363,17 +1365,17 @@ Tiene una relación **1:1** con un `TenantUser` en el tenant del proveedor.
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único |
-| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE CASCADE | NO | App propietaria del plan |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE CASCADE | SÍ | NULL = plan de plataforma (KeyGo). NOT NULL = plan de app (ClientApp). *(Nullable desde V30)* |
 | `code` | VARCHAR(50) | UNIQUE (app) | NO | Código único del plan dentro de la app (e.g. `STARTER`, `PRO`) |
 | `name` | VARCHAR(100) | — | NO | Nombre legible del plan |
 | `description` | TEXT | — | SÍ | Descripción opcional |
-| `subscriber_type` | VARCHAR(20) | — | NO | Tipo de suscriptor: `TENANT` (B2B) o `TENANT_USER` (B2C) |
+| `subscriber_type` | VARCHAR(20) | — | NO | Tipo de suscriptor: `TENANT` (B2B), `TENANT_USER` (B2C) o `PLATFORM` |
 | `status` | VARCHAR(20) | — | NO | Estado: `ACTIVE`, `INACTIVE` |
 | `is_public` | BOOLEAN | — | NO | Si aparece en el catálogo público |
 | `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación |
 | `updated_at` | TIMESTAMPTZ | — | NO | Timestamp de última actualización |
 
-**Constraints:** `UNIQUE(client_app_id, code)` | `CHECK(subscriber_type IN ('TENANT','TENANT_USER'))` | `CHECK(status IN ('ACTIVE','INACTIVE'))`
+**Constraints:** `UNIQUE(client_app_id, code)` | `CHECK(subscriber_type IN ('TENANT','TENANT_USER','PLATFORM'))` | `CHECK(status IN ('ACTIVE','INACTIVE'))`
 
 **Reglas de negocio:**
 - Un plan con `is_public=false` no aparece en `GET /billing/catalog` pero puede asignarse manualmente.
@@ -1418,7 +1420,7 @@ Límites y feature flags por versión de plan. Definen qué puede hacer el suscr
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único |
 | `app_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE CASCADE | NO | Versión a la que pertenece |
-| `metric_code` | VARCHAR(100) | UNIQUE (version) | NO | Código de métrica de negocio (e.g. `MAX_USERS`, `ALLOW_SSO`, `EVALUACIONES_POR_MES`) |
+| `metric_code` | VARCHAR(100) | UNIQUE (versión) | NO | Código de métrica de negocio (e.g. `MAX_USERS`, `ALLOW_SSO`, `EVALUACIONES_POR_MES`) |
 | `metric_type` | VARCHAR(20) | — | NO | Tipo: `QUOTA` (cuota numérica), `BOOLEAN` (habilitado/deshabilitado), `RATE` (rate limit) |
 | `limit_value` | BIGINT | — | SÍ | Valor límite (`NULL` = ilimitado para QUOTA/RATE) |
 | `period_type` | VARCHAR(20) | — | NO | Período de reset: `NONE`, `DAY`, `MONTH` |
@@ -1438,7 +1440,7 @@ un `Contractor`, y los tenants **no se crean automáticamente** al activar.
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único del contrato |
-| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | NO | App del **PROVEEDOR** a la que pertenece el contrato |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | SÍ | NULL = contrato de plataforma. NOT NULL = contrato de app. *(Nullable desde V30)* |
 | `contractor_id` | UUID | FK → `contractors.id` ON DELETE RESTRICT | SÍ | Contratante asociado. NULL hasta que se verifica el email y se crea el Contractor. |
 | `selected_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE RESTRICT | NO | Versión del plan seleccionada |
 | `billing_period` | VARCHAR(20) | — | NO | Período elegido: `MONTHLY`, `YEARLY`, `ONE_TIME` |
@@ -1502,7 +1504,7 @@ Relación activa entre un contratante y una versión de plan de una app.
 | Campo | Tipo | Clave | Nulable | Descripción |
 |---|---|---|---|---|
 | `id` | UUID | PK | NO | Identificador único |
-| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | NO | App propietaria |
+| `client_app_id` | UUID | FK → `client_apps.id` ON DELETE RESTRICT | SÍ | NULL = suscripción de plataforma. NOT NULL = suscripción de app. *(Nullable desde V30)* |
 | `app_plan_version_id` | UUID | FK → `app_plan_versions.id` ON DELETE RESTRICT | NO | Versión del plan activo |
 | `contract_id` | UUID | FK → `app_contracts.id` ON DELETE SET NULL | SÍ | Contrato origen |
 | `contractor_id` | UUID | FK → `contractors.id` ON DELETE RESTRICT | NO | Contratante suscrito (**reemplaza** `subscriber_tenant_id` y `subscriber_tenant_user_id`) |
@@ -1706,5 +1708,43 @@ Si no hay registro para un usuario, el backend retorna valores por defecto (`sec
 
 ---
 
-**Última actualización:** 2026-04-07 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V29
+---
+
+## Tabla: `verification_codes` — V31 (Consolidada)
+
+Tabla unificada que reemplaza `email_verifications` (V9), `password_reset_codes` (V23) y `password_recovery_tokens` (eliminada). Usa un discriminador `purpose` para diferenciar el tipo de código.
+
+| Columna | Tipo | FK | Nullable | Descripción |
+|---|---|---|---|---|
+| `id` | UUID PK | — | NO | Identificador único (`gen_random_uuid()`) |
+| `tenant_user_id` | UUID | → `tenant_users(id)` ON DELETE CASCADE | NO | Usuario al que pertenece el código |
+| `purpose` | VARCHAR(30) | — | NO | Discriminador: `EMAIL_VERIFICATION`, `PASSWORD_RESET`, `PASSWORD_RECOVERY` |
+| `code` | VARCHAR(64) | — | NO | Código de verificación (6 dígitos o token hex hasta 64 chars) |
+| `expires_at` | TIMESTAMPTZ | — | NO | Expiración del código |
+| `used_at` | TIMESTAMPTZ | — | SÍ | `NULL` = activo; timestamp cuando se consumió |
+| `metadata` | JSONB | — | SÍ | Datos adicionales del flujo (e.g., `request_id`, `tenant_slug`) |
+| `created_at` | TIMESTAMPTZ | — | NO | Timestamp de creación (`DEFAULT NOW()`) |
+
+**Constraints:**
+- CHECK `purpose IN ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'PASSWORD_RECOVERY')`
+- CHECK `tenant_user_id IS NOT NULL`
+- UNIQUE parcial `(tenant_user_id, purpose)` WHERE `used_at IS NULL` — un solo código activo por propósito
+
+**Índices:** `idx_vc_tenant_user(tenant_user_id)`, `idx_vc_code(code)`, `idx_vc_purpose(purpose)`
+
+**Reglas de negocio:**
+- Solo un código activo (no usado) por usuario y propósito a la vez.
+- Al verificar exitosamente: `used_at` se actualiza a `NOW()`.
+- TTL varía por propósito: EMAIL_VERIFICATION = 30 min, PASSWORD_RESET = 15 min, PASSWORD_RECOVERY = 30 min.
+- El campo `metadata` es extensible para almacenar datos específicos del flujo.
+
+**Entidad JPA:** `VerificationCodeEntity` (`keygo-supabase/auth/entity/`)
+**Puerto:** `VerificationCodeRepositoryPort` (`keygo-app/auth/port/`)
+**Adaptador:** `VerificationCodeRepositoryAdapter` (`keygo-supabase/auth/adapter/`)
+
+**Tablas reemplazadas:** `email_verifications` (V9), `password_reset_codes` (V23)
+
+---
+
+**Última actualización:** 2026-04-07 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V31
 

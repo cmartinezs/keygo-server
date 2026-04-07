@@ -95,7 +95,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 - **ES:** 39 nuevos tests unitarios; Postman: carpeta `🏢 Tenants` con 3 requests
 
 ### Added / Añadido — Fase 0: Hardening estructural (2026-03-21)
-- **EN:** Maven Enforcer plugin (version convergence + dependency management rules)
+- **EN:** Maven Enforcer plugin (versión convergence + dependency management rules)
 - **ES:** Plugin Maven Enforcer (convergencia de versiones + reglas de dependencias)
 - **EN:** JaCoCo coverage check (60% instruction threshold) with `report-aggregate` in `keygo-run`
 - **ES:** JaCoCo con umbral 60% instrucciones y `report-aggregate` en `keygo-run`
@@ -109,7 +109,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 ### Fixed / Corregido — 2026-03-21
 - **EN:** `BootstrapAdminKeyFilter` T-001: replaced `request.getRequestURI()` with `request.getServletPath()` — filter now works correctly with `context-path=/keygo-server`
 - **ES:** `BootstrapAdminKeyFilter` T-001: reemplazado `request.getRequestURI()` por `request.getServletPath()` — el filtro funciona correctamente con `context-path=/keygo-server`
-- **EN:** Membership table names changed from singular to plural via `V10__rename_membership_tables_to_plural.sql` (`app_role`→`app_roles`, `membership`→`memberships`, `membership_role`→`membership_roles`)
+- **EN:** Membership table names changed from singular to plural vía `V10__rename_membership_tables_to_plural.sql` (`app_role`→`app_roles`, `membership`→`memberships`, `membership_role`→`membership_roles`)
 - **ES:** Nombres de tablas de membership corregidos de singular a plural vía migración V10
 
 ### Changed / Cambiado — 2026-03-22 docs restructuring
@@ -141,7 +141,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 - **ES:** `BootstrapAdminKeyFilter` mejorado; bug conocido con `getRequestURI()` vs `getServletPath()` documentado
 - **EN:** `application.yml` properties unified under `keygo.*` prefix with Maven resource filtering
 - **ES:** Propiedades de `application.yml` unificadas bajo el prefijo `keygo.*` con filtrado de recursos Maven
-- **EN:** Lombok version aligned with Spring Boot parent (no hardcoded version in annotation processor paths)
+- **EN:** Lombok versión aligned with Spring Boot parent (no hardcoded versión in annotation processor paths)
 - **ES:** Versión de Lombok alineada con Spring Boot parent (sin versión hardcodeada en annotation processor paths)
 
 ### Fixed / Corregido

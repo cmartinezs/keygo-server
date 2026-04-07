@@ -450,6 +450,6 @@ keygo:
 ---
 
 **Última actualización:** 2026-04-03  
-**Version:** 1.0
+**Versión:** 1.0
 
 

@@ -2,7 +2,7 @@
 
 > Diagramas complementarios de **relaciones de entidades**, **flujos de datos** y **contextos de negocio**.
 >
-> Fecha de actualización: **2026-03-30** | Estado: ✅ Sincronizado con migraciones V1–V17 + diseño de datos v2
+> Fecha de actualización: **2026-04-07** | Estado: ✅ Sincronizado con migraciones V1–V31 + diseño de datos v2 + identidad de plataforma + RBAC multi-ámbito
 
 ---
 
@@ -13,6 +13,9 @@
 3. [Flujos de token (refresh, revoke)](#flujos-de-token-refresh-revoke)
 4. [Ciclo de vida de memberships y roles](#ciclo-de-vida-de-memberships-y-roles)
 5. [Modelo de permisos y autorización](#modelo-de-permisos-y-autorización)
+6. [Identidad de plataforma y RBAC multi-ámbito (V22–V29)](#identidad-de-plataforma-y-rbac-multi-ámbito-v22v29)
+7. [Billing: Contractor → PlatformUser (V30)](#billing-contractor--platformuser-v30)
+8. [Verificación unificada (V31)](#verificación-unificada-v31)
 
 ---
 
@@ -440,9 +443,9 @@ graph TD
     F["membership_roles: membership_id=123, role_id=102"]
     G["membership_roles: membership_id=123, role_id=103"]
 
-    B -.->|via membership_roles| E
-    C -.->|via membership_roles| F
-    D -.->|via membership_roles| G
+    B -.->|vía membership_roles| E
+    C -.->|vía membership_roles| F
+    D -.->|vía membership_roles| G
 
     H["AccessToken JWT claims: roles = [admin, user, viewer]"]
     E -.->|included in| H
@@ -1160,6 +1163,308 @@ classDiagram
 
 ---
 
-**Última actualización:** 2026-04-02 | **Responsable:** AI Agent | **Estado:** ✅ Sincronizado con migraciones V1–V21
+### Contexto 13: Signing Key Tenant Scope (V22)
+
+```mermaid
+classDiagram
+    class SigningKey {
+        UUID id
+        String kid
+        String algorithm
+        String publicMaterial
+        String privateMaterial
+        String status
+        UUID tenantId FK
+    }
+
+    class Tenant {
+        UUID id
+        String slug
+    }
+
+    class Session {
+        UUID id
+        UUID signingKeyId FK
+    }
+
+    class RefreshToken {
+        UUID id
+        UUID signingKeyId FK
+    }
+
+    Tenant "1" --> "0..*" SigningKey : has signing keys
+    SigningKey "1" --> "0..*" Session : signs
+    SigningKey "1" --> "0..*" RefreshToken : signs
+```
+
+> V22 añadió `tenant_id` (nullable) a `signing_keys` para scoping por tenant, y `signing_key_id` (nullable) a `sessions` y `refresh_tokens` para auditoría de qué clave firmó cada token.
+
+---
+
+### Contexto 14: RBAC Multi-Ámbito — Plataforma (V24, V27–V29)
+
+```mermaid
+classDiagram
+    class PlatformUser {
+        UUID id
+        String email*
+        String username*
+        String passwordHash
+        String status
+        String firstName
+        String lastName
+    }
+
+    class PlatformRole {
+        UUID id
+        String code*
+        String name
+    }
+
+    class PlatformUserRole {
+        UUID id
+        UUID platformUserId FK
+        UUID platformRoleId FK
+        Timestamp assignedAt
+    }
+
+    class TenantUser {
+        UUID id
+        UUID tenantId FK
+        UUID platformUserId FK
+        String email
+        String username
+    }
+
+    PlatformUser "1" --> "0..*" PlatformUserRole : has roles
+    PlatformRole "1" --> "0..*" PlatformUserRole : assigned to
+    PlatformUser "1" --> "0..*" TenantUser : linked identity
+```
+
+> Un `PlatformUser` es la identidad global. Puede tener múltiples `TenantUsers` (uno por tenant).
+> Los roles de plataforma (`keygo_admin`, `keygo_tenant_admin`, `keygo_user`) controlan acceso a funciones administrativas globales.
+> Relaciones: `platform_user_roles` vincula platform_users con platform_roles. `tenant_users.platform_user_id` vincula identidad local con global.
+
+---
+
+### Contexto 15: RBAC Multi-Ámbito — Tenant (V25–V26)
+
+```mermaid
+classDiagram
+    class TenantRole {
+        UUID id
+        UUID tenantId FK
+        String code*
+        String name
+        Boolean active
+    }
+
+    class TenantUserRole {
+        UUID id
+        UUID tenantUserId FK
+        UUID tenantRoleId FK
+        Timestamp assignedAt
+        Timestamp removedAt
+    }
+
+    class TenantUser {
+        UUID id
+        UUID tenantId FK
+        String username
+    }
+
+    class Tenant {
+        UUID id
+        String slug
+    }
+
+    Tenant "1" --> "0..*" TenantRole : defines
+    TenantUser "1" --> "0..*" TenantUserRole : has
+    TenantRole "1" --> "0..*" TenantUserRole : assigned to
+```
+
+> Cada tenant define sus propios roles (`ADMIN_INTERNAL`, `EDITOR`, `VIEWER`, etc.).
+> `TenantUserRole` tiene soft-delete vía `removed_at` — las asignaciones revocadas se preservan para auditoría.
+> Partial UNIQUE `(tenant_user_id, tenant_role_id) WHERE removed_at IS NULL` evita duplicados activos.
+
+---
+
+### Contexto 16: Sessions Platform Refactor (V28)
+
+```mermaid
+classDiagram
+    class Session {
+        UUID id
+        UUID platformUserId FK
+        UUID clientAppId FK (nullable)
+        UUID tenantUserId FK
+        UUID signingKeyId FK (nullable)
+        String status
+        String ipAddress
+        String userAgent
+    }
+
+    class RefreshToken {
+        UUID id
+        UUID sessionId FK
+        UUID tenantUserId FK (nullable)
+        UUID clientAppId FK (nullable)
+        String tokenHash
+        String status
+    }
+
+    class PlatformUser {
+        UUID id
+        String email
+    }
+
+    class ClientApp {
+        UUID id
+        String clientId
+    }
+
+    PlatformUser "1" --> "0..*" Session : platform sessions
+    Session "1" --> "0..*" RefreshToken : rotation chain
+    ClientApp "0..1" --> "0..*" Session : app sessions
+```
+
+> V28 refactorizó sessions y refresh_tokens para soportar sesiones de plataforma (sin client_app).
+> `sessions.platform_user_id` (nullable) permite sesiones globales.
+> `client_app_id` es nullable — `NULL` = sesión de plataforma; `NOT NULL` = sesión de app.
+
+---
+
+### Contexto 17: Billing Contractor → PlatformUser (V30)
+
+```mermaid
+classDiagram
+    class Contractor {
+        UUID id
+        UUID platformUserId FK
+        String status
+    }
+
+    class PlatformUser {
+        UUID id
+        String email
+        String username
+    }
+
+    class AppPlan {
+        UUID id
+        UUID clientAppId FK (nullable)
+        String code
+        String subscriberType
+        Boolean isPublic
+    }
+
+    class AppContract {
+        UUID id
+        UUID contractorId FK
+        UUID clientAppId FK (nullable)
+        UUID planId FK
+        String status
+    }
+
+    class AppSubscription {
+        UUID id
+        UUID contractorId FK
+        UUID clientAppId FK (nullable)
+        String status
+    }
+
+    PlatformUser "1" --> "1" Contractor : identity
+    Contractor "1" --> "0..*" AppContract : signs
+    AppContract "1" --> "0..1" AppSubscription : activates
+    AppPlan "1" --> "0..*" AppContract : references
+```
+
+> V30 migró `contractors.tenant_user_id` → `platform_user_id` (FK a `platform_users`).
+> `client_app_id` ahora es nullable en `app_plans`, `app_contracts` y `app_subscriptions`:
+> - `NULL` = billing de plataforma (planes KeyGo globales)
+> - `NOT NULL` = billing de app (planes ofrecidos por una ClientApp)
+> `subscriber_type` CHECK ahora incluye `'PLATFORM'` además de `'TENANT'` y `'TENANT_USER'`.
+
+---
+
+### Contexto 18: Códigos de Verificación Unificados (V31)
+
+```mermaid
+classDiagram
+    class VerificationCode {
+        UUID id
+        UUID tenantUserId FK
+        String purpose
+        String code
+        Timestamp expiresAt
+        Timestamp usedAt
+        JSONB metadata
+        Timestamp createdAt
+    }
+
+    class TenantUser {
+        UUID id
+        String email
+        String username
+    }
+
+    TenantUser "1" --> "0..*" VerificationCode : has codes
+```
+
+> V31 consolidó 3 tablas en una sola: `email_verifications`, `password_reset_codes`, `password_recovery_tokens` → `verification_codes`.
+> Discriminador `purpose`: `EMAIL_VERIFICATION`, `PASSWORD_RESET`, `PASSWORD_RECOVERY`.
+> UNIQUE parcial `(tenant_user_id, purpose) WHERE used_at IS NULL` — un solo código activo por propósito.
+> `metadata` JSONB extensible para datos específicos del flujo.
+
+---
+
+### Cascada de Status en Login (V24–V31)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PlatformAuth as PlatformAuth (Login)
+    participant PU as PlatformUser
+    participant TU as TenantUser
+    participant M as Membership
+
+    Client->>PlatformAuth: POST /login (email, password)
+    PlatformAuth->>PU: check status
+    alt PU.SUSPENDED
+        PU-->>Client: 403 PlatformUserSuspendedException
+    else PU.PENDING
+        PU-->>Client: 403 PlatformUserPendingException
+    else PU.RESET_PASSWORD
+        PU-->>Client: 401 PasswordResetRequired
+    else PU.ACTIVE
+        PlatformAuth->>TU: find by platformUserId + tenant
+        alt TU.SUSPENDED
+            TU-->>Client: 403 UserSuspendedException
+        else TU.PENDING
+            TU-->>Client: 403 PendingVerification
+        else TU.RESET_PASSWORD
+            TU-->>Client: 401 PasswordResetRequired
+        else TU.ACTIVE
+            PlatformAuth->>M: check membership for app
+            alt M.SUSPENDED
+                M-->>Client: 403 MembershipSuspended
+            else M.PENDING
+                M-->>Client: 403 MembershipPending
+            else M.ACTIVE
+                M-->>Client: 200 Authorization Code
+            end
+        end
+    end
+```
+
+> El login tiene 3 capas de validación de status:
+> 1. **PlatformUser** — identidad global (SUSPENDED/PENDING/RESET_PASSWORD bloquean todo)
+> 2. **TenantUser** — identidad por tenant (SUSPENDED/PENDING/RESET_PASSWORD bloquean ese tenant)
+> 3. **Membership** — acceso por app (SUSPENDED/PENDING bloquean esa app)
+> Un usuario bloqueado en una Membership puede acceder a otras apps. Un PlatformUser bloqueado no puede acceder a nada.
+
+---
+
+**Última actualización:** 2026-04-07 | **Responsable:** AI Agent | **Estado:** ✅ Sincronizado con migraciones V1–V31
 
 

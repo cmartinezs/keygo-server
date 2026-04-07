@@ -317,7 +317,7 @@ TenantRole domain = TenantRole.builder()
 | `tenants` → `client_apps` | tenants | client_apps | 1:N | 1 Tenant → N ClientApps | ✅ Existing |
 | `client_apps` → `memberships` | client_apps | memberships | 1:N | 1 ClientApp → N Memberships | ✅ Existing |
 | `client_apps` → `app_roles` | client_apps | app_roles | 1:N | 1 ClientApp → N AppRoles | ✅ Existing |
-| `memberships` → `membership_roles` (via `app_role_id`) | memberships | app_roles | N:N | N Memberships → N AppRoles | ✅ Existing |
+| `memberships` → `membership_roles` (vía `app_role_id`) | memberships | app_roles | N:N | N Memberships → N AppRoles | ✅ Existing |
 
 ---
 

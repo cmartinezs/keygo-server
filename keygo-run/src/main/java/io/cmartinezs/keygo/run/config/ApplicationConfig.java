@@ -132,6 +132,7 @@ import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenVerifier;
 import io.cmartinezs.keygo.infra.auth.jwt.StandardTokenClaimsFactory;
+import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties;
 import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
 import io.cmartinezs.keygo.run.aop.NotLog;
 import io.cmartinezs.keygo.run.clientapp.UuidClientCredentialGenerator;
@@ -326,8 +327,9 @@ public class ApplicationConfig {
   public EmailNotificationPort emailNotificationPort(
       TemplateEngine emailTemplateEngine,
       JavaMailSender mailSender,
-      KeyGoUiProperties uiProperties) {
-    return new EmailNotificationAdapter(emailTemplateEngine, mailSender, uiProperties);
+      KeyGoUiProperties uiProperties,
+      KeyGoEmailProperties emailProperties) {
+    return new EmailNotificationAdapter(emailTemplateEngine, mailSender, uiProperties, emailProperties);
   }
 
   @Bean

@@ -39,6 +39,7 @@ import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -140,7 +141,7 @@ class ResendVerificationEmailUseCaseTest {
 
     // Then — upsertIfExpiredOrAbsent was called and the new code was sent
     verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
-    verify(emailNotificationPort).sendVerificationEmail(eq(EMAIL), anyString(), eq("999999"));
+    verify(emailNotificationPort).sendEmail(eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), eq(EMAIL), anyString(), any(Map.class));
   }
 
   @Test
@@ -160,7 +161,7 @@ class ResendVerificationEmailUseCaseTest {
 
     // Then
     verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
-    verify(emailNotificationPort).sendVerificationEmail(eq(EMAIL), anyString(), eq("111111"));
+    verify(emailNotificationPort).sendEmail(eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), eq(EMAIL), anyString(), any(Map.class));
   }
 
   @Test
@@ -180,7 +181,7 @@ class ResendVerificationEmailUseCaseTest {
 
     // Then — no additional persist; same code is re-sent to the user
     verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
-    verify(emailNotificationPort).sendVerificationEmail(eq(EMAIL), anyString(), eq("222222"));
+    verify(emailNotificationPort).sendEmail(eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), eq(EMAIL), anyString(), any(Map.class));
   }
 
   @Test
@@ -213,7 +214,7 @@ class ResendVerificationEmailUseCaseTest {
     assertThatThrownBy(
             () -> useCase.execute(new ResendVerificationCommand(TENANT_SLUG, CLIENT_ID, EMAIL)))
         .isInstanceOf(UserNotFoundException.class);
-    verify(emailNotificationPort, never()).sendVerificationEmail(any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 }
 

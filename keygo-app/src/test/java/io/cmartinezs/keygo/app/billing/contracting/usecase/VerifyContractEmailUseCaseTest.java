@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -233,8 +234,8 @@ class VerifyContractEmailUseCaseTest {
     useCase.execute(contract.getId(), code);
 
     // Then — temp password email sent
-    verify(emailNotification).sendTemporaryPasswordEmail(
-        eq("admin@acme.com"), anyString(), anyString());
+    verify(emailNotification).sendEmail(
+        eq(EmailNotificationPort.TYPE_TEMPORARY_PASSWORD), anyString(), anyString(), any(Map.class));
   }
 
   @Test
@@ -266,7 +267,7 @@ class VerifyContractEmailUseCaseTest {
     useCase.execute(contract.getId(), code);
 
     // Then
-    verify(emailNotification, never()).sendTemporaryPasswordEmail(anyString(), anyString(), anyString());
+    verify(emailNotification, never()).sendEmail(any(), any(), any(), any());
     verify(platformUserRepo, never()).save(any());
   }
 

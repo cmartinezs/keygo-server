@@ -18,6 +18,7 @@ import io.cmartinezs.keygo.domain.user.model.Username;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -81,11 +82,14 @@ public class SendPasswordResetCodeUseCase {
     var resetCode = VerificationCode.create(user.getId(), VerificationPurpose.PASSWORD_RESET, rawCode, expiresAt);
     VerificationCode persisted = codeRepository.upsert(resetCode);
 
-    emailNotification.sendPasswordResetCodeEmail(
+    emailNotification.sendEmail(
+        EmailNotificationPort.TYPE_PASSWORD_RESET_CODE,
         user.getEmail().value(),
         user.getUsername().value(),
-        rawCode,
-        CODE_TTL_MINUTES);
+        Map.of(
+            "userName", user.getUsername().value(),
+            "verificationCode", rawCode,
+            "expiresInMinutes", CODE_TTL_MINUTES));
 
     return new SendPasswordResetCodeResult(persisted.getId());
   }

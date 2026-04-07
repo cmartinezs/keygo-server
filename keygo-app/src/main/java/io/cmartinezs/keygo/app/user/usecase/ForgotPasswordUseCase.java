@@ -14,6 +14,7 @@ import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -87,11 +88,14 @@ public class ForgotPasswordUseCase {
     codeRepository.upsert(recoveryCode);
 
     // 5. Enviar email
-    emailNotification.sendPasswordRecoveryEmail(
+    emailNotification.sendEmail(
+        EmailNotificationPort.TYPE_PASSWORD_RECOVERY,
         command.email(),
         user.getUsername().value(),
-        rawToken,
-        command.tenantSlug());
+        Map.of(
+            "userName", user.getUsername().value(),
+            "recoveryToken", rawToken,
+            "tenantSlug", command.tenantSlug()));
 
     return new ForgotPasswordResult(true);
   }

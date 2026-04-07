@@ -40,8 +40,8 @@ assignees: ''
 ## 🖥️ Environment / Entorno
 
 - OS: [e.g. Ubuntu 22.04]
-- Java Version: [e.g. Java 25]
-- Project Version / Versión del Proyecto: [e.g. 1.0-SNAPSHOT]
+- Java Versión: [e.g. Java 25]
+- Project Versión / Versión del Proyecto: [e.g. 1.0-SNAPSHOT]
 
 ## 📋 Logs
 

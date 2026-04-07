@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.run.config;
 
+import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

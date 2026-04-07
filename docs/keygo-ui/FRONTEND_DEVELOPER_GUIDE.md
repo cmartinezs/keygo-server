@@ -342,17 +342,17 @@ export type ErrorOrigin =
 // Sub-clasificacion de errores de cliente (solo presente cuando origin === 'CLIENT_REQUEST')
 export type ClientRequestCause =
   | 'USER_INPUT'        // Datos ingresados por el usuario (credenciales, campos de formulario)
-  | 'CLIENT_TECHNICAL'; // Problema de integracion tecnica (cookie faltante, parametro mal construido)
+  | 'CLIENT_TECHNICAL'; // Problema de integración técnica (cookie faltante, parámetro mal construido)
 
 /**
- * Error de validacion en un campo especifico.
+ * Error de validación en un campo específico.
  * Solo aparece en errores 400 INVALID_INPUT cuando se usa @Valid / @Validated en el backend.
  * El campo `rejectedValue` solo aparece en perfiles dev/local.
  */
 export interface FieldValidationError {
-  /** Nombre del campo (o parametro) que fallo validacion */
+  /** Nombre del campo (o parámetro) que falló validación */
   field: string;
-  /** Mensaje de validacion legible (ej: "must not be blank", "must be >= 1") */
+  /** Mensaje de validación legible (ej: "must not be blank", "must be >= 1") */
   message: string;
   /** Valor que fue rechazado — solo presente en perfiles dev/local */
   rejectedValue?: unknown;
@@ -367,15 +367,15 @@ export interface FieldValidationError {
  *      → mostrar clientMessage junto al formulario/campo
  *      → si hay fieldErrors, mostrar cada error inline en su campo
  *  - origin === 'CLIENT_REQUEST' && clientRequestCause === 'CLIENT_TECHNICAL'
- *      → revisar integracion tecnica; NO mostrar como culpa del usuario
+ *      → revisar integración técnica; NO mostrar como culpa del usuario
  *  - origin === 'BUSINESS_RULE'
- *      → mostrar clientMessage; ofrecer accion alternativa si aplica
+ *      → mostrar clientMessage; ofrecer acción alternativa si aplica
  *  - origin === 'SERVER_PROCESSING'
  *      → mostrar mensaje generico de reintento; loguear en monitoreo
  *
  * Nota sobre `layer`: indica la capa arquitectonica donde ocurrio el error.
  *   Valores posibles: 'DOMAIN' | 'USE_CASE' | 'PORT' | 'CONTROLLER' | null
- *   Util para telemetria y diagnostico — no mostrar al usuario final.
+ *   Útil para telemetría y diagnóstico — no mostrar al usuario final.
  */
 export interface ErrorData {
   /** ResponseCode del error (mismo valor que failure.code) */
@@ -383,7 +383,7 @@ export interface ErrorData {
   /**
    * Capa arquitectonica que origino el error.
    * Valores: 'DOMAIN' | 'USE_CASE' | 'PORT' | 'CONTROLLER'
-   * Ausente si el error no proviene de una excepcion tipada KeyGo.
+   * Ausente si el error no proviene de una excepción tipada KeyGo.
    * Util para telemetria — no mostrar al usuario.
    */
   layer?: string;
@@ -393,9 +393,9 @@ export interface ErrorData {
   clientRequestCause?: ClientRequestCause;
   /** Mensaje amigable en espanol listo para mostrar al usuario */
   clientMessage: string;
-  /** Detalle tecnico del error — solo en perfiles dev/local */
+  /** Detalle técnico del error — solo en perfiles dev/local */
   detail?: string;
-  /** Nombre de la clase de excepcion — solo en perfiles dev/local */
+  /** Nombre de la clase de excepción — solo en perfiles dev/local */
   exception?: string;
   /**
    * Errores por campo — solo presente en errores 400 INVALID_INPUT con @Valid / @Validated.
@@ -1975,7 +1975,7 @@ export function ProfilePage() {
 | `oauth_state` | `sessionStorage` — eliminar tras callback | Anti-CSRF |
 | `VITE_KEYGO_BASE` y `VITE_CLIENT_ID` | Variable de build (`.env.local`) | Evita hardcodear URLs/clientes por ambiente |
 
-> **Nota para hosted login central:** si `keygo-ui` solo presta la pantalla de login a otra app, no debe guardar los tokens finales de esa app. En ese patron, `keygo-ui` solo reenvia `code` + `state`; la app origen es quien hace el canje, almacena tokens, programa refresh y ejecuta logout.
+> **Nota para hosted login central:** si `keygo-ui` solo presta la pantalla de login a otra app, no debe guardar los tokens finales de esa app. En ese patrón, `keygo-ui` solo reenvia `code` + `state`; la app origen es quien hace el canje, almacena tokens, programa refresh y ejecuta logout.
 
 ### 12.1. Silent refresh
 
@@ -2628,7 +2628,7 @@ Sin body. Respuesta `200 OK`.
 | Vista de acceso | GET | `/api/v1/tenants/keygo/account/access` | ✅ — Membresías del usuario con roles por app; lista vacía si sin membresías |
 | Conexiones vinculadas | GET | `/api/v1/tenants/keygo/account/connections` | ⏳ F-042 |
 
-### 14.1.1. Patron recomendado: login central de `keygo-ui` para apps de otros tenants
+### 14.1.1. Patrón recomendado: login central de `keygo-ui` para apps de otros tenants
 
 Cuando otra UI (por ejemplo, una SPA de tenant `acme-corp`) quiere reutilizar el login de `keygo-ui`, el flujo recomendado es **hosted login**:
 
@@ -2653,9 +2653,9 @@ Cuando otra UI (por ejemplo, una SPA de tenant `acme-corp`) quiere reutilizar el
 - La `redirect_uri` de callback.
 - El `code_verifier`, el `state` y el almacenamiento final de tokens.
 
-**Regla de implementacion:** si la app destino es `acme-storefront`, el token final debe salir para `tenantSlug=acme-corp` y `client_id=acme-storefront`, aunque la pantalla visual sea la de `keygo-ui`.
+**Regla de implementación:** si la app destino es `acme-storefront`, el token final debe salir para `tenantSlug=acme-corp` y `client_id=acme-storefront`, aunque la pantalla visual sea la de `keygo-ui`.
 
-| Etapa | Método | Endpoint (con `context-path`) | Auth requerida | Ejemplo minimo |
+| Etapa | Método | Endpoint (con `context-path`) | Auth requerida | Ejemplo mínimo |
 |---|---|---|---|---|
 | Inicio de autorización | GET | `/keygo-server/api/v1/tenants/{tenantSlug}/oauth2/authorize` | Público (sin Bearer de borde) | `?client_id=...&redirect_uri=...&scope=openid%20profile&response_type=code&code_challenge=...&code_challenge_method=S256&state=...` |
 | Login credenciales | POST | `/keygo-server/api/v1/tenants/{tenantSlug}/account/login` | Público (usa sesión HTTP previa) | body `{ "emailOrUsername": "...", "password": "..." }` + cookie `JSESSIONID` |
@@ -2730,28 +2730,28 @@ Ejemplo NOK — `POST /oauth2/token` por falla de servidor:
 
 ### 14.1.2. Playbook operativo: errores OAuth2 con `ErrorData`
 
-Este playbook define una regla unica para interpretar respuestas NOK en `/oauth2/authorize`, `/account/login` y `/oauth2/token`.
+Este playbook define una regla única para interpretar respuestas NOK en `/oauth2/authorize`, `/account/login` y `/oauth2/token`.
 
 Regla madre:
 - Si existe `data.clientMessage`, ese es el mensaje principal para UI.
-- `failure.code` se usa para telemetria y branching tecnico.
+- `failure.code` se usa para telemetria y branching técnico.
 - `origin` + `clientRequestCause` define quien debe corregir el problema.
 
-#### Matriz de decision UI
+#### Matriz de decisión UI
 
-| `origin` | `clientRequestCause` | Responsable | Accion UX recomendada |
+| `origin` | `clientRequestCause` | Responsable | Acción UX recomendada |
 |---|---|---|---|
 | `CLIENT_REQUEST` | `USER_INPUT` | Usuario final | Mostrar error inline en formulario/campo y permitir reintento inmediato |
-| `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Frontend/Integracion | Mostrar mensaje neutro, loguear metadata tecnica y corregir integracion |
+| `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | Frontend/Integración | Mostrar mensaje neutro, loguear metadata técnica y corregir integración |
 | `BUSINESS_RULE` | — | Dominio/negocio | Mostrar `clientMessage` + CTA contextual (ej. verificar email, contactar admin) |
 | `SERVER_PROCESSING` | — | Backend/infra | Mostrar mensaje de reintento, no culpar al usuario, reportar incidente |
 
-#### Accion por etapa del flujo
+#### Acción por etapa del flujo
 
-| Endpoint | `failure.code` frecuentes | Lectura de `ErrorData` | Accion inmediata en UI | Accion tecnica |
+| Endpoint | `failure.code` frecuentes | Lectura de `ErrorData` | Acción inmediata en UI | Acción técnica |
 |---|---|---|---|---|
-| `GET /oauth2/authorize` | `RESOURCE_NOT_FOUND`, `INVALID_INPUT`, `BUSINESS_RULE_VIOLATION` | `CLIENT_REQUEST/CLIENT_TECHNICAL` = problema de integracion o parametros; `BUSINESS_RULE` = bloqueo de negocio | Mostrar `clientMessage`; bloquear submit de login hasta resolver | Revisar `tenantSlug`, `client_id`, `redirect_uri`, query params OAuth |
-| `POST /account/login` | `AUTHENTICATION_REQUIRED`, `INVALID_INPUT`, `EMAIL_NOT_VERIFIED`, `BUSINESS_RULE_VIOLATION` | `USER_INPUT` = credenciales/datos de usuario; `CLIENT_TECHNICAL` = sesion/cookies; `BUSINESS_RULE` = regla de dominio | `USER_INPUT`: inline en formulario; `BUSINESS_RULE`: mensaje + CTA | Verificar `credentials: 'include'`, presencia de `JSESSIONID`, secuencia correcta `/authorize` -> `/account/login` |
+| `GET /oauth2/authorize` | `RESOURCE_NOT_FOUND`, `INVALID_INPUT`, `BUSINESS_RULE_VIOLATION` | `CLIENT_REQUEST/CLIENT_TECHNICAL` = problema de integración o parámetros; `BUSINESS_RULE` = bloqueo de negocio | Mostrar `clientMessage`; bloquear submit de login hasta resolver | Revisar `tenantSlug`, `client_id`, `redirect_uri`, query params OAuth |
+| `POST /account/login` | `AUTHENTICATION_REQUIRED`, `INVALID_INPUT`, `EMAIL_NOT_VERIFIED`, `BUSINESS_RULE_VIOLATION` | `USER_INPUT` = credenciales/datos de usuario; `CLIENT_TECHNICAL` = sesión/cookies; `BUSINESS_RULE` = regla de dominio | `USER_INPUT`: inline en formulario; `BUSINESS_RULE`: mensaje + CTA | Verificar `credentials: 'include'`, presencia de `JSESSIONID`, secuencia correcta `/authorize` -> `/account/login` |
 | `POST /oauth2/token` | `INVALID_INPUT`, `INSUFFICIENT_PERMISSIONS`, `OPERATION_FAILED` | `CLIENT_REQUEST` suele indicar code/PKCE/redirect_uri invalidos; `SERVER_PROCESSING` indica falla interna | Reiniciar flujo completo desde login | No reusar `authorization_code`; regenerar PKCE y repetir flujo |
 
 #### Snippet recomendado (clasificador de errores)
@@ -2789,7 +2789,7 @@ export function resolveAuthError(stage: AuthStage, response: BaseResponse<ErrorD
     return {
       userMessage,
       uiAction: stage === 'TOKEN' ? 'RESTART_OAUTH_FLOW' : 'TOAST',
-      technicalAction: 'Revisar cookies/sesion, parametros OAuth y orden de llamadas',
+      technicalAction: 'Revisar cookies/sesión, parámetros OAuth y orden de llamadas',
     };
   }
 
@@ -2800,18 +2800,18 @@ export function resolveAuthError(stage: AuthStage, response: BaseResponse<ErrorD
   return {
     userMessage,
     uiAction: stage === 'TOKEN' ? 'RESTART_OAUTH_FLOW' : 'RETRY_LATER',
-    technicalAction: 'Monitorear backend y reintentar segun politica de la UI',
+    technicalAction: 'Monitorear backend y reintentar según política de la UI',
   };
 }
 ```
 
-#### Runbook corto para incidentes en autenticacion
+#### Runbook corto para incidentes en autenticación
 
 - Si falla `TOKEN`, reiniciar flujo completo (`/authorize` -> `/account/login` -> `/oauth2/token`).
-- Si `origin=CLIENT_REQUEST` y `clientRequestCause=CLIENT_TECHNICAL`, no culpar al usuario: revisar integracion.
+- Si `origin=CLIENT_REQUEST` y `clientRequestCause=CLIENT_TECHNICAL`, no culpar al usuario: revisar integración.
 - Si `origin=BUSINESS_RULE`, mostrar CTA contextual y no ocultar el error con mensaje generico.
 - Loguear siempre: `failure.code`, `data.origin`, `data.clientRequestCause`, `tenantSlug`, `client_id`.
-- Mantener esta seccion alineada con `docs/api/AUTH_FLOW.md` (seccion "Manejo de errores") y con `§13.2` de esta guia.
+- Mantener esta sección alineada con `docs/api/AUTH_FLOW.md` (sección "Manejo de errores") y con `§13.2` de esta guia.
 
 Reglas rápidas de interpretación en frontend:
 - `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → error del dato ingresado por el usuario.
@@ -3068,7 +3068,7 @@ Reglas rápidas de interpretación en frontend:
 | Listar facturas plataforma | GET | `/api/v1/platform/billing/invoices` | Bearer KEYGO_ADMIN / KEYGO_TENANT_ADMIN | `PLATFORM_INVOICES_RETRIEVED` | ✅ |
 
 > **Nota:** Los endpoints de plataforma usan `clientAppId IS NULL` para filtrar planes sin contexto de app.
-> La autenticación se obtiene via `GET /platform/oauth2/authorize` → `POST /platform/account/login` → `POST /platform/oauth2/token`.
+> La autenticación se obtiene vía `GET /platform/oauth2/authorize` → `POST /platform/account/login` → `POST /platform/oauth2/token`.
 
 **Query param en listado:**
 
@@ -3347,7 +3347,7 @@ const resendCode = (contractId: string) =>
 > ⚠️ **Semántica de path variables (billing model v2):** en estos endpoints, `{tenantSlug}` es el slug del
 > tenant del **suscriptor** (creado durante la activación del contrato, p. ej. `acme-corp`), y `{clientId}` es
 > el `client_id` global de la app del **proveedor** (p. ej. `keygo-platform`). El suscriptor se identifica
-> internamente via `contractorId` — no via `subscriberTenantId` / `subscriberTenantUserId`.
+> internamente vía `contractorId` — no vía `subscriberTenantId` / `subscriberTenantUserId`.
 
 | Caso de uso | Método | Endpoint | Auth | `ResponseCode` | Estado |
 |---|---|---|---|---|---|

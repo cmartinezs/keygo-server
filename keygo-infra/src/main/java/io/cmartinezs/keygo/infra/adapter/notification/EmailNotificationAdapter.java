@@ -5,21 +5,18 @@ import io.cmartinezs.keygo.app.user.port.notification.EmailNotificationException
 import io.cmartinezs.keygo.app.user.port.notification.exception.EmailSmtpException;
 import io.cmartinezs.keygo.app.user.port.notification.exception.EmailTemplateException;
 import io.cmartinezs.keygo.app.user.port.notification.exception.EmailValidationException;
-import io.cmartinezs.keygo.infra.adapter.notification.strategy.ContractVerificationStrategy;
-import io.cmartinezs.keygo.infra.adapter.notification.strategy.EmailValidationStrategy;
-import io.cmartinezs.keygo.infra.adapter.notification.strategy.MembershipApprovedStrategy;
-import io.cmartinezs.keygo.infra.adapter.notification.strategy.PasswordRecoveryStrategy;
-import io.cmartinezs.keygo.infra.adapter.notification.strategy.PasswordResetCodeStrategy;
-import io.cmartinezs.keygo.infra.adapter.notification.strategy.TemporaryPasswordStrategy;
+import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties;
+import io.cmartinezs.keygo.infra.config.KeyGoEmailProperties.EmailTypeConfig;
 import io.cmartinezs.keygo.infra.config.KeyGoUiProperties;
+import io.cmartinezs.keygo.infra.mail.ConfigurableEmailStrategy;
 import io.cmartinezs.keygo.infra.mail.EmailStrategy;
 import io.cmartinezs.keygo.infra.mail.SendEmailCommand;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,11 +30,20 @@ import org.thymeleaf.context.Context;
 /**
  * Adaptador para envío de emails usando Thymeleaf + JavaMail.
  *
- * <p>Flujo: 1. Recibe SendEmailCommand 2. Resuelve Strategy basado en emailType 3. Renderiza
- * template Thymeleaf con variables 4. Crea MimeMessage y lo envía por SMTP
+ * <p>Los tipos de email se resuelven desde la configuración YAML ({@code keygo.email.types}) — no
+ * se necesitan clases Strategy individuales. Para agregar un nuevo tipo basta con agregar la entrada
+ * en YAML y el template HTML correspondiente.
  *
- * <p>Responsabilidades: - Resolver strategy correcta - Renderizar templates - Enviar emails vía
- * SMTP - Logging y error handling
+ * <p>Flujo:
+ *
+ * <ol>
+ *   <li>Recibe tipo + variables vía {@link #sendEmail}
+ *   <li>Resuelve configuración del tipo desde {@link KeyGoEmailProperties}
+ *   <li>Crea {@link ConfigurableEmailStrategy} con la configuración
+ *   <li>Genera links si el tipo los define (usando {@link KeyGoUiProperties})
+ *   <li>Renderiza template Thymeleaf con variables + defaults + links
+ *   <li>Envía MimeMessage vía SMTP
+ * </ol>
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -46,6 +52,63 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
   private final TemplateEngine emailTemplateEngine;
   private final JavaMailSender mailSender;
   private final KeyGoUiProperties uiProperties;
+  private final KeyGoEmailProperties emailProperties;
+
+  private static final String TEMPLATE_PREFIX = "templates/email/";
+  private static final String TEMPLATE_SUFFIX = ".html";
+
+  /**
+   * Validación fail-fast al arranque: verifica que cada tipo de email configurado en YAML tenga
+   * subject, template y que el archivo .html exista en el classpath. Evita descubrir templates
+   * faltantes en runtime (cuando un usuario espera recibir un email).
+   */
+  @PostConstruct
+  void validateTemplatesExist() {
+    var types = emailProperties.getTypes();
+    if (types == null || types.isEmpty()) {
+      log.warn(
+          "No email types configured in keygo.email.types — email sending will fail at runtime");
+      return;
+    }
+
+    for (var entry : types.entrySet()) {
+      var emailType = entry.getKey();
+      var config = entry.getValue();
+
+      if (config.getTemplate() == null || config.getTemplate().isBlank()) {
+        throw new IllegalStateException(
+            "Email type '" + emailType + "' has no template configured in keygo.email.types");
+      }
+      if (config.getSubject() == null || config.getSubject().isBlank()) {
+        throw new IllegalStateException(
+            "Email type '" + emailType + "' has no subject configured in keygo.email.types");
+      }
+
+      // Validar que el archivo .html del template base existe en classpath
+      assertTemplateFileExists(emailType, config.getTemplate());
+
+      // Validar templates i18n si están configurados
+      for (var i18nEntry : config.getTemplatesI18n().entrySet()) {
+        assertTemplateFileExists(
+            emailType + " [i18n:" + i18nEntry.getKey() + "]", i18nEntry.getValue());
+      }
+
+      log.info("Email type registered: {} → template={}", emailType, config.getTemplate());
+    }
+  }
+
+  private void assertTemplateFileExists(String emailType, String templateName) {
+    var resourcePath = TEMPLATE_PREFIX + templateName + TEMPLATE_SUFFIX;
+    var resource = getClass().getClassLoader().getResource(resourcePath);
+    if (resource == null) {
+      throw new IllegalStateException(
+          "Email template file not found for type '"
+              + emailType
+              + "': expected classpath resource '"
+              + resourcePath
+              + "'");
+    }
+  }
 
   @Override
   public void sendEmail(
@@ -54,7 +117,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
       String recipientName,
       Map<String, Object> templateVariables) {
     try {
-      final var cmd =
+      var cmd =
           SendEmailCommand.builder()
               .emailType(emailType)
               .recipientEmail(recipientEmail)
@@ -71,12 +134,20 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
     }
   }
 
-  /**
-   * Método interno que envía el email usando SendEmailCommand.
-   *
-   * @param cmd Comando con todos los detalles del email
-   * @throws EmailNotificationException o sub-excepciones si falla el envío
-   */
+  private Map<String, String> generateLinks(String emailType) {
+    var typeConfig = emailProperties.getType(emailType);
+    if (typeConfig == null || typeConfig.getLinks().isEmpty()) {
+      return Map.of();
+    }
+
+    return typeConfig.getLinks().entrySet().stream()
+        .filter(e -> uiProperties.getPaths().containsKey(e.getValue()))
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                e -> generateLink(uiProperties.getPaths().get(e.getValue()))));
+  }
+
   private void sendEmailInternal(SendEmailCommand cmd) throws EmailNotificationException {
     try {
       log.debug(
@@ -84,19 +155,23 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
           cmd.getEmailType(),
           cmd.getRecipientEmail());
 
-      // 1. Resolver estrategia basada en tipo de email
-      final var strategy = resolveStrategy(cmd);
+      var strategy = resolveStrategy(cmd);
 
-      // 2. Renderizar template con variables
-      final var htmlContent = renderTemplate(strategy);
+      // Inyectar links generados como variables de template
+      var links = generateLinks(cmd.getEmailType());
+      if (!links.isEmpty()) {
+        var enrichedVars = new HashMap<>(cmd.getVariables());
+        links.forEach(enrichedVars::putIfAbsent);
+        cmd = cmd.toBuilder().variables(enrichedVars).build();
+        strategy = resolveStrategy(cmd);
+      }
 
-      // 3. Crear y enviar MimeMessage
+      var htmlContent = renderTemplate(strategy);
       sendMimeMessage(strategy, htmlContent);
 
       log.info(
           "Email sent successfully: type={}, to={}", cmd.getEmailType(), cmd.getRecipientEmail());
     } catch (EmailNotificationException e) {
-      // Re-throw específicas para que se propaguen con su tipo exacto
       log.error(
           "Email notification failed: type={}, to={}, cause={}",
           cmd.getEmailType(),
@@ -105,7 +180,6 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
           e);
       throw e;
     } catch (Exception e) {
-      // Catch-all para excepciones inesperadas
       log.error(
           "Unexpected error while sending email: type={}, to={}",
           cmd.getEmailType(),
@@ -116,48 +190,40 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
   }
 
   /**
-   * Resuelve la estrategia correcta basada en emailType.
+   * Resuelve la estrategia leyendo la configuración YAML del tipo de email.
    *
    * @param cmd comando con emailType
-   * @return EmailStrategy correspondiente
-   * @throws EmailNotificationException si emailType no es soportado
+   * @return EmailStrategy configurada desde YAML
+   * @throws EmailNotificationException si el tipo no está registrado en YAML
    */
   private EmailStrategy resolveStrategy(SendEmailCommand cmd) throws EmailNotificationException {
-    return switch (cmd.getEmailType()) {
-      case "email-validation" -> new EmailValidationStrategy(cmd);
-      case "password-recovery" -> new PasswordRecoveryStrategy(cmd);
-      case "contract-verification" -> new ContractVerificationStrategy(cmd);
-      case "temporary-password" -> new TemporaryPasswordStrategy(cmd);
-      case "password-reset-code" -> new PasswordResetCodeStrategy(cmd);
-      case "membership-approved" -> new MembershipApprovedStrategy(cmd);
-      default -> throw new EmailNotificationException("Unknown email type: " + cmd.getEmailType());
-    };
+    // Lookup por key en el mapa YAML; fallback a emailType con normalización (e.g., "email-validation" → "email-verification")
+    var typeConfig = emailProperties.getType(cmd.getEmailType());
+
+    // Backward compat: "email-validation" era el nombre legacy
+    if (typeConfig == null && "email-validation".equals(cmd.getEmailType())) {
+      typeConfig = emailProperties.getType("email-verification");
+    }
+
+    if (typeConfig == null) {
+      throw new EmailNotificationException(
+          "Unknown email type: '"
+              + cmd.getEmailType()
+              + "'. Register it in keygo.email.types in application.yml");
+    }
+
+    return new ConfigurableEmailStrategy(
+        cmd, typeConfig, emailProperties, LocaleContextHolder.getLocale());
   }
 
-  /**
-   * Renderiza el template Thymeleaf usando las variables de la estrategia.
-   *
-   * @param strategy estrategia que define template y variables
-   * @return HTML renderizado
-   * @throws EmailTemplateException si falla la renderización
-   */
   private String renderTemplate(EmailStrategy strategy) throws EmailTemplateException {
     try {
-      final var context = new Context(LocaleContextHolder.getLocale());
-
-      strategy
-          .getCommand()
-          .getVariables()
-          .forEach((key, value) -> log.debug("Template variable: {}={}", key, value));
-
-      // Agregar todas las variables de la estrategia
+      var context = new Context(LocaleContextHolder.getLocale());
       context.setVariables(strategy.getTemplateVariables());
 
-      // Renderizar template
-      final var html = emailTemplateEngine.process(strategy.getTemplateName(), context);
+      var html = emailTemplateEngine.process(strategy.getTemplateName(), context);
 
       log.debug("Template rendered successfully: {}", strategy.getTemplateName());
-
       return html;
     } catch (EmailTemplateException e) {
       throw e;
@@ -166,35 +232,22 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
     }
   }
 
-  /**
-   * Crea y envía MimeMessage con HTML renderizado.
-   *
-   * @param strategy estrategia (contiene From, Subject)
-   * @param htmlContent HTML renderizado
-   * @throws EmailSmtpException si falla el envío SMTP
-   * @throws EmailValidationException si el email del destinatario es inválido
-   */
   private void sendMimeMessage(EmailStrategy strategy, String htmlContent)
       throws EmailSmtpException, EmailValidationException {
     try {
-      // Validar email del destinatario antes de intentar enviar
-      final var recipientEmail = strategy.getCommand().getRecipientEmail();
+      var recipientEmail = strategy.getCommand().getRecipientEmail();
       if (recipientEmail == null || recipientEmail.isBlank()) {
         throw new EmailValidationException("null or blank");
       }
 
-      final var mimeMessage = mailSender.createMimeMessage();
-      final var helper = new MimeMessageHelper(mimeMessage, true, "UTF-8"); // true = multipart
+      var mimeMessage = mailSender.createMimeMessage();
+      var helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-      // Configurar header
       helper.setFrom(strategy.getFromAddress(), strategy.getFromName());
       helper.setTo(recipientEmail);
       helper.setSubject(strategy.getSubject());
+      helper.setText(htmlContent, true);
 
-      // Configurar content (HTML)
-      helper.setText(htmlContent, true); // true = HTML mode
-
-      // Enviar
       mailSender.send(mimeMessage);
     } catch (EmailValidationException e) {
       throw e;
@@ -205,22 +258,8 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
     }
   }
 
-  @Override
-  public Map<String, String> generateLinks(String emailType) {
-    var paths =
-        switch (emailType) {
-          case "password-reset-code" -> Set.of("reset-password");
-          default -> throw new IllegalStateException("Unexpected value: " + emailType);
-        };
-
-    return paths.stream()
-        .collect(
-            Collectors.toMap(
-                Function.identity(), key -> generateLink(uiProperties.getPaths().get(key))));
-  }
-
   private String generateLink(KeyGoUiProperties.UiPath uiPath) {
-    final var uriBuilder =
+    var uriBuilder =
         UriComponentsBuilder.fromUri(URI.create(uiProperties.getBaseUrl())).path(uiPath.getRoute());
     var queryParams = uiPath.getQueryParams();
     if (queryParams != null && !queryParams.isEmpty()) {

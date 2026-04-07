@@ -83,11 +83,11 @@ public class PlatformAuthController {
 **Archivo a crear:** `keygo-app/src/main/java/io/cmartinezs/keygo/app/platform/usecase/IssuePlatformTokensUseCase.java`
 
 **Responsabilidades:**
-1. Buscar `platform_user_roles` del usuario via `PlatformUserRoleRepositoryPort.findByPlatformUserId()`
+1. Buscar `platform_user_roles` del usuario vía `PlatformUserRoleRepositoryPort.findByPlatformUserId()`
 2. Construir lista de role codes para el JWT
 3. Llamar a `TokenSignerPort` para emitir access token con claims: `sub=platformUser.id`, `email=platformUser.email`, `roles=[...]`, `scope=openid profile platform`
-4. Crear sesión via `SessionRepositoryPort.openPlatformSession()` (sin `client_app_id`)
-5. Crear refresh token via `RefreshTokenRepositoryPort.create()`
+4. Crear sesión vía `SessionRepositoryPort.openPlatformSession()` (sin `client_app_id`)
+5. Crear refresh token vía `RefreshTokenRepositoryPort.create()`
 6. Retornar `IssuePlatformTokensResult(accessToken, refreshToken, expiresIn)`
 
 **Command:** `IssuePlatformTokensCommand(platformUser: PlatformUser)`

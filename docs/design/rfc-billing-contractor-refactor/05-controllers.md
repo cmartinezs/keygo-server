@@ -88,7 +88,7 @@ El flujo es agnóstico al tipo de contrato (plataforma vs app).
 ### Sin cambios funcionales
 
 Este controller sigue sirviendo suscripciones de **app** (scoped por tenant/clientApp).
-La resolución de contractor via `tenant.getContractorId()` sigue siendo válida
+La resolución de contractor vía `tenant.getContractorId()` sigue siendo válida
 para suscripciones de app (el contractor creó ese tenant).
 
 Para suscripciones de **plataforma**, el nuevo `PlatformBillingController` las maneja.

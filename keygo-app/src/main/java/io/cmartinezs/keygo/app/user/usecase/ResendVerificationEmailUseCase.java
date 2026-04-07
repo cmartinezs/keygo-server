@@ -20,6 +20,7 @@ import io.cmartinezs.keygo.domain.user.model.User;
 
 import java.security.SecureRandom;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 /**
  * Use case: resend a verification email to a pending user.
@@ -99,7 +100,11 @@ public class ResendVerificationEmailUseCase {
         .upsertIfExpiredOrAbsent(user.getId(), VerificationPurpose.EMAIL_VERIFICATION, newVerification);
 
     // 4. Send whichever code is active (same or newly generated)
-    emailNotificationPort.sendVerificationEmail(email.value(), user.getUsername().value(), active.getCode());
+    emailNotificationPort.sendEmail(
+        EmailNotificationPort.TYPE_EMAIL_VERIFICATION,
+        email.value(), user.getUsername().value(),
+        Map.of("userName", user.getUsername().value(), "verificationCode", active.getCode(),
+            "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
   }
 
   private String generateCode() {

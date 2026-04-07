@@ -87,7 +87,7 @@ classDiagram
         UUID contractorId
     }
 
-    PlatformUser "1" --> "0..1" TenantUser : linked via platform_user_id (nullable)
+    PlatformUser "1" --> "0..1" TenantUser : linked vía platform_user_id (nullable)
     Contractor "1" --> "1" TenantUser : is represented by (UNIQUE)
     Contractor "1" --> "0..*" AppContract : holds (solo 1 ACTIVE)
     Contractor "1" --> "0..*" Tenant : creates within plan limits
@@ -110,7 +110,7 @@ AppContract → AppSubscription → Invoice
 | Propiedad | Descripción |
 |---|---|
 | Identidad global | Tiene un registro `PlatformUser` en `platform_users` (identidad global KeyGo). |
-| Identidad en tenant proveedor | Tiene una cuenta (`TenantUser`) **en el tenant del proveedor** (p. ej. tenant `keygo`), vinculada al `PlatformUser` via `platform_user_id`. |
+| Identidad en tenant proveedor | Tiene una cuenta (`TenantUser`) **en el tenant del proveedor** (p. ej. tenant `keygo`), vinculada al `PlatformUser` vía `platform_user_id`. |
 | Relación 1:1 | `contractors.tenant_user_id` tiene constraint `UNIQUE` — un contratante, una cuenta. |
 | Historial de contratos | Puede tener muchos contratos a lo largo del tiempo. |
 | Contrato vigente | **Solo uno puede estar `ACTIVE`** en cualquier momento. |
@@ -365,7 +365,7 @@ sequenceDiagram
 |---|---|
 | `PlatformUser` | Identidad global del contratante en KeyGo. Si no existía, se crea con `status → ACTIVE`. Si ya existía (upgrade), se reutiliza. |
 | `platform_user_roles` | Asignación del rol `KEYGO_TENANT_ADMIN` al `PlatformUser` (además del `KEYGO_USER` base). |
-| `TenantUser` (tenant proveedor) | Cuenta del contratante. `status → ACTIVE`. Se vincula al `PlatformUser` via `platform_user_id`. |
+| `TenantUser` (tenant proveedor) | Cuenta del contratante. `status → ACTIVE`. Se vincula al `PlatformUser` vía `platform_user_id`. |
 | `Contractor` | Entidad de billing 1:1 con el `TenantUser`. `status → ACTIVE`. |
 | `AppSubscription` | Suscripción activa vinculada a `contractor_id`. |
 | `Invoice` | Primera factura del período. |

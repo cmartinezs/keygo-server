@@ -8,7 +8,7 @@
 
 ### Supported Versions
 
-| Version | Supported          |
+| Versión | Supported          |
 | ------- | ------------------ |
 | 1.0.x   | :white_check_mark: |
 
@@ -96,7 +96,7 @@ Las vulnerabilidades de seguridad deben ser reportadas de forma privada.
 #### 2. Envía un reporte privado
 
 Contacta al mantenedor directamente:
-- **Email**: Crea un issue privado en GitHub o contacta via GitHub
+- **Email**: Crea un issue privado en GitHub o contacta vía GitHub
 - **Asunto**: [SECURITY] Descripción breve
 
 #### 3. Incluye en tu reporte

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -83,8 +85,8 @@ class ForgotPasswordUseCaseTest {
     // Then
     assertThat(result.sent()).isTrue();
     verify(tokenRepositoryPort).upsert(any(VerificationCode.class));
-    verify(emailNotificationPort).sendPasswordRecoveryEmail(
-        anyString(), anyString(), anyString(), anyString());
+    verify(emailNotificationPort).sendEmail(
+        eq(EmailNotificationPort.TYPE_PASSWORD_RECOVERY), anyString(), anyString(), any(Map.class));
   }
 
   @Test
@@ -99,7 +101,7 @@ class ForgotPasswordUseCaseTest {
     // Then — must return success silently (no error, no email)
     assertThat(result.sent()).isTrue();
     verify(tokenRepositoryPort, never()).upsert(any());
-    verify(emailNotificationPort, never()).sendPasswordRecoveryEmail(any(), any(), any(), any());
+    verify(emailNotificationPort, never()).sendEmail(any(), any(), any(), any());
   }
 
   @Test

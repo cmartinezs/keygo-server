@@ -132,7 +132,7 @@ Clarificar la estructura **completa** de relaciones entre:
 | `tenant_users` | `memberships` | 1:N | tenant_user_id | 1TU → NM | ✅ YES | ❌ NO |
 | `client_apps` | `memberships` | 1:N | client_app_id | 1CA → NM | ✅ YES | ❌ NO |
 | `client_apps` | `app_roles` | 1:N | client_app_id | 1CA → NAR | ✅ YES | ❌ NO |
-| `memberships` | `app_roles` | N:N | (via membership_roles o app_role_id) | NM → NAR | ✅ YES | ❌ NO |
+| `memberships` | `app_roles` | N:N | (vía membership_roles o app_role_id) | NM → NAR | ✅ YES | ❌ NO |
 
 **Leyenda:**
 - U = User

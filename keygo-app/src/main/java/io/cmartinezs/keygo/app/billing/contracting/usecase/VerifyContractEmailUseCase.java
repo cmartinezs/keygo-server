@@ -19,6 +19,7 @@ import io.cmartinezs.keygo.domain.user.model.Username;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -95,8 +96,10 @@ public class VerifyContractEmailUseCase {
 
           PlatformUser saved = platformUserRepo.save(newUser);
 
-          emailNotification.sendTemporaryPasswordEmail(
-              contractorEmail, generatedUsername, rawPassword);
+          emailNotification.sendEmail(
+              EmailNotificationPort.TYPE_TEMPORARY_PASSWORD,
+              contractorEmail, generatedUsername,
+              Map.of("userName", generatedUsername, "temporaryPassword", rawPassword));
 
           return saved;
         });

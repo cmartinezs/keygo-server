@@ -1,8 +1,8 @@
-# Flujo de Autenticacion — KeyGo Server
+# Flujo de Autenticación — KeyGo Server
 
-> Guia de referencia de los flujos de autenticacion implementados en KeyGo Server: OAuth2 PKCE de plataforma (KeyGo UI) y OAuth2/OIDC para aplicaciones de tenant (SPA, mobile, server-to-server).
+> Guia de referencia de los flujos de autenticación implementados en KeyGo Server: OAuth2 PKCE de plataforma (KeyGo UI) y OAuth2/OIDC para aplicaciones de tenant (SPA, mobile, server-to-server).
 >
-> Fecha de actualizacion: **2026-04-08** | Estado: **Platform PKCE + Fases 5, 6, 7, 8 y 9b implementadas**
+> Fecha de actualización: **2026-04-08** | Estado: **Platform PKCE + Fases 5, 6, 7, 8 y 9b implementadas**
 
 ---
 
@@ -10,7 +10,7 @@
 
 1. [Resumen ejecutivo](#resumen-ejecutivo)
 2. [Prerrequisitos del sistema](#prerrequisitos-del-sistema)
-3. [Seguridad de endpoints (publico vs protegido)](#seguridad-de-endpoints-publico-vs-protegido)
+3. [Seguridad de endpoints (público vs protegido)](#seguridad-de-endpoints-público-vs-protegido)
 4. [Comparativa de flujos: plataforma vs tenant app](#comparativa-de-flujos-plataforma-vs-tenant-app)
 5. [Flujo de plataforma: OAuth2 PKCE (KeyGo UI)](#flujo-de-plataforma-oauth2-pkce-keygo-ui)
 6. [Flujo de tenant app: Authorization Code + PKCE](#flujo-de-tenant-app-authorization-code--pkce)
@@ -24,7 +24,7 @@
 
 ## Resumen ejecutivo
 
-KeyGo Server implementa **dos flujos de autenticacion** independientes:
+KeyGo Server implementa **dos flujos de autenticación** independientes:
 
 | Flujo | Contexto | Mecanismo | Endpoints base |
 |---|---|---|---|
@@ -33,28 +33,28 @@ KeyGo Server implementa **dos flujos de autenticacion** independientes:
 
 ### Flujo de plataforma (KeyGo UI)
 
-OAuth 2.0 Authorization Code + PKCE completo: el flujo principal para KeyGo UI sigue los mismos 4 pasos que el flujo de tenant app (authorize → login → token exchange). La diferencia es que **no requiere tenant ni client_app** — valida redirect URIs contra una allowlist de configuracion. Adicionalmente, existe un endpoint de **direct-login** (`POST /platform/account/direct-login`) como alternativa para API/CLI que emite tokens sin PKCE ni sesion HTTP. La identidad proviene de `platform_users` (global, no acotada a tenant). Soporta rotacion de refresh token y revocacion.
+OAuth 2.0 Authorization Code + PKCE completo: el flujo principal para KeyGo UI sigue los mismos 4 pasos que el flujo de tenant app (authorize → login → token exchange). La diferencia es que **no requiere tenant ni client_app** — valida redirect URIs contra una allowlist de configuración. Adicionalmente, existe un endpoint de **direct-login** (`POST /platform/account/direct-login`) como alternativa para API/CLI que emite tokens sin PKCE ni sesión HTTP. La identidad proviene de `platform_users` (global, no acotada a tenant). Soporta rotación de refresh token y revocación.
 
 ### Flujo de tenant app (OAuth2/OIDC)
 
-Flujo OAuth 2.0 Authorization Code + PKCE para usuarios finales de aplicaciones por tenant. Tambien soporta refresh token rotation y client_credentials (M2M). La identidad proviene de `tenant_users` (acotada a un tenant especifico).
+Flujo OAuth 2.0 Authorization Code + PKCE para usuarios finales de aplicaciones por tenant. También soporta refresh token rotation y client_credentials (M2M). La identidad proviene de `tenant_users` (acotada a un tenant especifico).
 
 | Caracteristica | Plataforma | Tenant App |
 |---|---|---|
 | Authorization Code + PKCE | ✅ Implementado (flujo principal) | ✅ Implementado |
-| Login directo (email/password → JWT) | ✅ Implementado (API/CLI via `/direct-login`) | — |
-| Login con sesion HTTP intermedia (JSESSIONID) | ✅ Implementado (entre `/authorize` y `/login`) | ✅ Implementado |
+| Login directo (email/password → JWT) | ✅ Implementado (API/CLI vía `/direct-login`) | — |
+| Login con sesión HTTP intermedia (JSESSIONID) | ✅ Implementado (entre `/authorize` y `/login`) | ✅ Implementado |
 | Access token JWT RS256 | ✅ Implementado | ✅ Implementado |
 | ID token (OIDC) | ✅ Implementado | ✅ Implementado |
-| Refresh token (emision + rotacion) | ✅ Implementado | ✅ Implementado |
+| Refresh token (emision + rotación) | ✅ Implementado | ✅ Implementado |
 | Client Credentials (M2M) | — | ✅ Implementado |
-| Revocacion de token (`/oauth2/revoke`) | ✅ Implementado | ✅ Implementado |
+| Revocación de token (`/oauth2/revoke`) | ✅ Implementado | ✅ Implementado |
 | OIDC Discovery + JWKS + UserInfo | — | ✅ Implementado |
 
 Notas relevantes del estado actual:
-- Existen **dos contextos de identidad**: `platform_users` (global) y `tenant_users` (por tenant). Ambas tablas pueden estar vinculadas via `tenant_users.platform_user_id`.
+- Existen **dos contextos de identidad**: `platform_users` (global) y `tenant_users` (por tenant). Ambas tablas pueden estar vinculadas vía `tenant_users.platform_user_id`.
 - El `grant_type` en `POST /oauth2/token` (tanto plataforma como tenant) es opcional; si no se envia, el backend asume `authorization_code`.
-- **Ambos flujos usan PKCE completo** como mecanismo principal. La unica diferencia clave es que el flujo de plataforma no requiere validacion de tenant/client_app.
+- **Ambos flujos usan PKCE completo** como mecanismo principal. La única diferencia clave es que el flujo de plataforma no requiere validación de tenant/client_app.
 - `POST /platform/account/direct-login` es la alternativa sin PKCE para clientes API/CLI.
 - `POST /account/login` (tanto plataforma como tenant) **retorna el authorization code en JSON** (`BaseResponse<LoginData>`), no hace redirect `302`.
 - El `context-path` activo es `/keygo-server`; todas las URLs deben incluirlo.
@@ -65,14 +65,14 @@ En ambos flujos hay **tres actores distintos** que conviene no mezclar:
 
 | Actor | Rol en el flujo | Ejemplos en KeyGo actual |
 |---|---|---|
-| **Usuario final** | Persona que toma decisiones y captura datos | Hace clic en "Iniciar sesion", escribe usuario/password, espera entrar a la app |
-| **Cliente SPA/Mobile** | La app frontend que orquesta el flujo | *Plataforma:* genera PKCE, llama `/platform/oauth2/authorize`, conserva `JSESSIONID`, llama `/platform/account/login`, canjea code via `/platform/oauth2/token`, renueva tokens. *API/CLI:* llama `/platform/account/direct-login`, guarda tokens, renueva via `/platform/oauth2/token`. *Tenant app:* genera PKCE, llama `/authorize`, conserva `JSESSIONID`, llama `/account/login`, canjea code, renueva tokens |
+| **Usuario final** | Persona que toma decisiones y captura datos | Hace clic en "Iniciar sesión", escribe usuario/password, espera entrar a la app |
+| **Cliente SPA/Mobile** | La app frontend que orquesta el flujo | *Plataforma:* genera PKCE, llama `/platform/oauth2/authorize`, conserva `JSESSIONID`, llama `/platform/account/login`, canjea code vía `/platform/oauth2/token`, renueva tokens. *API/CLI:* llama `/platform/account/direct-login`, guarda tokens, renueva vía `/platform/oauth2/token`. *Tenant app:* genera PKCE, llama `/authorize`, conserva `JSESSIONID`, llama `/account/login`, canjea code, renueva tokens |
 | **KeyGo Server** | Backend que valida y emite artefactos | Valida credenciales, emite tokens JWT, mantiene sesiones, rota refresh tokens |
 
 Regla practica para leer el resto del documento:
-- Si el paso habla de **capturar credenciales** o de que alguien "ve" la pantalla, la interaccion es del **usuario final**.
-- Si el paso habla de **hacer requests HTTP**, **guardar PKCE**, **reenviar cookies** o **canjear tokens**, la interaccion es de la **SPA/Mobile**.
-- Si el paso habla de **validar**, **persistir** o **emitir** codigos/tokens, la accion es de **KeyGo Server**.
+- Si el paso habla de **capturar credenciales** o de que alguien "ve" la pantalla, la interacción es del **usuario final**.
+- Si el paso habla de **hacer requests HTTP**, **guardar PKCE**, **reenviar cookies** o **canjear tokens**, la interacción es de la **SPA/Mobile**.
+- Si el paso habla de **validar**, **persistir** o **emitir** códigos/tokens, la acción es de **KeyGo Server**.
 
 ---
 
@@ -80,7 +80,7 @@ Regla practica para leer el resto del documento:
 
 ### Para flujo de plataforma (KeyGo UI)
 
-El flujo de plataforma requiere identidad global y configuracion de redirect URIs:
+El flujo de plataforma requiere identidad global y configuración de redirect URIs:
 
 ```mermaid
 graph LR
@@ -90,7 +90,7 @@ graph LR
 
 | Recurso | Tabla / Config | Campo clave |
 |---|---|---|
-| PlatformUser | `platform_users` | `email` (unico global), `username` (unico global), `status=ACTIVE` |
+| PlatformUser | `platform_users` | `email` (único global), `username` (único global), `status=ACTIVE` |
 | PlatformRole | `platform_roles` | `code`: `keygo_admin`, `keygo_tenant_admin`, `keygo_user` |
 | PlatformUserRole | `platform_user_roles` | N:N `platform_users` ↔ `platform_roles` |
 | Redirect URI allowlist | `application.yml` | `keygo.platform.allowed-redirect-uris` |
@@ -99,7 +99,7 @@ graph LR
 
 ### Para flujo de tenant app (OAuth2/OIDC)
 
-Antes de iniciar autenticacion de usuario en una app de tenant, deben existir y estar activos:
+Antes de iniciar autenticación de usuario en una app de tenant, deben existir y estar activos:
 
 ```mermaid
 graph LR
@@ -110,7 +110,7 @@ graph LR
     B --> E
 ```
 
-| Recurso | Endpoint de creacion (referencia) | Campo clave |
+| Recurso | Endpoint de creación (referencia) | Campo clave |
 |---|---|---|
 | Tenant | `POST /api/v1/tenants` | `slug` |
 | ClientApp | `POST /api/v1/tenants/{slug}/apps` | `clientId`, `redirectUris` |
@@ -119,22 +119,22 @@ graph LR
 
 ---
 
-## Seguridad de endpoints (publico vs protegido)
+## Seguridad de endpoints (público vs protegido)
 
 Con el filtro `BootstrapAdminKeyFilter` actual:
 
 - Rutas `/api/**` estan protegidas por Bearer **excepto** ciertos sufijos/public paths.
-- Los siguientes endpoints son **publicos** (el filtro no exige Bearer en el borde):
+- Los siguientes endpoints son **públicos** (el filtro no exige Bearer en el borde):
 
-### Endpoints publicos de plataforma
+### Endpoints públicos de plataforma
 
   - `GET /api/v1/platform/oauth2/authorize` — inicio del flujo PKCE
-  - `POST /api/v1/platform/account/login` — autenticacion + emision de authorization code
+  - `POST /api/v1/platform/account/login` — autenticación + emision de authorization code
   - `POST /api/v1/platform/oauth2/token` — intercambio de code (PKCE) + refresh_token grant
-  - `POST /api/v1/platform/oauth2/revoke` — revocacion de token
+  - `POST /api/v1/platform/oauth2/revoke` — revocación de token
   - `POST /api/v1/platform/account/direct-login` — login directo (API/CLI, sin PKCE)
 
-### Endpoints publicos de tenant app (OAuth2/OIDC)
+### Endpoints públicos de tenant app (OAuth2/OIDC)
 
   - `GET /api/v1/tenants/{tenantSlug}/oauth2/authorize`
   - `POST /api/v1/tenants/{tenantSlug}/account/login`
@@ -144,7 +144,7 @@ Con el filtro `BootstrapAdminKeyFilter` actual:
   - `GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration`
   - `GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json`
 
-> Publico en este contexto significa "sin autenticacion exigida por el filtro de borde". Algunos endpoints validan credenciales propias (por ejemplo `refresh_token`, `client_secret`, Bearer token de usuario, etc.) dentro del caso de uso/controlador.
+> Público en este contexto significa "sin autenticación exigida por el filtro de borde". Algunos endpoints validan credenciales propias (por ejemplo `refresh_token`, `client_secret`, Bearer token de usuario, etc.) dentro del caso de uso/controlador.
 
 ### Endpoints protegidos — roles requeridos
 
@@ -159,27 +159,27 @@ Con el filtro `BootstrapAdminKeyFilter` actual:
 
 | Aspecto | Flujo de plataforma | Flujo de tenant app |
 |---|---|---|
-| **Proposito** | Administradores del sistema KeyGo (admin UI) | Usuarios finales de aplicaciones por tenant |
+| **Propósito** | Administradores del sistema KeyGo (admin UI) | Usuarios finales de aplicaciones por tenant |
 | **Tabla de identidad** | `platform_users` (global, sin tenant) | `tenant_users` (acotada a un tenant) |
-| **Vinculacion** | — | `tenant_users.platform_user_id` → `platform_users(id)` (FK nullable) |
-| **Tabla de roles** | `platform_roles` (`keygo_admin`, `keygo_tenant_admin`, `keygo_user`) | `app_roles` (por `client_app`, via `memberships`) |
+| **Vinculación** | — | `tenant_users.platform_user_id` → `platform_users(id)` (FK nullable) |
+| **Tabla de roles** | `platform_roles` (`keygo_admin`, `keygo_tenant_admin`, `keygo_user`) | `app_roles` (por `client_app`, vía `memberships`) |
 | **Mecanismo principal** | OAuth 2.0 Authorization Code + PKCE (4 pasos) | OAuth 2.0 Authorization Code + PKCE (3 pasos) |
 | **Alternativa sin PKCE** | `POST /platform/account/direct-login` (API/CLI) | No disponible |
-| **Requiere PKCE** | Si (flujo principal). No (direct-login) | Si (obligatorio para clientes publicos) |
+| **Requiere PKCE** | Si (flujo principal). No (direct-login) | Si (obligatorio para clientes públicos) |
 | **Requiere JSESSIONID** | Si (entre `/authorize` y `/account/login`). No (direct-login) | Si (entre `/authorize` y `/account/login`) |
-| **Requiere ClientApp** | No (usa allowlist de configuracion) | Si (registrada en el tenant) |
+| **Requiere ClientApp** | No (usa allowlist de configuración) | Si (registrada en el tenant) |
 | **Valida tenant** | No — no hay contexto de tenant | Si — el tenant debe existir y estar ACTIVE |
-| **Validacion de redirect URI** | Contra `keygo.platform.allowed-redirect-uris` (config) | Contra tabla `client_redirect_uris` (BD) |
+| **Validación de redirect URI** | Contra `keygo.platform.allowed-redirect-uris` (config) | Contra tabla `client_redirect_uris` (BD) |
 | **Endpoint authorize** | `GET /api/v1/platform/oauth2/authorize` | `GET /api/v1/tenants/{slug}/oauth2/authorize` |
 | **Endpoint de login** | `POST /api/v1/platform/account/login` | `POST /api/v1/tenants/{slug}/account/login` |
 | **Endpoint de tokens** | `POST /api/v1/platform/oauth2/token` (`authorization_code`, `refresh_token`) | `POST /api/v1/tenants/{slug}/oauth2/token` (`authorization_code`, `refresh_token`, `client_credentials`) |
-| **Endpoint de revocacion** | `POST /api/v1/platform/oauth2/revoke` | `POST /api/v1/tenants/{slug}/oauth2/revoke` |
+| **Endpoint de revocación** | `POST /api/v1/platform/oauth2/revoke` | `POST /api/v1/tenants/{slug}/oauth2/revoke` |
 | **Endpoint direct-login** | `POST /api/v1/platform/account/direct-login` (API/CLI) | No disponible |
-| **Claim `roles` en JWT** | Roles de plataforma: `keygo_admin`, `keygo_tenant_admin`, `keygo_user` | Roles de app: segun `memberships` → `app_roles` |
+| **Claim `roles` en JWT** | Roles de plataforma: `keygo_admin`, `keygo_tenant_admin`, `keygo_user` | Roles de app: según `memberships` → `app_roles` |
 | **Claim `iss` en JWT** | Derivado del contexto de plataforma (sin tenant slug) | Derivado del tenant: `{base}/tenants/{slug}` |
-| **Modelo de sesion** | `sessions.platform_user_id` (not null), `sessions.client_app_id` (null) | `sessions.platform_user_id` (via linkage, nullable), `sessions.client_app_id` (not null) |
+| **Modelo de sesión** | `sessions.platform_user_id` (not null), `sessions.client_app_id` (null) | `sessions.platform_user_id` (vía linkage, nullable), `sessions.client_app_id` (not null) |
 | **Modelo de refresh token** | `refresh_tokens.tenant_user_id` (null), `refresh_tokens.client_app_id` (null) | `refresh_tokens.tenant_user_id` (not null), `refresh_tokens.client_app_id` (not null) |
-| **Almacenamiento auth code** | Sesion HTTP (`PlatformAuthCodeState`) | Base de datos (tabla `authorization_codes`) |
+| **Almacenamiento auth code** | Sesión HTTP (`PlatformAuthCodeState`) | Base de datos (tabla `authorization_codes`) |
 | **Client Credentials (M2M)** | No soportado | Soportado |
 | **OIDC Discovery / JWKS** | No disponible | `/.well-known/openid-configuration`, `/.well-known/jwks.json`, `/userinfo` |
 
@@ -187,31 +187,31 @@ Con el filtro `BootstrapAdminKeyFilter` actual:
 
 ## Flujo de plataforma: OAuth2 PKCE (KeyGo UI)
 
-Escenario: autenticacion de un usuario administrador en la interfaz de gestion de KeyGo.
+Escenario: autenticación de un usuario administrador en la interfaz de gestion de KeyGo.
 
-El flujo principal usa **OAuth 2.0 Authorization Code + PKCE completo**, identico conceptualmente al flujo de tenant app pero sin validacion de tenant ni client_app. Las redirect URIs se validan contra una allowlist de configuracion (`keygo.platform.allowed-redirect-uris`). Los authorization codes se almacenan en la sesion HTTP (no en base de datos).
+El flujo principal usa **OAuth 2.0 Authorization Code + PKCE completo**, identico conceptualmente al flujo de tenant app pero sin validación de tenant ni client_app. Las redirect URIs se validan contra una allowlist de configuración (`keygo.platform.allowed-redirect-uris`). Los authorization codes se almacenan en la sesión HTTP (no en base de datos).
 
-Adicionalmente, existe un endpoint **direct-login** (`POST /platform/account/direct-login`) como alternativa para clientes API/CLI que no requieren PKCE ni sesion HTTP.
+Adicionalmente, existe un endpoint **direct-login** (`POST /platform/account/direct-login`) como alternativa para clientes API/CLI que no requieren PKCE ni sesión HTTP.
 
 ### Endpoints del flujo de plataforma
 
-| Metodo | Endpoint | Proposito |
+| Método | Endpoint | Propósito |
 |---|---|---|
-| `GET` | `/api/v1/platform/oauth2/authorize` | Iniciar flujo PKCE — valida redirect_uri contra allowlist, almacena estado PKCE en sesion HTTP |
-| `POST` | `/api/v1/platform/account/login` | Autenticar usuario de plataforma + emitir authorization code (almacenado en sesion) |
-| `POST` | `/api/v1/platform/oauth2/token` | Multi-grant: `authorization_code` (intercambio PKCE) + `refresh_token` (rotacion) |
-| `POST` | `/api/v1/platform/account/direct-login` | **Solo API/CLI** — email/password → tokens directos (sin PKCE, sin sesion HTTP) |
+| `GET` | `/api/v1/platform/oauth2/authorize` | Iniciar flujo PKCE — valida redirect_uri contra allowlist, almacena estado PKCE en sesión HTTP |
+| `POST` | `/api/v1/platform/account/login` | Autenticar usuario de plataforma + emitir authorization code (almacenado en sesión) |
+| `POST` | `/api/v1/platform/oauth2/token` | Multi-grant: `authorization_code` (intercambio PKCE) + `refresh_token` (rotación) |
+| `POST` | `/api/v1/platform/account/direct-login` | **Solo API/CLI** — email/password → tokens directos (sin PKCE, sin sesión HTTP) |
 
 ### Vista rapida: quien hace que en cada paso (flujo PKCE)
 
 | Paso | Usuario final | Cliente (KeyGo UI) | KeyGo Server |
 |---|---|---|---|
 | 0. PKCE | No interactua | Genera `code_verifier` + `code_challenge` (SHA256) | — |
-| 1. Authorize | No interactua | Envia `GET /platform/oauth2/authorize` con PKCE + redirect_uri | Valida redirect_uri contra allowlist, almacena estado PKCE en sesion HTTP |
-| 2. Login | Escribe email y password | Envia `POST /platform/account/login` (con cookie JSESSIONID) | Valida credenciales, genera authorization code, lo almacena en sesion |
-| 3. Token exchange | No interactua | Envia `POST /platform/oauth2/token` con code + code_verifier | Verifica PKCE, invalida code, crea sesion, emite tokens |
-| 4. Sesion activa | Usa el panel de administracion | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
-| 5. Renovacion | Normalmente no interactua | Llama `POST /platform/oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
+| 1. Authorize | No interactua | Envia `GET /platform/oauth2/authorize` con PKCE + redirect_uri | Valida redirect_uri contra allowlist, almacena estado PKCE en sesión HTTP |
+| 2. Login | Escribe email y password | Envia `POST /platform/account/login` (con cookie JSESSIONID) | Valida credenciales, genera authorization code, lo almacena en sesión |
+| 3. Token exchange | No interactua | Envia `POST /platform/oauth2/token` con code + code_verifier | Verifica PKCE, invalida code, crea sesión, emite tokens |
+| 4. Sesión activa | Usa el panel de administración | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
+| 5. Renovación | Normalmente no interactua | Llama `POST /platform/oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
 
 ### Diagrama de secuencia — Flujo PKCE de plataforma
 
@@ -231,11 +231,11 @@ sequenceDiagram
     Note over C,K: Paso 1: Authorize (iniciar flujo)
     C->>K: GET /keygo-server/api/v1/platform/oauth2/authorize?redirect_uri=...&scope=openid+profile+platform&response_type=code&code_challenge=...&code_challenge_method=S256
     K->>K: Validar redirect_uri contra keygo.platform.allowed-redirect-uris
-    K->>K: Almacenar PlatformAuthorizationSessionState en sesion HTTP
+    K->>K: Almacenar PlatformAuthorizationSessionState en sesión HTTP
     K-->>C: 200 { applicationName: "KeyGo Platform", redirectUri: "..." }
     Note over C: La SPA guarda la cookie JSESSIONID
 
-    Note over C,K: Paso 2: Login (autenticacion + code)
+    Note over C,K: Paso 2: Login (autenticación + code)
     U->>C: Captura email y password
     C->>K: POST /keygo-server/api/v1/platform/account/login (con JSESSIONID)
     K->>DB: Buscar platform_user por email
@@ -243,15 +243,15 @@ sequenceDiagram
     K->>DB: Verificar status = ACTIVE
     K->>DB: Cargar platform_roles del usuario
     K->>K: Generar authorization code (UUID aleatorio)
-    K->>K: Almacenar PlatformAuthCodeState(code, platformUserId, createdAt) en sesion
+    K->>K: Almacenar PlatformAuthCodeState(code, platformUserId, createdAt) en sesión
     K-->>C: 200 PLATFORM_LOGIN_SUCCESSFUL { code: "uuid", redirect_uri: "http://localhost:5173/callback" }
 
     Note over C,K: Paso 3: Token exchange (PKCE)
     C->>K: POST /keygo-server/api/v1/platform/oauth2/token
     Note right of C: { grant_type: "authorization_code", code: "uuid", redirect_uri: "...", code_verifier: "..." }
-    K->>K: Validar code coincide con sesion
+    K->>K: Validar code coincide con sesión
     K->>K: Verificar PKCE: SHA256(code_verifier) == code_challenge
-    K->>K: Invalidar code (uso unico)
+    K->>K: Invalidar code (uso único)
     K->>DB: Crear session (platform_user_id, sin client_app_id)
     K->>DB: Crear refresh_token hash (SHA-256)
     K->>K: Firmar access_token + id_token (RS256)
@@ -260,7 +260,7 @@ sequenceDiagram
     Note over C,U: La SPA guarda tokens y navega al dashboard
     Note over C,K: Paso 4: Uso normal con Bearer token
     C->>K: GET /keygo-server/api/v1/admin/... (Authorization: Bearer access_token)
-    K->>K: Validar JWT (firma, expiracion, roles)
+    K->>K: Validar JWT (firma, expiración, roles)
     K-->>C: 200 datos protegidos
 
     Note over C,K: Paso 5: Renovacion silenciosa
@@ -297,7 +297,7 @@ GET /keygo-server/api/v1/platform/oauth2/authorize?redirect_uri=http://localhost
 
 Query parameters:
 
-| Parametro | Obligatorio | Descripcion |
+| Parámetro | Obligatorio | Descripción |
 |---|---|---|
 | `redirect_uri` | Si | Debe coincidir con una de las URIs en `keygo.platform.allowed-redirect-uris` |
 | `scope` | Si | Scopes solicitados (ej: `openid profile platform`) |
@@ -310,7 +310,7 @@ Valida:
 - `response_type` es `code`.
 - `code_challenge` y `code_challenge_method` estan presentes.
 
-Almacena en sesion HTTP:
+Almacena en sesión HTTP:
 - `PlatformAuthorizationSessionState`: `redirectUri`, `scope`, `codeChallenge`, `codeChallengeMethod`
 
 Respuesta exitosa:
@@ -333,7 +333,7 @@ Respuesta exitosa:
 
 #### Errores posibles — Paso 1
 
-| Excepcion | HTTP | ResponseCode | Causa |
+| Excepción | HTTP | ResponseCode | Causa |
 |---|---|---|---|
 | `InvalidRedirectUriException` | `400` | `INVALID_INPUT` | `redirect_uri` no esta en la allowlist |
 | `IllegalArgumentException` | `400` | `INVALID_INPUT` | `response_type` no es `code` o falta `code_challenge` |
@@ -358,12 +358,12 @@ Body ejemplo:
 ```
 
 Valida:
-- Existe sesion HTTP con `PlatformAuthorizationSessionState` (flujo PKCE previo).
+- Existe sesión HTTP con `PlatformAuthorizationSessionState` (flujo PKCE previo).
 - El usuario existe en `platform_users`.
 - El password coincide (bcrypt).
 - El usuario tiene `status = ACTIVE`.
 
-Genera un authorization code (UUID aleatorio) y lo almacena en sesion como `PlatformAuthCodeState(code, platformUserId, createdAt)`.
+Genera un authorization code (UUID aleatorio) y lo almacena en sesión como `PlatformAuthCodeState(code, platformUserId, createdAt)`.
 
 Respuesta exitosa:
 - HTTP `200`
@@ -388,9 +388,9 @@ Ejemplo de respuesta OK:
 
 #### Errores posibles — Paso 2
 
-| Excepcion | HTTP | ResponseCode | Causa |
+| Excepción | HTTP | ResponseCode | Causa |
 |---|---|---|---|
-| `IllegalArgumentException` | `400` | `INVALID_INPUT` | No hay sesion HTTP previa (falta JSESSIONID o no contiene estado PKCE) |
+| `IllegalArgumentException` | `400` | `INVALID_INPUT` | No hay sesión HTTP previa (falta JSESSIONID o no contiene estado PKCE) |
 | `UserNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | No existe `platform_user` con ese email |
 | `InvalidCredentialsException` | `401` | `AUTHENTICATION_REQUIRED` | Password incorrecto |
 | `UnauthorizedException` | `401` | `AUTHENTICATION_REQUIRED` | Usuario no activo |
@@ -416,11 +416,11 @@ Body ejemplo:
 ```
 
 Valida:
-- `code` coincide con el almacenado en la sesion HTTP (`PlatformAuthCodeState`).
+- `code` coincide con el almacenado en la sesión HTTP (`PlatformAuthCodeState`).
 - PKCE: `SHA256(code_verifier) == code_challenge` (almacenado en Paso 1).
 - `redirect_uri` coincide con la del Paso 1.
 
-Invalida el code (uso unico), crea sesion de plataforma y emite tokens.
+Invalida el code (uso único), crea sesión de plataforma y emite tokens.
 
 Respuesta exitosa:
 - HTTP `200`
@@ -448,7 +448,7 @@ Ejemplo de respuesta OK:
 
 #### Errores posibles — Paso 3
 
-| Excepcion | HTTP | ResponseCode | Causa |
+| Excepción | HTTP | ResponseCode | Causa |
 |---|---|---|---|
 | `InvalidAuthorizationCodeException` | `400` | `INVALID_INPUT` | Code no coincide o ya fue usado |
 | `AuthorizationCodeExpiredException` | `400` | `INVALID_INPUT` | Code expirado |
@@ -473,7 +473,7 @@ El `access_token` emitido contiene los siguientes claims:
 }
 ```
 
-| Claim | Descripcion |
+| Claim | Descripción |
 |---|---|
 | `sub` | UUID del `platform_user` |
 | `iss` | Issuer derivado del contexto de plataforma (sin tenant slug) |
@@ -485,7 +485,7 @@ El `access_token` emitido contiene los siguientes claims:
 
 > **Diferencia clave con tenant app:** en el JWT de tenant app, el `sub` es el `tenant_user_id`, el `iss` contiene el `tenant_slug`, el `aud` es el `client_id` de la app, y `roles` proviene de `memberships` → `app_roles`.
 
-### Paso 4 — Renovacion: `POST /platform/oauth2/token` con `refresh_token`
+### Paso 4 — Renovación: `POST /platform/oauth2/token` con `refresh_token`
 
 URL completa (ejemplo local):
 
@@ -504,8 +504,8 @@ Body ejemplo:
 ```
 
 Comportamiento:
-- Valida el refresh token (vigencia, estado, pertenencia a sesion de plataforma).
-- Revoca/consume el token anterior segun reglas de rotacion.
+- Valida el refresh token (vigencia, estado, pertenencia a sesión de plataforma).
+- Revoca/consume el token anterior según reglas de rotación.
 - Emite nuevos `access_token`, `id_token` y `refresh_token`.
 
 Respuesta exitosa:
@@ -513,7 +513,7 @@ Respuesta exitosa:
 - `success.code = REFRESH_TOKEN_ROTATED`
 - `data`: `access_token`, `id_token`, `refresh_token` (nuevo), `token_type`, `expires_in`
 
-### Paso 5 — Revocacion: `POST /platform/oauth2/revoke`
+### Paso 5 — Revocación: `POST /platform/oauth2/revoke`
 
 URL completa (ejemplo local):
 
@@ -535,7 +535,7 @@ Comportamiento:
 - Implementa RFC 7009 (Token Revocation).
 - Acepta `refresh_token` o `access_token` como `token_type_hint`.
 - Idempotente: revocar un token ya revocado no es error.
-- Invalida la sesion de plataforma asociada.
+- Invalida la sesión de plataforma asociada.
 
 Respuesta exitosa:
 - HTTP `200`
@@ -612,7 +612,7 @@ Ejemplo de respuesta OK:
 
 > **Nota de seguridad:** este endpoint esta pensado para clientes que no pueden gestionar flujos interactivos (scripts, CLI tools, integraciones server-to-server). Para aplicaciones web/SPA, usar siempre el flujo PKCE completo.
 
-### Configuracion del flujo de plataforma
+### Configuración del flujo de plataforma
 
 ```yaml
 keygo:
@@ -623,27 +623,27 @@ keygo:
     application-name: "KeyGo Platform"
 ```
 
-| Propiedad | Descripcion |
+| Propiedad | Descripción |
 |---|---|
 | `keygo.platform.allowed-redirect-uris` | Lista de redirect URIs permitidas para el flujo PKCE de plataforma |
-| `keygo.platform.application-name` | Nombre de la aplicacion devuelto en la respuesta de `/authorize` |
+| `keygo.platform.application-name` | Nombre de la aplicación devuelto en la respuesta de `/authorize` |
 
 ---
 
 ## Flujo de tenant app: Authorization Code + PKCE
 
-Escenario: autenticacion de usuario final (SPA/mobile/web).
+Escenario: autenticación de usuario final (SPA/mobile/web).
 
 ### Vista rapida: quien hace que en cada paso
 
 | Paso | Usuario final | Cliente SPA/Mobile | KeyGo Server |
 |---|---|---|---|
-| 0. Preparacion | Aun no interactua | Genera `code_verifier`, `code_challenge` y `state` | — |
-| 1. Inicio de autorizacion | Hace clic en login o entra a una ruta protegida | Llama `GET /oauth2/authorize` | Valida tenant/app/redirect URI y guarda estado en sesion HTTP |
+| 0. Preparación | Aun no interactua | Genera `code_verifier`, `code_challenge` y `state` | — |
+| 1. Inicio de autorización | Hace clic en login o entra a una ruta protegida | Llama `GET /oauth2/authorize` | Valida tenant/app/redirect URI y guarda estado en sesión HTTP |
 | 2. Login | Escribe usuario/email y password | Renderiza formulario, envia `POST /account/login` y preserva `JSESSIONID` | Valida credenciales y emite `authorization_code` |
 | 3. Canje del code | Ya no interactua directamente | Llama `POST /oauth2/token` con `code` + `code_verifier` | Valida code/PKCE y emite tokens |
-| 4. Sesion activa | Usa la app normalmente | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
-| 5. Renovacion | Normalmente no interactua | Llama `POST /oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
+| 4. Sesión activa | Usa la app normalmente | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
+| 5. Renovación | Normalmente no interactua | Llama `POST /oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
 
 > Punto clave: en el backend actual **el usuario final solo interactua de forma directa en el inicio de login y en la captura de credenciales**. El resto del flujo lo ejecuta la **SPA/Mobile** de forma programatica.
 
@@ -654,20 +654,20 @@ sequenceDiagram
     participant K as KeyGo Server
     participant DB as Base de datos
 
-    Note over U,C: Interaccion humana inicial: el usuario abre la app o pulsa "Iniciar sesion"
+    Note over U,C: Interacción humana inicial: el usuario abre la app o pulsa "Iniciar sesión"
     Note over C: Paso 0: La app genera PKCE + state
     C->>C: code_verifier, code_challenge(S256), state
 
     Note over U,C: El usuario aun no captura credenciales
-    Note over C,K: Paso 1: La app inicia autorizacion
+    Note over C,K: Paso 1: La app inicia autorización
     C->>K: GET /keygo-server/api/v1/tenants/{slug}/oauth2/authorize
     K->>DB: Validar tenant + client + redirect_uri
-    K->>K: Guardar estado en sesion HTTP (JSESSIONID)
+    K->>K: Guardar estado en sesión HTTP (JSESSIONID)
     K-->>C: 200 AUTHORIZATION_INITIATED
 
     Note over U,C: Paso 2: Aqui si interactua el usuario final
     U->>C: Captura email/username y password
-    Note over C,K: La app envia credenciales usando la sesion previa
+    Note over C,K: La app envia credenciales usando la sesión previa
     C->>K: POST /keygo-server/api/v1/tenants/{slug}/account/login (Cookie JSESSIONID)
     K->>DB: Validar usuario + password + membership ACTIVE
     K->>DB: Crear authorization code (TTL 10 min, un solo uso)
@@ -681,20 +681,20 @@ sequenceDiagram
     K->>DB: Crear session + refresh token hash
     K-->>C: 200 TOKEN_ISSUED (access_token + id_token + refresh_token)
 
-    Note over C,U: La app guarda tokens segun su estrategia y navega a la pantalla final
+    Note over C,U: La app guarda tokens según su estrategia y navega a la pantalla final
 ```
 
 ### Lectura funcional del flujo
 
-1. **El usuario inicia la autenticacion desde la app**, no llamando el endpoint manualmente.
-2. **La SPA/Mobile prepara el contexto tecnico** (`state`, PKCE, almacenamiento temporal y manejo de cookie de sesion).
+1. **El usuario inicia la autenticación desde la app**, no llamando el endpoint manualmente.
+2. **La SPA/Mobile prepara el contexto técnico** (`state`, PKCE, almacenamiento temporal y manejo de cookie de sesión).
 3. **El usuario solo participa activamente en el login**: captura credenciales y confirma entrar.
 4. **La SPA/Mobile retoma el control** en cuanto recibe `data.code` desde `POST /account/login`.
-5. **La obtencion y renovacion de tokens es responsabilidad del cliente**, no del usuario final.
+5. **La obtencion y renovación de tokens es responsabilidad del cliente**, no del usuario final.
 
 ### Particularidad importante del backend actual
 
-En una implementacion OAuth2 "clasica" con login hospedado, el navegador suele terminar en un `302` hacia la `redirect_uri`.
+En una implementación OAuth2 "clasica" con login hospedado, el navegador suele terminar en un `302` hacia la `redirect_uri`.
 En **KeyGo Server hoy no ocurre eso**:
 
 - `GET /oauth2/authorize` devuelve `200` con datos de la app cliente.
@@ -714,7 +714,7 @@ Esto explica por que, al leer el flujo, puede parecer ambiguo "quien interactua"
 
 Este escenario aplica cuando una app frontend de otro tenant reutiliza la misma pantalla de login de `keygo-ui` (hosted login), pero mantiene su propio `tenantSlug` + `client_id`.
 
-Punto clave: **no son endpoints nuevos**. Es el mismo flujo Authorization Code + PKCE, cambiando el contexto por parametros.
+Punto clave: **no son endpoints nuevos**. Es el mismo flujo Authorization Code + PKCE, cambiando el contexto por parámetros.
 
 ### Regla de oro: que se comparte y que no
 
@@ -725,13 +725,13 @@ Lo que **no** se comparte es el contexto OAuth2/OIDC de la app destino.
 |---|---|
 | Pantalla de login, branding comun, validaciones visuales, UX de errores | `tenantSlug`, `client_id`, `redirect_uri`, `scope`, `state`, `code_verifier`, callback, almacenamiento de tokens |
 | Llamadas a `/oauth2/authorize` y `/account/login` usando el contexto recibido | La `ClientApp` final que recibira tokens |
-| Navegacion hacia el callback de la app origen con `code` + `state` | El canje final en `/oauth2/token` y la sesion de la app origen |
+| Navegación hacia el callback de la app origen con `code` + `state` | El canje final en `/oauth2/token` y la sesión de la app origen |
 
 **Regla practica:** reutilizar el login de `keygo-ui` **no** significa autenticar contra el tenant `keygo`, ni reutilizar la `ClientApp keygo-ui`, ni emitir tokens para la UI central.
 
 Los tokens finales siempre deben quedar asociados al **tenant/app origen** que inicio el flujo.
 
-### Parametros que deben viajar desde la app origen al login central
+### Parámetros que deben viajar desde la app origen al login central
 
 - `tenantSlug` (tenant de la app que esta autenticando)
 - `client_id` (client app registrada en ese tenant)
@@ -741,19 +741,19 @@ Los tokens finales siempre deben quedar asociados al **tenant/app origen** que i
 - `state` (anti-CSRF)
 - `code_challenge` + `code_challenge_method=S256`
 
-Idealmente la app origen tambien envia metadatos de presentacion no sensibles, por ejemplo `client_name` o `app_display_name`, para que `keygo-ui` muestre una UX clara del tipo "Entrar a ACME Store" sin alterar el contrato OAuth2 real.
+Idealmente la app origen también envia metadatos de presentación no sensibles, por ejemplo `client_name` o `app_display_name`, para que `keygo-ui` muestre una UX clara del tipo "Entrar a ACME Store" sin alterar el contrato OAuth2 real.
 
 ### Secuencia recomendada (app externa -> KeyGo-UI -> KeyGo Server)
 
 1. La app origen detecta ruta protegida y genera `code_verifier`, `code_challenge` y `state`.
-2. La app origen redirige al login central de `keygo-ui`, enviando esos parametros.
+2. La app origen redirige al login central de `keygo-ui`, enviando esos parámetros.
 3. `keygo-ui` resuelve el contexto recibido y llama `GET /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/authorize` con `client_id`, `redirect_uri`, `scope`, `state`, `code_challenge`.
-4. `keygo-ui` muestra formulario y envia `POST /keygo-server/api/v1/tenants/{tenantSlug}/account/login` reutilizando la misma sesion (`JSESSIONID`) del paso anterior.
-5. `keygo-ui` recibe `data.code` y `data.redirect_uri` (JSON, no `302` automatico).
+4. `keygo-ui` muestra formulario y envia `POST /keygo-server/api/v1/tenants/{tenantSlug}/account/login` reutilizando la misma sesión (`JSESSIONID`) del paso anterior.
+5. `keygo-ui` recibe `data.code` y `data.redirect_uri` (JSON, no `302` automático).
 6. `keygo-ui` **no guarda los tokens finales ni canjea el code en nombre de la SPA origen**; redirige manualmente al callback de la app origen: `redirect_uri?code=...&state=...`.
 7. La app origen, ya de vuelta en su propio contexto, valida `state`, recupera su `code_verifier` y canjea el code en `POST /keygo-server/api/v1/tenants/{tenantSlug}/oauth2/token`.
 
-> Recomendacion para SPA: mantener el `code_verifier` y el `state` en la app origen. El login central solo debe actuar como **hosted login UI**, no como almacen principal de secretos transitorios ni como cliente final de los tokens.
+> Recomendación para SPA: mantener el `code_verifier` y el `state` en la app origen. El login central solo debe actuar como **hosted login UI**, no como almacen principal de secretos transitorios ni como cliente final de los tokens.
 
 ```mermaid
 sequenceDiagram
@@ -777,8 +777,8 @@ sequenceDiagram
 
 - El `issuer` y el `tenant_slug` de los tokens finales corresponden al **tenant de la app origen**, no a `keygo-ui`.
 - La app origen sigue siendo el **OAuth client** efectivo porque genera PKCE, conserva `state` y realiza el canje final.
-- `keygo-ui` funciona como un **adapter de presentacion** para el login hospedado: inicia la autorizacion, captura credenciales y devuelve el flujo al callback correcto.
-- Si en el futuro se quisiera que el login central canjee el code y entregue sesion ya autenticada a otra UI, eso seria **otro patron** (por ejemplo BFF / federation gateway) y requeriria un contrato distinto. No es el patron recomendado actual para SPA.
+- `keygo-ui` funciona como un **adapter de presentación** para el login hospedado: inicia la autorización, captura credenciales y devuelve el flujo al callback correcto.
+- Si en el futuro se quisiera que el login central canjee el code y entregue sesión ya autenticada a otra UI, eso seria **otro patrón** (por ejemplo BFF / federation gateway) y requeriria un contrato distinto. No es el patrón recomendado actual para SPA.
 
 ### Ejemplo de URL hacia el login central
 
@@ -794,22 +794,22 @@ code_challenge=abc123...&
 code_challenge_method=S256
 ```
 
-El login central puede usar esos parametros para personalizar la pantalla, pero nunca debe alterar `tenantSlug`, `client_id` ni `redirect_uri` antes de llamar a KeyGo Server.
+El login central puede usar esos parámetros para personalizar la pantalla, pero nunca debe alterar `tenantSlug`, `client_id` ni `redirect_uri` antes de llamar a KeyGo Server.
 
 ### Validaciones de seguridad que no se deben omitir
 
 - Mantener `state` intacto de extremo a extremo y validarlo en callback.
-- Usar PKCE `S256` siempre para clientes publicos (SPA/mobile).
-- Preservar cookie de sesion entre `/oauth2/authorize` y `/account/login`.
+- Usar PKCE `S256` siempre para clientes públicos (SPA/mobile).
+- Preservar cookie de sesión entre `/oauth2/authorize` y `/account/login`.
 - No canjear el `code` en la UI central si quien va a consumir los tokens es otra app SPA; el canje debe vivir en la app origen para no desalinear almacenamiento, refresh y logout.
 - Si login central y API viven en distinto dominio, habilitar CORS estricto + credenciales (`withCredentials`) y cookies compatibles con cross-site (`SameSite=None; Secure` en HTTPS).
-- No confiar en parametros del navegador sin validacion de backend: `tenantSlug`, `client_id` y `redirect_uri` deben pasar la validacion de `/oauth2/authorize`.
+- No confiar en parámetros del navegador sin validación de backend: `tenantSlug`, `client_id` y `redirect_uri` deben pasar la validación de `/oauth2/authorize`.
 
 ### Paso 0 — Generar PKCE
 
 - Generar `code_verifier` aleatorio (Base64URL).
 - Generar `code_challenge` usando `S256`.
-- Guardar `code_verifier` y `state` en almacenamiento de sesion del cliente.
+- Guardar `code_verifier` y `state` en almacenamiento de sesión del cliente.
 - **Actor principal:** Cliente SPA/Mobile.
 - **Intervencion del usuario:** ninguna todavia.
 
@@ -834,12 +834,12 @@ Respuesta exitosa:
 
 Lectura por actor:
 - **Usuario final:** normalmente solo ve que la app entra al modo "login".
-- **SPA/Mobile:** dispara la request, conserva la cookie `JSESSIONID` y prepara la UI de autenticacion.
-- **KeyGo Server:** valida parametros y deja guardado `authorizationState` en la sesion HTTP.
+- **SPA/Mobile:** dispara la request, conserva la cookie `JSESSIONID` y prepara la UI de autenticación.
+- **KeyGo Server:** valida parámetros y deja guardado `authorizationState` en la sesión HTTP.
 
 #### Errores posibles — Paso 1
 
-| Excepcion | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
+| Excepción | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
 |---|---|---|---|---|---|
 | `TenantNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No encontramos el recurso solicitado." |
 | `TenantSuspendedException` | `403` | `BUSINESS_RULE_VIOLATION` | `BUSINESS_RULE` | — | "No se puede completar la operación con el estado actual." |
@@ -882,7 +882,7 @@ Ejemplo de respuesta NOK — tenant suspendido (`BUSINESS_RULE`):
 }
 ```
 
-> **Regla para el cliente:** cuando `origin=CLIENT_REQUEST` y `clientRequestCause=CLIENT_TECHNICAL`, el error indica un problema de integracion tecnica (parametro incorrecto, URL mal construida, tenant/app que no existen). No mostrar `clientMessage` como si fuera culpa del usuario; revisar la configuracion de la app.
+> **Regla para el cliente:** cuando `origin=CLIENT_REQUEST` y `clientRequestCause=CLIENT_TECHNICAL`, el error indica un problema de integración técnica (parámetro incorrecto, URL mal construida, tenant/app que no existen). No mostrar `clientMessage` como si fuera culpa del usuario; revisar la configuración de la app.
 
 ### Paso 2 — `POST /account/login`
 
@@ -904,7 +904,7 @@ Body ejemplo:
 ```
 
 Valida:
-- Sesion con estado de autorizacion previo.
+- Sesión con estado de autorización previo.
 - Credenciales del usuario.
 - Usuario activo/verificado.
 - Membership ACTIVE del usuario para la app.
@@ -923,16 +923,16 @@ Lectura por actor:
 
 #### Errores posibles — Paso 2
 
-| Excepcion | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
+| Excepción | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
 |---|---|---|---|---|---|
-| `IllegalArgumentException` (sin sesion previa) | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT`* | "Revisa los datos enviados e intenta otra vez." |
+| `IllegalArgumentException` (sin sesión previa) | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT`* | "Revisa los datos enviados e intenta otra vez." |
 | `UserNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No encontramos el recurso solicitado." |
 | `InvalidCredentialsException` | `401` | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `USER_INPUT` | "No pudimos validar tu sesión. Inicia sesión nuevamente." |
 | `UnauthorizedException` | `401` | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No pudimos validar tu sesión. Inicia sesión nuevamente." |
 | `MembershipInactiveException` | `403` | `BUSINESS_RULE_VIOLATION` | `BUSINESS_RULE` | — | "No se puede completar la operación con el estado actual." |
 | `UserPendingVerificationException` | `403` | `EMAIL_NOT_VERIFIED` | `BUSINESS_RULE` | — | "Debes verificar tu correo antes de iniciar sesión." |
 
-> (*) La excepcion "sin sesion previa" (`IllegalArgumentException`) actualmente mapea a `USER_INPUT` porque usa `INVALID_INPUT` — semanticamente es `CLIENT_TECHNICAL` (falta la cookie `JSESSIONID` del Paso 1). Esto sera corregido en `T-066`.
+> (*) La excepción "sin sesión previa" (`IllegalArgumentException`) actualmente mapea a `USER_INPUT` porque usa `INVALID_INPUT` — semanticamente es `CLIENT_TECHNICAL` (falta la cookie `JSESSIONID` del Paso 1). Esto sera corregido en `T-066`.
 
 Ejemplo NOK — credenciales incorrectas (`CLIENT_REQUEST / USER_INPUT`):
 
@@ -952,7 +952,7 @@ Ejemplo NOK — credenciales incorrectas (`CLIENT_REQUEST / USER_INPUT`):
 }
 ```
 
-Ejemplo NOK — sin sesion previa (`CLIENT_REQUEST / USER_INPUT` — ver nota (*) arriba):
+Ejemplo NOK — sin sesión previa (`CLIENT_REQUEST / USER_INPUT` — ver nota (*) arriba):
 
 ```json
 {
@@ -1005,8 +1005,8 @@ Ejemplo NOK — email no verificado (`BUSINESS_RULE`):
 ```
 
 > **Regla para el cliente en el Paso 2:**
-> - `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → el usuario escribio credenciales invalidas o falta la sesion previa. Mostrar `clientMessage` en el formulario de login.
-> - `origin=BUSINESS_RULE` → el sistema impide el acceso por una regla de negocio (membresia inactiva, email no verificado). Mostrar `clientMessage` y, si aplica, ofrecer la accion correspondiente (p.ej., re-enviar codigo de verificacion).
+> - `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → el usuario escribio credenciales invalidas o falta la sesión previa. Mostrar `clientMessage` en el formulario de login.
+> - `origin=BUSINESS_RULE` → el sistema impide el acceso por una regla de negocio (membresia inactiva, email no verificado). Mostrar `clientMessage` y, si aplica, ofrecer la acción correspondiente (p.ej., re-enviar código de verificación).
 
 ### Paso 3 — `POST /oauth2/token` con `authorization_code`
 
@@ -1036,12 +1036,12 @@ Respuesta exitosa:
 
 Lectura por actor:
 - **Usuario final:** normalmente ya no interactua; solo espera que la app termine el login.
-- **SPA/Mobile:** envia `code`, `code_verifier`, `client_id` y `redirect_uri`; despues guarda/usa los tokens segun su estrategia.
-- **KeyGo Server:** valida PKCE, marca el code como usado, abre sesion y emite tokens.
+- **SPA/Mobile:** envia `code`, `code_verifier`, `client_id` y `redirect_uri`; despues guarda/usa los tokens según su estrategia.
+- **KeyGo Server:** valida PKCE, marca el code como usado, abre sesión y emite tokens.
 
 #### Errores posibles — Paso 3
 
-| Excepcion | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
+| Excepción | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
 |---|---|---|---|---|---|
 | `InvalidAuthorizationCodeException` | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT`* | "Revisa los datos enviados e intenta otra vez." |
 | `AuthorizationCodeExpiredException` | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT`* | "Revisa los datos enviados e intenta otra vez." |
@@ -1049,7 +1049,7 @@ Lectura por actor:
 | `ScopeNotGrantedException` | `403` | `INSUFFICIENT_PERMISSIONS` | `BUSINESS_RULE` | — | "No tienes permisos para realizar esta acción." |
 | `NoActiveSigningKeyException` | `503` | `OPERATION_FAILED` | `SERVER_PROCESSING` | — | "No pudimos completar la solicitud. Intenta de nuevo en unos minutos." |
 
-> (*) Los errores de code invalido, code expirado y PKCE fallido actualmente mapean a `USER_INPUT` (via `INVALID_INPUT`) aunque semanticamente son errores de integracion tecnica. Seran reclasificados a `CLIENT_TECHNICAL` en `T-066`.
+> (*) Los errores de code invalido, code expirado y PKCE fallido actualmente mapean a `USER_INPUT` (vía `INVALID_INPUT`) aunque semanticamente son errores de integración técnica. Seran reclasificados a `CLIENT_TECHNICAL` en `T-066`.
 
 Ejemplo NOK — code PKCE invalido (`CLIENT_REQUEST / USER_INPUT`):
 
@@ -1099,7 +1099,7 @@ Ejemplo NOK — sin clave de firma activa (`SERVER_PROCESSING`):
 | Grant | Requisitos minimos | ResponseCode de exito | Tokens devueltos |
 |---|---|---|---|
 | `authorization_code` (default) | `code`, `redirect_uri`, `code_verifier` | `PLATFORM_TOKEN_ISSUED` | `access_token`, `id_token`, `refresh_token` |
-| `refresh_token` | `refresh_token` (de sesion de plataforma) | `REFRESH_TOKEN_ROTATED` | `access_token`, `id_token`, `refresh_token` (nuevo) |
+| `refresh_token` | `refresh_token` (de sesión de plataforma) | `REFRESH_TOKEN_ROTATED` | `access_token`, `id_token`, `refresh_token` (nuevo) |
 
 > **Nota:** este endpoint **no soporta** `client_credentials` (ese grant pertenece exclusivamente al flujo de tenant app). Para login sin PKCE usar `POST /platform/account/direct-login`.
 
@@ -1128,13 +1128,13 @@ Ejemplo:
 
 Comportamiento:
 - Valida refresh token (vigencia, estado, pertenencia tenant/client).
-- Revoca/consume token anterior segun reglas de rotacion.
+- Revoca/consume token anterior según reglas de rotación.
 - Emite nuevo `access_token`, nuevo `id_token` y nuevo `refresh_token`.
 
 Actor esperado:
 - **Usuario final:** usualmente no participa.
-- **SPA/Mobile:** hace la renovacion silenciosa o al detectar expiracion.
-- **KeyGo Server:** rota el refresh token y mantiene la sesion.
+- **SPA/Mobile:** hace la renovación silenciosa o al detectar expiración.
+- **KeyGo Server:** rota el refresh token y mantiene la sesión.
 
 ### Client credentials (M2M)
 
@@ -1155,7 +1155,7 @@ Comportamiento:
 
 Actor esperado:
 - **No hay usuario final**.
-- El actor que interactua es exclusivamente el **cliente tecnico** (backend, job, worker, integracion server-to-server).
+- El actor que interactua es exclusivamente el **cliente técnico** (backend, job, worker, integración server-to-server).
 
 ---
 
@@ -1185,52 +1185,52 @@ El campo `data` contiene `ErrorData` — la estructura enriquecida para que el c
 }
 ```
 
-| Campo `data` | Tipo | Siempre presente | Descripcion |
+| Campo `data` | Tipo | Siempre presente | Descripción |
 |---|---|---|---|
 | `code` | `string` | ✅ | Mismo `ResponseCode` que `failure.code`. Util para switch en el cliente. |
 | `origin` | enum | ✅ | Origen del error: `CLIENT_REQUEST`, `BUSINESS_RULE` o `SERVER_PROCESSING` |
 | `clientRequestCause` | enum | Solo si `origin=CLIENT_REQUEST` | Sub-clasificacion: `USER_INPUT` o `CLIENT_TECHNICAL` |
 | `clientMessage` | `string` | ✅ | Mensaje amigable en espanol listo para mostrar al usuario. |
-| `detail` | `string` | Solo en perfil `dev`/`local` | Detalle tecnico (mensaje de la excepcion) para diagnostico. |
-| `exception` | `string` | Solo en perfil `dev`/`local` | Nombre de la clase de excepcion para diagnostico. |
+| `detail` | `string` | Solo en perfil `dev`/`local` | Detalle técnico (mensaje de la excepción) para diagnóstico. |
+| `exception` | `string` | Solo en perfil `dev`/`local` | Nombre de la clase de excepción para diagnóstico. |
 
 ### Valores de `origin`
 
-| `origin` | Significado | Accion recomendada en el cliente |
+| `origin` | Significado | Acción recomendada en el cliente |
 |---|---|---|
-| `CLIENT_REQUEST` | El error fue causado por la solicitud del cliente (integracion tecnica o datos del usuario) | Revisar `clientRequestCause` para distinguir el tipo de problema |
-| `BUSINESS_RULE` | El servidor recibio la solicitud correctamente pero una regla de negocio impide la operacion | Mostrar `clientMessage` al usuario. Puede ofrecer una accion alternativa (reenviar codigo, contactar soporte). |
-| `SERVER_PROCESSING` | Error interno del servidor al procesar la solicitud | Mostrar mensaje generico de reintento. Loguear el error. No exponer detalles tecnicos al usuario. |
+| `CLIENT_REQUEST` | El error fue causado por la solicitud del cliente (integración técnica o datos del usuario) | Revisar `clientRequestCause` para distinguir el tipo de problema |
+| `BUSINESS_RULE` | El servidor recibio la solicitud correctamente pero una regla de negocio impide la operación | Mostrar `clientMessage` al usuario. Puede ofrecer una acción alternativa (reenviar código, contactar soporte). |
+| `SERVER_PROCESSING` | Error interno del servidor al procesar la solicitud | Mostrar mensaje generico de reintento. Loguear el error. No exponer detalles técnicos al usuario. |
 
 ### Valores de `clientRequestCause` (solo cuando `origin=CLIENT_REQUEST`)
 
-| `clientRequestCause` | Significado | Quien es responsable | Accion recomendada |
+| `clientRequestCause` | Significado | Quien es responsable | Acción recomendada |
 |---|---|---|---|
 | `USER_INPUT` | El error se origina en datos que el usuario capturo (credenciales, campos de formulario) | El usuario | Mostrar `clientMessage` junto al campo o formulario correspondiente. Permitir reintento. |
-| `CLIENT_TECHNICAL` | El error se origina en la integracion tecnica de la app (cookie faltante, parametro mal construido, recurso inexistente) | La app/UI | Revisar la integracion (cookies, PKCE, parametros). No mostrar como error del usuario. Loguear para el equipo de desarrollo. |
+| `CLIENT_TECHNICAL` | El error se origina en la integración técnica de la app (cookie faltante, parámetro mal construido, recurso inexistente) | La app/UI | Revisar la integración (cookies, PKCE, parámetros). No mostrar como error del usuario. Loguear para el equipo de desarrollo. |
 
-### Arbol de decision para el frontend
+### Arbol de decisión para el frontend
 
 ```mermaid
 flowchart TD
     E[Respuesta con failure] --> A{data.origin}
     A -->|CLIENT_REQUEST| B{data.clientRequestCause}
-    A -->|BUSINESS_RULE| G[Mostrar data.clientMessage\nOfrecer accion alternativa si aplica]
+    A -->|BUSINESS_RULE| G[Mostrar data.clientMessage\nOfrecer acción alternativa si aplica]
     A -->|SERVER_PROCESSING| H[Mostrar mensaje generico de reintento\nLoguear en sistema de monitoreo]
     B -->|USER_INPUT| C[Mostrar data.clientMessage\njunto al formulario/campo]
-    B -->|CLIENT_TECHNICAL| D[Revisar integracion tecnica\nLoguear para el dev team\nNO mostrar como culpa del usuario]
+    B -->|CLIENT_TECHNICAL| D[Revisar integración técnica\nLoguear para el dev team\nNO mostrar como culpa del usuario]
 ```
 
 ### Tabla completa de errores del flujo OAuth2
 
-| Paso | Excepcion | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
+| Paso | Excepción | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
 |---|---|---|---|---|---|---|
 | 1 (`/authorize`) | `TenantNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No encontramos el recurso solicitado." |
 | 1 (`/authorize`) | `TenantSuspendedException` | `403` | `BUSINESS_RULE_VIOLATION` | `BUSINESS_RULE` | — | "No se puede completar la operación con el estado actual." |
 | 1 (`/authorize`) | `ClientAppNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No encontramos el recurso solicitado." |
 | 1 (`/authorize`) | `InvalidRedirectUriException` | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | "Revisa los datos enviados e intenta otra vez." |
 | 1 (`/authorize`) | `IllegalArgumentException` (`response_type`) | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | "Revisa los datos enviados e intenta otra vez." |
-| 2 (`/account/login`) | `IllegalArgumentException` (sin sesion previa) | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT`* | "Revisa los datos enviados e intenta otra vez." |
+| 2 (`/account/login`) | `IllegalArgumentException` (sin sesión previa) | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT`* | "Revisa los datos enviados e intenta otra vez." |
 | 2 (`/account/login`) | `UserNotFoundException` | `404` | `RESOURCE_NOT_FOUND` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No encontramos el recurso solicitado." |
 | 2 (`/account/login`) | `InvalidCredentialsException` | `401` | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `USER_INPUT` | "No pudimos validar tu sesión. Inicia sesión nuevamente." |
 | 2 (`/account/login`) | `UnauthorizedException` | `401` | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No pudimos validar tu sesión. Inicia sesión nuevamente." |
@@ -1247,11 +1247,11 @@ flowchart TD
 | M2M | `ClientAuthenticationException` | `401` | `AUTHENTICATION_REQUIRED` | `CLIENT_REQUEST` | `CLIENT_TECHNICAL` | "No pudimos validar tu sesión. Inicia sesión nuevamente." |
 | cualquiera | `Exception` (generico) | `500` | `OPERATION_FAILED` | `SERVER_PROCESSING` | — | "No pudimos completar la solicitud. Intenta de nuevo en unos minutos." |
 
-> (*) Estas excepciones mapean a `USER_INPUT` via `INVALID_INPUT` aunque semanticamente son problemas tecnicos de integracion (code expirado, PKCE mal calculado, cookie de sesion faltante). Seran reclasificadas a `CLIENT_TECHNICAL` en la propuesta `T-066`.
+> (*) Estas excepciones mapean a `USER_INPUT` vía `INVALID_INPUT` aunque semanticamente son problemas técnicos de integración (code expirado, PKCE mal calculado, cookie de sesión faltante). Seran reclasificadas a `CLIENT_TECHNICAL` en la propuesta `T-066`.
 
-### Errores de verificacion de email (endpoints publicos de registro)
+### Errores de verificación de email (endpoints públicos de registro)
 
-| Endpoint | Excepcion | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
+| Endpoint | Excepción | HTTP | ResponseCode | `origin` | `clientRequestCause` | `clientMessage` |
 |---|---|---|---|---|---|---|
 | `POST /register` | `DuplicateUserException` | `409` | `DUPLICATE_RESOURCE` | `BUSINESS_RULE` | — | "El recurso ya existe." |
 | `POST /verify-email` | `EmailVerificationInvalidException` | `400` | `INVALID_INPUT` | `CLIENT_REQUEST` | `USER_INPUT` | "Revisa los datos enviados e intenta otra vez." |
@@ -1269,29 +1269,29 @@ flowchart TD
 | Control | Estado recomendado |
 |---|---|
 | Usar PKCE `S256` en flujo principal | Obligatorio para KeyGo UI |
-| Enviar/recibir cookie de sesion entre `/authorize` y `/account/login` | Obligatorio en flujo PKCE |
-| Enviar credenciales via HTTPS | Obligatorio |
+| Enviar/recibir cookie de sesión entre `/authorize` y `/account/login` | Obligatorio en flujo PKCE |
+| Enviar credenciales vía HTTPS | Obligatorio |
 | No guardar tokens en `localStorage` | Recomendado (evitar XSS) |
 | No guardar `code_verifier` en `localStorage` | Obligatorio (mantener en memoria) |
-| Usar HTTPS en produccion | Obligatorio |
-| Manejar rotacion de refresh token | Obligatorio si se usa sesion persistente |
+| Usar HTTPS en producción | Obligatorio |
+| Manejar rotación de refresh token | Obligatorio si se usa sesión persistente |
 | Verificar JWT contra JWKS (`kid`) | Obligatorio para consumidores de tokens |
 | Implementar logout (llamar `/platform/oauth2/revoke`) | Recomendado |
 | Validar `redirect_uri` registrada en allowlist | Obligatorio |
 
-> **Para clientes API/CLI:** si se usa `POST /platform/account/direct-login` en lugar del flujo PKCE, los controles de PKCE, cookie de sesion y redirect_uri no aplican.
+> **Para clientes API/CLI:** si se usa `POST /platform/account/direct-login` en lugar del flujo PKCE, los controles de PKCE, cookie de sesión y redirect_uri no aplican.
 
 ### Clientes de tenant app (SPA/Mobile/M2M)
 
 | Control | Estado recomendado |
 |---|---|
-| Usar PKCE `S256` | Obligatorio para clientes publicos |
-| Enviar/recibir cookie de sesion entre Paso 1 y 2 | Obligatorio en flujo interactivo |
+| Usar PKCE `S256` | Obligatorio para clientes públicos |
+| Enviar/recibir cookie de sesión entre Paso 1 y 2 | Obligatorio en flujo interactivo |
 | No guardar tokens en `localStorage` | Recomendado (evitar XSS) |
 | Validar `state` anti-CSRF | Obligatorio |
-| Usar HTTPS en produccion | Obligatorio |
+| Usar HTTPS en producción | Obligatorio |
 | Registrar `redirect_uri` exactas (sin wildcards) | Obligatorio |
-| Manejar rotacion de refresh token | Obligatorio si se usa sesion persistente |
+| Manejar rotación de refresh token | Obligatorio si se usa sesión persistente |
 | Verificar JWT contra JWKS (`kid`) | Obligatorio para consumidores de tokens |
 
 ---
@@ -1301,7 +1301,7 @@ flowchart TD
 | Documento | Contenido relacionado |
 |---|---|
 | `AGENTS.md` | Estado operativo de endpoints, context-path y seguridad |
-| `docs/api/BOOTSTRAP_FILTER.md` | Comportamiento detallado del filtro de autenticacion |
+| `docs/api/BOOTSTRAP_FILTER.md` | Comportamiento detallado del filtro de autenticación |
 | `docs/data/ENTITY_RELATIONSHIPS.md` | Relaciones entre entidades OAuth2/OIDC |
 | `docs/data/DATA_MODEL.md` | Modelo de tablas (`authorization_codes`, `sessions`, `refresh_tokens`, `signing_keys`) |
 | `ARCHITECTURE.md` | Arquitectura hexagonal y ubicacion de use cases/puertos |
@@ -1310,6 +1310,6 @@ flowchart TD
 
 ---
 
-**Ultima actualizacion:** 2026-04-08  
+**Última actualización:** 2026-04-08  
 **Responsable:** AI Agent  
-**Alcance:** Flujos de autenticacion de plataforma (OAuth2 PKCE + direct-login para API/CLI) y tenant app (OAuth2/OIDC: auth code + PKCE, refresh rotation, client credentials, JWKS/OIDC)
+**Alcance:** Flujos de autenticación de plataforma (OAuth2 PKCE + direct-login para API/CLI) y tenant app (OAuth2/OIDC: auth code + PKCE, refresh rotation, client credentials, JWKS/OIDC)

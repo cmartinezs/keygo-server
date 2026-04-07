@@ -21,7 +21,7 @@ T-111 creó la infraestructura CRUD para roles de plataforma y tenant:
 **Lo que falta:**
 
 1. El claim `roles` del JWT solo incluye **roles de aplicación** (`app_roles`/`memberships`). Los roles de plataforma y tenant NO están en el token.
-2. `@PreAuthorize("hasRole('ADMIN')")` funciona solo porque el app role `admin` (via membership de `keygo-ui`) llega al JWT. Con el nuevo modelo RBAC, los usuarios platform-admin deberían tener roles de plataforma, no depender del modelo de membership.
+2. `@PreAuthorize("hasRole('ADMIN')")` funciona solo porque el app role `admin` (vía membership de `keygo-ui`) llega al JWT. Con el nuevo modelo RBAC, los usuarios platform-admin deberían tener roles de plataforma, no depender del modelo de membership.
 3. `RevokeTenantRoleUseCase` tiene un bug crítico: usa `tenantUserId` donde debería usarse `tenantRoleId` para validar.
 4. `RegisterTenantUserUseCase` no asigna ningún rol de tenant al nuevo usuario.
 5. No existen endpoints REST para gestionar plataforma/tenant roles.
