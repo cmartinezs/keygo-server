@@ -137,7 +137,10 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasPrefix(path, bootstrapProperties.getPlatformTokenPathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformRevokePathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformAuthorizePathPrefix())
-        || hasPrefix(path, bootstrapProperties.getPlatformDirectLoginPathPrefix());
+        || hasPrefix(path, bootstrapProperties.getPlatformDirectLoginPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getPlatformForgotPasswordPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getPlatformRecoverPasswordPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getPlatformResetPasswordPathPrefix());
   }
   private boolean isPublicBySegment(String path) {
     return hasSegment(path, bootstrapProperties.getWellKnownPathPrefix());

@@ -51,6 +51,9 @@ keygo:
     platform-revoke-path-prefix: "/api/v1/platform/oauth2/revoke"
     platform-authorize-path-prefix: "/api/v1/platform/oauth2/authorize"
     platform-direct-login-path-prefix: "/api/v1/platform/account/direct-login"
+    platform-forgot-password-path-prefix: "/api/v1/platform/account/forgot-password"
+    platform-recover-password-path-prefix: "/api/v1/platform/account/recover-password"
+    platform-reset-password-path-prefix: "/api/v1/platform/account/reset-password"
   tracing:
     # Habilita el log DEBUG de input/output por método (KeyGoTracingAspect).
     # Requiere que el nivel DEBUG esté activo para io.cmartinezs.keygo en logback-spring.xml.

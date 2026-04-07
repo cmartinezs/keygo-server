@@ -153,4 +153,13 @@ public class KeyGoBootstrapProperties {
   /** Platform direct-login path prefix that is public (API/CLI direct auth). */
   private String platformDirectLoginPathPrefix;
 
+  /** Platform forgot-password path prefix that is public (self-service password recovery). */
+  private String platformForgotPasswordPathPrefix;
+
+  /** Platform recover-password path prefix that is public (self-service password reset with token). */
+  private String platformRecoverPasswordPathPrefix;
+
+  /** Platform reset-password path prefix that is public (self-service password reset with temporary password). */
+  private String platformResetPasswordPathPrefix;
+
 }

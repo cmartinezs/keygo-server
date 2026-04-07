@@ -122,6 +122,9 @@ import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ForgotPlatformPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.RecoverPlatformPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ResetPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
@@ -1062,6 +1065,33 @@ public class ApplicationConfig {
       EmailNotificationPort emailNotification) {
     return new SendPlatformPasswordResetCodeUseCase(
         platformUserRepository, codeRepository, emailNotification);
+  }
+
+  @Bean
+  public ForgotPlatformPasswordUseCase forgotPlatformPasswordUseCase(
+      PlatformUserRepositoryPort platformUserRepository,
+      VerificationCodeRepositoryPort codeRepository,
+      EmailNotificationPort emailNotification) {
+    return new ForgotPlatformPasswordUseCase(
+        platformUserRepository, codeRepository, emailNotification);
+  }
+
+  @Bean
+  public RecoverPlatformPasswordUseCase recoverPlatformPasswordUseCase(
+      PlatformUserRepositoryPort platformUserRepository,
+      VerificationCodeRepositoryPort codeRepository,
+      CredentialEncoderPort credentialEncoder) {
+    return new RecoverPlatformPasswordUseCase(
+        platformUserRepository, codeRepository, credentialEncoder);
+  }
+
+  @Bean
+  public ResetPlatformPasswordUseCase resetPlatformPasswordUseCase(
+      PlatformUserRepositoryPort platformUserRepository,
+      CredentialEncoderPort credentialEncoder,
+      VerificationCodeRepositoryPort codeRepository) {
+    return new ResetPlatformPasswordUseCase(
+        platformUserRepository, credentialEncoder, codeRepository);
   }
 
   @Bean
