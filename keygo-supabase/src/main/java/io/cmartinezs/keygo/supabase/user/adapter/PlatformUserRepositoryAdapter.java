@@ -24,11 +24,9 @@ public class PlatformUserRepositoryAdapter implements PlatformUserRepositoryPort
   private final PlatformUserJpaRepository jpaRepository;
   private final PlatformUserPersistenceMapper mapper;
 
-  public PlatformUserRepositoryAdapter(
-      PlatformUserJpaRepository jpaRepository,
-      PlatformUserPersistenceMapper mapper) {
+  public PlatformUserRepositoryAdapter(PlatformUserJpaRepository jpaRepository) {
     this.jpaRepository = jpaRepository;
-    this.mapper = mapper;
+    this.mapper = new PlatformUserPersistenceMapper();
   }
 
   @Override

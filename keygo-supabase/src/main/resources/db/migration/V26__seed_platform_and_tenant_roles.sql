@@ -38,7 +38,7 @@ ON CONFLICT (code) DO UPDATE SET
 INSERT INTO platform_user_roles (id, tenant_user_id, platform_role_id, assigned_at)
 VALUES (
   'aaaaaaaa-0001-0000-0000-000000000001',
-  (SELECT id FROM tenant_users tu
+  (SELECT tu.id FROM tenant_users tu
    JOIN tenants t ON t.id = tu.tenant_id
    WHERE t.slug = 'keygo' AND tu.username = 'keygo_admin'),
   (SELECT id FROM platform_roles WHERE code = 'keygo_admin'),
@@ -50,7 +50,7 @@ ON CONFLICT (tenant_user_id, platform_role_id) DO NOTHING;
 INSERT INTO platform_user_roles (id, tenant_user_id, platform_role_id, assigned_at)
 VALUES (
   'aaaaaaaa-0001-0000-0000-000000000002',
-  (SELECT id FROM tenant_users tu
+  (SELECT tu.id FROM tenant_users tu
    JOIN tenants t ON t.id = tu.tenant_id
    WHERE t.slug = 'keygo' AND tu.username = 'keygo_tenant_admin'),
   (SELECT id FROM platform_roles WHERE code = 'keygo_account_admin'),
@@ -62,7 +62,7 @@ ON CONFLICT (tenant_user_id, platform_role_id) DO NOTHING;
 INSERT INTO platform_user_roles (id, tenant_user_id, platform_role_id, assigned_at)
 VALUES (
   'aaaaaaaa-0001-0000-0000-000000000003',
-  (SELECT id FROM tenant_users tu
+  (SELECT tu.id FROM tenant_users tu
    JOIN tenants t ON t.id = tu.tenant_id
    WHERE t.slug = 'keygo' AND tu.username = 'keygo_contractor'),
   (SELECT id FROM platform_roles WHERE code = 'keygo_user'),
@@ -111,10 +111,10 @@ ON CONFLICT (tenant_id, code) DO UPDATE SET
 INSERT INTO tenant_user_roles (id, tenant_user_id, tenant_role_id, assigned_at)
 VALUES (
   'bbbbbbbb-0001-0000-0000-000000000001',
-  (SELECT id FROM tenant_users tu
+  (SELECT tu.id FROM tenant_users tu
    JOIN tenants t ON t.id = tu.tenant_id
    WHERE t.slug = 'keygo' AND tu.username = 'keygo_admin'),
-  (SELECT id FROM tenant_roles tr
+  (SELECT tr.id FROM tenant_roles tr
    JOIN tenants t ON t.id = tr.tenant_id
    WHERE t.slug = 'keygo' AND tr.code = 'KEYGO_ADMIN_INTERNAL'),
   now()
@@ -125,10 +125,10 @@ ON CONFLICT DO NOTHING;
 INSERT INTO tenant_user_roles (id, tenant_user_id, tenant_role_id, assigned_at)
 VALUES (
   'cccccccc-0001-0000-0000-000000000001',
-  (SELECT id FROM tenant_users tu
+  (SELECT tu.id FROM tenant_users tu
    JOIN tenants t ON t.id = tu.tenant_id
    WHERE t.slug = 'demo' AND tu.username = 'demo_admin'),
-  (SELECT id FROM tenant_roles tr
+  (SELECT tr.id FROM tenant_roles tr
    JOIN tenants t ON t.id = tr.tenant_id
    WHERE t.slug = 'demo' AND tr.code = 'DEMO_ADMIN'),
   now()
