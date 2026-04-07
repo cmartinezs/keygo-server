@@ -3,7 +3,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ForgotPasswordCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -12,7 +12,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordRecoveryToken;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -42,7 +42,7 @@ class ForgotPasswordUseCaseTest {
 
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock PasswordRecoveryTokenRepositoryPort tokenRepositoryPort;
+  @Mock VerificationCodeRepositoryPort tokenRepositoryPort;
   @Mock EmailNotificationPort emailNotificationPort;
 
   private ForgotPasswordUseCase useCase;
@@ -82,7 +82,7 @@ class ForgotPasswordUseCaseTest {
 
     // Then
     assertThat(result.sent()).isTrue();
-    verify(tokenRepositoryPort).upsert(any(PasswordRecoveryToken.class));
+    verify(tokenRepositoryPort).upsert(any(VerificationCode.class));
     verify(emailNotificationPort).sendPasswordRecoveryEmail(
         anyString(), anyString(), anyString(), anyString());
   }

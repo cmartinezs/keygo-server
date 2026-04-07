@@ -4,7 +4,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
@@ -57,7 +57,7 @@ class RegisterTenantUserUseCaseTest {
   @Mock ClientAppRepositoryPort clientAppRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
   @Mock CredentialEncoderPort credentialEncoderPort;
-  @Mock EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+  @Mock VerificationCodeRepositoryPort verificationCodeRepositoryPort;
   @Mock EmailNotificationPort emailNotificationPort;
 
   private RegisterTenantUserUseCase useCase;
@@ -68,7 +68,7 @@ class RegisterTenantUserUseCaseTest {
   void setUp() {
     useCase = new RegisterTenantUserUseCase(
         tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        credentialEncoderPort, emailVerificationRepositoryPort, emailNotificationPort);
+        credentialEncoderPort, verificationCodeRepositoryPort, emailNotificationPort);
 
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
@@ -102,7 +102,7 @@ class RegisterTenantUserUseCaseTest {
 
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     when(userRepositoryPort.save(userCaptor.capture())).thenAnswer(inv -> inv.getArgument(0));
-    when(emailVerificationRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(verificationCodeRepositoryPort.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
 
     RegisterTenantUserCommand command = new RegisterTenantUserCommand(
         TENANT_SLUG, CLIENT_ID, USERNAME, EMAIL, RAW_PASSWORD, "John", "Doe");
@@ -116,7 +116,7 @@ class RegisterTenantUserUseCaseTest {
     assertThat(result.getEmail().value()).isEqualTo(EMAIL);
     assertThat(result.getUsername().value()).isEqualTo(USERNAME);
 
-    verify(emailVerificationRepositoryPort).save(any());
+    verify(verificationCodeRepositoryPort).upsert(any());
     verify(emailNotificationPort).sendVerificationEmail(anyString(), anyString(), anyString());
   }
 

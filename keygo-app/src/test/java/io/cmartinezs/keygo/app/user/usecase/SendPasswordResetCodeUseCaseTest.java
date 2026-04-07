@@ -3,7 +3,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.SendPasswordResetCodeCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
@@ -14,7 +14,8 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordResetCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -52,7 +53,7 @@ class SendPasswordResetCodeUseCaseTest {
 
   @Mock TenantRepositoryPort            tenantRepositoryPort;
   @Mock UserRepositoryPort              userRepositoryPort;
-  @Mock PasswordResetCodeRepositoryPort codeRepositoryPort;
+  @Mock VerificationCodeRepositoryPort   codeRepositoryPort;
   @Mock EmailNotificationPort           emailNotificationPort;
 
   private SendPasswordResetCodeUseCase useCase;
@@ -91,8 +92,8 @@ class SendPasswordResetCodeUseCaseTest {
   @Test
   void execute_byEmail_returnsRequestId() {
     // Given
-    PasswordResetCode persisted = PasswordResetCode.reconstitute(
-        persistedCodeId, userId, "123456",
+    VerificationCode persisted = VerificationCode.reconstitute(
+        persistedCodeId, userId, VerificationPurpose.PASSWORD_RESET, "123456",
         Instant.now().plus(15, ChronoUnit.MINUTES), null, Instant.now());
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
@@ -115,8 +116,8 @@ class SendPasswordResetCodeUseCaseTest {
   @Test
   void execute_byUsername_returnsRequestId() {
     // Given
-    PasswordResetCode persisted = PasswordResetCode.reconstitute(
-        persistedCodeId, userId, "654321",
+    VerificationCode persisted = VerificationCode.reconstitute(
+        persistedCodeId, userId, VerificationPurpose.PASSWORD_RESET, "654321",
         Instant.now().plus(15, ChronoUnit.MINUTES), null, Instant.now());
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
@@ -138,8 +139,8 @@ class SendPasswordResetCodeUseCaseTest {
   void execute_upsertReplacesExistingCode() {
     // Given — second call (upsert replaces old code with new UUID)
     UUID newCodeId = UUID.randomUUID();
-    PasswordResetCode newPersisted = PasswordResetCode.reconstitute(
-        newCodeId, userId, "000001",
+    VerificationCode newPersisted = VerificationCode.reconstitute(
+        newCodeId, userId, VerificationPurpose.PASSWORD_RESET, "000001",
         Instant.now().plus(15, ChronoUnit.MINUTES), null, Instant.now());
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));

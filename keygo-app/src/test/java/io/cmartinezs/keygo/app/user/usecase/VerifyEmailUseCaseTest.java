@@ -3,7 +3,7 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.VerifyEmailCommand;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
@@ -16,10 +16,11 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredException;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.EmailVerification;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -54,7 +55,7 @@ class VerifyEmailUseCaseTest {
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock ClientAppRepositoryPort clientAppRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+  @Mock VerificationCodeRepositoryPort verificationCodeRepositoryPort;
 
   private VerifyEmailUseCase useCase;
   private Tenant activeTenant;
@@ -64,7 +65,7 @@ class VerifyEmailUseCaseTest {
   void setUp() {
     useCase = new VerifyEmailUseCase(
         tenantRepositoryPort, clientAppRepositoryPort,
-        userRepositoryPort, emailVerificationRepositoryPort);
+        userRepositoryPort, verificationCodeRepositoryPort);
 
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
@@ -102,12 +103,12 @@ class VerifyEmailUseCaseTest {
   @Test
   void activatesUserWhenCodeIsValid() {
     // Given
-    EmailVerification verification = EmailVerification.create(
-        pendingUser.getId(), activeTenant.getId(), VALID_CODE,
+    VerificationCode verification = VerificationCode.create(
+        pendingUser.getId(), VerificationPurpose.EMAIL_VERIFICATION, VALID_CODE,
         Instant.now().plus(30, ChronoUnit.MINUTES));
-    when(emailVerificationRepositoryPort.findLatestByUserIdAndTenantId(any(), any()))
+    when(verificationCodeRepositoryPort.findByUserIdAndPurpose(any(), any()))
         .thenReturn(Optional.of(verification));
-    when(emailVerificationRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(verificationCodeRepositoryPort.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
@@ -115,54 +116,54 @@ class VerifyEmailUseCaseTest {
 
     // Then
     assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
-    verify(emailVerificationRepositoryPort).save(any());
+    verify(verificationCodeRepositoryPort).upsert(any());
     verify(userRepositoryPort).save(any());
   }
 
   @Test
   void throwsExpiredExceptionWhenCodeIsExpired() {
     // Given
-    EmailVerification expiredVerification = EmailVerification.create(
-        pendingUser.getId(), activeTenant.getId(), VALID_CODE,
+    VerificationCode expiredVerification = VerificationCode.create(
+        pendingUser.getId(), VerificationPurpose.EMAIL_VERIFICATION, VALID_CODE,
         Instant.now().minus(1, ChronoUnit.MINUTES));
-    when(emailVerificationRepositoryPort.findLatestByUserIdAndTenantId(any(), any()))
+    when(verificationCodeRepositoryPort.findByUserIdAndPurpose(any(), any()))
         .thenReturn(Optional.of(expiredVerification));
 
     // When / Then
       VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, VALID_CODE);
       assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(EmailVerificationExpiredException.class);
+        .isInstanceOf(VerificationCodeExpiredException.class);
   }
 
   @Test
   void throwsInvalidExceptionWhenCodeIsWrong() {
     // Given
-    EmailVerification verification = EmailVerification.create(
-        pendingUser.getId(), activeTenant.getId(), VALID_CODE,
+    VerificationCode verification = VerificationCode.create(
+        pendingUser.getId(), VerificationPurpose.EMAIL_VERIFICATION, VALID_CODE,
         Instant.now().plus(30, ChronoUnit.MINUTES));
-    when(emailVerificationRepositoryPort.findLatestByUserIdAndTenantId(any(), any()))
+    when(verificationCodeRepositoryPort.findByUserIdAndPurpose(any(), any()))
         .thenReturn(Optional.of(verification));
 
     // When / Then
       VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, "999999");
       assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(EmailVerificationInvalidException.class);
+        .isInstanceOf(VerificationCodeInvalidException.class);
   }
 
   @Test
   void throwsInvalidExceptionWhenCodeIsAlreadyUsed() {
     // Given
-    EmailVerification verification = EmailVerification.create(
-        pendingUser.getId(), activeTenant.getId(), VALID_CODE,
+    VerificationCode verification = VerificationCode.create(
+        pendingUser.getId(), VerificationPurpose.EMAIL_VERIFICATION, VALID_CODE,
         Instant.now().plus(30, ChronoUnit.MINUTES));
     verification.markUsed();
-    when(emailVerificationRepositoryPort.findLatestByUserIdAndTenantId(any(), any()))
+    when(verificationCodeRepositoryPort.findByUserIdAndPurpose(any(), any()))
         .thenReturn(Optional.of(verification));
 
     // When / Then
       VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, VALID_CODE);
       assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(EmailVerificationInvalidException.class);
+        .isInstanceOf(VerificationCodeInvalidException.class);
   }
 }
 

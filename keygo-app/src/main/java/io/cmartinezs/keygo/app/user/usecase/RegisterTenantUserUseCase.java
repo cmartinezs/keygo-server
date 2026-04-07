@@ -4,7 +4,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
@@ -15,13 +15,14 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.EmailVerification;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -46,7 +47,7 @@ public class RegisterTenantUserUseCase {
   private final ClientAppRepositoryPort clientAppRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
   private final CredentialEncoderPort credentialEncoderPort;
-  private final EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+  private final VerificationCodeRepositoryPort verificationCodeRepositoryPort;
   private final EmailNotificationPort emailNotificationPort;
   private final SecureRandom secureRandom;
 
@@ -55,13 +56,13 @@ public class RegisterTenantUserUseCase {
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
     this.credentialEncoderPort = credentialEncoderPort;
-    this.emailVerificationRepositoryPort = emailVerificationRepositoryPort;
+    this.verificationCodeRepositoryPort = verificationCodeRepositoryPort;
     this.emailNotificationPort = emailNotificationPort;
     this.secureRandom = new SecureRandom();
   }
@@ -120,8 +121,9 @@ public class RegisterTenantUserUseCase {
     // 5. Generate and persist verification code
     String code = generateCode();
     Instant expiresAt = Instant.now().plus(VERIFICATION_EXPIRY_MINUTES, ChronoUnit.MINUTES);
-    EmailVerification verification = EmailVerification.create(savedUser.getId(), tenant.getId(), code, expiresAt);
-    emailVerificationRepositoryPort.save(verification);
+    VerificationCode verification = VerificationCode.create(
+        savedUser.getId(), VerificationPurpose.EMAIL_VERIFICATION, code, expiresAt);
+    verificationCodeRepositoryPort.upsert(verification);
 
     // 6. Send verification email
     emailNotificationPort.sendVerificationEmail(email.value(), username.value(), code);

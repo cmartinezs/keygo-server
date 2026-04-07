@@ -42,27 +42,26 @@ import io.cmartinezs.keygo.domain.clientapp.exception.ClientAuthenticationExcept
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
 import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
 import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadyActiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipPendingException;
 import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyCycleException;
 import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyDepthExceededException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredException;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationStillActiveException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException;
-import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.PlatformUserSuspendedException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.ArrayList;
@@ -364,6 +363,26 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles MembershipPendingException - returns 403 Forbidden.
+   * Maneja MembershipPendingException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(MembershipPendingException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipPendingException(MembershipPendingException ex) {
+    log.error("Membership pending: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles PlatformUserSuspendedException - returns 403 Forbidden.
+   * Maneja PlatformUserSuspendedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(PlatformUserSuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePlatformUserSuspendedException(PlatformUserSuspendedException ex) {
+    log.error("Platform user suspended: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
    * Handles InvalidRoleAssignmentException - returns 400 Bad Request.
    * Maneja InvalidRoleAssignmentException - retorna 400 Bad Request.
    */
@@ -380,6 +399,16 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MembershipAlreadySuspendedException.class)
   public ResponseEntity<BaseResponse<ErrorData>> handleMembershipAlreadySuspendedException(MembershipAlreadySuspendedException ex) {
     log.warn("Membership already suspended: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles MembershipAlreadyActiveException - returns 409 Conflict.
+   * Lanzada cuando se intenta aprobar una membresía que ya está activa.
+   */
+  @ExceptionHandler(MembershipAlreadyActiveException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipAlreadyActiveException(MembershipAlreadyActiveException ex) {
+    log.warn("Membership already active: {}", ex.getMessage());
     return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
@@ -504,39 +533,39 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Handles EmailVerificationExpiredException - returns 422 Unprocessable Entity.
+   * Handles VerificationCodeExpiredException - returns 422 Unprocessable Entity.
    * The verification code has expired; user must request a new one.
-   * Maneja EmailVerificationExpiredException - retorna 422.
+   * Maneja VerificationCodeExpiredException - retorna 422.
    */
-  @ExceptionHandler(EmailVerificationExpiredException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handleEmailVerificationExpiredException(
-      EmailVerificationExpiredException ex) {
+  @ExceptionHandler(VerificationCodeExpiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleVerificationCodeExpiredException(
+      VerificationCodeExpiredException ex) {
     log.warn("Expired verification code used: {}", ex.getMessage());
     return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.EMAIL_VERIFICATION_EXPIRED, ex);
   }
 
   /**
-   * Handles EmailVerificationInvalidException - returns 400 Bad Request.
-   * The code is wrong or already used.
-   * Maneja EmailVerificationInvalidException - retorna 400.
+   * Handles VerificationCodeInvalidException - returns 400 Bad Request.
+   * The code is wrong or does not exist.
+   * Maneja VerificationCodeInvalidException - retorna 400.
    */
-  @ExceptionHandler(EmailVerificationInvalidException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handleEmailVerificationInvalidException(
-      EmailVerificationInvalidException ex) {
+  @ExceptionHandler(VerificationCodeInvalidException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleVerificationCodeInvalidException(
+      VerificationCodeInvalidException ex) {
     log.warn("Invalid verification code: {}", ex.getMessage());
     return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
   }
 
   /**
-   * Handles EmailVerificationStillActiveException - returns 409 Conflict.
-   * The current verification code is still active; resend is not allowed yet.
-   * Maneja EmailVerificationStillActiveException - retorna 409.
+   * Handles VerificationCodeAlreadyUsedException - returns 422 Unprocessable Entity.
+   * The code has already been consumed.
+   * Maneja VerificationCodeAlreadyUsedException - retorna 422.
    */
-  @ExceptionHandler(EmailVerificationStillActiveException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handleEmailVerificationStillActiveException(
-      EmailVerificationStillActiveException ex) {
-    log.warn("Resend blocked — code still active: {}", ex.getMessage());
-    return error(HttpStatus.CONFLICT, ResponseCode.EMAIL_VERIFICATION_STILL_ACTIVE, ex);
+  @ExceptionHandler(VerificationCodeAlreadyUsedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleVerificationCodeAlreadyUsedException(
+      VerificationCodeAlreadyUsedException ex) {
+    log.warn("Verification code already used: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
   /**
@@ -706,27 +735,11 @@ public class GlobalExceptionHandler {
     return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
   }
 
-  /**
-   * Handles PasswordRecoveryTokenExpiredException - returns 422 Unprocessable Entity.
-   * Lanzada cuando el token de recuperación de contraseña ha expirado.
-   */
-  @ExceptionHandler(PasswordRecoveryTokenExpiredException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordRecoveryTokenExpiredException(
-      PasswordRecoveryTokenExpiredException ex) {
-    log.warn("Recovery token expired: {}", ex.getMessage());
-    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
-  }
-
-  /**
-   * Handles PasswordRecoveryTokenAlreadyUsedException - returns 422 Unprocessable Entity.
-   * Lanzada cuando el token de recuperación de contraseña ya fue utilizado.
-   */
-  @ExceptionHandler(PasswordRecoveryTokenAlreadyUsedException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordRecoveryTokenAlreadyUsedException(
-      PasswordRecoveryTokenAlreadyUsedException ex) {
-    log.warn("Recovery token already used: {}", ex.getMessage());
-    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
-  }
+  // ─── Unified verification code handlers (above) replace the old per-type handlers ───
+  // PasswordRecoveryTokenExpiredException → VerificationCodeExpiredException
+  // PasswordRecoveryTokenAlreadyUsedException → VerificationCodeAlreadyUsedException
+  // InvalidPasswordResetCodeException → VerificationCodeInvalidException
+  // PasswordResetCodeExpiredException → VerificationCodeExpiredException
 
   /**
    * Handles UserPasswordResetRequiredException - returns 401 Unauthorized.
@@ -753,27 +766,9 @@ public class GlobalExceptionHandler {
     return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
   }
 
-  /**
-   * Handles InvalidPasswordResetCodeException - returns 400 Bad Request.
-   * Lanzada cuando el código de verificación de reset de contraseña es inválido o no existe.
-   */
-  @ExceptionHandler(InvalidPasswordResetCodeException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPasswordResetCodeException(
-      InvalidPasswordResetCodeException ex) {
-    log.warn("Invalid password reset code: {}", ex.getMessage());
-    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
-  }
+  // InvalidPasswordResetCodeException → handled by VerificationCodeInvalidException above
 
-  /**
-   * Handles PasswordResetCodeExpiredException - returns 422 Unprocessable Entity.
-   * Lanzada cuando el código de verificación de reset de contraseña ha expirado.
-   */
-  @ExceptionHandler(PasswordResetCodeExpiredException.class)
-  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordResetCodeExpiredException(
-      PasswordResetCodeExpiredException ex) {
-    log.warn("Password reset code expired: {}", ex.getMessage());
-    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
-  }
+  // PasswordResetCodeExpiredException → handled by VerificationCodeExpiredException above
 
   /**
    * Handles SecurityException - returns 403 Forbidden.

@@ -152,4 +152,22 @@ public interface EmailNotificationPort {
             "expiresInMinutes", expiresInMinutes,
             "resetPasswordLink", links.getOrDefault("resetPasswordLink", "")));
   }
+
+  /**
+   * Send a notification email when a membership has been approved. Envía un email de notificación
+   * cuando una membresía ha sido aprobada.
+   *
+   * @param toEmail the recipient's email address
+   * @param username the recipient's username (for personalization)
+   * @param appName the name of the application the user now has access to
+   */
+  default void sendMembershipApprovedEmail(String toEmail, String username, String appName) {
+    sendEmail(
+        "membership-approved",
+        toEmail,
+        username,
+        Map.of(
+            "userName", username,
+            "appName", appName));
+  }
 }

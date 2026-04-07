@@ -5,20 +5,21 @@ import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
 import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
-import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordResetCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -50,7 +51,7 @@ class ResetPasswordUseCaseTest {
   @Mock TenantRepositoryPort            tenantRepositoryPort;
   @Mock UserRepositoryPort              userRepositoryPort;
   @Mock CredentialEncoderPort              credentialEncoderPort;
-  @Mock PasswordResetCodeRepositoryPort codeRepositoryPort;
+  @Mock VerificationCodeRepositoryPort codeRepositoryPort;
   private ResetPasswordUseCase useCase;
   private Tenant activeTenant;
   private User   resetPasswordUser;
@@ -81,9 +82,9 @@ class ResetPasswordUseCaseTest {
     return new ResetPasswordCommand(
         TENANT_SLUG, requestId.toString(), "tempPass123!", VALID_NEW_PWD, VALID_NEW_PWD, VALID_CODE);
   }
-  private PasswordResetCode activeCode() {
-    return PasswordResetCode.reconstitute(
-        requestId, userId, VALID_CODE,
+  private VerificationCode activeCode() {
+    return VerificationCode.reconstitute(
+        requestId, userId, VerificationPurpose.PASSWORD_RESET, VALID_CODE,
         Instant.now().plus(15, ChronoUnit.MINUTES), null, Instant.now());
   }
   @Test
@@ -125,39 +126,39 @@ class ResetPasswordUseCaseTest {
   }
   @Test
   void resetPassword_throwsWhenCodeAlreadyUsed() {
-    PasswordResetCode usedCode = PasswordResetCode.reconstitute(
-        requestId, userId, VALID_CODE,
+    VerificationCode usedCode = VerificationCode.reconstitute(
+        requestId, userId, VerificationPurpose.PASSWORD_RESET, VALID_CODE,
         Instant.now().plus(15, ChronoUnit.MINUTES),
         Instant.now().minus(1, ChronoUnit.MINUTES), Instant.now());
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(usedCode));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
-        .isInstanceOf(InvalidPasswordResetCodeException.class);
+        .isInstanceOf(VerificationCodeInvalidException.class);
     verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
     verify(userRepositoryPort, never()).save(any());
   }
   @Test
   void resetPassword_throwsWhenCodeExpired() {
-    PasswordResetCode expiredCode = PasswordResetCode.reconstitute(
-        requestId, userId, VALID_CODE,
+    VerificationCode expiredCode = VerificationCode.reconstitute(
+        requestId, userId, VerificationPurpose.PASSWORD_RESET, VALID_CODE,
         Instant.now().minus(1, ChronoUnit.MINUTES), null,
         Instant.now().minus(16, ChronoUnit.MINUTES));
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(expiredCode));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
-        .isInstanceOf(PasswordResetCodeExpiredException.class);
+        .isInstanceOf(VerificationCodeExpiredException.class);
     verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
     verify(userRepositoryPort, never()).save(any());
   }
   @Test
   void resetPassword_throwsWhenCodeIncorrect() {
-    PasswordResetCode wrongCode = PasswordResetCode.reconstitute(
-        requestId, userId, "999999",
+    VerificationCode wrongCode = VerificationCode.reconstitute(
+        requestId, userId, VerificationPurpose.PASSWORD_RESET, "999999",
         Instant.now().plus(15, ChronoUnit.MINUTES), null, Instant.now());
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(wrongCode));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
-        .isInstanceOf(InvalidPasswordResetCodeException.class);
+        .isInstanceOf(VerificationCodeInvalidException.class);
     verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
     verify(userRepositoryPort, never()).save(any());
   }

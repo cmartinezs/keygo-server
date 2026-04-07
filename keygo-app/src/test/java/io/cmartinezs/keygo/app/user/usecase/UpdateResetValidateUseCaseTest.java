@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResetUserPasswordCommand;
 import io.cmartinezs.keygo.app.user.command.UpdateUserCommand;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
+import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -44,6 +45,7 @@ class UpdateResetValidateUseCaseTest {
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
   @Mock CredentialEncoderPort credentialEncoderPort;
+  @Mock PlatformUserRepositoryPort platformUserRepositoryPort;
 
   private Tenant activeTenant;
   private User activeUser;
@@ -159,7 +161,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsByEmailSucceeds() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
     when(credentialEncoderPort.matches("secret", VALID_HASH)).thenReturn(true);
@@ -174,7 +176,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsByUsernameSucceeds() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     // "johndoe" is not a valid email → tryFindByEmail catches IAE and returns empty without calling mock
     when(userRepositoryPort.findByTenantIdAndUsername(any(), any())).thenReturn(Optional.of(activeUser));
@@ -190,7 +192,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsWhenSuspended() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     activeUser.suspend();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
@@ -203,7 +205,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsOnWrongPassword() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
     when(credentialEncoderPort.matches(any(), any())).thenReturn(false);
@@ -216,7 +218,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsWhenResetPasswordRequired() {
     // Given — T-103: user has RESET_PASSWORD status and provides correct password
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     activeUser.requirePasswordReset();  // transitions status to RESET_PASSWORD
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
@@ -230,7 +232,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsWithResetPasswordStatus_stillThrowsInvalidCredentialsOnWrongPassword() {
     // Given — T-103: timing oracle guard — wrong password must still yield InvalidCredentialsException
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     activeUser.requirePasswordReset();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.of(activeUser));
@@ -245,7 +247,7 @@ class UpdateResetValidateUseCaseTest {
   @Test
   void validateCredentialsThrowsWhenUserNotFound() {
     // Given
-    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+    ValidateUserCredentialsUseCase uc = new ValidateUserCredentialsUseCase(tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     // Use a valid email so the email-lookup mock is actually called
     when(userRepositoryPort.findByTenantIdAndEmail(any(), any())).thenReturn(Optional.empty());

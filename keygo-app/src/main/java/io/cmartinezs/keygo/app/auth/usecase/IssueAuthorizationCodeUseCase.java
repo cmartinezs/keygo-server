@@ -18,6 +18,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipPendingException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -109,6 +110,10 @@ public class IssueAuthorizationCodeUseCase {
 
     if (membership.isSuspended()) {
       throw new MembershipInactiveException("User membership is suspended");
+    }
+
+    if (membership.isPending()) {
+      throw new MembershipPendingException("User membership is pending approval");
     }
 
     // Validar scopes

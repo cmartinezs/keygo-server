@@ -20,6 +20,33 @@
 
 ## Registro de cambios
 
+### [2026-04-07] T-125 — Membership.PENDING como estado inicial + flujo de aprobación
+
+- **Dominio (`keygo-domain`):** Nuevo método `Membership.approve()` (valida PENDING→ACTIVE, lanza `MembershipAlreadyActiveException` si activa, `MembershipAlreadySuspendedException` si suspendida). Nueva excepción `MembershipAlreadyActiveException`.
+- **Use case (`keygo-app`):** `CreateMembershipUseCase` ahora crea membresías con `MembershipStatus.PENDING` (antes `ACTIVE`). Nuevo `ApproveMembershipUseCase` (busca por ID+tenant, llama `approve()`, persiste).
+- **Controller (`keygo-api`):** Nuevo endpoint `PUT /api/v1/tenants/{slug}/memberships/{membershipId}/approve` en `TenantMembershipController`. Constructor actualizado con `ApproveMembershipUseCase`.
+- **ResponseCode:** Nuevo `MEMBERSHIP_APPROVED`.
+- **GlobalExceptionHandler:** Nuevo handler `MembershipAlreadyActiveException` → 409 Conflict.
+- **ApplicationConfig (`keygo-run`):** Nuevo bean `approveMembershipUseCase`.
+- **Tests:** `ApproveMembershipUseCaseTest` (5 tests), `CreateMembershipUseCaseTest` (5 tests — nuevo). Total: 950 tests, 0 fallos.
+
+### [2026-04-07] Refactorización: tabla unificada verification_codes + cascada multi-capa en login
+
+- **Migración V31 (`keygo-supabase`):** Tabla unificada `verification_codes` con discriminador `purpose` (EMAIL_VERIFICATION, PASSWORD_RESET, PASSWORD_RECOVERY). Migra datos de 3 tablas antiguas y las elimina.
+- **Dominio (`keygo-domain`):** `VerificationCode`, `VerificationPurpose` (enum), 3 excepciones unificadas: `VerificationCodeExpiredException`, `VerificationCodeInvalidException`, `VerificationCodeAlreadyUsedException` — todas parametrizadas por `VerificationPurpose`.
+- **Eliminados dominio:** `EmailVerification`, `PasswordResetCode`, `PasswordRecoveryToken` + 11 excepciones específicas.
+- **Puerto unificado (`keygo-app`):** `VerificationCodeRepositoryPort` reemplaza `EmailVerificationRepositoryPort`, `PasswordResetCodeRepositoryPort`, `PasswordRecoveryTokenRepositoryPort`.
+- **Entidad/Repo/Adapter (`keygo-supabase`):** `VerificationCodeEntity`, `VerificationCodeJpaRepository`, `VerificationCodeRepositoryAdapter`. Eliminados 9 archivos antiguos.
+- **Nuevas excepciones dominio:** `PlatformUserSuspendedException`, `MembershipPendingException`.
+- **Nuevo método:** `Membership.isPending()` en dominio.
+- **Use cases actualizados:** 7 use cases migrados a `VerificationCodeRepositoryPort`; `AuthenticatePlatformUserUseCase` ahora valida `RESET_PASSWORD`; `ValidateUserCredentialsUseCase` ahora valida `PlatformUser.SUSPENDED` (cascade); `IssueAuthorizationCodeUseCase` ahora valida `Membership.PENDING`.
+- **`ValidateUserCredentialsUseCase`:** nuevo parámetro constructor `PlatformUserRepositoryPort`.
+- **`GlobalExceptionHandler`:** 2 nuevos handlers (`PlatformUserSuspendedException` → 403, `MembershipPendingException` → 403); 7 handlers de excepciones eliminadas → 3 unificados.
+- **ApplicationConfig:** bean `validateUserCredentialsUseCase` actualizado con 4 parámetros.
+- **Tests nuevos:** `ValidateUserCredentialsUseCaseTest` (10 tests), `IssueAuthorizationCodeUseCaseTest` (4 tests), test RESET_PASSWORD en `AuthenticatePlatformUserUseCaseTest`.
+- **Tests actualizados:** 8 archivos de test + `UpdateResetValidateUseCaseTest` (7 instancias del constructor corregidas).
+- **Próxima migración:** `V32__...`
+
 ### [2026-04-07] T-111 — Modelo RBAC multi-ámbito (plataforma + tenant)
 
 - **Dominio (`keygo-domain`):** 8 nuevos tipos en `membership/model/`: `PlatformRoleId`, `PlatformRole`, `PlatformUserRoleId`, `PlatformUserRole`, `TenantRoleId`, `TenantRole`, `TenantUserRoleId`, `TenantUserRole`.
@@ -258,3 +285,15 @@
   - `POST /api/v1/platform/billing/subscription/cancel` (Bearer KEYGO_ADMIN/KEYGO_TENANT_ADMIN)
   - `GET /api/v1/platform/billing/invoices` (Bearer KEYGO_ADMIN/KEYGO_TENANT_ADMIN)
 - Suite completa: 636 tests, 0 fallos
+
+### [2026-04-09] T-125 — Membership.PENDING + flujo aprobación + email notificación
+- `Membership.approve()` domain method: PENDING→ACTIVE, lanza `MembershipAlreadyActiveException` (ACTIVE) o `MembershipAlreadySuspendedException` (SUSPENDED)
+- `CreateMembershipUseCase` ahora crea membresías en estado `PENDING` (antes `ACTIVE`)
+- Nuevo `ApproveMembershipUseCase`: valida tenant scope, aprueba, envía email notificación
+- Nuevo endpoint `PUT /api/v1/tenants/{slug}/apps/{clientId}/memberships/{membershipId}/approve`
+- Nuevo `ResponseCode.MEMBERSHIP_APPROVED`
+- Email notificación: `MembershipApprovedStrategy` + template `membership-approved.html` + convenience method `sendMembershipApprovedEmail()`
+- `GlobalExceptionHandler`: handler `MembershipAlreadyActiveException` → 409 Conflict
+- 7 tests `ApproveMembershipUseCaseTest` (incl. email sent, email failure no bloquea approve)
+- 5 tests `CreateMembershipUseCaseTest`
+- Suite completa: 952 tests, 0 fallos

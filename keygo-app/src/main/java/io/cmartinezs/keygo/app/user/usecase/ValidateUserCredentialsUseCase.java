@@ -2,17 +2,21 @@ package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
+import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.PlatformUserSuspendedException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
+import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.User;
+import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.Username;
 
 import java.util.Optional;
@@ -22,6 +26,10 @@ import java.util.Optional;
  * <p>Caso de uso: validar las credenciales de un usuario (email o username + contraseña) dentro de un tenant.
  * The {@code credential} parameter accepts either an email address or a username.
  * <p>El parámetro {@code credential} acepta tanto una dirección de email como un username.
+ *
+ * <p><strong>Cascade validation:</strong> if the tenant user is linked to a global platform user,
+ * the platform user's status is checked first. A suspended platform user blocks all tenant logins.
+ *
  * @author cmartinezs
  * @version 1.0
  */
@@ -30,14 +38,17 @@ public class ValidateUserCredentialsUseCase {
   private final TenantRepositoryPort tenantRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
   private final CredentialEncoderPort credentialEncoderPort;
+  private final PlatformUserRepositoryPort platformUserRepositoryPort;
 
   public ValidateUserCredentialsUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      CredentialEncoderPort credentialEncoderPort) {
+      CredentialEncoderPort credentialEncoderPort,
+      PlatformUserRepositoryPort platformUserRepositoryPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
     this.credentialEncoderPort = credentialEncoderPort;
+    this.platformUserRepositoryPort = platformUserRepositoryPort;
   }
 
   /**
@@ -48,6 +59,8 @@ public class ValidateUserCredentialsUseCase {
    * @return the authenticated User
    * @throws TenantNotFoundException              if the tenant does not exist
    * @throws UserNotFoundException               if no user matches the credential
+   * @throws PlatformUserSuspendedException      if the linked platform user is suspended
+   * @throws UserPendingVerificationException    if the user account is pending verification
    * @throws UserSuspendedException              if the user account is suspended
    * @throws UserPasswordResetRequiredException  if the user must reset their password before logging in
    * @throws InvalidCredentialsException         if the password does not match
@@ -63,6 +76,9 @@ public class ValidateUserCredentialsUseCase {
     }
 
     User user = userOpt.orElseThrow(() -> new UserNotFoundException("credential", credential));
+
+    // Cascade: check linked platform user status before tenant-level checks
+    validatePlatformUserStatus(user);
 
     if (user.isPending()) {
       throw new UserPendingVerificationException(user.getEmail().value());
@@ -83,6 +99,20 @@ public class ValidateUserCredentialsUseCase {
     }
 
     return user;
+  }
+
+  /**
+   * If the tenant user is linked to a global platform user, verify the platform user is not suspended.
+   */
+  private void validatePlatformUserStatus(User user) {
+    if (user.getPlatformUserId() == null) {
+      return;
+    }
+    platformUserRepositoryPort.findById(new UserId(user.getPlatformUserId()))
+        .filter(PlatformUser::isSuspended)
+        .ifPresent(pu -> {
+          throw new PlatformUserSuspendedException(pu.getUsername().value());
+        });
   }
 
   private Optional<User> tryFindByEmail(Tenant tenant, String credential) {

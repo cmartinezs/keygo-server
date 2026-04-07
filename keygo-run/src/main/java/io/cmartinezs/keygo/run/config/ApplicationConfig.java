@@ -66,6 +66,7 @@ import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.membership.usecase.AssignRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ApproveMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RemoveRoleParentUseCase;
@@ -92,10 +93,8 @@ import io.cmartinezs.keygo.app.tenant.usecase.GetTenantBySlugUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.ListTenantsUseCase;
 import io.cmartinezs.keygo.app.tenant.usecase.SuspendTenantUseCase;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.NotificationPreferencesRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
-import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.platform.usecase.IssuePlatformTokensUseCase;
 import io.cmartinezs.keygo.app.platform.usecase.RotatePlatformRefreshTokenUseCase;
@@ -303,9 +302,10 @@ public class ApplicationConfig {
   public ValidateUserCredentialsUseCase validateUserCredentialsUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      CredentialEncoderPort credentialEncoderPort) {
+      CredentialEncoderPort credentialEncoderPort,
+      PlatformUserRepositoryPort platformUserRepositoryPort) {
     return new ValidateUserCredentialsUseCase(
-        tenantRepositoryPort, userRepositoryPort, credentialEncoderPort);
+        tenantRepositoryPort, userRepositoryPort, credentialEncoderPort, platformUserRepositoryPort);
   }
 
   @Bean
@@ -334,14 +334,14 @@ public class ApplicationConfig {
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     return new RegisterTenantUserUseCase(
         tenantRepositoryPort,
         clientAppRepositoryPort,
         userRepositoryPort,
         credentialEncoderPort,
-        emailVerificationRepositoryPort,
+        verificationCodeRepositoryPort,
         emailNotificationPort);
   }
 
@@ -350,10 +350,10 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort) {
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort) {
     return new VerifyEmailUseCase(
         tenantRepositoryPort, clientAppRepositoryPort,
-        userRepositoryPort, emailVerificationRepositoryPort);
+        userRepositoryPort, verificationCodeRepositoryPort);
   }
 
   @Bean
@@ -361,14 +361,14 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       EmailNotificationPort emailNotificationPort,
       ClockPort clockPort) {
     return new ResendVerificationEmailUseCase(
         tenantRepositoryPort,
         clientAppRepositoryPort,
         userRepositoryPort,
-        emailVerificationRepositoryPort,
+        verificationCodeRepositoryPort,
         emailNotificationPort,
         clockPort);
   }
@@ -401,6 +401,21 @@ public class ApplicationConfig {
   public RevokeMembershipUseCase revokeMembershipUseCase(
       MembershipRepositoryPort membershipRepositoryPort) {
     return new RevokeMembershipUseCase(membershipRepositoryPort);
+  }
+
+  @Bean
+  public ApproveMembershipUseCase approveMembershipUseCase(
+      MembershipRepositoryPort membershipRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      EmailNotificationPort emailNotificationPort) {
+    return new ApproveMembershipUseCase(
+        membershipRepositoryPort,
+        tenantRepositoryPort,
+        userRepositoryPort,
+        clientAppRepositoryPort,
+        emailNotificationPort);
   }
 
   @Bean
@@ -628,22 +643,22 @@ public class ApplicationConfig {
   public ForgotPasswordUseCase forgotPasswordUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordRecoveryTokenRepositoryPort passwordRecoveryTokenRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     return new ForgotPasswordUseCase(
         tenantRepositoryPort, userRepositoryPort,
-        passwordRecoveryTokenRepositoryPort, emailNotificationPort);
+        verificationCodeRepositoryPort, emailNotificationPort);
   }
 
   @Bean
   public RecoverPasswordUseCase recoverPasswordUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordRecoveryTokenRepositoryPort passwordRecoveryTokenRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       CredentialEncoderPort credentialEncoderPort) {
     return new RecoverPasswordUseCase(
         tenantRepositoryPort, userRepositoryPort,
-        passwordRecoveryTokenRepositoryPort, credentialEncoderPort);
+        verificationCodeRepositoryPort, credentialEncoderPort);
   }
 
   @Bean
@@ -651,24 +666,24 @@ public class ApplicationConfig {
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
-      PasswordResetCodeRepositoryPort passwordResetCodeRepositoryPort) {
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort) {
     return new ResetPasswordUseCase(
         tenantRepositoryPort,
         userRepositoryPort,
         credentialEncoderPort,
-        passwordResetCodeRepositoryPort);
+        verificationCodeRepositoryPort);
   }
 
   @Bean
   public SendPasswordResetCodeUseCase sendPasswordResetCodeUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordResetCodeRepositoryPort passwordResetCodeRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       EmailNotificationPort emailNotificationPort) {
     return new SendPasswordResetCodeUseCase(
         tenantRepositoryPort,
         userRepositoryPort,
-        passwordResetCodeRepositoryPort,
+        verificationCodeRepositoryPort,
         emailNotificationPort);
   }
 

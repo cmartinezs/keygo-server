@@ -3,19 +3,20 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RecoverPasswordCommand;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordRecoveryToken;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -48,13 +49,13 @@ class RecoverPasswordUseCaseTest {
 
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock PasswordRecoveryTokenRepositoryPort tokenRepositoryPort;
+  @Mock VerificationCodeRepositoryPort tokenRepositoryPort;
   @Mock CredentialEncoderPort credentialEncoderPort;
 
   private RecoverPasswordUseCase useCase;
   private Tenant activeTenant;
   private User activeUser;
-  private PasswordRecoveryToken validToken;
+  private VerificationCode validToken;
 
   @BeforeEach
   void setUp() {
@@ -77,8 +78,8 @@ class RecoverPasswordUseCaseTest {
         .firstName("John").lastName("Doe")
         .status(UserStatus.ACTIVE).build();
 
-    validToken = PasswordRecoveryToken.create(
-        userId, activeTenant.getId(), RAW_TOKEN,
+    validToken = VerificationCode.create(
+        userId, VerificationPurpose.PASSWORD_RECOVERY, RAW_TOKEN,
         Instant.now().plus(30, ChronoUnit.MINUTES));
   }
 
@@ -86,7 +87,7 @@ class RecoverPasswordUseCaseTest {
   void recoverPassword_succeeds() {
     // Given
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(validToken));
+    when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(validToken));
     when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
     when(credentialEncoderPort.encode(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -105,7 +106,7 @@ class RecoverPasswordUseCaseTest {
   void recoverPassword_throwsWhenTokenNotFound() {
     // Given
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(tokenRepositoryPort.findByToken(any())).thenReturn(Optional.empty());
+    when(tokenRepositoryPort.findByCodeAndPurpose(any(), any())).thenReturn(Optional.empty());
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
@@ -116,17 +117,17 @@ class RecoverPasswordUseCaseTest {
   @Test
   void recoverPassword_throwsWhenTokenExpired() {
     // Given — token expired 1 minute ago
-    PasswordRecoveryToken expiredToken = PasswordRecoveryToken.create(
-        activeUser.getId(), activeTenant.getId(), RAW_TOKEN,
+    VerificationCode expiredToken = VerificationCode.create(
+        activeUser.getId(), VerificationPurpose.PASSWORD_RECOVERY, RAW_TOKEN,
         Instant.now().minus(1, ChronoUnit.MINUTES));
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(expiredToken));
+    when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(expiredToken));
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
         new RecoverPasswordCommand(TENANT_SLUG, RAW_TOKEN, VALID_NEW_PASSWORD)))
-        .isInstanceOf(PasswordRecoveryTokenExpiredException.class);
+        .isInstanceOf(VerificationCodeExpiredException.class);
 
     verify(userRepositoryPort, never()).save(any());
   }
@@ -134,19 +135,19 @@ class RecoverPasswordUseCaseTest {
   @Test
   void recoverPassword_throwsWhenTokenAlreadyUsed() {
     // Given — token already used (usedAt not null)
-    PasswordRecoveryToken usedToken = PasswordRecoveryToken.reconstitute(
-        UUID.randomUUID(), activeUser.getId(), activeTenant.getId(), RAW_TOKEN,
+    VerificationCode usedToken = VerificationCode.reconstitute(
+        UUID.randomUUID(), activeUser.getId(), VerificationPurpose.PASSWORD_RECOVERY, RAW_TOKEN,
         Instant.now().plus(30, ChronoUnit.MINUTES),
         Instant.now().minus(5, ChronoUnit.MINUTES),  // usedAt set
         Instant.now().minus(10, ChronoUnit.MINUTES));
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(usedToken));
+    when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(usedToken));
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
         new RecoverPasswordCommand(TENANT_SLUG, RAW_TOKEN, VALID_NEW_PASSWORD)))
-        .isInstanceOf(PasswordRecoveryTokenAlreadyUsedException.class);
+        .isInstanceOf(VerificationCodeAlreadyUsedException.class);
 
     verify(userRepositoryPort, never()).save(any());
   }
@@ -155,7 +156,7 @@ class RecoverPasswordUseCaseTest {
   void recoverPassword_throwsWhenNewPasswordViolatesPolicy() {
     // Given
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(validToken));
+    when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(validToken));
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
@@ -179,7 +180,7 @@ class RecoverPasswordUseCaseTest {
         .status(UserStatus.PENDING).build();
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
-    when(tokenRepositoryPort.findByToken(RAW_TOKEN)).thenReturn(Optional.of(validToken));
+    when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(validToken));
     when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
     when(credentialEncoderPort.encode(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));

@@ -3,16 +3,17 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RecoverPasswordCommand;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.RecoverPasswordResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
-import io.cmartinezs.keygo.domain.user.model.PasswordRecoveryToken;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 
 /**
@@ -39,17 +40,17 @@ public class RecoverPasswordUseCase {
 
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
-  private final PasswordRecoveryTokenRepositoryPort tokenRepository;
+  private final VerificationCodeRepositoryPort codeRepository;
   private final CredentialEncoderPort credentialEncoder;
 
   public RecoverPasswordUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
-      PasswordRecoveryTokenRepositoryPort tokenRepository,
+      VerificationCodeRepositoryPort codeRepository,
       CredentialEncoderPort credentialEncoder) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
-    this.tokenRepository = tokenRepository;
+    this.codeRepository = codeRepository;
     this.credentialEncoder = credentialEncoder;
   }
 
@@ -60,8 +61,8 @@ public class RecoverPasswordUseCase {
    * @return resultado con {@code recovered = true} si se restableció exitosamente
    * @throws TenantNotFoundException                    si el tenant no existe
    * @throws UserNotFoundException                      si el token no existe (usamos mismo 404)
-   * @throws PasswordRecoveryTokenExpiredException      si el token expiró
-   * @throws PasswordRecoveryTokenAlreadyUsedException  si el token ya fue usado
+   * @throws VerificationCodeExpiredException           si el código expiró
+   * @throws VerificationCodeAlreadyUsedException      si el código ya fue usado
    * @throws IllegalArgumentException                   si la nueva contraseña viola la política
    */
   public RecoverPasswordResult execute(RecoverPasswordCommand command) {
@@ -70,25 +71,26 @@ public class RecoverPasswordUseCase {
         .orElseThrow(() -> new TenantNotFoundException(command.tenantSlug()));
 
     // 2. Buscar token — 404 si no existe
-    PasswordRecoveryToken recoveryToken = tokenRepository.findByToken(command.recoveryToken())
+    VerificationCode recoveryCode = codeRepository.findByCodeAndPurpose(
+            command.recoveryToken(), VerificationPurpose.PASSWORD_RECOVERY)
         .orElseThrow(() -> new UserNotFoundException("recovery_token", command.recoveryToken()));
 
     // 3. Verificar no expirado
-    if (recoveryToken.isExpired()) {
-      throw new PasswordRecoveryTokenExpiredException();
+    if (recoveryCode.isExpired()) {
+      throw new VerificationCodeExpiredException(VerificationPurpose.PASSWORD_RECOVERY);
     }
 
     // 4. Verificar no usado
-    if (recoveryToken.isUsed()) {
-      throw new PasswordRecoveryTokenAlreadyUsedException();
+    if (recoveryCode.isUsed()) {
+      throw new VerificationCodeAlreadyUsedException(VerificationPurpose.PASSWORD_RECOVERY);
     }
 
     // 5. Validar política de contraseña
       PasswordValidationHelper.validate(command.newPassword(), false);
 
     // 6. Cargar usuario
-    var user = userRepository.findByIdAndTenantId(recoveryToken.getUserId(), tenant.getId())
-        .orElseThrow(() -> new UserNotFoundException("id", recoveryToken.getUserId().toString()));
+    var user = userRepository.findByIdAndTenantId(recoveryCode.getUserId(), tenant.getId())
+        .orElseThrow(() -> new UserNotFoundException("id", recoveryCode.getUserId().toString()));
 
     // 7. Actualizar contraseña + activar si estaba PENDING
     String newHash = credentialEncoder.encode(command.newPassword());
@@ -99,7 +101,7 @@ public class RecoverPasswordUseCase {
     userRepository.save(user);
 
     // 8. Marcar token como usado
-    tokenRepository.markUsed(recoveryToken);
+    codeRepository.markUsed(recoveryCode);
 
     return new RecoverPasswordResult(true);
   }

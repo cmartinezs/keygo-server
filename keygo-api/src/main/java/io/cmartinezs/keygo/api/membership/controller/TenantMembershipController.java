@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.app.membership.command.CreateMembershipCommand;
 import io.cmartinezs.keygo.app.membership.filter.MembershipFilter;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ApproveMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
 import io.cmartinezs.keygo.app.shared.PagedResult;
@@ -43,14 +44,17 @@ import org.springframework.web.bind.annotation.*;
 public class TenantMembershipController {
 
   private final CreateMembershipUseCase createMembershipUseCase;
+  private final ApproveMembershipUseCase approveMembershipUseCase;
   private final ListMembershipsUseCase listMembershipsUseCase;
   private final RevokeMembershipUseCase revokeMembershipUseCase;
 
   public TenantMembershipController(
       CreateMembershipUseCase createMembershipUseCase,
+      ApproveMembershipUseCase approveMembershipUseCase,
       ListMembershipsUseCase listMembershipsUseCase,
       RevokeMembershipUseCase revokeMembershipUseCase) {
     this.createMembershipUseCase = createMembershipUseCase;
+    this.approveMembershipUseCase = approveMembershipUseCase;
     this.listMembershipsUseCase = listMembershipsUseCase;
     this.revokeMembershipUseCase = revokeMembershipUseCase;
   }
@@ -150,6 +154,42 @@ public class TenantMembershipController {
     BaseResponse<PagedData<MembershipData>> response = BaseResponse.<PagedData<MembershipData>>builder()
         .data(pagedData)
         .success(ResponseHelper.message(ResponseCode.MEMBERSHIP_LIST_RETRIEVED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @PutMapping("/{membershipId}/approve")
+  @Operation(
+      summary = "Approve a pending membership",
+      description = "Transitions a PENDING membership to ACTIVE status")
+  @ApiResponse(responseCode = "200", description = "Membership approved (code: MEMBERSHIP_APPROVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Membership not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "Membership already active or suspended (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<MembershipData>> approveMembership(
+      @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
+      @Parameter(description = "Membership ID") @PathVariable UUID membershipId) {
+
+    Membership membership = approveMembershipUseCase.execute(
+        MembershipId.of(membershipId), tenantSlug);
+
+    MembershipData data = MembershipData.builder()
+        .id(membership.getId().value())
+        .userId(membership.getUserId().value())
+        .clientAppId(membership.getClientAppId().value())
+        .status(membership.getStatus())
+        .roleIds(membership.getRoles().stream()
+            .map(r -> r.roleId().value())
+            .collect(java.util.stream.Collectors.toSet()))
+        .build();
+
+    BaseResponse<MembershipData> response = BaseResponse.<MembershipData>builder()
+        .data(data)
+        .success(ResponseHelper.message(ResponseCode.MEMBERSHIP_APPROVED))
         .build();
 
     return ResponseEntity.status(HttpStatus.OK).body(response);

@@ -3,13 +3,14 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.SendPasswordResetCodeCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.PasswordResetCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.app.user.result.SendPasswordResetCodeResult;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.Username;
@@ -46,13 +47,13 @@ public class SendPasswordResetCodeUseCase {
 
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
-  private final PasswordResetCodeRepositoryPort codeRepository;
+  private final VerificationCodeRepositoryPort codeRepository;
   private final EmailNotificationPort emailNotification;
 
   public SendPasswordResetCodeUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
-      PasswordResetCodeRepositoryPort codeRepository,
+      VerificationCodeRepositoryPort codeRepository,
       EmailNotificationPort emailNotification) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
@@ -77,8 +78,8 @@ public class SendPasswordResetCodeUseCase {
     String rawCode = generateCode();
     Instant expiresAt = Instant.now().plus(CODE_TTL_MINUTES, ChronoUnit.MINUTES);
 
-    var resetCode = PasswordResetCode.create(user.getId(), rawCode, expiresAt);
-    PasswordResetCode persisted = codeRepository.upsert(resetCode);
+    var resetCode = VerificationCode.create(user.getId(), VerificationPurpose.PASSWORD_RESET, rawCode, expiresAt);
+    VerificationCode persisted = codeRepository.upsert(resetCode);
 
     emailNotification.sendPasswordResetCodeEmail(
         user.getEmail().value(),

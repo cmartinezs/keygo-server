@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.domain.membership.model;
 
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadyActiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.util.HashSet;
@@ -50,6 +51,14 @@ public class Membership {
   }
 
   /**
+   * Returns true if the membership is pending approval.
+   * <p>Retorna true si la membresía está pendiente de aprobación.
+   */
+  public boolean isPending() {
+    return MembershipStatus.PENDING.equals(this.status);
+  }
+
+  /**
    * Returns true if the membership is suspended.
    * <p>Retorna true si la membresía está suspendida.
    */
@@ -74,6 +83,22 @@ public class Membership {
    * <p>Reactiva una membresía previamente suspendida.
    */
   public void activate() {
+    this.status = MembershipStatus.ACTIVE;
+  }
+
+  /**
+   * Approve a pending membership, transitioning it to ACTIVE.
+   * <p>Aprueba una membresía pendiente, cambiando su estado a ACTIVE.
+   * @throws MembershipAlreadyActiveException if already active
+   * @throws MembershipAlreadySuspendedException if suspended (cannot approve a suspended membership)
+   */
+  public void approve() {
+    if (MembershipStatus.ACTIVE.equals(this.status)) {
+      throw new MembershipAlreadyActiveException(userId.value(), clientAppId.value());
+    }
+    if (MembershipStatus.SUSPENDED.equals(this.status)) {
+      throw new MembershipAlreadySuspendedException(userId.value(), clientAppId.value());
+    }
     this.status = MembershipStatus.ACTIVE;
   }
 

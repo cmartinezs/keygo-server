@@ -8,6 +8,44 @@
 
 ---
 
+### [2026-04-07] T-125 — Membership.PENDING como estado inicial requiere approve()
+
+**Contexto:** Implementación de T-125 — todas las membresías se crean con estado `PENDING` en lugar de `ACTIVE`.
+
+**Problema:** `CreateMembershipUseCase` creaba membresías directamente como `ACTIVE`, sin flujo de aprobación. Esto impedía un proceso controlado de otorgamiento de acceso a apps.
+
+**Solución / Buena práctica:** Cambiar el estado inicial a `PENDING` en `CreateMembershipUseCase`; agregar método `approve()` en el dominio `Membership` que valida transición `PENDING→ACTIVE` (lanza `MembershipAlreadyActiveException` si ya activa, `MembershipAlreadySuspendedException` si suspendida); nuevo `ApproveMembershipUseCase` + endpoint `PUT /tenants/{slug}/memberships/{membershipId}/approve`. El método `activate()` existente se mantiene para reactivación de membresías suspendidas.
+
+**Archivos clave:** `Membership.java`, `CreateMembershipUseCase.java`, `ApproveMembershipUseCase.java`, `TenantMembershipController.java`.
+
+### [2026-04-07] Tabla unificada verification_codes reemplaza 3 tablas duplicadas
+
+**Contexto:** Refactorización para consolidar `email_verifications`, `password_reset_codes` y `password_recovery_tokens` en una sola tabla `verification_codes` con discriminador `purpose`.
+
+**Problema:** Tres tablas casi idénticas (mismos campos: id, tenant_user_id, code/token, expires_at, used_at, created_at) con lógica duplicada en dominio (3 modelos, 3 puertos, 3 adapters, 11 excepciones).
+
+**Solución / Buena práctica:** Usar tabla unificada con columna `purpose` (enum: EMAIL_VERIFICATION, PASSWORD_RESET, PASSWORD_RECOVERY) + partial UNIQUE index `(tenant_user_id, purpose) WHERE used_at IS NULL`. Un solo modelo de dominio `VerificationCode`, un puerto `VerificationCodeRepositoryPort`, y 3 excepciones unificadas parametrizadas por `VerificationPurpose`. Reducción de ~30 archivos a ~10.
+
+**Archivos clave:** `V31__verification_codes.sql`, `VerificationCode.java`, `VerificationPurpose.java`, `VerificationCodeRepositoryPort.java`.
+
+### [2026-04-07] Cascada multi-capa en login: PlatformUser → TenantUser → Membership
+
+**Contexto:** Validación de status en flujo de login no incluía todos los niveles (plataforma, tenant, membership).
+
+**Problema:** `AuthenticatePlatformUserUseCase` no validaba `RESET_PASSWORD`; `ValidateUserCredentialsUseCase` no validaba el status del `PlatformUser` vinculado; `IssueAuthorizationCodeUseCase` no validaba `Membership.PENDING`.
+
+**Solución / Buena práctica:** Cada punto de validación verifica su capa Y cascada hacia abajo. Patrón: platform login → check platform status; tenant login → check platform cascade + tenant status; auth code → check membership status. Excepciones específicas por capa (`PlatformUserSuspendedException`, `MembershipPendingException`) para que el API consumer sepa qué capa rechazó.
+
+**Archivos clave:** `AuthenticatePlatformUserUseCase.java`, `ValidateUserCredentialsUseCase.java`, `IssueAuthorizationCodeUseCase.java`.
+
+### [2026-04-07] ValidateUserCredentialsUseCase — agregar nuevo port requiere actualizar constructor en todos los tests
+
+**Contexto:** Al agregar `PlatformUserRepositoryPort` como 4to parámetro al constructor de `ValidateUserCredentialsUseCase`.
+
+**Problema:** El test `UpdateResetValidateUseCaseTest` instanciaba el use case manualmente con 3 parámetros (sin @InjectMocks), causando 7 errores de compilación por firma de constructor inconsistente.
+
+**Solución / Buena práctica:** Buscar TODAS las instanciaciones del use case en tests (no solo las que usan @InjectMocks). Usar `grep 'new UseCaseName(' --include='*Test.java'` para encontrar todas antes de modificar la firma del constructor.
+
 ### [2026-04-07] T-111 — Patron de soft-delete con índice parcial en PostgreSQL
 
 **Contexto:** T-111 añade `tenant_user_roles` con soporte de historial de asignaciones revocadas (para auditoría).
@@ -1222,6 +1260,21 @@ Esto genera SQL real: `SELECT * FROM table WHERE ... ORDER BY ... LIMIT 20 OFFSE
 **Archivos clave:**
 - `keygo-run/src/main/java/.../filter/BootstrapAdminKeyFilter.java` (línea 155)
 - `keygo-run/src/test/java/.../filter/BootstrapAdminKeyFilterTest.java` (test parametrizado)
+
+---
+
+### [2026-04-09] `keygo-app` no tiene SLF4J — no usar `@Slf4j` en use cases
+**Contexto:** Implementación de email de notificación en `ApproveMembershipUseCase`.
+**Problema:** Al agregar `@Slf4j` (Lombok) en un use case de `keygo-app`, la compilación falló con `package org.slf4j does not exist`. El módulo `keygo-app` es puro Java sin dependencias Spring ni logging.
+**Solución / Buena práctica:** Nunca usar `@Slf4j` ni imports de `org.slf4j` en `keygo-app`. Para errores que no deben romper el flujo (como emails fallidos), usar try-catch silencioso; el aspecto AOP `KeyGoTracingAspect` en `keygo-run` capturará errores si está habilitado.
+**Archivos clave:** `keygo-app/src/main/java/.../membership/usecase/ApproveMembershipUseCase.java`
+
+---
+
+### [2026-04-09] `ClientApp.builder()` requiere `type`, `status` y `accessPolicy` no-null
+**Contexto:** Actualización de `ApproveMembershipUseCaseTest` para agregar mocks de email.
+**Problema:** Al construir `ClientApp` en tests omitiendo `type`, `status` o `accessPolicy`, el builder lanza `IllegalArgumentException`. `AccessPolicy` es un record que requiere `Set<AllowedGrant>` + `Set<AllowedScope>` no vacíos.
+**Solución / Buena práctica:** Siempre incluir `.type(ClientType.CONFIDENTIAL)`, `.status(ClientAppStatus.ACTIVE)` y `.accessPolicy(new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of(new AllowedScope("openid"))))` al construir `ClientApp` en tests.
 
 ---
 

@@ -12,8 +12,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Entidad JPA para persistencia de códigos de verificación del flujo RESET_PASSWORD.
- * <p>Un solo código activo por usuario ({@code UNIQUE tenant_user_id}).
+ * Entidad JPA unificada para códigos de verificación.
+ *
+ * <p>Consolida {@code EmailVerificationEntity}, {@code PasswordResetCodeEntity} y
+ * {@code PasswordRecoveryTokenEntity} en una sola entidad con discriminador {@code purpose}.
  *
  * @author cmartinezs
  * @version 1.0
@@ -25,10 +27,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(
-    name = "password_reset_codes",
-    uniqueConstraints = @UniqueConstraint(name = "uq_password_reset_codes_user", columnNames = "tenant_user_id"),
-    indexes = @Index(name = "idx_password_reset_codes_user", columnList = "tenant_user_id"))
-public class PasswordResetCodeEntity {
+    name = "verification_codes",
+    indexes = {
+        @Index(name = "idx_vc_tenant_user", columnList = "tenant_user_id"),
+        @Index(name = "idx_vc_code", columnList = "code"),
+        @Index(name = "idx_vc_purpose", columnList = "purpose")
+    })
+public class VerificationCodeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -38,7 +43,10 @@ public class PasswordResetCodeEntity {
   @JoinColumn(name = "tenant_user_id", nullable = false)
   private TenantUserEntity tenantUser;
 
-  @Column(nullable = false, length = 6)
+  @Column(nullable = false, length = 30)
+  private String purpose;
+
+  @Column(nullable = false, length = 64)
   private String code;
 
   @Column(name = "expires_at", nullable = false)
@@ -47,8 +55,10 @@ public class PasswordResetCodeEntity {
   @Column(name = "used_at")
   private Instant usedAt;
 
+  @Column(columnDefinition = "jsonb")
+  private String metadata;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 }
-

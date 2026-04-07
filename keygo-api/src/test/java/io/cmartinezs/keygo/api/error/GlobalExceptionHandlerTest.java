@@ -22,8 +22,8 @@ import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyCycleExcepti
 import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyDepthExceededException;
 import io.cmartinezs.keygo.domain.membership.model.RoleCode;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenAlreadyUsedException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordRecoveryTokenExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -277,18 +277,18 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void handlePasswordRecoveryTokenExpiredException_returns422() {
-    var ex = new PasswordRecoveryTokenExpiredException();
-    var response = handler.handlePasswordRecoveryTokenExpiredException(ex);
+  void handleVerificationCodeExpiredException_returns422() {
+    var ex = new VerificationCodeExpiredException(io.cmartinezs.keygo.domain.user.model.VerificationPurpose.PASSWORD_RECOVERY);
+    var response = handler.handleVerificationCodeExpiredException(ex);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     assertThat(response.getBody().getFailure().getCode())
-        .isEqualTo(ResponseCode.BUSINESS_RULE_VIOLATION.getCode());
+        .isEqualTo(ResponseCode.EMAIL_VERIFICATION_EXPIRED.getCode());
   }
 
   @Test
-  void handlePasswordRecoveryTokenAlreadyUsedException_returns422() {
-    var ex = new PasswordRecoveryTokenAlreadyUsedException();
-    var response = handler.handlePasswordRecoveryTokenAlreadyUsedException(ex);
+  void handleVerificationCodeAlreadyUsedException_returns422() {
+    var ex = new VerificationCodeAlreadyUsedException(io.cmartinezs.keygo.domain.user.model.VerificationPurpose.PASSWORD_RECOVERY);
+    var response = handler.handleVerificationCodeAlreadyUsedException(ex);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getFailure().getCode())

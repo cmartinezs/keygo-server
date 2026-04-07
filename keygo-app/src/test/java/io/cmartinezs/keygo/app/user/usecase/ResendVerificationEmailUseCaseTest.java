@@ -15,7 +15,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResendVerificationCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
@@ -30,7 +30,8 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.EmailVerification;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -60,7 +61,7 @@ class ResendVerificationEmailUseCaseTest {
   @Mock TenantRepositoryPort tenantRepositoryPort;
   @Mock ClientAppRepositoryPort clientAppRepositoryPort;
   @Mock UserRepositoryPort userRepositoryPort;
-  @Mock EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+  @Mock VerificationCodeRepositoryPort verificationCodeRepositoryPort;
   @Mock EmailNotificationPort emailNotificationPort;
   @Mock ClockPort clock;
 
@@ -79,7 +80,7 @@ class ResendVerificationEmailUseCaseTest {
             tenantRepositoryPort,
             clientAppRepositoryPort,
             userRepositoryPort,
-            emailVerificationRepositoryPort,
+            verificationCodeRepositoryPort,
             emailNotificationPort,
             clock);
 
@@ -124,81 +125,81 @@ class ResendVerificationEmailUseCaseTest {
 
   @Test
   void generatesNewCodeAndSendsEmailWhenPreviousCodeHasExpired() {
-    // Given — saveIfExpiredOrAbsent returns the NEW verification (expired code was replaced)
-    EmailVerification newVerification =
-        EmailVerification.create(
+    // Given — upsertIfExpiredOrAbsent returns the NEW verification (expired code was replaced)
+    VerificationCode newVerification =
+        VerificationCode.create(
             pendingUser.getId(),
-            activeTenant.getId(),
+            VerificationPurpose.EMAIL_VERIFICATION,
             "999999",
             NOW.plus(30, ChronoUnit.MINUTES));
-    when(emailVerificationRepositoryPort.saveIfExpiredOrAbsent(any(), any(), any()))
+    when(verificationCodeRepositoryPort.upsertIfExpiredOrAbsent(any(), any(), any()))
         .thenReturn(newVerification);
 
     // When
     useCase.execute(new ResendVerificationCommand(TENANT_SLUG, CLIENT_ID, EMAIL));
 
-    // Then — saveIfExpiredOrAbsent was called and the new code was sent
-    verify(emailVerificationRepositoryPort).saveIfExpiredOrAbsent(any(), any(), any());
+    // Then — upsertIfExpiredOrAbsent was called and the new code was sent
+    verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
     verify(emailNotificationPort).sendVerificationEmail(eq(EMAIL), anyString(), eq("999999"));
   }
 
   @Test
   void generatesNewCodeWhenNoPreviousCodeExists() {
-    // Given — saveIfExpiredOrAbsent returns a freshly created verification
-    EmailVerification newVerification =
-        EmailVerification.create(
+    // Given — upsertIfExpiredOrAbsent returns a freshly created verification
+    VerificationCode newVerification =
+        VerificationCode.create(
             pendingUser.getId(),
-            activeTenant.getId(),
+            VerificationPurpose.EMAIL_VERIFICATION,
             "111111",
             NOW.plus(30, ChronoUnit.MINUTES));
-    when(emailVerificationRepositoryPort.saveIfExpiredOrAbsent(any(), any(), any()))
+    when(verificationCodeRepositoryPort.upsertIfExpiredOrAbsent(any(), any(), any()))
         .thenReturn(newVerification);
 
     // When
     useCase.execute(new ResendVerificationCommand(TENANT_SLUG, CLIENT_ID, EMAIL));
 
     // Then
-    verify(emailVerificationRepositoryPort).saveIfExpiredOrAbsent(any(), any(), any());
+    verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
     verify(emailNotificationPort).sendVerificationEmail(eq(EMAIL), anyString(), eq("111111"));
   }
 
   @Test
   void resendsExistingCodeWhenStillActive() {
-    // Given — saveIfExpiredOrAbsent returns the EXISTING (still-valid) verification
-    EmailVerification existingActive =
-        EmailVerification.create(
+    // Given — upsertIfExpiredOrAbsent returns the EXISTING (still-valid) verification
+    VerificationCode existingActive =
+        VerificationCode.create(
             pendingUser.getId(),
-            activeTenant.getId(),
+            VerificationPurpose.EMAIL_VERIFICATION,
             "222222",   // the original code sent to the user
             NOW.plus(29, ChronoUnit.MINUTES)); // 29 min remaining
-    when(emailVerificationRepositoryPort.saveIfExpiredOrAbsent(any(), any(), any()))
+    when(verificationCodeRepositoryPort.upsertIfExpiredOrAbsent(any(), any(), any()))
         .thenReturn(existingActive);
 
     // When
     useCase.execute(new ResendVerificationCommand(TENANT_SLUG, CLIENT_ID, EMAIL));
 
     // Then — no additional persist; same code is re-sent to the user
-    verify(emailVerificationRepositoryPort).saveIfExpiredOrAbsent(any(), any(), any());
+    verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
     verify(emailNotificationPort).sendVerificationEmail(eq(EMAIL), anyString(), eq("222222"));
   }
 
   @Test
   void verifiesNewVerificationPassedToAdapterHas30MinuteExpiry() {
     // Given
-    EmailVerification dummy =
-        EmailVerification.create(
-            pendingUser.getId(), activeTenant.getId(), "000000",
+    VerificationCode dummy =
+        VerificationCode.create(
+            pendingUser.getId(), VerificationPurpose.EMAIL_VERIFICATION, "000000",
             NOW.plus(30, ChronoUnit.MINUTES));
-    when(emailVerificationRepositoryPort.saveIfExpiredOrAbsent(any(), any(), any()))
+    when(verificationCodeRepositoryPort.upsertIfExpiredOrAbsent(any(), any(), any()))
         .thenReturn(dummy);
 
     // When
     useCase.execute(new ResendVerificationCommand(TENANT_SLUG, CLIENT_ID, EMAIL));
 
     // Then — capture the newVerification passed to the port and verify its expiry window
-    ArgumentCaptor<EmailVerification> captor = ArgumentCaptor.forClass(EmailVerification.class);
-    verify(emailVerificationRepositoryPort).saveIfExpiredOrAbsent(any(), any(), captor.capture());
-    EmailVerification captured = captor.getValue();
+    ArgumentCaptor<VerificationCode> captor = ArgumentCaptor.forClass(VerificationCode.class);
+    verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), captor.capture());
+    VerificationCode captured = captor.getValue();
     assertThat(captured.getExpiresAt()).isEqualTo(NOW.plus(30, ChronoUnit.MINUTES));
     assertThat(captured.getCode()).hasSize(6);
   }

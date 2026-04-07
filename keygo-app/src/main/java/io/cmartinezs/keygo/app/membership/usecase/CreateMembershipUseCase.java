@@ -91,7 +91,7 @@ public class CreateMembershipUseCase {
         .id(MembershipId.generate())
         .userId(userId)
         .clientAppId(io.cmartinezs.keygo.domain.clientapp.model.ClientAppId.of(command.clientAppId()))
-        .status(MembershipStatus.ACTIVE)
+        .status(MembershipStatus.PENDING)
         .build();
 
     // Assign roles

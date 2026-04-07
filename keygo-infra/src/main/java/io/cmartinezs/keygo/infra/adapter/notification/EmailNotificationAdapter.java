@@ -7,6 +7,7 @@ import io.cmartinezs.keygo.app.user.port.notification.exception.EmailTemplateExc
 import io.cmartinezs.keygo.app.user.port.notification.exception.EmailValidationException;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.ContractVerificationStrategy;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.EmailValidationStrategy;
+import io.cmartinezs.keygo.infra.adapter.notification.strategy.MembershipApprovedStrategy;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.PasswordRecoveryStrategy;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.PasswordResetCodeStrategy;
 import io.cmartinezs.keygo.infra.adapter.notification.strategy.TemporaryPasswordStrategy;
@@ -128,6 +129,7 @@ public class EmailNotificationAdapter implements EmailNotificationPort {
       case "contract-verification" -> new ContractVerificationStrategy(cmd);
       case "temporary-password" -> new TemporaryPasswordStrategy(cmd);
       case "password-reset-code" -> new PasswordResetCodeStrategy(cmd);
+      case "membership-approved" -> new MembershipApprovedStrategy(cmd);
       default -> throw new EmailNotificationException("Unknown email type: " + cmd.getEmailType());
     };
   }

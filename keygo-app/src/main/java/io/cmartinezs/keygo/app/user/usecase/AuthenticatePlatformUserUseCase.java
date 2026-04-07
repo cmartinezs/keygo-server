@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.app.user.command.AuthenticatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
@@ -38,6 +39,7 @@ public class AuthenticatePlatformUserUseCase {
    * @throws InvalidCredentialsException      if the password does not match
    * @throws UserSuspendedException           if the user account is suspended
    * @throws UserPendingVerificationException if the user account is pending verification
+   * @throws UserPasswordResetRequiredException if the user must reset their password
    */
   public PlatformUser execute(AuthenticatePlatformUserCommand command) {
     EmailAddress email = EmailAddress.of(command.email());
@@ -55,6 +57,10 @@ public class AuthenticatePlatformUserUseCase {
 
     if (user.isPending()) {
       throw new UserPendingVerificationException(command.email());
+    }
+
+    if (user.isResetPassword()) {
+      throw new UserPasswordResetRequiredException(user.getUsername().value());
     }
 
     return user;

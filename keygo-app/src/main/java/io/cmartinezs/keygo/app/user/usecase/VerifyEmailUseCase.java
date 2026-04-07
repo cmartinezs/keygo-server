@@ -3,18 +3,19 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.VerifyEmailCommand;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationExpiredException;
-import io.cmartinezs.keygo.domain.user.exception.EmailVerificationInvalidException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.EmailVerification;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.User;
 
 /**
@@ -34,17 +35,17 @@ public class VerifyEmailUseCase {
   private final TenantRepositoryPort tenantRepositoryPort;
   private final ClientAppRepositoryPort clientAppRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
-  private final EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+  private final VerificationCodeRepositoryPort verificationCodeRepositoryPort;
 
   public VerifyEmailUseCase(
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort) {
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
-    this.emailVerificationRepositoryPort = emailVerificationRepositoryPort;
+    this.verificationCodeRepositoryPort = verificationCodeRepositoryPort;
   }
 
   /**
@@ -54,8 +55,8 @@ public class VerifyEmailUseCase {
    * @throws TenantNotFoundException            if the tenant does not exist
    * @throws ClientAppNotFoundException         if the client app does not belong to this tenant
    * @throws UserNotFoundException              if no user matches the email within the tenant
-   * @throws EmailVerificationExpiredException  if the verification code has expired
-   * @throws EmailVerificationInvalidException  if the code is incorrect or already used
+   * @throws VerificationCodeExpiredException  if the verification code has expired
+   * @throws VerificationCodeInvalidException  if the code is incorrect or already used
    */
   public User execute(VerifyEmailCommand command) {
     // 1. Validate tenant and client app
@@ -71,23 +72,23 @@ public class VerifyEmailUseCase {
         .orElseThrow(() -> new UserNotFoundException("email", command.email()));
 
     // 3. Retrieve latest verification
-    EmailVerification verification = emailVerificationRepositoryPort
-        .findLatestByUserIdAndTenantId(user.getId(), tenant.getId())
-        .orElseThrow(() -> new EmailVerificationInvalidException(command.email()));
+    VerificationCode verification = verificationCodeRepositoryPort
+        .findByUserIdAndPurpose(user.getId(), VerificationPurpose.EMAIL_VERIFICATION)
+        .orElseThrow(() -> new VerificationCodeInvalidException(VerificationPurpose.EMAIL_VERIFICATION, command.email()));
 
     // 4. Check expiry first (expiry takes priority over wrong code)
     if (verification.isExpired()) {
-      throw new EmailVerificationExpiredException(command.email());
+      throw new VerificationCodeExpiredException(VerificationPurpose.EMAIL_VERIFICATION, command.email());
     }
 
     // 5. Check if already used or code mismatch
     if (verification.isUsed() || !verification.getCode().equals(command.code())) {
-      throw new EmailVerificationInvalidException(command.email());
+      throw new VerificationCodeInvalidException(VerificationPurpose.EMAIL_VERIFICATION, command.email());
     }
 
     // 6. Mark used and activate user
     verification.markUsed();
-    emailVerificationRepositoryPort.save(verification);
+    verificationCodeRepositoryPort.upsert(verification);
 
     user.activate();
     return userRepositoryPort.save(user);

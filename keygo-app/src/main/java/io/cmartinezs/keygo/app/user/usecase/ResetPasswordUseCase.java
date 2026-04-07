@@ -6,19 +6,20 @@ import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
 import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
 import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.user.port.PasswordResetCodeRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ResetPasswordResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
-import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordResetCodeException;
-import io.cmartinezs.keygo.domain.user.exception.PasswordResetCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.PasswordValidationHelper;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 
 import java.util.UUID;
 
@@ -50,13 +51,13 @@ public class ResetPasswordUseCase {
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
   private final CredentialEncoderPort credentialEncoder;
-  private final PasswordResetCodeRepositoryPort codeRepository;
+  private final VerificationCodeRepositoryPort codeRepository;
 
   public ResetPasswordUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
       CredentialEncoderPort credentialEncoder,
-      PasswordResetCodeRepositoryPort codeRepository) {
+      VerificationCodeRepositoryPort codeRepository) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
     this.credentialEncoder = credentialEncoder;
@@ -70,8 +71,8 @@ public class ResetPasswordUseCase {
    * @return resultado con {@code reset = true} si se restableció exitosamente
    * @throws TenantNotFoundException                  si el tenant no existe
    * @throws PasswordResetRequestNotFoundException    si el requestId no existe
-   * @throws InvalidPasswordResetCodeException        si el código de verificación es inválido o ya fue usado
-   * @throws PasswordResetCodeExpiredException        si el código de verificación ha expirado
+   * @throws VerificationCodeInvalidException        si el código de verificación es inválido o ya fue usado
+   * @throws VerificationCodeExpiredException        si el código de verificación ha expirado
    * @throws UserNotFoundException                    si el usuario del código no pertenece al tenant
    * @throws UserNotInResetPasswordStatusException    si el usuario no está en estado RESET_PASSWORD
    * @throws IncorrectCurrentPasswordException        si la contraseña temporal es incorrecta
@@ -89,13 +90,13 @@ public class ResetPasswordUseCase {
 
     // 3. Verificar el código de verificación (primero: evita revelar info del usuario si el código es inválido)
     if (resetCode.isUsed()) {
-      throw new InvalidPasswordResetCodeException();
+      throw new VerificationCodeInvalidException(VerificationPurpose.PASSWORD_RESET);
     }
     if (resetCode.isExpired()) {
-      throw new PasswordResetCodeExpiredException();
+      throw new VerificationCodeExpiredException(VerificationPurpose.PASSWORD_RESET);
     }
     if (!resetCode.getCode().equals(command.verificationCode())) {
-      throw new InvalidPasswordResetCodeException();
+      throw new VerificationCodeInvalidException(VerificationPurpose.PASSWORD_RESET);
     }
 
     // 4. Resolver el usuario dentro del scope del tenant (protección cross-tenant)

@@ -3,13 +3,14 @@ package io.cmartinezs.keygo.app.user.usecase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ForgotPasswordCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.PasswordRecoveryTokenRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.app.user.result.ForgotPasswordResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.PasswordRecoveryToken;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -39,17 +40,17 @@ public class ForgotPasswordUseCase {
 
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
-  private final PasswordRecoveryTokenRepositoryPort tokenRepository;
+  private final VerificationCodeRepositoryPort codeRepository;
   private final EmailNotificationPort emailNotification;
 
   public ForgotPasswordUseCase(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
-      PasswordRecoveryTokenRepositoryPort tokenRepository,
+      VerificationCodeRepositoryPort codeRepository,
       EmailNotificationPort emailNotification) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
-    this.tokenRepository = tokenRepository;
+    this.codeRepository = codeRepository;
     this.emailNotification = emailNotification;
   }
 
@@ -81,9 +82,9 @@ public class ForgotPasswordUseCase {
     Instant expiresAt = Instant.now().plus(TOKEN_TTL_MINUTES, ChronoUnit.MINUTES);
 
     // 4. Persistir (upsert — invalida token previo)
-    var recoveryToken = PasswordRecoveryToken.create(
-        user.getId(), tenant.getId(), rawToken, expiresAt);
-    tokenRepository.upsert(recoveryToken);
+    var recoveryCode = VerificationCode.create(
+        user.getId(), VerificationPurpose.PASSWORD_RECOVERY, rawToken, expiresAt);
+    codeRepository.upsert(recoveryCode);
 
     // 5. Enviar email
     emailNotification.sendPasswordRecoveryEmail(

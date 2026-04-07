@@ -13,8 +13,8 @@ import io.cmartinezs.keygo.supabase.auth.repository.SigningKeyJpaRepository;
 import io.cmartinezs.keygo.supabase.clientapp.repository.ClientAppJpaRepository;
 import io.cmartinezs.keygo.supabase.membership.repository.MembershipJpaRepository;
 import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
-import io.cmartinezs.keygo.supabase.user.repository.EmailVerificationJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
+import io.cmartinezs.keygo.supabase.user.repository.VerificationCodeJpaRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -44,7 +44,7 @@ public class PlatformDashboardAdapter implements PlatformDashboardPort {
   private final SessionJpaRepository sessionRepo;
   private final RefreshTokenJpaRepository refreshTokenRepo;
   private final AuthorizationCodeJpaRepository authCodeRepo;
-  private final EmailVerificationJpaRepository emailVerificationRepo;
+  private final VerificationCodeJpaRepository verificationCodeRepo;
 
   public PlatformDashboardAdapter(
       TenantJpaRepository tenantRepo,
@@ -55,7 +55,7 @@ public class PlatformDashboardAdapter implements PlatformDashboardPort {
       SessionJpaRepository sessionRepo,
       RefreshTokenJpaRepository refreshTokenRepo,
       AuthorizationCodeJpaRepository authCodeRepo,
-      EmailVerificationJpaRepository emailVerificationRepo) {
+      VerificationCodeJpaRepository verificationCodeRepo) {
     this.tenantRepo = tenantRepo;
     this.userRepo = userRepo;
     this.appRepo = appRepo;
@@ -64,7 +64,7 @@ public class PlatformDashboardAdapter implements PlatformDashboardPort {
     this.sessionRepo = sessionRepo;
     this.refreshTokenRepo = refreshTokenRepo;
     this.authCodeRepo = authCodeRepo;
-    this.emailVerificationRepo = emailVerificationRepo;
+    this.verificationCodeRepo = verificationCodeRepo;
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -213,17 +213,17 @@ public class PlatformDashboardAdapter implements PlatformDashboardPort {
 
   @Override
   public long countPendingEmailVerifications() {
-    return emailVerificationRepo.countPendingVerifications(Instant.now());
+    return verificationCodeRepo.countPendingByPurpose("EMAIL_VERIFICATION", Instant.now());
   }
 
   @Override
   public long countExpiredPendingEmailVerifications() {
-    return emailVerificationRepo.countExpiredPendingVerifications(Instant.now());
+    return verificationCodeRepo.countExpiredPendingByPurpose("EMAIL_VERIFICATION", Instant.now());
   }
 
   @Override
   public long countEmailVerificationsUsedAfter(Instant cutoff) {
-    return emailVerificationRepo.countByUsedAtAfter(cutoff);
+    return verificationCodeRepo.countByUsedAtAfter(cutoff);
   }
 
   // ── Rankings ───────────────────────────────────────────────────────────────

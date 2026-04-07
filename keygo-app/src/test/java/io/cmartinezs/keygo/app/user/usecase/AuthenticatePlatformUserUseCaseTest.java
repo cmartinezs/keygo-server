@@ -10,6 +10,7 @@ import io.cmartinezs.keygo.app.user.command.AuthenticatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
 import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
 import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
@@ -125,6 +126,24 @@ class AuthenticatePlatformUserUseCaseTest {
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(UserPendingVerificationException.class)
         .hasMessageContaining(EMAIL);
+  }
+
+  @Test
+  void execute_resetPasswordUser_throwsUserPasswordResetRequiredException() {
+    // Given
+    AuthenticatePlatformUserCommand command =
+        new AuthenticatePlatformUserCommand(EMAIL, RAW_PASSWORD);
+
+    PlatformUser resetUser = buildUser(UserStatus.RESET_PASSWORD);
+
+    when(platformUserRepositoryPort.findByEmail(any(EmailAddress.class)))
+        .thenReturn(Optional.of(resetUser));
+    when(credentialEncoderPort.matches(RAW_PASSWORD, HASHED_PASSWORD)).thenReturn(true);
+
+    // When / Then
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(UserPasswordResetRequiredException.class)
+        .hasMessageContaining(USERNAME);
   }
 
   private PlatformUser buildUser(UserStatus status) {

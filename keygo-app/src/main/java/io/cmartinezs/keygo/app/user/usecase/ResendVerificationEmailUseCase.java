@@ -5,7 +5,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.ResendVerificationCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
-import io.cmartinezs.keygo.app.user.port.EmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
@@ -14,7 +14,8 @@ import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.EmailVerification;
+import io.cmartinezs.keygo.domain.user.model.VerificationCode;
+import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.User;
 
 import java.security.SecureRandom;
@@ -44,7 +45,7 @@ public class ResendVerificationEmailUseCase {
   private final TenantRepositoryPort tenantRepositoryPort;
   private final ClientAppRepositoryPort clientAppRepositoryPort;
   private final UserRepositoryPort userRepositoryPort;
-  private final EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+  private final VerificationCodeRepositoryPort verificationCodeRepositoryPort;
   private final EmailNotificationPort emailNotificationPort;
   private final ClockPort clock;
   private final SecureRandom secureRandom;
@@ -53,13 +54,13 @@ public class ResendVerificationEmailUseCase {
       TenantRepositoryPort tenantRepositoryPort,
       ClientAppRepositoryPort clientAppRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+      VerificationCodeRepositoryPort verificationCodeRepositoryPort,
       EmailNotificationPort emailNotificationPort,
       ClockPort clock) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
-    this.emailVerificationRepositoryPort = emailVerificationRepositoryPort;
+    this.verificationCodeRepositoryPort = verificationCodeRepositoryPort;
     this.emailNotificationPort = emailNotificationPort;
     this.clock = clock;
     this.secureRandom = new SecureRandom();
@@ -90,12 +91,12 @@ public class ResendVerificationEmailUseCase {
     //    saveIfExpiredOrAbsent will atomically return the existing valid one if it exists,
     //    or persist and return the new one — preventing concurrent duplicate inserts.
     String newCode = generateCode();
-    EmailVerification newVerification = EmailVerification.create(
-        user.getId(), tenant.getId(), newCode,
+    VerificationCode newVerification = VerificationCode.create(
+        user.getId(), VerificationPurpose.EMAIL_VERIFICATION, newCode,
         clock.now().plus(VERIFICATION_EXPIRY_MINUTES, ChronoUnit.MINUTES));
 
-    EmailVerification active = emailVerificationRepositoryPort
-        .saveIfExpiredOrAbsent(user.getId(), tenant.getId(), newVerification);
+    VerificationCode active = verificationCodeRepositoryPort
+        .upsertIfExpiredOrAbsent(user.getId(), VerificationPurpose.EMAIL_VERIFICATION, newVerification);
 
     // 4. Send whichever code is active (same or newly generated)
     emailNotificationPort.sendVerificationEmail(email.value(), user.getUsername().value(), active.getCode());

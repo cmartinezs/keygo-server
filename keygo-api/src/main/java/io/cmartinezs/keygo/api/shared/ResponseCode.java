@@ -93,6 +93,7 @@ public enum ResponseCode {
   MEMBERSHIP_LIST_RETRIEVED("MEMBERSHIP_LIST_RETRIEVED", "Membership list retrieved successfully"),
   MEMBERSHIP_REVOKED("MEMBERSHIP_REVOKED", "Membership revoked successfully"),
   MEMBERSHIP_SUSPENDED("MEMBERSHIP_SUSPENDED", "Membership suspended successfully"),
+  MEMBERSHIP_APPROVED("MEMBERSHIP_APPROVED", "Membership approved successfully"),
 
   // Role Operations
   ROLE_CREATED("ROLE_CREATED", "Role created successfully"),
