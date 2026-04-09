@@ -93,7 +93,7 @@ Completado el 2026-03-17:
 - `keygo-supabase`: `user/entity/`, `user/repository/`, `membership/entity/`, `membership/repository/`
 
 #### 0.3. Definir convención de nombres ✅
-Convenciones establecidas y documentadas en `docs/keygo-server/CODE_STYLE.md`:
+Convenciones establecidas y documentadas en `docs/development/CODE_STYLE.md`:
 - `<Acción><Entidad>UseCase` — caso de uso
 - `<Entidad>Provider` / `<Entidad>Port` — puerto OUT
 - `<Entidad>Controller` — controlador REST
@@ -103,7 +103,7 @@ Convenciones establecidas y documentadas en `docs/keygo-server/CODE_STYLE.md`:
 
 #### 0.4. Configurar base de calidad ✅
 - **Pipeline CI**: `.github/workflows/ci.yml` con `./mvnw test` + `./mvnw clean package` en push/PR a `main`/`develop`
-- **Format/lint**: Convención documentada en `docs/keygo-server/CODE_STYLE.md` (2 espacios, Google Java Style); enforcement automático como T-023 en ROADMAP
+- **Format/lint**: Convención documentada en `docs/development/CODE_STYLE.md` (2 espacios, Google Java Style); enforcement automático como T-023 en ROADMAP
 - **Tests unitarios**: 80+ tests con JUnit 5 + Mockito + AssertJ
 - **Infraestructura de tests de integración**: Testcontainers configurado en `keygo-supabase/pom.xml`; tests reales pendientes a Fase 1+
 - **Perfiles por ambiente**: `supabase`, `local` activos; separación `dev`/`prod` como T-014 en ROADMAP
@@ -1273,4 +1273,3 @@ Con este plan ya definido, el siguiente paso más útil no es otro documento gen
 La mejor secuencia ahora sería:
 
 **Implementation Plan → First Iteration Tasks → código.**
-

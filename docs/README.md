@@ -1,116 +1,99 @@
-# Documentación — KeyGo Server
+# Documentacion - KeyGo Server
 
-> **Última actualización:** 2026-03-22 — Reestructuración completa: 7 carpetas legacy → 5 categorías temáticas + categoría `ai/` para base de conocimiento del agente.
+Indice documental canonico del proyecto.
 
----
+## Objetivo
 
-## Estructura
+Esta carpeta organiza la documentacion activa por categoria y define la fuente de verdad de cada tema.
+Si dos documentos parecen contradecirse, este indice y las fuentes de verdad listadas aqui prevalecen.
 
-```
+## Estructura activa
+
+```text
 docs/
-├── ai/          Base de conocimiento para agentes AI (lecciones, propuestas, inconsistencias, registro)
-├── design/      Arquitectura, modelo de dominio, diseño de API y backlog
-├── api/         Guías de uso de la API REST: auth, bootstrap, OpenAPI, códigos de respuesta
-├── data/        Modelo de datos, relaciones entre entidades y migraciones Flyway
-├── development/ Herramientas de desarrollo: IntelliJ, entornos, tests, estilo de código
-├── operations/  Despliegue, Docker, firma de tokens y JWKS
-└── archive/     Reportes y documentos históricos de referencia (ya no activos)
+├── ai/             # Operacion y memoria de agentes AI
+├── api/            # Flujos y guias humanas de API
+├── data/           # Schema, relaciones y migraciones Flyway
+├── design/         # Arquitectura y diseno tecnico transversal
+├── development/    # Setup local, IDE, testing y estilo
+├── operations/     # Operacion, Docker, firma y despliegue
+├── product-design/ # Producto, negocio, dominios y analisis funcional
+├── rfc/            # Propuestas, RFCs y planes aun no absorbidos como canon
+├── keygo-ui/       # Documentacion de integracion frontend
+├── postman/        # Coleccion y environment de pruebas manuales
+└── archive/        # Historico, superseded y material de referencia no canonico
 ```
 
----
+## Fuente de verdad por categoria
 
-## 🤖 ai/ — Base de conocimiento AI
-
-> Documentación mantenida por el agente de forma continua. No requiere orden explícita del usuario.
-
-| Documento | Descripción | Audiencia |
+| Categoria | Fuente de verdad | Notas |
 |---|---|---|
-| [lecciones.md](ai/lecciones.md) | Errores resueltos, buenas prácticas y convenciones adoptadas durante el trabajo del agente | AI Agents |
-| [propuestas.md](ai/propuestas.md) | Propuestas técnicas (T-NNN) y funcionales (F-NNN) — resumen de estado rápido | AI Agents |
-| [inconsistencias.md](ai/inconsistencias.md) | Centralizador de inconsistencias detectadas entre docs y código/DB | AI Agents |
-| [inconsistencias-datos.md](ai/inconsistencias-datos.md) | Detalle de inconsistencias en el modelo de datos / schema DB | AI Agents, DBA |
-| [agents-registro.md](ai/agents-registro.md) | Historial de cambios recientes en módulos, comandos, patrones y URLs del quick-start | AI Agents |
-| [agents-registro-historico.md](ai/agents-registro-historico.md) | Historial archivado de cambios (Fases 0–9b, pre 2026-03-25) | AI Agents |
+| Vision general del repo | [`/README.md`](../README.md) | Entrada publica |
+| Politica de ubicacion documental | `docs/README.md` | Este archivo |
+| Quick-start tecnico para agentes | [`/AGENTS.md`](../AGENTS.md) | Resumen operativo |
+| Operacion compartida de agentes | [`ai/AGENT_OPERATIONS.md`](ai/AGENT_OPERATIONS.md) | Canon para wrappers AI |
+| Snapshot operativo del proyecto | [`/AI_CONTEXT.md`](../AI_CONTEXT.md) | Estado actual resumido |
+| Arquitectura tecnica | [`design/ARCHITECTURE.md`](design/ARCHITECTURE.md) | `ARCHITECTURE.md` raiz es resumen |
+| Seguridad de rutas/API bootstrap | [`api/BOOTSTRAP_FILTER.md`](api/BOOTSTRAP_FILTER.md) | Bearer-only y rutas publicas |
+| Flujos OAuth2/OIDC | [`api/AUTH_FLOW.md`](api/AUTH_FLOW.md) | Guia funcional/tecnica |
+| Migraciones Flyway | [`data/MIGRATIONS.md`](data/MIGRATIONS.md) | Versiones aplicadas y siguiente `V{n}` |
+| Modelo de datos | [`data/DATA_MODEL.md`](data/DATA_MODEL.md) | Diccionario de tablas |
+| Setup local y variables | [`development/ENVIRONMENT_SETUP.md`](development/ENVIRONMENT_SETUP.md) | Scripts reales en `docs/scripts/` |
+| Testing | [`development/TEST_STRATEGY.md`](development/TEST_STRATEGY.md) | Convenciones y comandos |
+| Operacion Docker | [`operations/DOCKER.md`](operations/DOCKER.md) | Runtime local y despliegue |
+| Inventario humano de endpoints | [`keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`](keygo-ui/FRONTEND_DEVELOPER_GUIDE.md) | Seccion de endpoints para integracion |
+| Contrato runtime de API | `/v3/api-docs` + controllers anotados | OpenAPI generado, no este repo Markdown |
+| Propuestas activas/completadas | [`/ROADMAP.md`](../ROADMAP.md) | RFCs amplian o preceden decisiones |
+| Memoria AI | [`ai/`](ai/) | Lecciones, propuestas, inconsistencias, registro |
+| Historico / superseded | [`archive/`](archive/) | No usar como canon sin validacion |
 
-> Ver también `AI_CONTEXT.md` y `AGENTS.md` en la raíz del repo para los resúmenes de referencia rápida con enlaces a esta carpeta.
+## Donde debe ir un nuevo `.md`
 
----
+- Raiz del repo: solo entrypoints globales o politicas publicas del repositorio.
+- `docs/ai/`: memoria operativa, politicas compartidas de agentes, lecciones, inconsistencias.
+- `docs/design/`: arquitectura, diseno transversal, decisiones tecnicas adoptadas.
+- `docs/api/`: guias de uso de API, seguridad HTTP, flujos, OpenAPI humana.
+- `docs/data/`: schema, migraciones, relaciones, diccionario de datos.
+- `docs/development/`: entorno local, IDE, testing, estilo, herramientas.
+- `docs/operations/`: runtime, Docker, despliegue, llaves, observabilidad operativa.
+- `docs/product-design/`: producto, negocio, bounded contexts, requerimientos, UX y analisis.
+- `docs/rfc/`: propuestas o planes no absorbidos aun como fuente de verdad.
+- `docs/archive/`: documentos historicos, superseded o de investigacion.
+- README de modulo: solo si el contenido es estrictamente especifico de ese modulo.
 
-## 📐 design/ — Arquitectura y diseño
+## Reglas de mantenimiento
 
-| Documento | Descripción | Audiencia |
-|---|---|---|
-| [ARCHITECTURE.md](design/ARCHITECTURE.md) | **Doc canónico de arquitectura** — objetivos, módulos, flujos OAuth2/OIDC, multi-tenancy, planos del sistema | Arquitectos, Devs Senior |
-| [DOMAIN_MODEL.md](design/DOMAIN_MODEL.md) | Modelo de dominio: entidades, value objects, invariantes, estados | Arquitectos, Devs |
-| [IMPLEMENTATION_PLAN.md](design/IMPLEMENTATION_PLAN.md) | Plan de implementación Fases 0–11, estado de avance | Arquitectos, Devs |
-| [API_SURFACE.md](design/API_SURFACE.md) | Superficie de API del MVP: planos, endpoints, payloads, reglas de seguridad | Arquitectos, Devs |
-| [BACKLOG.md](design/BACKLOG.md) | Backlog técnico v1: épicas, historias, criterios de aceptación | Producto, Devs |
-| [PROJECT_STRUCTURE.md](design/PROJECT_STRUCTURE.md) | Estructura de módulos Maven y convenciones de paquetes | Devs |
+- Evitar duplicar el mismo detalle en raiz y en `docs/`.
+- Si un documento resumido referencia detalle, el detalle es el canon.
+- Si un documento deja de ser canónico, moverlo a `docs/archive/` o dejarlo como stub con referencia explicita.
+- Corregir enlaces relativos al mover documentos.
+- No usar `docs/archive/` como fuente de verdad operativa sin una nota explicita que lo reactive.
 
-> Ver también `ARCHITECTURE.md` en la raíz del repo para un resumen rápido con enlace a este directorio.
+## Navegacion recomendada
 
----
+### Nuevo en el repo
 
-## 🌐 api/ — API REST
+1. [`../README.md`](../README.md)
+2. [`design/ARCHITECTURE.md`](design/ARCHITECTURE.md)
+3. [`development/ENVIRONMENT_SETUP.md`](development/ENVIRONMENT_SETUP.md)
+4. [`api/AUTH_FLOW.md`](api/AUTH_FLOW.md)
 
-| Documento | Descripción | Audiencia |
-|---|---|---|
-| [AUTH_FLOW.md](api/AUTH_FLOW.md) | Flujo completo OAuth 2.0 Authorization Code + PKCE — guía para clientes (SPA, Mobile, Backend) | Devs Frontend/Mobile |
-| [OPENAPI.md](api/OPENAPI.md) | Swagger UI, grupos de API, autenticación en la UI, anotaciones en controllers, springdoc config | Devs, QA |
-| [BOOTSTRAP_FILTER.md](api/BOOTSTRAP_FILTER.md) | Filtro `X-KEYGO-ADMIN`: configuración, rutas protegidas/públicas, testing | Devs, DevOps |
-| [RESPONSE_CODES.md](api/RESPONSE_CODES.md) | Catálogo de `ResponseCode`, uso de `BaseResponse<T>`, manejo de errores | Devs, QA |
+### Trabajando en backend
 
----
+1. [`../AGENTS.md`](../AGENTS.md)
+2. [`../AI_CONTEXT.md`](../AI_CONTEXT.md)
+3. [`design/ARCHITECTURE.md`](design/ARCHITECTURE.md)
+4. [`data/MIGRATIONS.md`](data/MIGRATIONS.md)
+5. [`api/BOOTSTRAP_FILTER.md`](api/BOOTSTRAP_FILTER.md)
 
-## 🗄️ data/ — Modelo de datos
+### Trabajando en integracion frontend
 
-| Documento | Descripción | Audiencia |
-|---|---|---|
-| [DATA_MODEL.md](data/DATA_MODEL.md) | Diccionario completo de tablas: campos, tipos, constraints, reglas de negocio | Devs, QA, DBA |
-| [ENTITY_RELATIONSHIPS.md](data/ENTITY_RELATIONSHIPS.md) | Diagramas E/R, flujos de datos, state machines, índices SQL | Devs, Arquitectos |
-| [MIGRATIONS.md](data/MIGRATIONS.md) | Migraciones Flyway V1–V18 + convenciones para futuras migraciones | Devs, DBA |
+1. [`keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`](keygo-ui/FRONTEND_DEVELOPER_GUIDE.md)
+2. [`api/AUTH_FLOW.md`](api/AUTH_FLOW.md)
+3. [`api/OPENAPI.md`](api/OPENAPI.md)
+4. [`postman/KeyGo-Server.postman_collection.json`](postman/KeyGo-Server.postman_collection.json)
 
----
+### Buscando material historico
 
-## 🛠️ development/ — Herramientas de desarrollo
+- [`archive/README.md`](archive/README.md)
 
-| Documento | Descripción | Audiencia |
-|---|---|---|
-| [INTELLIJ_SETUP.md](development/INTELLIJ_SETUP.md) | IntelliJ IDEA: Lombok, annotation processing, runner, EnvFile plugin | Devs |
-| [ENVIRONMENT_SETUP.md](development/ENVIRONMENT_SETUP.md) | Variables de entorno, archivos `.env`, cambio de ambientes, CI/CD | Devs, DevOps |
-| [TEST_STRATEGY.md](development/TEST_STRATEGY.md) | Estrategia de testing: JUnit 5, Mockito, Testcontainers, Postman, dependencias Maven | Devs, QA |
-| [CODE_STYLE.md](development/CODE_STYLE.md) | Convenciones de código, nombres, imports, patrones | Devs |
-
----
-
-## ⚙️ operations/ — Operaciones y despliegue
-
-| Documento | Descripción | Audiencia |
-|---|---|---|
-| [DOCKER.md](operations/DOCKER.md) | Build Docker, Compose, registro de imágenes, deployment | DevOps, Devs |
-| [SIGNING_AND_JWKS.md](operations/SIGNING_AND_JWKS.md) | JWT signer RSA (Nimbus), JWKS builder, PkceVerifier, ciclo de vida de signing keys | Devs, DevOps |
-
----
-
-## 🔍 Navegación rápida por perfil
-
-### Soy nuevo en el proyecto
-1. [`ARCHITECTURE.md`](design/ARCHITECTURE.md) — estructura general
-2. [`IMPLEMENTATION_PLAN.md`](design/IMPLEMENTATION_PLAN.md) — qué está implementado
-3. [`INTELLIJ_SETUP.md`](development/INTELLIJ_SETUP.md) — configurar el IDE
-4. [`ENVIRONMENT_SETUP.md`](development/ENVIRONMENT_SETUP.md) — configurar entornos
-
-### Quiero entender el flujo OAuth2/OIDC
-1. [`AUTH_FLOW.md`](api/AUTH_FLOW.md) — flujo completo desde el cliente
-2. [`SIGNING_AND_JWKS.md`](operations/SIGNING_AND_JWKS.md) — firma de tokens y JWKS
-3. [`OPENAPI.md`](api/OPENAPI.md) — probar los endpoints en Swagger UI
-
-### Quiero trabajar con la base de datos
-1. [`MIGRATIONS.md`](data/MIGRATIONS.md) — migraciones V1–V18 y cómo crear V19+
-2. [`DATA_MODEL.md`](data/DATA_MODEL.md) — diccionario de tablas
-3. [`ENTITY_RELATIONSHIPS.md`](data/ENTITY_RELATIONSHIPS.md) — relaciones E/R
-
-### Soy un agente AI
-- Ver [`AGENTS.md`](../AGENTS.md) — quick-start con módulos, patrones y flujos
-- Ver [`AI_CONTEXT.md`](../AI_CONTEXT.md) — estado del proyecto, convenciones
-- Ver [`docs/ai/`](ai/) — lecciones, propuestas, inconsistencias y registro de cambios

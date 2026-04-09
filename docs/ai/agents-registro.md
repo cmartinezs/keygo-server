@@ -3,7 +3,7 @@
 > Sub-documento de [`AGENTS.md`](../../AGENTS.md).
 >
 > Historial cronológico de actualizaciones al quick-start: módulos, comandos, patrones y URLs.
-> Entradas anteriores a 2026-03-25 en [`agents-registro-historico.md`](agents-registro-histórico.md).
+> Entradas anteriores a 2026-03-25 en [`agents-registro-historico.md`](agents-registro-historico.md).
 >
 > **Regla:** Agregar entrada cada vez que cambie estructura de módulos, comandos, patrones o URLs.
 
@@ -19,6 +19,15 @@
 ---
 
 ## Registro de cambios
+
+### [2026-04-09] Refactoring documental canónico multi-agente
+
+- **Entrypoints raíz:** `README.md`, `AI_CONTEXT.md`, `ARCHITECTURE.md` y `AGENTS.md` reescritos como documentos resumidos, actuales y sin redundancia masiva.
+- **Nueva fuente de verdad compartida para agentes:** `docs/ai/AGENT_OPERATIONS.md`; `CLAUDE.md` y `.github/copilot-instructions.md` quedan como wrappers livianos.
+- **Índice documental:** `docs/README.md` consolidado como politica de ubicacion y tabla de fuentes de verdad.
+- **Quick-start del agente:** se eliminan de `AGENTS.md` el inventario exhaustivo de endpoints, el ledger completo de migraciones y la narrativa historica extensa; ese detalle queda referenciado a `docs/api/`, `docs/data/` y `docs/ai/agents-registro.md`.
+- **Drift corregido:** seguridad Bearer-only, scripts reales en `docs/scripts/`, rutas `docs/data/*`, `docs/operations/DOCKER.md`, y numeracion de migraciones actualizada a `V1-V33`.
+- **Compatibilidad documental:** `docs/PLAN_DOCUMENTACION_COMPLETA.md` queda como stub y su referencia historica se archiva en `docs/archive/plans/`.
 
 ### [2026-04-07] T-125 — Membership.PENDING como estado inicial + flujo de aprobación
 

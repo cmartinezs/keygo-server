@@ -1,266 +1,102 @@
-# Configuración de entornos — KeyGo Server
+# Configuracion de entornos - KeyGo Server
 
-> **Última actualización:** 2026-03-23  
-> Fusiona: `ENVIRONMENT_STRATEGY.md` y `ENV_QUICK_REFERENCE.md` de `docs/keygo-supabase/`
+Fuente de verdad para ambiente local, `.env` y scripts operativos.
 
----
+## Flujo recomendado
 
-## 1. Variables de entorno requeridas
-
-### Mínimo para arrancar sin DB
+### 1. Seleccionar ambiente
 
 ```bash
-export KEYGO_ADMIN_KEY="changeMe"          # clave del header X-KEYGO-ADMIN (dev)
-# SPRING_PROFILES_ACTIVE no se necesita si solo se usa el perfil default
+./docs/scripts/switch-env.sh local
 ```
 
-### Con base de datos (perfil `supabase`)
+Esto copia `envs/.env-local` a `.env` en la raiz del proyecto.
+
+### 2. Cargar variables en la shell
 
 ```bash
-export SPRING_PROFILES_ACTIVE="supabase,local"
-export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
-export SUPABASE_USER="postgres"
-export SUPABASE_PASSWORD="postgres"
-export KEYGO_ADMIN_KEY="changeMe"
+set -a; source .env; set +a
 ```
 
-### Con envío de email (registro + verificación)
+### 3. Levantar la base local
 
 ```bash
-# Opción A: MailHog local (sin autenticación)
-export SMTP_HOST=localhost
-export SMTP_PORT=1025
-# UI de MailHog → http://localhost:8025
-# docker run -p 1025:1025 -p 8025:8025 mailhog/mailhog
-
-# Opción B: Mailtrap (sandbox cloud)
-export SMTP_HOST=sandbox.smtp.mailtrap.io
-export SMTP_PORT=587
-export SMTP_USERNAME=tu-usuario-mailtrap
-export SMTP_PASSWORD=tu-password-mailtrap
-
-# Sender y nombre de la app
-export KEYGO_MAIL_FROM=noreply@keygo.local
-export KEYGO_MAIL_APP_NAME=KeyGo
+./docs/scripts/db/start.sh
 ```
 
-### Tabla completa de variables
-
-| Variable | Requerida | Default dev | Descripción |
-|---|---|---|---|
-| `KEYGO_ADMIN_KEY` | Si `bootstrap.enabled=true` | `changeMe` | Header `X-KEYGO-ADMIN` |
-| `KEYGO_ISSUER_BASE_URL` | No | `http://localhost:8080/keygo-server` | URL base del emisor OAuth2 (claim `iss` en JWT) |
-| `SPRING_PROFILES_ACTIVE` | No | `default` | Ej: `supabase,local` |
-| `PORT` | No | `8080` | Puerto HTTP del servidor |
-| `SUPABASE_URL` | Solo perfil `supabase` | — | JDBC PostgreSQL URL |
-| `SUPABASE_USER` | Solo perfil `supabase` | `postgres` | Usuario de BD |
-| `SUPABASE_PASSWORD` | Solo perfil `supabase` | `postgres` | Password de BD |
-| `SUPABASE_DB_HOST` | No | `localhost` | Host de la BD |
-| `SUPABASE_DB_PORT` | No | `5432` | Puerto de la BD |
-| `SUPABASE_DB_NAME` | No | `keygo` | Nombre de la BD |
-| `SMTP_HOST` | Solo si se usa email | `localhost` | Host del servidor SMTP |
-| `SMTP_PORT` | No | `587` | Puerto SMTP (587=STARTTLS, 1025=MailHog) |
-| `SMTP_USERNAME` | Solo si SMTP requiere auth | `""` | Usuario SMTP |
-| `SMTP_PASSWORD` | Solo si SMTP requiere auth | `""` | Contraseña / app password SMTP |
-| `KEYGO_MAIL_FROM` | No | `noreply@keygo.example.com` | Dirección remitente de emails |
-| `KEYGO_MAIL_APP_NAME` | No | `KeyGo` | Nombre de la app en emails |
-
-> ⚠️ **Nunca commitear credenciales.** Usar siempre variables de entorno o archivos `.env` en `.gitignore`.
-
----
-
-## 2. Estructura de archivos `.env` (keygo-supabase)
-
-```
-scripts/
-├── switch-env.sh        # ✅ Script para cambiar entre ambientes
-└── envs/
-    ├── .env.example     # ✅ Template con todas las variables (committed)
-    ├── .env-local       # ⚠️ Config para Docker local (git ignored)
-    ├── .env-desa        # ⚠️ Config para desarrollo/staging (git ignored)
-    └── .env-prod        # ⚠️ Config para producción (git ignored)
-
-keygo-supabase/
-├── .env             # ⚠️ Ambiente activo generado por switch-env.sh (git ignored)
-└── .env.example     # ✅ Template de referencia del módulo supabase (committed)
-```
-
-> Los templates `.env-*` viven en `scripts/envs/` (nivel de proyecto), no en `keygo-supabase/`.
-> El `.env` activo se copia a `keygo-supabase/.env` para que lo lean los scripts de DB y Flyway.
-
-### Setup inicial
+### 4. Ejecutar migraciones
 
 ```bash
-# Desde la raíz del proyecto
-cp scripts/envs/.env.example scripts/envs/.env-local
-cp scripts/envs/.env.example scripts/envs/.env-desa
-cp scripts/envs/.env.example scripts/envs/.env-prod
-
-# Editar cada archivo con los valores correctos
-# .env-local → apunta a Docker local (localhost:5432)
-# .env-desa  → apunta a instancia Supabase de desarrollo
-# .env-prod  → apunta a instancia Supabase de producción
+./docs/scripts/db/migrate.sh
 ```
 
----
-
-## 3. Cambiar entre ambientes
+### 5. Ejecutar la app
 
 ```bash
-# Desde la raíz del proyecto
-./scripts/switch-env.sh local   # activa .env-local → copia a keygo-supabase/.env
-./scripts/switch-env.sh desa    # activa .env-desa  → copia a keygo-supabase/.env
-./scripts/switch-env.sh prod    # activa .env-prod  → copia a keygo-supabase/.env
-./scripts/switch-env.sh list    # lista ambientes disponibles en scripts/envs/
+./mvnw spring-boot:run -pl keygo-run
 ```
 
-El script copia el template elegido a `keygo-supabase/.env`, que es el que IntelliJ (EnvFile) y los scripts de Flyway leen.
+## Estructura de archivos `.env`
 
----
+```text
+envs/
+├── .env.example
+├── .env-local
+├── .env-desa
+└── .env-prod
 
-## 4. Arrancar la base de datos local (Docker)
+.env                # ambiente activo en la raiz del repo
+```
+
+Regla: `docs/scripts/switch-env.sh` siempre opera sobre `envs/.env-*` y deja el ambiente activo en `.env` en la raiz.
+
+## Variables mas relevantes
+
+| Variable | Uso |
+|---|---|
+| `SPRING_PROFILES_ACTIVE` | Perfiles activos, por ejemplo `supabase,local` |
+| `SUPABASE_URL` | JDBC URL PostgreSQL |
+| `SUPABASE_USER` | Usuario DB |
+| `SUPABASE_PASSWORD` | Password DB |
+| `PORT` | Puerto HTTP |
+| `KEYGO_ISSUER_BASE_URL` | Issuer base URL |
+| `KEYGO_CORS_ALLOWED_ORIGINS` | Origenes CORS permitidos |
+| `KEYGO_UI_BASE_URL` | URL base del frontend |
+| `KEYGO_PLATFORM_REDIRECT_URI` | Redirect URI de plataforma |
+| `SMTP_HOST` / `SMTP_PORT` | SMTP |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | Credenciales SMTP |
+| `KEYGO_MAIL_FROM` | Remitente |
+| `KEYGO_MAIL_APP_NAME` | Nombre de app en correos |
+| `KEYGO_BOOTSTRAP_ENABLED` | Override para desactivar el filtro bootstrap |
+| `KEYGO_BOOTSTRAP_BYPASS_ROLES` | Override del set de roles que el filtro reconoce |
+
+## Nota de seguridad
+
+- La autenticacion admin vigente es Bearer JWT.
+- `KEYGO_ADMIN_KEY` y `X-KEYGO-ADMIN` son legacy y no deben documentarse como mecanismo actual.
+
+## Script all-in-one
+
+Si quieres preparar todo en una sola pasada:
 
 ```bash
-# Levantar Postgres + PgAdmin
-cd keygo-supabase && ./scripts/dev-start.sh
-
-# Detener
-cd keygo-supabase && ./scripts/dev-stop.sh
+./docs/scripts/quick-start.sh
 ```
 
-Servicios:
-- **Postgres 15** → `localhost:5432` (BD: `keygo`, user: `postgres`, pass: `postgres`)
-- **PgAdmin 4** → `http://localhost:5050`
+Este script:
 
----
+1. inicia la DB local,
+2. carga variables desde `.env` si existe,
+3. corre migraciones,
+4. compila el proyecto.
 
-## 5. Script de inicio rápido
+## IntelliJ / IDE
 
-```bash
-# Desde la raíz del repo — levanta DB + exporta variables + corre la app
-./scripts/quick-start.sh
-```
-
----
-
-## 6. Cargar variables en IntelliJ IDEA
-
-### Opción A: manualmente en el runner
-
-En la configuración de Spring Boot (Run → Edit Configurations...):
-- Campo **Environment variables**: pegar las variables del paso 1
-
-### Opción B: plugin EnvFile (recomendado)
-
-1. Instalar plugin **EnvFile** (Borys Pierov) desde Marketplace
-2. En la configuración del runner → pestaña **EnvFile**:
-   - ✅ Enable EnvFile
-   - Agregar `keygo-supabase/.env`
-   - ✅ Substitute environment variables
-3. Usar `./scripts/switch-env.sh local` antes de arrancar
-
-Ver detalles en [`INTELLIJ_SETUP.md`](INTELLIJ_SETUP.md).
-
----
-
-## 7. Verificación de la configuración activa
-
-```bash
-# Ver qué perfil está activo al arrancar
-grep "profiles" keygo-run/src/main/resources/application.yml
-
-# Ver el ambiente del .env activo
-grep "^KEYGO_ENV\|^SPRING_PROFILES" keygo-supabase/.env 2>/dev/null || echo "No hay .env activo"
-
-# Verificar que el servidor responde
-curl http://localhost:8080/keygo-server/actuator/health
-```
-
----
-
-## 8. Configuración en `application.yml` (keygo-run)
-
-```yaml
-server:
-  port: "${PORT:8080}"
-  servlet:
-    context-path: "/${keygo.info.name}"   # → /keygo-server
-
-keygo:
-  bootstrap:
-    enabled: true
-    admin-key: "${KEYGO_ADMIN_KEY:changeMe}"
-    api-path-prefix: "/api/"
-    actuator-path-prefix: "/actuator/"
-    well-known-path-prefix: "/.well-known"
-    swagger-ui-path-prefix: "/swagger-ui"
-    api-docs-path-prefix: "/v3/api-docs"
-    userinfo-path-suffix: "/userinfo"
-    revocation-path-suffix: "/oauth2/revoke"
-    register-path-suffix: "/register"
-    verify-email-path-suffix: "/verify-email"
-    resend-verification-path-suffix: "/resend-verification"
-  info:
-    issuer-base-url: "${KEYGO_ISSUER_BASE_URL:http://localhost:8080/keygo-server}"
-  mail:
-    from: "${KEYGO_MAIL_FROM:noreply@keygo.example.com}"
-    app-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
-
-spring:
-  mail:
-    host: "${SMTP_HOST:localhost}"
-    port: "${SMTP_PORT:587}"
-    username: "${SMTP_USERNAME:}"
-    password: "${SMTP_PASSWORD:}"
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-```
-
-### Perfil `supabase` (`application-supabase.yml` en keygo-supabase)
-
-```yaml
-spring:
-  datasource:
-    url: "${SUPABASE_URL}"
-    username: "${SUPABASE_USER}"
-    password: "${SUPABASE_PASSWORD}"
-  jpa:
-    hibernate:
-      ddl-auto: validate
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-```
-
----
-
-## 9. Variables en CI/CD
-
-En GitHub Actions (o equivalente), declarar como secrets:
-
-```yaml
-env:
-  KEYGO_ADMIN_KEY: ${{ secrets.KEYGO_ADMIN_KEY }}
-  KEYGO_ISSUER_BASE_URL: ${{ secrets.KEYGO_ISSUER_BASE_URL }}
-  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  SUPABASE_USER: ${{ secrets.SUPABASE_USER }}
-  SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
-  SPRING_PROFILES_ACTIVE: "supabase"
-  # Email / SMTP (usar servicio transaccional en CI)
-  SMTP_HOST: ${{ secrets.SMTP_HOST }}
-  SMTP_PORT: "587"
-  SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-  SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-  KEYGO_MAIL_FROM: ${{ secrets.KEYGO_MAIL_FROM }}
-  KEYGO_MAIL_APP_NAME: "KeyGo"
-```
-
----
+- El archivo recomendable para EnvFile es `.env` en la raiz del repo.
+- Ver detalle en [`INTELLIJ_SETUP.md`](INTELLIJ_SETUP.md).
 
 ## Referencias
 
-- [`docs/development/INTELLIJ_SETUP.md`](INTELLIJ_SETUP.md) — configuración completa del IDE
-- [`docs/data/MIGRATIONS.md`](../data/MIGRATIONS.md) — migraciones Flyway
-- [`docs/api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md) — filtro de seguridad
-
+- [`../../README.md`](../../README.md)
+- [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md)
+- [`../data/MIGRATIONS.md`](../data/MIGRATIONS.md)

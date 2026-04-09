@@ -8,7 +8,7 @@
 
 ---
 
-## Estado: 🟡 Corrección parcial aplicada (1 corregida, 3 pendientes)
+## Estado: 🟡 Corrección mayor aplicada (3 corregidas, 1 pendiente)
 
 Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien implemente clientes o revise la seguridad actual del sistema.
 
@@ -26,7 +26,7 @@ Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien imp
 
 **Impacto:** La arquitectura rápida de referencia puede inducir a pensar que los endpoints admin todavía aceptan bootstrap key, cuando el comportamiento real ya migró a Bearer-only.
 **Archivos afectados:** `ARCHITECTURE.md`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilter.java`, `keygo-api/src/main/java/io/cmartinezs/keygo/api/security/TenantAuthorizationEvaluator.java`
-**Acción sugerida:** Actualizar la sección `## Seguridad` de `ARCHITECTURE.md` para reflejar Bearer-only + RBAC por endpoint.
+**Estado:** ✅ Corregida el 2026-04-09.
 
 ---
 
@@ -41,7 +41,7 @@ Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien imp
 
 **Impacto:** La guía específica del filtro ya no representa el comportamiento del código y puede provocar pruebas manuales equivocadas o diagnósticos incorrectos.
 **Archivos afectados:** `docs/api/BOOTSTRAP_FILTER.md`, `keygo-run/src/main/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilter.java`, `keygo-run/src/test/java/io/cmartinezs/keygo/run/filter/BootstrapAdminKeyFilterTest.java`
-**Acción sugerida:** Actualizar el documento completo del filtro para reflejar seguridad Bearer-only, categorías de rutas públicas y ejemplos correctos.
+**Estado:** ✅ Corregida el 2026-04-09.
 
 ---
 
@@ -78,5 +78,4 @@ Estas inconsistencias no bloquean runtime, pero sí pueden confundir a quien imp
 
 ---
 
-**Última actualización:** 2026-03-27  **Responsable:** AI Agent
-
+**Última actualización:** 2026-04-09  **Responsable:** AI Agent

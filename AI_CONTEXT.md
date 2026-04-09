@@ -1,200 +1,82 @@
-# AI Context — KeyGo Server
+# AI Context - KeyGo Server
 
-> Este archivo existe para que **Copilot/Claude/agentes** entiendan rápido el repo sin leer todo el código.
->
-> 📖 **Sub-documentos de este archivo (detalle en `docs/ai/`):**
-> - [`docs/ai/lecciones.md`](docs/ai/lecciones.md) — Lecciones aprendidas y buenas prácticas
-> - [`docs/ai/propuestas.md`](docs/ai/propuestas.md) — Propuestas de mejoras futuras
-> - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) — Inconsistencias detectadas (centralizador)
-
----
+Snapshot operativo rapido para agentes. No reemplaza la arquitectura detallada ni el quick-start.
 
 ## TL;DR
 
-- Proyecto: Java 21 + Spring Boot 4.x (monorepo Maven multi-módulo).
-- Módulo ejecutable: `keygo-run`.
-- API REST: `keygo-api`.
-- Lógica de negocio: `keygo-app` (usecases) + `keygo-domain`.
-- Persistencia: `keygo-supabase` (Spring Data JPA + Flyway + PostgreSQL, perfil `supabase`).
-- Arquitectura: Hexagonal / Ports & Adapters.
+- Repo: monorepo Maven multi-modulo.
+- Stack: Java 21 + Spring Boot 4.x + Jackson 3.
+- Arquitectura: hexagonal / ports and adapters.
+- Ejecutable: `keygo-run`.
+- Persistencia: `keygo-supabase` con JPA, Flyway y PostgreSQL.
+- Seguridad admin vigente: `Authorization: Bearer <jwt>`.
+- Migraciones reales presentes: `V1` a `V33`; la siguiente debe ser `V34__...`.
 
----
+## Modulos activos
+
+| Modulo | Rol |
+|---|---|
+| `keygo-domain` | Dominio puro |
+| `keygo-app` | Use cases + puertos |
+| `keygo-infra` | JWT, JWKS, PKCE y adaptadores transversales |
+| `keygo-api` | REST, DTOs, errores, OpenAPI |
+| `keygo-supabase` | JPA, Flyway, repositorios |
+| `keygo-run` | Main, wiring, seguridad, `application.yml` |
+
+## Decisiones tecnicas activas
+
+- `context-path`: `/keygo-server`
+- Envelope REST: `BaseResponse<T>` salvo endpoints RFC/OIDC que devuelven JSON nativo
+- Jackson 3 usa `tools.jackson.databind.*`
+- `keygo-domain` no debe depender de Spring ni de otros modulos internos
+- Campos nullable en dominio deben exponerse como `Optional<T>`
+- Nuevos agregados persistidos no deben setear `id`; Hibernate genera UUID
+- Columnas JSONB JPA requieren `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`
+
+## Seguridad vigente
+
+- `BootstrapAdminKeyFilter` ya no usa `X-KEYGO-ADMIN`
+- Rutas protegidas usan Bearer JWT y authorities desde claim `roles`
+- `ADMIN_TENANT` valida alcance contra `tenant_slug` del token o `iss` fallback
+- CORS se configura por `keygo.cors.*`
 
 ## Comandos esenciales
 
 ```bash
-./mvnw clean package                   # Build completo
-./mvnw test                            # Tests (sin cobertura)
-./mvnw verify                          # Tests + JaCoCo coverage check
-./mvnw spring-boot:run -pl keygo-run   # Correr app localmente
-./mvnw -pl keygo-api test              # Tests de un módulo específico
+./mvnw clean package
+./mvnw test
+./mvnw verify
+./mvnw spring-boot:run -pl keygo-run
+./docs/scripts/keygo.sh
+./docs/scripts/quick-start.sh
 ```
 
----
+## Fuentes de verdad
 
-## URLs base (local)
-
-> El servicio usa `context-path=/keygo-server`. Todos los endpoints lo incluyen.
-
-| URL | Descripción |
+| Tema | Documento |
 |---|---|
-| `http://localhost:8080/keygo-server/api/v1/service/info` | Info del servicio |
-| `http://localhost:8080/keygo-server/actuator/health` | Health check |
-| `http://localhost:8080/keygo-server/swagger-ui/index.html` | Swagger UI (público) |
-| `http://localhost:8080/keygo-server/v3/api-docs` | OpenAPI spec (público) |
+| Indice documental y politica de ubicacion | [`docs/README.md`](docs/README.md) |
+| Quick-start tecnico para agentes | [`AGENTS.md`](AGENTS.md) |
+| Operacion compartida de agentes | [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md) |
+| Arquitectura | [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) |
+| Seguridad de rutas | [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md) |
+| Migraciones Flyway | [`docs/data/MIGRATIONS.md`](docs/data/MIGRATIONS.md) |
+| Setup local | [`docs/development/ENVIRONMENT_SETUP.md`](docs/development/ENVIRONMENT_SETUP.md) |
+| Inventario humano de endpoints | [`docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`](docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md) |
+| Contrato runtime | `/v3/api-docs` |
 
-Ver lista completa de endpoints en [`AGENTS.md`](AGENTS.md) § "context-path is always active".
+## Memoria AI
 
----
+- [`docs/ai/lecciones.md`](docs/ai/lecciones.md)
+- [`docs/ai/propuestas.md`](docs/ai/propuestas.md)
+- [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md)
+- [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md)
 
-## DB local (perfil supabase)
+## Que no debe vivir aqui
 
-```bash
-./docs/scripts/db/start.sh   # Levanta PostgreSQL 15 + PgAdmin (desde raíz del proyecto)
+- Inventarios exhaustivos de endpoints
+- Detalle completo de migraciones
+- Politica duplicada de wrappers de agentes
+- Historia o RFCs detallados
 
-export SPRING_PROFILES_ACTIVE="supabase,local"
-export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
-export SUPABASE_USER="postgres"
-export SUPABASE_PASSWORD="postgres"
-```
-
----
-
-## Variables de entorno relevantes
-
-| Variable | Descripción | Default |
-|---|---|---|
-| `PORT` | Puerto del servidor | `8080` |
-| `SPRING_PROFILES_ACTIVE` | Perfiles activos | `default` |
-| `SUPABASE_URL` | JDBC URL de PostgreSQL | — |
-| `SUPABASE_USER` | Usuario de DB | — |
-| `SUPABASE_PASSWORD` | Contraseña de DB | — |
-
----
-
-## Convenciones del proyecto
-
-### Regla de dependencias (hexagonal)
-
-```
-keygo-domain   → sin dependencias internas ni Spring
-keygo-app      → depende de domain; define puertos (interfaces)
-keygo-infra    → implementa puertos; depende de app
-keygo-api      → llama usecases; devuelve BaseResponse<T>
-keygo-supabase → JPA/Flyway; implementaciones de repos; depende de infra
-keygo-run      → cablea todo; tiene application.yml y main
-keygo-common   → utilidades compartidas  [🚧 stub vacío]
-```
-
-### Respuestas API
-
-- **Siempre** usar `BaseResponse<T>` como envelope (excepción: endpoints OIDC/JWKS — JSON nativo RFC 7517).
-- Usar `ResponseCode` para códigos de negocio (enum en `keygo-api`).
-- Endpoints versionados bajo `/api/v1/...`.
-
-### Jackson 3 (Spring Boot 4.x) — namespace cambiado
-
-```java
-// ✅ Correcto (Jackson 3)
-import tools.jackson.databind.json.JsonMapper;
-// ❌ Incorrecto (Jackson 2 — no compila)
-import com.fasterxml.jackson.databind.ObjectMapper;
-// ✅ Anotaciones siguen igual
-import com.fasterxml.jackson.annotation.JsonInclude;
-```
-
----
-
-## Seguridad
-
-- `BootstrapAdminKeyFilter` protege `/api/**` con `Authorization: Bearer <jwt>`.
-- `@PreAuthorize` en controllers admin aplica RBAC por endpoint (`ADMIN` / `ADMIN_TENANT`).
-- Para `ADMIN_TENANT`, el tenant del token (`tenant_slug` o `iss`) debe coincidir con `tenantSlug` del path.
-- Usa `request.getServletPath()` (no `getRequestURI()`) para comparar prefijos. Ver lección [Bug T-001](docs/ai/lecciones.md#2026-03-21-bug-t-001--bootstrapadminkeyfilter-getrequesturi-vs-getservletpath-con-context-path).
-- Actuator expuesto completo — **restringir en prod**.
-
----
-
-## Comportamiento obligatorio del agente
-
-### Flujo: Planificar → Implementar
-
-1. **Leer** antes de cualquier acción:
-   - Este archivo (`AI_CONTEXT.md`) + sub-documentos en [`docs/ai/`](docs/ai/)
-   - [`ARCHITECTURE.md`](ARCHITECTURE.md) — decisiones de diseño
-   - [`AGENTS.md`](AGENTS.md) — quick-start, módulos, patrones
-   - [`CLAUDE.md`](CLAUDE.md) / [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
-   - [`ROADMAP.md`](ROADMAP.md) — propuestas activas y completadas
-   - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) — inconsistencias conocidas
-   - Docs del módulo involucrado (`docs/keygo-api/`, `docs/keygo-run/`, etc.)
-2. **Presentar plan explícito** (módulos, archivos, flujo, tests) antes de escribir código.
-3. **Implementar** solo después de tener el plan aprobado.
-
-### Documentación: solo bajo orden explícita
-
-- En un mismo contexto de chat, **NO** generar ni actualizar archivos `.md` automáticamente.
-- Excepción: documentos de base de conocimiento AI en `docs/ai/` (`lecciones.md`, `propuestas.md`, `agents-registro.md`, `inconsistencias.md`) y `AGENTS.md`.
-
-#### Diagramas: orden de preferencia
-
-| Prioridad | Herramienta | Cuándo |
-|---|---|---|
-| 1 | **Mermaid** | Siempre — soportado en GitHub, GitLab, Notion |
-| 2 | **PlantUML** | Si el tipo no es expresable en Mermaid |
-| 3 | **ASCII art** | Último recurso |
-
-### Retroalimentación obligatoria al concluir tarea
-
-> Ver tabla completa y formato de entrada en [`CLAUDE.md`](CLAUDE.md#3--retroalimentación-obligatoria-al-concluir-una-tarea).
->
-> ⚠️ Esta retroalimentación **no está sujeta** a la regla "solo bajo orden explícita".
-
-### Git — prohibición de ejecución directa
-
-- **Nunca** ejecutar comandos `git` directamente (commit, push, merge, rebase…).
-- Listar los comandos sugeridos para ejecución manual.
-
-### Propuestas de mejoras futuras
-
-Al concluir, incluir propuestas en tres horizontes:
-
-| Horizonte | Criterio | Registrar en |
-|---|---|---|
-| **Corto plazo** | Relacionado con lo recién implementado; bajo esfuerzo | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) |
-| **Mediano plazo** | Evoluciones naturales; esfuerzo moderado | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) |
-| **Largo plazo** | Capacidades estratégicas; alto esfuerzo | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) + [`ROADMAP.md`](ROADMAP.md) |
-
-Regla práctica: describir la propuesta en la respuesta final (corto/mediano/largo), y si es relevante/recurrente, registrarla con ID `T-NNN` o `F-NNN` en ambos documentos.
-
-Propuestas recientes de alto valor (ver detalle en `ROADMAP.md`):
-- `T-053`: verificación post-seed V14 por conteos esperados.
-- `T-054`: estrategia de `reference data` por ambiente fuera de migraciones estructurales.
-- `T-055`: bootstrap programático de tenants/apps/roles vía control-plane.
-- `T-056`: ✅ completada — referencia portable de hosted login seguro en `examples/hosted-login-handoff/` con `HostedLoginParams`, runtime guard y `HostedLoginBoundary`.
-- `T-058`: patrón BFF documentado para canje de `authorization_code` en backend y menor exposición de tokens en SPA.
-- `T-062`: handler dedicado para `MissingServletRequestParameterException` con respuesta `400 INVALID_INPUT`.
-- `T-063`: propagación de `traceId/requestId` en `ErrorData` para trazabilidad cliente-logs.
-- `T-064`: catálogo i18n por dominio combinando `origin` + `clientRequestCause` para `clientMessage` por locale.
-- `T-065`: `fieldErrors` en `ErrorData` para `USER_INPUT` con validaciones por campo.
-- `T-066`: `endpointHint/actionHint` para `CLIENT_TECHNICAL` con acciones sugeridas de integración.
-- `T-059`: evolución a redirect OAuth2 clásico (`302`) para simplificar frontend e interoperabilidad.
-- `F-041`: SSO multi-app con contrato explícito de sesión compartida, separado del hosted login actual.
-
----
-
-## Referencias rápidas
-
-| Necesito... | Ir a... |
-|---|---|
-| Lecciones aprendidas / no repetir errores | [`docs/ai/lecciones.md`](docs/ai/lecciones.md) |
-| Propuestas activas y su estado | [`docs/ai/propuestas.md`](docs/ai/propuestas.md) |
-| Inconsistencias conocidas | [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md) |
-| Quick-start: módulos, comandos, endpoints | [`AGENTS.md`](AGENTS.md) |
-| Historial de cambios al quick-start | [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md) |
-| Roadmap completo con IDs T-NNN / F-NNN | [`ROADMAP.md`](ROADMAP.md) |
-| Modelo de datos / diccionario DB | `docs/data/DATA_MODEL.md` |
-| Flujo OAuth2 / autenticación | `docs/api/AUTH_FLOW.md` |
-
----
-
-**Última actualización:** 2026-03-28 | **Responsable:** AI Agent
+Para eso, enlazar a los documentos canónicos y no duplicarlos aqui.

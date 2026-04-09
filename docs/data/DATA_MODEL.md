@@ -2,7 +2,7 @@
 
 > Documentación del **diccionario de datos** y **modelo de entidades** (E/R) del sistema KeyGo Server.
 >
-> Fecha de actualización: **2026-04-07** | Estado: ✅ Sincronizado con migraciones V1–V31 + diseño de datos v2 + identidad de plataforma + verification_codes unificada
+> Fecha de actualización: **2026-04-09** | Estado: ✅ Sincronizado con migraciones V1–V33 + diseño de datos v2 + identidad de plataforma + verification codes para tenant y plataforma
 
 ---
 
@@ -489,17 +489,16 @@ Asignación N:N entre usuarios de tenant y roles de tenant. Soporta **soft-delet
 
 ---
 
-## Tablas planificadas / pendientes
+## Tablas planificadas / futuras
 
-> Estas tablas están en diseño o pendientes de migración. **No tienen migración aplicada aún.**
+> Estas tablas estan en diseno o reservadas para fases futuras. **No tienen migracion aplicada aun.**
 
 | Tabla | Descripción | Migración pendiente |
 |---|---|---|
-| `contractors` | Entidad central de billing — persona/entidad que firma contratos. 1:1 con `tenant_users` en el tenant proveedor | `V19__billing_v2_contractors.sql` |
 | `token_blacklist` | Lista negra de JTI de access tokens revocados (opcionalmente en Redis) | futura |
 | `audit_events` | Registro de eventos de auditoría por tenant (login, token emitido, revocación) | futura |
 
-> ℹ️ Las tablas `contractors` (billing v2) y modificaciones a `app_contracts`, `app_subscriptions`, `usage_counters` y `tenants` están especificadas en `docs/data/MIGRATIONS.md` §4.
+> ℹ️ Las tablas activas de billing ya estan registradas en [`docs/data/MIGRATIONS.md`](MIGRATIONS.md).
 
 ---
 
@@ -757,8 +756,7 @@ erDiagram
 
 > Tablas de billing: catálogo de planes, contratos, suscripciones, facturas, contadores de uso, perfiles de facturación y métodos de pago.
 > **V10:** catálogo (planes, versiones, entitlements) | **V11:** contratos | **V12:** suscripciones + transacciones | **V13:** facturas + contadores de uso | **V14:** perfiles fiscales + métodos de pago.
-> **Modelo v2:** el suscriptor es siempre un `CONTRACTOR` — ya no hay columnas polimórficas `subscriber_tenant_id` / `subscriber_tenant_user_id`.
-> ⚠️ `CONTRACTORS` es parte del diseño v2 pendiente de implementación en la migración `V19__billing_v2_contractors.sql`. Las columnas `contractor_id` en las tablas actuales serán añadidas en V19.
+> **Modelo v2:** el suscriptor es siempre un `CONTRACTOR`; las columnas polimorficas `subscriber_tenant_id` / `subscriber_tenant_user_id` ya no forman parte del modelo vigente.
 
 ```mermaid
 erDiagram
@@ -1747,4 +1745,3 @@ Tabla unificada que reemplaza `email_verifications` (V9), `password_reset_codes`
 ---
 
 **Última actualización:** 2026-04-07 | **Responsable:** AI Agent | **Sincronizado con:** Migraciones V1–V31
-

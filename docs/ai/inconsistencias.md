@@ -37,7 +37,7 @@ flowchart LR
 | Documento | Categoría | Inconsistencias | Estado |
 |---|---|---|---|
 | [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
-| [`inconsistencias-seguridad.md`](inconsistencias-seguridad.md) | Seguridad / autenticación / docs operativas | 4 | 🟡 1 corregida, 3 pendientes |
+| [`inconsistencias-seguridad.md`](inconsistencias-seguridad.md) | Seguridad / autenticación / docs operativas | 4 | 🟡 3 corregidas, 1 pendiente |
 | [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo billing v1 (B2C sin tenant_id) | 1 | ✅ Corregida (rediseño modelo v2) |
 
 ---
@@ -47,8 +47,8 @@ flowchart LR
 | Categoría | Total | ✅ Corregidas | 🔲 Pendientes | 🔴 Críticas |
 |---|---|---|---|---|
 | Modelo de datos | 13 | 13 | 0 | 0 |
-| Seguridad / autenticación | 4 | 1 | 3 | 0 |
-| **Total** | **17** | **14** | **3** | **0** |
+| Seguridad / autenticación | 4 | 3 | 1 | 0 |
+| **Total** | **17** | **16** | **1** | **0** |
 
 ---
 
@@ -78,12 +78,12 @@ flowchart LR
 |---|---|---|---|
 | 2026-03-30 | Modelo de billing v1 — activación B2C crea `TenantUser` sin `tenant_id` (violación NOT NULL) | `tenant_users.tenant_id` es NOT NULL pero el flujo B2C no tenía tenant donde alojar el usuario | Rediseño completo del modelo billing → modelo v2 con `contractors` |
 | 2026-03-26 | Flujo de login central multi-tenant en `AUTH_FLOW.md` y `FRONTEND_DEVELOPER_GUIDE.md` | 1 inconsistencia documental sobre tenant/app efectiva del flujo OAuth2 | Mismo día — AI Agent (corrección en docs) |
-| 2026-03-25 | Seguridad Bearer-only vs documentación operativa (`ARCHITECTURE.md`, `docs/api/BOOTSTRAP_FILTER.md`) | 2 inconsistencias de documentación sobre autenticación admin | Pendiente |
+| 2026-04-09 | Refactoring documental canónico | Drift corregido en `README.md`, `AGENTS.md`, `ARCHITECTURE.md`, `docs/api/BOOTSTRAP_FILTER.md`, `docs/development/*` y wrappers de agentes | Mismo día — AI Agent |
+| 2026-03-25 | Seguridad Bearer-only vs documentación operativa (`ARCHITECTURE.md`, `docs/api/BOOTSTRAP_FILTER.md`) | 2 inconsistencias de documentación sobre autenticación admin | Corregida 2026-04-09 |
 | 2026-03-22 | Migraciones SQL V1–V9 vs `DATA_MODEL.md`, `ENTITY_RELATIONSHIPS.md`, `DATA_DICTIONARY.md`, `AUTH_FLOW.md` | 12 inconsistencias en modelo de datos | Mismo día — AI Agent (corrección en docs) |
 | 2026-03-22 | Re-auditoría: inconsistencias "resueltas" — docs vs DB real | Tablas V7 en singular (`app_role`, `membership`, `membership_role`) — corrección docs-only era insuficiente | Mismo día — AI Agent vía `V10__rename_membership_tables_to_plural.sql` |
 
 ---
 
-**Última actualización:** 2026-03-30 | **Responsable:** AI Agent
-
+**Última actualización:** 2026-04-09 | **Responsable:** AI Agent
 

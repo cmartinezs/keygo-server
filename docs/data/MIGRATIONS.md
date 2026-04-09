@@ -1,8 +1,8 @@
 # Migraciones Flyway — KeyGo Server
 
-> **Última actualización:** 2026-04-07  
+> **Última actualización:** 2026-04-09  
 > **Reestructuración total (2026-03-30):** V1–V17 reemplazadas por **V1–V18** con modelo v2 de billing integrado desde el origen. Backup en `backup_20260330/`.  
-> **Próxima migración:** `V32__...`
+> **Próxima migración:** `V34__...`
 
 ---
 
@@ -64,6 +64,8 @@ V{número}__{descripción_con_underscores}.sql
 | V29 | `V29__platform_users_seed_and_role_rename.sql` | Seed   | 4 platform_users (keygo), role rename `keygo_account_admin`→`keygo_tenant_admin`, vinculación `tenant_users.platform_user_id` |
 | V30 | `V30__billing_contractor_to_platform_user.sql` | Billing | `contractors.tenant_user_id`→`platform_user_id`; `app_plans`/`app_contracts`/`app_subscriptions` nullable `client_app_id` + `subscriber_type=PLATFORM` |
 | V31 | `V31__verification_codes.sql`               | Auth      | Tabla unificada `verification_codes` (purpose discriminator); drop `email_verifications`+`password_reset_codes` |
+| V32 | `V32__verification_codes_platform_user.sql` | Auth      | Extiende `verification_codes` para `platform_user_id` y soporte dual tenant/platform user |
+| V33 | `V33__seed_mytenant_personal_subscription.sql` | Seed   | Seed de suscripcion personal para `mytenant` y datos asociados de onboarding |
 
 ---
 
@@ -590,8 +592,8 @@ Incluye los 6 campos de perfil OIDC 5.3 desde el inicio:
 ## 4. Workflow para crear una nueva migración
 
 ```bash
-# 1. Crear el archivo (próxima es V32)
-touch keygo-supabase/src/main/resources/db/migration/V32__nombre_descriptivo.sql
+# 1. Crear el archivo (próxima es V34)
+touch keygo-supabase/src/main/resources/db/migration/V34__nombre_descriptivo.sql
 
 # 2. Escribir SQL limpio (estado final, no parches)
 # 3. Levantar DB local
