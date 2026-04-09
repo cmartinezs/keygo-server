@@ -1,6 +1,6 @@
 # AGENTS.md - KeyGo Server
 
-Quick-start tecnico resumido para agentes AI.
+Quick-start técnico resumido para agentes AI.
 
 > Fuentes de verdad relacionadas:
 > [`AI_CONTEXT.md`](AI_CONTEXT.md),
@@ -8,7 +8,7 @@ Quick-start tecnico resumido para agentes AI.
 > [`docs/README.md`](docs/README.md),
 > [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md)
 
-## Mapa de modulos
+## Mapa de módulos
 
 ```text
 keygo-domain   <- dominio puro, sin Spring, sin dependencias internas
@@ -21,10 +21,10 @@ keygo-bom      <- versionado de dependencias
 keygo-common   <- utilidades compartidas
 ```
 
-## Reglas criticas
+## Reglas críticas
 
 - Nunca agregar Spring a `keygo-domain`.
-- No cruzar dependencias hacia atras entre modulos.
+- No cruzar dependencias hacia atrás entre módulos.
 - En dominio, todo campo nullable debe exponerse como `Optional<T>`.
 - Al crear un agregado nuevo persistible, no setear `id`.
 - Jackson 3 usa `tools.jackson.databind.*`.
@@ -32,7 +32,7 @@ keygo-common   <- utilidades compartidas
 - Columnas JSONB: `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`.
 - `context-path` activo: `/keygo-server`.
 - Seguridad admin vigente: `Authorization: Bearer <jwt>`.
-- La siguiente migracion debe usar la siguiente version libre real; hoy la ultima presente es `V33`.
+- La siguiente migración debe usar la siguiente versión libre real; hoy la última presente es `V33`.
 
 ## Comandos esenciales
 
@@ -55,9 +55,9 @@ keygo-common   <- utilidades compartidas
 ## Convenciones API
 
 - Controllers REST responden con `BaseResponse<T>` salvo endpoints RFC/OIDC nativos.
-- `ResponseCode` es el catalogo de codigos de negocio en `keygo-api`.
+- `ResponseCode` es el catálogo de códigos de negocio en `keygo-api`.
 - Controllers nuevos o modificados deben mantener OpenAPI completo.
-- Si se crea o cambia un endpoint, actualizar tambien Postman y la guia frontend.
+- Si se crea o cambia un endpoint, actualizar también Postman y la guía frontend.
 
 ## Flujo hexagonal al agregar funcionalidad
 
@@ -67,12 +67,12 @@ keygo-common   <- utilidades compartidas
 4. Wiring en `keygo-run/config/ApplicationConfig.java`
 5. Controller y DTOs en `keygo-api`
 
-## Donde esta cada fuente de verdad
+## Dónde está cada fuente de verdad
 
 | Tema | Documento |
 |---|---|
-| Politica documental y ubicacion de nuevos `.md` | [`docs/README.md`](docs/README.md) |
-| Politica operativa compartida de agentes | [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md) |
+| Política documental y ubicación de nuevos `.md` | [`docs/README.md`](docs/README.md) |
+| Política operativa compartida de agentes | [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md) |
 | Arquitectura | [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) |
 | Seguridad de rutas y filtro bootstrap | [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md) |
 | Flujos OAuth2/OIDC | [`docs/api/AUTH_FLOW.md`](docs/api/AUTH_FLOW.md) |
@@ -88,9 +88,9 @@ keygo-common   <- utilidades compartidas
 ## Actualizaciones documentales obligatorias
 
 - Nuevo endpoint o cambio de contrato: OpenAPI + Postman + `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`.
-- Nueva migracion Flyway: `docs/data/MIGRATIONS.md` + `docs/data/DATA_MODEL.md` + `docs/data/ENTITY_RELATIONSHIPS.md`.
+- Nueva migración Flyway: `docs/data/MIGRATIONS.md` + `docs/data/DATA_MODEL.md` + `docs/data/ENTITY_RELATIONSHIPS.md`.
 - Cambio de comandos, reglas o quick-start para agentes: `AGENTS.md` + `docs/ai/agents-registro.md`.
-- Inconsistencia detectada entre docs y codigo: `docs/ai/inconsistencias.md`.
+- Inconsistencia detectada entre docs y código: `docs/ai/inconsistencias.md`.
 
 ## Referencias AI
 
@@ -99,11 +99,11 @@ keygo-common   <- utilidades compartidas
 - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md)
 - [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md)
 
-## Que no debe vivir aqui
+## Qué no debe vivir aquí
 
 - Inventario exhaustivo de endpoints
 - Historial detallado por fechas
 - Ledger completo de migraciones
-- Indice historico del repo
+- Índice histórico del repo
 
-Ese detalle vive en los documentos tematicos canónicos.
+Ese detalle vive en los documentos temáticos canónicos.

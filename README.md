@@ -1,16 +1,16 @@
 # keygo-server
 
-Backend IAM multi-tenant para autenticacion, autorizacion y gestion de identidades sobre Java 21 + Spring Boot 4.x.
+Backend IAM multi-tenant para autenticación, autorización y gestión de identidades sobre Java 21 + Spring Boot 4.x.
 
-> Source of truth para documentacion: [`docs/README.md`](docs/README.md)
+> Source of truth para documentación: [`docs/README.md`](docs/README.md)
 
 ## Estado actual
 
-- Monorepo Maven multi-modulo con arquitectura hexagonal.
+- Monorepo Maven multi-módulo con arquitectura hexagonal.
 - Seguridad admin actual: `Authorization: Bearer <jwt>` en rutas protegidas.
-- Modulos activos: `keygo-domain`, `keygo-app`, `keygo-infra`, `keygo-api`, `keygo-supabase`, `keygo-run`, `keygo-bom`.
+- Módulos activos: `keygo-domain`, `keygo-app`, `keygo-infra`, `keygo-api`, `keygo-supabase`, `keygo-run`, `keygo-bom`.
 - Capacidades implementadas a nivel repo: OAuth2/OIDC base, tenants, apps, usuarios, account self-service, RBAC platform/tenant y billing de plataforma.
-- Migraciones Flyway actuales: `V1` a `V33`. La siguiente migracion debe ser `V34__...`.
+- Migraciones Flyway actuales: `V1` a `V33`. La siguiente migración debe ser `V34__...`.
 
 ## Estructura
 
@@ -22,8 +22,8 @@ keygo-server/
 ├── keygo-api/        # Controllers REST + DTOs
 ├── keygo-supabase/   # JPA, Flyway y PostgreSQL
 ├── keygo-run/        # Main, wiring y application.yml
-├── keygo-bom/        # Gestion de versiones
-├── docs/             # Documentacion canonica
+├── keygo-bom/        # Gestión de versiones
+├── docs/             # Documentación canónica
 └── pom.xml           # Parent POM
 ```
 
@@ -77,21 +77,21 @@ curl http://localhost:8080/keygo-server/swagger-ui/index.html
 
 - El `context-path` activo es `/keygo-server`.
 - Las rutas protegidas usan `Authorization: Bearer <jwt>`.
-- Los detalles de rutas publicas/protegidas viven en [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md).
+- Los detalles de rutas públicas/protegidas viven en [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md).
 - La referencia humana de endpoints vive en [`docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`](docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md).
 - El contrato runtime lo expone OpenAPI en `/v3/api-docs`.
 
-## Documentacion clave
+## Documentación clave
 
-- [`docs/README.md`](docs/README.md): indice documental canonico y politica de ubicacion.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md): resumen arquitectonico.
+- [`docs/README.md`](docs/README.md): índice documental canónico y política de ubicación.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md): resumen arquitectónico.
 - [`AI_CONTEXT.md`](AI_CONTEXT.md): snapshot operativo para agentes.
-- [`AGENTS.md`](AGENTS.md): quick-start tecnico para agentes AI.
+- [`AGENTS.md`](AGENTS.md): quick-start técnico para agentes AI.
 - [`ROADMAP.md`](ROADMAP.md): propuestas activas y completadas.
 - [`docs/development/ENVIRONMENT_SETUP.md`](docs/development/ENVIRONMENT_SETUP.md): setup local y variables de entorno.
 - [`docs/operations/DOCKER.md`](docs/operations/DOCKER.md): Docker y runtime local.
 
-## Comandos utiles
+## Comandos útiles
 
 ```bash
 ./mvnw test
@@ -101,9 +101,9 @@ curl http://localhost:8080/keygo-server/swagger-ui/index.html
 ./docs/scripts/keygo.sh
 ```
 
-## Contribucion
+## Contribución
 
-Las politicas publicas del repositorio viven en:
+Las políticas públicas del repositorio viven en:
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - [`SECURITY.md`](SECURITY.md)
@@ -112,9 +112,9 @@ Las politicas publicas del repositorio viven en:
 
 ## Nota para agentes AI
 
-Los wrappers de herramienta permanecen en raiz por compatibilidad:
+Los wrappers de herramienta permanecen en raíz por compatibilidad:
 
 - [`CLAUDE.md`](CLAUDE.md)
 - [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
 
-La politica operativa compartida queda centralizada en [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md).
+La política operativa compartida queda centralizada en [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md).

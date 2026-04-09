@@ -43,10 +43,10 @@ Esta documentación cubre principalmente:
 ### 5. RBAC de Keygo
 - [05-rbac-de-keygo.md](./05-rbac-de-keygo.md)
 
-### 6. JWT y estrategia de autorizacion
+### 6. JWT y estrategia de autorización
 - [06-jwt-y-autorizacion.md](./06-jwt-y-autorizacion.md)
 
-### 7. Recomendaciones de implementacion
+### 7. Recomendaciones de implementación
 - [07-recomendaciones-de-implementacion.md](./07-recomendaciones-de-implementacion.md)
 
 ### 8. Diagramas Mermaid
@@ -55,7 +55,7 @@ Esta documentación cubre principalmente:
 ### 9. Roadmap sugerido
 - [09-roadmap-sugerido.md](./09-roadmap-sugerido.md)
 
-### 10. Estado de implementacion actual
+### 10. Estado de implementación actual
 - [10-estado-implementacion-actual.md](./10-estado-implementacion-actual.md)
 
 ## Orden de lectura sugerido

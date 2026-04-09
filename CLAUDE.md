@@ -4,7 +4,7 @@ Wrapper de compatibilidad para Claude Code.
 
 ## Fuente de verdad compartida
 
-La politica operativa comun para agentes vive en:
+La política operativa común para agentes vive en:
 
 - [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md)
 
@@ -15,7 +15,7 @@ La politica operativa comun para agentes vive en:
 3. [`ARCHITECTURE.md`](ARCHITECTURE.md)
 4. [`ROADMAP.md`](ROADMAP.md)
 5. [`docs/README.md`](docs/README.md)
-6. La documentacion tematica relevante segun la tarea
+6. La documentación temática relevante según la tarea
 
 ## Nota de alcance
 

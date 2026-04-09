@@ -1,6 +1,6 @@
 # BootstrapAdminKeyFilter - Seguridad de rutas
 
-Fuente de verdad para la proteccion HTTP de rutas en `keygo-run`.
+Fuente de verdad para la protección HTTP de rutas en `keygo-run`.
 
 ## Resumen
 
@@ -8,16 +8,16 @@ Fuente de verdad para la proteccion HTTP de rutas en `keygo-run`.
 - Ya no usa `X-KEYGO-ADMIN`.
 - Las rutas protegidas se validan con `Authorization: Bearer <jwt>`.
 - Las authorities se publican desde el claim `roles`.
-- La autorizacion fina se completa con `@PreAuthorize`.
+- La autorización fina se completa con `@PreAuthorize`.
 
 ## Comportamiento vigente
 
 ### Rutas protegidas
 
 - Base protegida: `keygo.bootstrap.api-path-prefix=/api/`
-- Las rutas protegidas requieren Bearer JWT salvo que coincidan con un prefijo o sufijo publico configurado.
+- Las rutas protegidas requieren Bearer JWT salvo que coincidan con un prefijo o sufijo público configurado.
 
-### Rutas publicas por prefijo
+### Rutas públicas por prefijo
 
 | Propiedad | Valor actual | Uso |
 |---|---|---|
@@ -34,7 +34,7 @@ Fuente de verdad para la proteccion HTTP de rutas en `keygo-run`.
 | `keygo.bootstrap.platform-recover-password-path-prefix` | `/api/v1/platform/account/recover-password` | recover password plataforma |
 | `keygo.bootstrap.platform-reset-password-path-prefix` | `/api/v1/platform/account/reset-password` | reset password plataforma |
 
-### Rutas publicas por sufijo
+### Rutas públicas por sufijo
 
 | Propiedad | Valor actual | Uso |
 |---|---|---|
@@ -42,8 +42,8 @@ Fuente de verdad para la proteccion HTTP de rutas en `keygo-run`.
 | `keygo.bootstrap.userinfo-path-suffix` | `/userinfo` | OIDC userinfo |
 | `keygo.bootstrap.revocation-path-suffix` | `/oauth2/revoke` | RFC 7009 |
 | `keygo.bootstrap.register-path-suffix` | `/register` | self-registration |
-| `keygo.bootstrap.verify-email-path-suffix` | `/verify-email` | verificacion email |
-| `keygo.bootstrap.resend-verification-path-suffix` | `/resend-verification` | reenvio codigo |
+| `keygo.bootstrap.verify-email-path-suffix` | `/verify-email` | verificación email |
+| `keygo.bootstrap.resend-verification-path-suffix` | `/resend-verification` | reenvío código |
 | `keygo.bootstrap.account-profile-path-suffix` | `/account/profile` | self-service con Bearer propio validado dentro del flujo |
 | `keygo.bootstrap.account-change-password-path-suffix` | `/account/change-password` | cambio de password propio |
 | `keygo.bootstrap.account-sessions-path-suffix` | `/account/sessions` | sesiones propias |
@@ -55,10 +55,10 @@ Fuente de verdad para la proteccion HTTP de rutas en `keygo-run`.
 | `keygo.bootstrap.authorize-path-suffix` | `/oauth2/authorize` | inicio OAuth2 tenant |
 | `keygo.bootstrap.login-path-suffix` | `/account/login` | login tenant |
 | `keygo.bootstrap.token-path-suffix` | `/oauth2/token` | token tenant |
-| `keygo.bootstrap.billing-catalog-path-suffix` | `/billing/catalog` | catalogo publico |
+| `keygo.bootstrap.billing-catalog-path-suffix` | `/billing/catalog` | catálogo público |
 | `keygo.bootstrap.billing-contracts-path-suffix` | `/billing/contracts` | onboarding billing |
 
-## Configuracion relevante
+## Configuración relevante
 
 En `application.yml`:
 
@@ -70,7 +70,7 @@ keygo:
     api-path-prefix: "/api/"
 ```
 
-### Overrides utiles
+### Overrides útiles
 
 - Desactivar completamente el filtro:
 
@@ -84,14 +84,14 @@ export KEYGO_BOOTSTRAP_ENABLED=false
 export KEYGO_BOOTSTRAP_BYPASS_ROLES=ADMIN,ADMIN_TENANT,KEYGO_ADMIN,KEYGO_TENANT_ADMIN
 ```
 
-## Notas de implementacion
+## Notas de implementación
 
 - El matching debe usar `request.getServletPath()`, no `getRequestURI()`.
-- Para rutas con subpaths se usa logica por segmento, no solo `endsWith`.
-- El filtro autentica; la autorizacion final por endpoint la hace Spring Security con `@PreAuthorize`.
-- El alcance tenant para roles acotados se valida fuera del filtro, en evaluadores de autorizacion.
+- Para rutas con subpaths se usa lógica por segmento, no solo `endsWith`.
+- El filtro autentica; la autorización final por endpoint la hace Spring Security con `@PreAuthorize`.
+- El alcance tenant para roles acotados se valida fuera del filtro, en evaluadores de autorización.
 
-## Pruebas y verificacion
+## Pruebas y verificación
 
 ```bash
 ./mvnw -pl keygo-run test

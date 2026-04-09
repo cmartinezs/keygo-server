@@ -491,14 +491,14 @@ Asignación N:N entre usuarios de tenant y roles de tenant. Soporta **soft-delet
 
 ## Tablas planificadas / futuras
 
-> Estas tablas estan en diseno o reservadas para fases futuras. **No tienen migracion aplicada aun.**
+> Estas tablas están en diseño o reservadas para fases futuras. **No tienen migración aplicada aún.**
 
 | Tabla | Descripción | Migración pendiente |
 |---|---|---|
 | `token_blacklist` | Lista negra de JTI de access tokens revocados (opcionalmente en Redis) | futura |
 | `audit_events` | Registro de eventos de auditoría por tenant (login, token emitido, revocación) | futura |
 
-> ℹ️ Las tablas activas de billing ya estan registradas en [`docs/data/MIGRATIONS.md`](MIGRATIONS.md).
+> ℹ️ Las tablas activas de billing ya están registradas en [`docs/data/MIGRATIONS.md`](MIGRATIONS.md).
 
 ---
 

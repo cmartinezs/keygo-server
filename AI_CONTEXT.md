@@ -1,10 +1,10 @@
 # AI Context - KeyGo Server
 
-Snapshot operativo rapido para agentes. No reemplaza la arquitectura detallada ni el quick-start.
+Snapshot operativo rápido para agentes. No reemplaza la arquitectura detallada ni el quick-start.
 
 ## TL;DR
 
-- Repo: monorepo Maven multi-modulo.
+- Repo: monorepo Maven multi-módulo.
 - Stack: Java 21 + Spring Boot 4.x + Jackson 3.
 - Arquitectura: hexagonal / ports and adapters.
 - Ejecutable: `keygo-run`.
@@ -12,9 +12,9 @@ Snapshot operativo rapido para agentes. No reemplaza la arquitectura detallada n
 - Seguridad admin vigente: `Authorization: Bearer <jwt>`.
 - Migraciones reales presentes: `V1` a `V33`; la siguiente debe ser `V34__...`.
 
-## Modulos activos
+## Módulos activos
 
-| Modulo | Rol |
+| Módulo | Rol |
 |---|---|
 | `keygo-domain` | Dominio puro |
 | `keygo-app` | Use cases + puertos |
@@ -23,12 +23,12 @@ Snapshot operativo rapido para agentes. No reemplaza la arquitectura detallada n
 | `keygo-supabase` | JPA, Flyway, repositorios |
 | `keygo-run` | Main, wiring, seguridad, `application.yml` |
 
-## Decisiones tecnicas activas
+## Decisiones técnicas activas
 
 - `context-path`: `/keygo-server`
 - Envelope REST: `BaseResponse<T>` salvo endpoints RFC/OIDC que devuelven JSON nativo
 - Jackson 3 usa `tools.jackson.databind.*`
-- `keygo-domain` no debe depender de Spring ni de otros modulos internos
+- `keygo-domain` no debe depender de Spring ni de otros módulos internos
 - Campos nullable en dominio deben exponerse como `Optional<T>`
 - Nuevos agregados persistidos no deben setear `id`; Hibernate genera UUID
 - Columnas JSONB JPA requieren `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`
@@ -55,9 +55,9 @@ Snapshot operativo rapido para agentes. No reemplaza la arquitectura detallada n
 
 | Tema | Documento |
 |---|---|
-| Indice documental y politica de ubicacion | [`docs/README.md`](docs/README.md) |
-| Quick-start tecnico para agentes | [`AGENTS.md`](AGENTS.md) |
-| Operacion compartida de agentes | [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md) |
+| Índice documental y política de ubicación | [`docs/README.md`](docs/README.md) |
+| Quick-start técnico para agentes | [`AGENTS.md`](AGENTS.md) |
+| Operación compartida de agentes | [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md) |
 | Arquitectura | [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) |
 | Seguridad de rutas | [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md) |
 | Migraciones Flyway | [`docs/data/MIGRATIONS.md`](docs/data/MIGRATIONS.md) |
@@ -72,11 +72,11 @@ Snapshot operativo rapido para agentes. No reemplaza la arquitectura detallada n
 - [`docs/ai/inconsistencias.md`](docs/ai/inconsistencias.md)
 - [`docs/ai/agents-registro.md`](docs/ai/agents-registro.md)
 
-## Que no debe vivir aqui
+## Qué no debe vivir aquí
 
 - Inventarios exhaustivos de endpoints
 - Detalle completo de migraciones
-- Politica duplicada de wrappers de agentes
+- Política duplicada de wrappers de agentes
 - Historia o RFCs detallados
 
-Para eso, enlazar a los documentos canónicos y no duplicarlos aqui.
+Para eso, enlazar a los documentos canónicos y no duplicarlos aquí.

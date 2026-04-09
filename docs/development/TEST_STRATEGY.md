@@ -4,10 +4,10 @@ Fuente de verdad para tipos de prueba, comandos y convenciones.
 
 ## Tipos de prueba
 
-| Tipo | Modulos comunes | Herramientas |
+| Tipo | Módulos comunes | Herramientas |
 |---|---|---|
 | Unit | `keygo-domain`, `keygo-app`, `keygo-api`, `keygo-run`, `keygo-infra` | JUnit 5, AssertJ, Mockito |
-| Integracion | `keygo-supabase` | Spring + PostgreSQL/Testcontainers cuando aplique |
+| Integración | `keygo-supabase` | Spring + PostgreSQL/Testcontainers cuando aplique |
 | API / smoke | repo | Postman + scripts en `docs/scripts/` |
 
 ## Comandos base
@@ -29,7 +29,7 @@ Fuente de verdad para tipos de prueba, comandos y convenciones.
 
 ## Pruebas del filtro bootstrap
 
-- El filtro protege rutas bajo `/api/` segun prefijos/sufijos publicos configurados.
+- El filtro protege rutas bajo `/api/` según prefijos/sufijos públicos configurados.
 - El mecanismo actual es Bearer JWT, no admin key header.
 - Si necesitas desactivarlo en pruebas:
 
@@ -48,10 +48,10 @@ keygo:
 
 ## Postman
 
-- Coleccion: `docs/postman/KeyGo-Server.postman_collection.json`
+- Colección: `docs/postman/KeyGo-Server.postman_collection.json`
 - Environment local: `docs/postman/KeyGo-Server-Local.postman_environment.json`
 
-Al cambiar endpoints o contratos, la coleccion debe mantenerse sincronizada.
+Al cambiar endpoints o contratos, la colección debe mantenerse sincronizada.
 
 ## Referencias
 

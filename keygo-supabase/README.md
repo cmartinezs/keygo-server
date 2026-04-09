@@ -1,8 +1,8 @@
 # keygo-supabase
 
-Modulo de persistencia del proyecto.
+Módulo de persistencia del proyecto.
 
-## Contenido del modulo
+## Contenido del módulo
 
 - entidades JPA,
 - repositorios,
@@ -19,4 +19,4 @@ Modulo de persistencia del proyecto.
 
 ## Nota
 
-Este README no describe el schema completo ni duplica el historial de migraciones. Es solo una puerta de entrada al modulo.
+Este README no describe el schema completo ni duplica el historial de migraciones. Es solo una puerta de entrada al módulo.

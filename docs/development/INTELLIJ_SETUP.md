@@ -1,6 +1,6 @@
-# Configuracion de IntelliJ IDEA - KeyGo Server
+# Configuración de IntelliJ IDEA - KeyGo Server
 
-Guia corta para levantar el proyecto correctamente en IntelliJ.
+Guía corta para levantar el proyecto correctamente en IntelliJ.
 
 ## 1. Lombok y annotation processing
 
@@ -18,7 +18,7 @@ Guia corta para levantar el proyecto correctamente en IntelliJ.
 
 ## 3. Variables de entorno
 
-La fuente recomendada es `.env` en la raiz del repo.
+La fuente recomendada es `.env` en la raíz del repo.
 
 Flujo:
 
@@ -31,7 +31,7 @@ Luego, en IntelliJ:
 - usar EnvFile apuntando a `.env`, o
 - copiar manualmente las variables necesarias del `.env` activo.
 
-Variables tipicas para local:
+Variables típicas para local:
 
 ```text
 SPRING_PROFILES_ACTIVE=supabase,local
@@ -41,7 +41,7 @@ SUPABASE_PASSWORD=postgres
 KEYGO_UI_BASE_URL=http://localhost:5173
 ```
 
-## 4. Verificacion
+## 4. Verificación
 
 ```bash
 ./mvnw clean package -DskipTests

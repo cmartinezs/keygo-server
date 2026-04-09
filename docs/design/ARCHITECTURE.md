@@ -1,6 +1,6 @@
 # Arquitectura de KeyGo Server
 
-Documento canonico de arquitectura tecnica del backend.
+Documento canónico de arquitectura técnica del backend.
 
 ## Objetivo
 
@@ -10,9 +10,9 @@ KeyGo Server es el backend IAM del proyecto: autentica usuarios y aplicaciones, 
 
 - Hexagonal / ports and adapters.
 - Dominio puro en `keygo-domain`.
-- Infraestructura intercambiable detras de puertos.
-- Contratos HTTP explicitos y versionados.
-- Multi-tenancy desde el nucleo del modelo.
+- Infraestructura intercambiable detrás de puertos.
+- Contratos HTTP explícitos y versionados.
+- Multi-tenancy desde el núcleo del modelo.
 
 ## Stack
 
@@ -23,17 +23,17 @@ KeyGo Server es el backend IAM del proyecto: autentica usuarios y aplicaciones, 
 - Flyway
 - PostgreSQL
 
-## Modulos
+## Módulos
 
-| Modulo | Responsabilidad |
+| Módulo | Responsabilidad |
 |---|---|
 | `keygo-domain` | Dominio, invariantes, entidades y value objects |
 | `keygo-app` | Use cases, comandos, queries y puertos OUT |
 | `keygo-infra` | JWT signer, JWKS builder, PKCE verifier y adaptadores comunes |
 | `keygo-api` | Controllers, DTOs, errores, OpenAPI y envelope REST |
 | `keygo-supabase` | Persistencia JPA, entidades, repositorios y migraciones Flyway |
-| `keygo-run` | Spring Boot main, wiring, filtros, seguridad y configuracion |
-| `keygo-bom` | Gestion centralizada de versiones |
+| `keygo-run` | Spring Boot main, wiring, filtros, seguridad y configuración |
+| `keygo-bom` | Gestión centralizada de versiones |
 | `keygo-common` | Utilidades compartidas |
 
 ## Regla de dependencias
@@ -47,7 +47,7 @@ keygo-domain
         <- keygo-run
 ```
 
-Regla critica: `keygo-domain` no depende de Spring ni de modulos internos.
+Regla crítica: `keygo-domain` no depende de Spring ni de módulos internos.
 
 ## Flujo de request
 
@@ -69,7 +69,7 @@ HTTP request
 - El claim `roles` alimenta authorities Spring Security.
 - `@PreAuthorize` decide acceso por endpoint.
 - El aislamiento tenant para roles acotados se valida contra `tenant_slug` o `iss`.
-- Las excepciones de rutas publicas estan documentadas en [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md).
+- Las excepciones de rutas públicas están documentadas en [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md).
 
 ## Superficie funcional actual
 
@@ -87,9 +87,9 @@ El backend ya cubre:
 - `keygo-supabase` aloja entidades JPA y migraciones.
 - `ddl-auto: validate`; Flyway es la fuente de verdad del schema.
 - Migraciones presentes en el repo: `V1` a `V33`.
-- La siguiente migracion debe ser `V34__...`.
+- La siguiente migración debe ser `V34__...`.
 
-## Convenciones tecnicas clave
+## Convenciones técnicas clave
 
 - Envelope REST: `BaseResponse<T>` salvo endpoints RFC/OIDC nativos.
 - Jackson 3: `tools.jackson.databind.*`.
@@ -101,9 +101,9 @@ El backend ya cubre:
 
 | Tema | Documento |
 |---|---|
-| Resumen rapido | [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) |
+| Resumen rápido | [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) |
 | Seguridad HTTP | [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md) |
 | Flujos OAuth2/OIDC | [`../api/AUTH_FLOW.md`](../api/AUTH_FLOW.md) |
 | Migraciones | [`../data/MIGRATIONS.md`](../data/MIGRATIONS.md) |
 | Setup local | [`../development/ENVIRONMENT_SETUP.md`](../development/ENVIRONMENT_SETUP.md) |
-| Politica documental | [`../README.md`](../README.md) |
+| Política documental | [`../README.md`](../README.md) |

@@ -1,11 +1,11 @@
-# Plan de Documentacion Completa - Archivado
+# Plan de Documentación Completa - Archivado
 
 Documento archivado el 2026-04-09 tras ejecutar el refactoring documental del repositorio.
 
 ## Estado
 
 - Este plan ya no es la fuente de verdad de la arquitectura documental.
-- La politica activa de ubicacion y navegacion vive en [`../../README.md`](../../README.md).
+- La política activa de ubicación y navegación vive en [`../../README.md`](../../README.md).
 - Los entrypoints canónicos actuales son:
   - [`../../../README.md`](../../../README.md)
   - [`../../../AGENTS.md`](../../../AGENTS.md)
@@ -14,4 +14,4 @@ Documento archivado el 2026-04-09 tras ejecutar el refactoring documental del re
 
 ## Motivo de archivo
 
-El contenido de planificacion fue absorbido por la estructura documental activa y por las fuentes de verdad definitivas del repo.
+El contenido de planificación fue absorbido por la estructura documental activa y por las fuentes de verdad definitivas del repo.

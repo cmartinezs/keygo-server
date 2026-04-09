@@ -362,7 +362,7 @@ export interface FieldValidationError {
  * Estructura del campo `data` en respuestas de error.
  * BaseResponse<ErrorData> — envelope de todos los errores de la API.
  *
- * Guia de uso:
+ * Guía de uso:
  *  - origin === 'CLIENT_REQUEST' && clientRequestCause === 'USER_INPUT'
  *      → mostrar clientMessage junto al formulario/campo
  *      → si hay fieldErrors, mostrar cada error inline en su campo
@@ -371,9 +371,9 @@ export interface FieldValidationError {
  *  - origin === 'BUSINESS_RULE'
  *      → mostrar clientMessage; ofrecer acción alternativa si aplica
  *  - origin === 'SERVER_PROCESSING'
- *      → mostrar mensaje generico de reintento; loguear en monitoreo
+ *      → mostrar mensaje genérico de reintento; loguear en monitoreo
  *
- * Nota sobre `layer`: indica la capa arquitectonica donde ocurrio el error.
+ * Nota sobre `layer`: indica la capa arquitectónica donde ocurrió el error.
  *   Valores posibles: 'DOMAIN' | 'USE_CASE' | 'PORT' | 'CONTROLLER' | null
  *   Útil para telemetría y diagnóstico — no mostrar al usuario final.
  */
@@ -1975,7 +1975,7 @@ export function ProfilePage() {
 | `oauth_state` | `sessionStorage` — eliminar tras callback | Anti-CSRF |
 | `VITE_KEYGO_BASE` y `VITE_CLIENT_ID` | Variable de build (`.env.local`) | Evita hardcodear URLs/clientes por ambiente |
 
-> **Nota para hosted login central:** si `keygo-ui` solo presta la pantalla de login a otra app, no debe guardar los tokens finales de esa app. En ese patrón, `keygo-ui` solo reenvia `code` + `state`; la app origen es quien hace el canje, almacena tokens, programa refresh y ejecuta logout.
+> **Nota para hosted login central:** si `keygo-ui` solo presta la pantalla de login a otra app, no debe guardar los tokens finales de esa app. En ese patrón, `keygo-ui` solo reenvía `code` + `state`; la app origen es quien hace el canje, almacena tokens, programa refresh y ejecuta logout.
 
 ### 12.1. Silent refresh
 
@@ -2789,7 +2789,7 @@ Regla madre:
 |---|---|---|---|---|
 | `GET /oauth2/authorize` | `RESOURCE_NOT_FOUND`, `INVALID_INPUT`, `BUSINESS_RULE_VIOLATION` | `CLIENT_REQUEST/CLIENT_TECHNICAL` = problema de integración o parámetros; `BUSINESS_RULE` = bloqueo de negocio | Mostrar `clientMessage`; bloquear submit de login hasta resolver | Revisar `tenantSlug`, `client_id`, `redirect_uri`, query params OAuth |
 | `POST /account/login` | `AUTHENTICATION_REQUIRED`, `INVALID_INPUT`, `EMAIL_NOT_VERIFIED`, `BUSINESS_RULE_VIOLATION` | `USER_INPUT` = credenciales/datos de usuario; `CLIENT_TECHNICAL` = sesión/cookies; `BUSINESS_RULE` = regla de dominio | `USER_INPUT`: inline en formulario; `BUSINESS_RULE`: mensaje + CTA | Verificar `credentials: 'include'`, presencia de `JSESSIONID`, secuencia correcta `/authorize` -> `/account/login` |
-| `POST /oauth2/token` | `INVALID_INPUT`, `INSUFFICIENT_PERMISSIONS`, `OPERATION_FAILED` | `CLIENT_REQUEST` suele indicar code/PKCE/redirect_uri invalidos; `SERVER_PROCESSING` indica falla interna | Reiniciar flujo completo desde login | No reusar `authorization_code`; regenerar PKCE y repetir flujo |
+| `POST /oauth2/token` | `INVALID_INPUT`, `INSUFFICIENT_PERMISSIONS`, `OPERATION_FAILED` | `CLIENT_REQUEST` suele indicar code/PKCE/redirect_uri inválidos; `SERVER_PROCESSING` indica falla interna | Reiniciar flujo completo desde login | No reusar `authorization_code`; regenerar PKCE y repetir flujo |
 
 #### Snippet recomendado (clasificador de errores)
 
@@ -2846,9 +2846,9 @@ export function resolveAuthError(stage: AuthStage, response: BaseResponse<ErrorD
 
 - Si falla `TOKEN`, reiniciar flujo completo (`/authorize` -> `/account/login` -> `/oauth2/token`).
 - Si `origin=CLIENT_REQUEST` y `clientRequestCause=CLIENT_TECHNICAL`, no culpar al usuario: revisar integración.
-- Si `origin=BUSINESS_RULE`, mostrar CTA contextual y no ocultar el error con mensaje generico.
+- Si `origin=BUSINESS_RULE`, mostrar CTA contextual y no ocultar el error con mensaje genérico.
 - Loguear siempre: `failure.code`, `data.origin`, `data.clientRequestCause`, `tenantSlug`, `client_id`.
-- Mantener esta sección alineada con `docs/api/AUTH_FLOW.md` (sección "Manejo de errores") y con `§13.2` de esta guia.
+- Mantener esta sección alineada con `docs/api/AUTH_FLOW.md` (sección "Manejo de errores") y con `§13.2` de esta guía.
 
 Reglas rápidas de interpretación en frontend:
 - `origin=CLIENT_REQUEST` + `clientRequestCause=USER_INPUT` → error del dato ingresado por el usuario.
@@ -3930,4 +3930,3 @@ cd keygo-ui && pnpm install && pnpm dev   # http://localhost:5173
 
 *Manual actualizado por AI Agent — KeyGo Server 2026-04-07 — **Identidad de plataforma:** flujo OAuth2 PKCE completo para plataforma (`GET /platform/oauth2/authorize` → `POST /platform/account/login` → `POST /platform/oauth2/token`), endpoint `direct-login` como alternativa API/CLI, tabla `platform_users` separada de `tenant_users`, roles de plataforma (`KEYGO_ADMIN`, `KEYGO_TENANT_ADMIN`, `KEYGO_USER`) con backward compat para roles legacy, endpoints CRUD de usuarios de plataforma (`/api/v1/platform/users`), JWT de plataforma sin claims de tenant. §6 reestructurado — ambos flujos usan PKCE (plataforma vs tenant app). §14 ampliado con §14.0 (auth PKCE de plataforma, 5 endpoints) y §14.0.1 (gestión de platform users).*
 *Actualizar cuando se implementen endpoints marcados ⏳ o cuando cambien la estructura de roles/claims.*
-

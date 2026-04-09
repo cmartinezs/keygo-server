@@ -1,4 +1,4 @@
-# Configuracion de entornos - KeyGo Server
+# Configuración de entornos - KeyGo Server
 
 Fuente de verdad para ambiente local, `.env` y scripts operativos.
 
@@ -10,7 +10,7 @@ Fuente de verdad para ambiente local, `.env` y scripts operativos.
 ./docs/scripts/switch-env.sh local
 ```
 
-Esto copia `envs/.env-local` a `.env` en la raiz del proyecto.
+Esto copia `envs/.env-local` a `.env` en la raíz del proyecto.
 
 ### 2. Cargar variables en la shell
 
@@ -45,12 +45,12 @@ envs/
 ├── .env-desa
 └── .env-prod
 
-.env                # ambiente activo en la raiz del repo
+.env                # ambiente activo en la raíz del repo
 ```
 
-Regla: `docs/scripts/switch-env.sh` siempre opera sobre `envs/.env-*` y deja el ambiente activo en `.env` en la raiz.
+Regla: `docs/scripts/switch-env.sh` siempre opera sobre `envs/.env-*` y deja el ambiente activo en `.env` en la raíz.
 
-## Variables mas relevantes
+## Variables más relevantes
 
 | Variable | Uso |
 |---|---|
@@ -60,7 +60,7 @@ Regla: `docs/scripts/switch-env.sh` siempre opera sobre `envs/.env-*` y deja el 
 | `SUPABASE_PASSWORD` | Password DB |
 | `PORT` | Puerto HTTP |
 | `KEYGO_ISSUER_BASE_URL` | Issuer base URL |
-| `KEYGO_CORS_ALLOWED_ORIGINS` | Origenes CORS permitidos |
+| `KEYGO_CORS_ALLOWED_ORIGINS` | Orígenes CORS permitidos |
 | `KEYGO_UI_BASE_URL` | URL base del frontend |
 | `KEYGO_PLATFORM_REDIRECT_URI` | Redirect URI de plataforma |
 | `SMTP_HOST` / `SMTP_PORT` | SMTP |
@@ -72,7 +72,7 @@ Regla: `docs/scripts/switch-env.sh` siempre opera sobre `envs/.env-*` y deja el 
 
 ## Nota de seguridad
 
-- La autenticacion admin vigente es Bearer JWT.
+- La autenticación admin vigente es Bearer JWT.
 - `KEYGO_ADMIN_KEY` y `X-KEYGO-ADMIN` son legacy y no deben documentarse como mecanismo actual.
 
 ## Script all-in-one
@@ -92,7 +92,7 @@ Este script:
 
 ## IntelliJ / IDE
 
-- El archivo recomendable para EnvFile es `.env` en la raiz del repo.
+- El archivo recomendable para EnvFile es `.env` en la raíz del repo.
 - Ver detalle en [`INTELLIJ_SETUP.md`](INTELLIJ_SETUP.md).
 
 ## Referencias

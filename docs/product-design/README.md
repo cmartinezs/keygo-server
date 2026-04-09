@@ -1,17 +1,17 @@
 # Product Design - KeyGo Server
 
-Indice de documentacion funcional y de analisis del producto.
+Índice de documentación funcional y de análisis del producto.
 
 > Esta carpeta no es la fuente de verdad operativa del runtime. Para arquitectura, seguridad, setup o migraciones, usar `docs/design/`, `docs/api/`, `docs/development/` y `docs/data/`.
 
 ## Documentos activos
 
-- [`SITUACION_ACTUAL.md`](SITUACION_ACTUAL.md): estado funcional y tecnico observado.
+- [`SITUACION_ACTUAL.md`](SITUACION_ACTUAL.md): estado funcional y técnico observado.
 - [`ANALISIS_DOLORES.md`](ANALISIS_DOLORES.md): problemas, restricciones y dolor actual.
 - [`REQUERIMIENTOS.md`](REQUERIMIENTOS.md): requerimientos funcionales y no funcionales.
 - [`PROPUESTA_SOLUCION.md`](PROPUESTA_SOLUCION.md): propuesta consolidada y roadmap funcional.
 - [`BOUNDED_CONTEXTS.md`](BOUNDED_CONTEXTS.md): dominios y fronteras.
-- [`GLOSARIO.md`](GLOSARIO.md): terminos y conceptos unificados.
+- [`GLOSARIO.md`](GLOSARIO.md): términos y conceptos unificados.
 - [`DEPENDENCIAS.md`](DEPENDENCIAS.md): dependencias entre propuestas.
 
 ## Diagramas disponibles
@@ -24,7 +24,7 @@ Indice de documentacion funcional y de analisis del producto.
 
 ## Uso recomendado
 
-- Para entender el negocio y el contexto funcional, empezar aqui.
+- Para entender el negocio y el contexto funcional, empezar aquí.
 - Para implementar cambios en backend, complementar con:
   - [`../design/ARCHITECTURE.md`](../design/ARCHITECTURE.md)
   - [`../api/AUTH_FLOW.md`](../api/AUTH_FLOW.md)

@@ -1,10 +1,10 @@
 # Arquitectura de KeyGo Server
 
-> Documento resumido. La fuente de verdad arquitectonica es [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md).
+> Documento resumido. La fuente de verdad arquitectónica es [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md).
 
 ## Resumen
 
-- Monorepo Maven multi-modulo.
+- Monorepo Maven multi-módulo.
 - Java 21 + Spring Boot 4.x.
 - Arquitectura hexagonal / ports and adapters.
 - `context-path` activo: `/keygo-server`.
@@ -20,8 +20,8 @@
 | `keygo-infra` | Adaptadores transversales: JWT, JWKS, PKCE |
 | `keygo-api` | Controllers REST, DTOs, errores y OpenAPI |
 | `keygo-supabase` | JPA, Flyway, repositorios y PostgreSQL |
-| `keygo-run` | Main, wiring, seguridad y configuracion |
-| `keygo-bom` | Gestion de versiones |
+| `keygo-run` | Main, wiring, seguridad y configuración |
+| `keygo-bom` | Gestión de versiones |
 | `keygo-common` | Utilidades compartidas |
 
 ## Flujo de alto nivel
@@ -38,10 +38,10 @@ Client
 
 ## Seguridad vigente
 
-- `/api/**` protegido con `Authorization: Bearer <jwt>` segun categoria de ruta.
+- `/api/**` protegido con `Authorization: Bearer <jwt>` según categoría de ruta.
 - Autorizacion por endpoint con `@PreAuthorize`.
 - Aislamiento tenant para roles acotados mediante evaluacion de `tenant_slug`.
-- Rutas publicas y excepciones documentadas en [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md).
+- Rutas públicas y excepciones documentadas en [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md).
 
 ## Referencias
 
