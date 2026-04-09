@@ -1,266 +1,308 @@
--- =============================================================================
--- V15: Seed Foundation — datos base para desarrollo UI (keygo + demo)
---
--- Consolida el seed inicial de tenants + usuarios + apps + roles + memberships
--- con contraseñas correctas desde el inicio (sin migración de reset separada).
---
--- Credenciales seed (SOLO dev/local — NUNCA usar en producción):
--- ───────────────────────────────────────────────────────────────
---  username              email                     contraseña     tenant   rol
--- ───────────────────────────────────────────────────────────────
---  keygo_admin           admin@keygo.local         Admin1234!     keygo    admin
---  keygo_tenant_admin    tenant-admin@keygo.local  Admin1234!     keygo    admin_tenant
---  keygo_user            user@keygo.local          Admin1234!     keygo    user_tenant
---  demo_admin            admin@demo.local          DevAdmin1!     demo     demo_admin
---  demo_user             user@demo.local           DevUser1!      demo     demo_user
--- ───────────────────────────────────────────────────────────────
---
--- Hashes BCrypt (cost=10, generados con Spring BCryptPasswordEncoder):
---   Admin1234! → $2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm
---   DevAdmin1! → $2a$10$VmQ.AQnJb11Ld9nqD9hCfurlSAO6wDIYPv12HXN/f2O6RXWANXr6G
---   DevUser1!  → $2a$10$aEfgQKzl/bJRGDK.ZkYX9uUywwiPZGjlugmdU9xdWZm/Jlf3qkcBq
---
--- Convención de FK: nunca se hardcodean UUIDs de FK; se resuelven con
--- subqueries SELECT sobre el campo semántico del padre (slug, client_id, username).
--- Los únicos UUIDs fijos son los PKs (columna id) para estabilidad entre resets.
---
--- PKs estables (id):
---   Tenants:     keygo=11111111-1111-1111-1111-111111111111  demo=22222222-2222-2222-2222-222222222222
---   ClientApps:  keygo-ui=11111111-1111-1111-1111-222222222222  demo-ui=22222222-2222-2222-2222-333333333333
---   TenantUsers: keygo_admin=...-000000000001  keygo_tenant_admin=...-000000000002  keygo_user=...-000000000003
---                demo_admin=22222222-...-000000000001  demo_user=22222222-...-000000000002
---   AppRoles:    keygo-ui: admin=...-300000000001  admin_tenant=...-300000000002  user_tenant=...-300000000003
---                demo-ui:  demo_admin=22222222-...-300000000001  demo_user=22222222-...-300000000002
---   Memberships: keygo_admin→keygo-ui=...-400000000001  (...)  demo_user→demo-ui=22222222-...-400000000002
--- =============================================================================
+-- ============================================================================
+-- V16__seed_foundation.sql
+-- Development seeds. Stable IDs are intentional for local resets.
+-- Dev password for all seeded platform users: Admin1234!
+-- BCrypt hash: $2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm
+-- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- 1) Tenants
+-- Platform roles and hierarchy
 -- ---------------------------------------------------------------------------
-INSERT INTO tenants (id, slug, name, owner_email, status)
+INSERT INTO platform_roles (id, code, display_name, description)
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'keygo', 'KeyGo', 'owner@keygo.local', 'ACTIVE'),
-  ('22222222-2222-2222-2222-222222222222', 'demo',  'Demo',  'owner@demo.local',  'ACTIVE')
+    ('10000000-0000-0000-0000-000000000001', 'KEYGO_ADMIN', 'Keygo Admin', 'Global platform administration'),
+    ('10000000-0000-0000-0000-000000000002', 'KEYGO_ACCOUNT_ADMIN', 'Keygo Account Admin', 'Contractor or tenant scoped account administration'),
+    ('10000000-0000-0000-0000-000000000003', 'KEYGO_USER', 'Keygo User', 'Global self-service access')
+ON CONFLICT (code) DO UPDATE
+SET display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description;
+
+INSERT INTO platform_role_hierarchy (child_role_id, parent_role_id)
+SELECT '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002'
+WHERE NOT EXISTS (
+    SELECT 1 FROM platform_role_hierarchy
+    WHERE child_role_id = '10000000-0000-0000-0000-000000000001'
+);
+
+INSERT INTO platform_role_hierarchy (child_role_id, parent_role_id)
+SELECT '10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003'
+WHERE NOT EXISTS (
+    SELECT 1 FROM platform_role_hierarchy
+    WHERE child_role_id = '10000000-0000-0000-0000-000000000002'
+);
+
+-- ---------------------------------------------------------------------------
+-- Platform users
+-- ---------------------------------------------------------------------------
+INSERT INTO platform_users (
+    id, email, password_hash, first_name, last_name, display_name, locale, zoneinfo, status, email_verified_at
+)
+VALUES
+    ('11000000-0000-0000-0000-000000000001', 'admin@keygo.local', '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm', 'Keygo', 'Admin', 'Keygo Admin', 'es-CL', 'America/Santiago', 'ACTIVE', now()),
+    ('11000000-0000-0000-0000-000000000002', 'tenant-admin@keygo.local', '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm', 'Tenant', 'Admin', 'Tenant Admin', 'es-CL', 'America/Santiago', 'ACTIVE', now()),
+    ('11000000-0000-0000-0000-000000000003', 'user@keygo.local', '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm', 'Platform', 'User', 'Platform User', 'es-CL', 'America/Santiago', 'ACTIVE', now()),
+    ('11000000-0000-0000-0000-000000000004', 'contractor@keygo.local', '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm', 'Acme', 'Owner', 'Acme Owner', 'es-CL', 'America/Santiago', 'ACTIVE', now()),
+    ('11000000-0000-0000-0000-000000000005', 'demo-admin@demo.local', '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm', 'Demo', 'Admin', 'Demo Admin', 'es-CL', 'America/Santiago', 'ACTIVE', now()),
+    ('11000000-0000-0000-0000-000000000006', 'demo-user@demo.local', '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm', 'Demo', 'User', 'Demo User', 'es-CL', 'America/Santiago', 'ACTIVE', now())
+ON CONFLICT (email) DO UPDATE
+SET password_hash = EXCLUDED.password_hash,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    display_name = EXCLUDED.display_name,
+    locale = EXCLUDED.locale,
+    zoneinfo = EXCLUDED.zoneinfo,
+    status = EXCLUDED.status,
+    email_verified_at = EXCLUDED.email_verified_at;
+
+INSERT INTO platform_user_notification_preferences (id, platform_user_id)
+SELECT gen_random_uuid(), pu.id
+FROM platform_users pu
+WHERE pu.email IN (
+    'admin@keygo.local',
+    'tenant-admin@keygo.local',
+    'user@keygo.local',
+    'contractor@keygo.local',
+    'demo-admin@demo.local',
+    'demo-user@demo.local'
+)
+ON CONFLICT (platform_user_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- Contractor and tenant foundation
+-- ---------------------------------------------------------------------------
+INSERT INTO contractors (
+    id, type, display_name, legal_name, tax_id, billing_email, primary_contact_platform_user_id, status
+)
+VALUES (
+    '12000000-0000-0000-0000-000000000001',
+    'COMPANY',
+    'Acme Holdings',
+    'Acme Holdings SpA',
+    'CL-ACME-001',
+    'billing@acme.local',
+    (SELECT id FROM platform_users WHERE email = 'contractor@keygo.local'),
+    'ACTIVE'
+)
+ON CONFLICT (id) DO UPDATE
+SET display_name = EXCLUDED.display_name,
+    legal_name = EXCLUDED.legal_name,
+    tax_id = EXCLUDED.tax_id,
+    billing_email = EXCLUDED.billing_email,
+    primary_contact_platform_user_id = EXCLUDED.primary_contact_platform_user_id,
+    status = EXCLUDED.status;
+
+INSERT INTO contractor_users (contractor_id, platform_user_id, role_code)
+VALUES
+    ('12000000-0000-0000-0000-000000000001', (SELECT id FROM platform_users WHERE email = 'contractor@keygo.local'), 'OWNER'),
+    ('12000000-0000-0000-0000-000000000001', (SELECT id FROM platform_users WHERE email = 'tenant-admin@keygo.local'), 'BILLING_ADMIN')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tenants (id, slug, name, status, contractor_id, is_internal_reserved)
+VALUES
+    ('13000000-0000-0000-0000-000000000001', 'keygo', 'Keygo Internal', 'ACTIVE', NULL, TRUE),
+    ('13000000-0000-0000-0000-000000000002', 'demo', 'Demo Tenant', 'ACTIVE', NULL, FALSE),
+    ('13000000-0000-0000-0000-000000000003', 'acme', 'Acme Tenant', 'ACTIVE', (SELECT id FROM contractors WHERE billing_email = 'billing@acme.local'), FALSE)
 ON CONFLICT (slug) DO UPDATE
-SET
-  name        = EXCLUDED.name,
-  owner_email = EXCLUDED.owner_email,
-  status      = EXCLUDED.status,
-  updated_at  = CURRENT_TIMESTAMP;
+SET name = EXCLUDED.name,
+    status = EXCLUDED.status,
+    contractor_id = EXCLUDED.contractor_id,
+    is_internal_reserved = EXCLUDED.is_internal_reserved;
 
 -- ---------------------------------------------------------------------------
--- 2) Client Apps
---    FK tenant_id → tenants.slug (subquery)
+-- Platform RBAC assignments
 -- ---------------------------------------------------------------------------
-INSERT INTO client_apps (id, tenant_id, client_id, name, description, type, hashed_secret, status)
+INSERT INTO platform_user_roles (id, platform_user_id, role_id, scope_type)
+SELECT
+    '14000000-0000-0000-0000-000000000001',
+    pu.id,
+    pr.id,
+    'GLOBAL'
+FROM platform_users pu
+JOIN platform_roles pr ON pr.code = 'KEYGO_ADMIN'
+WHERE pu.email = 'admin@keygo.local'
+  AND NOT EXISTS (
+      SELECT 1 FROM platform_user_roles pur
+      WHERE pur.platform_user_id = pu.id
+        AND pur.role_id = pr.id
+        AND pur.scope_type = 'GLOBAL'
+  );
+
+INSERT INTO platform_user_roles (id, platform_user_id, role_id, scope_type)
+SELECT
+    '14000000-0000-0000-0000-000000000002',
+    pu.id,
+    pr.id,
+    'GLOBAL'
+FROM platform_users pu
+JOIN platform_roles pr ON pr.code = 'KEYGO_USER'
+WHERE pu.email = 'user@keygo.local'
+  AND NOT EXISTS (
+      SELECT 1 FROM platform_user_roles pur
+      WHERE pur.platform_user_id = pu.id
+        AND pur.role_id = pr.id
+        AND pur.scope_type = 'GLOBAL'
+  );
+
+INSERT INTO platform_user_roles (id, platform_user_id, role_id, scope_type, contractor_id)
+SELECT
+    '14000000-0000-0000-0000-000000000003',
+    pu.id,
+    pr.id,
+    'CONTRACTOR',
+    c.id
+FROM platform_users pu
+JOIN platform_roles pr ON pr.code = 'KEYGO_ACCOUNT_ADMIN'
+JOIN contractors c ON c.billing_email = 'billing@acme.local'
+WHERE pu.email = 'tenant-admin@keygo.local'
+  AND NOT EXISTS (
+      SELECT 1 FROM platform_user_roles pur
+      WHERE pur.platform_user_id = pu.id
+        AND pur.role_id = pr.id
+        AND pur.scope_type = 'CONTRACTOR'
+        AND pur.contractor_id = c.id
+  );
+
+INSERT INTO platform_user_roles (id, platform_user_id, role_id, scope_type, contractor_id)
+SELECT
+    '14000000-0000-0000-0000-000000000004',
+    pu.id,
+    pr.id,
+    'CONTRACTOR',
+    c.id
+FROM platform_users pu
+JOIN platform_roles pr ON pr.code = 'KEYGO_ACCOUNT_ADMIN'
+JOIN contractors c ON c.billing_email = 'billing@acme.local'
+WHERE pu.email = 'contractor@keygo.local'
+  AND NOT EXISTS (
+      SELECT 1 FROM platform_user_roles pur
+      WHERE pur.platform_user_id = pu.id
+        AND pur.role_id = pr.id
+        AND pur.scope_type = 'CONTRACTOR'
+        AND pur.contractor_id = c.id
+  );
+
+-- ---------------------------------------------------------------------------
+-- Tenant users: explicit participation only. Nobody is auto-enrolled in keygo.
+-- tenant-admin@keygo.local participates in demo and acme to validate multi-tenant identity.
+-- ---------------------------------------------------------------------------
+INSERT INTO tenant_users (id, tenant_id, platform_user_id, local_username, display_name_override, status)
 VALUES
-  (
-    '11111111-1111-1111-1111-222222222222',
-    (SELECT id FROM tenants WHERE slug = 'keygo'),
-    'keygo-ui',
-    'KeyGo UI',
-    'Single UI app for platform and tenant administration',
-    'PUBLIC', NULL, 'ACTIVE'
-  ),
-  (
-    '22222222-2222-2222-2222-333333333333',
-    (SELECT id FROM tenants WHERE slug = 'demo'),
-    'demo-ui',
-    'Demo UI',
-    'Demo tenant UI application',
-    'PUBLIC', NULL, 'ACTIVE'
-  )
+    ('15000000-0000-0000-0000-000000000001', (SELECT id FROM tenants WHERE slug = 'demo'), (SELECT id FROM platform_users WHERE email = 'demo-admin@demo.local'), 'demo-admin', 'Demo Admin', 'ACTIVE'),
+    ('15000000-0000-0000-0000-000000000002', (SELECT id FROM tenants WHERE slug = 'demo'), (SELECT id FROM platform_users WHERE email = 'demo-user@demo.local'), 'demo-user', 'Demo User', 'ACTIVE'),
+    ('15000000-0000-0000-0000-000000000003', (SELECT id FROM tenants WHERE slug = 'demo'), (SELECT id FROM platform_users WHERE email = 'tenant-admin@keygo.local'), 'tenant-admin-demo', 'Tenant Admin Demo', 'ACTIVE'),
+    ('15000000-0000-0000-0000-000000000004', (SELECT id FROM tenants WHERE slug = 'acme'), (SELECT id FROM platform_users WHERE email = 'tenant-admin@keygo.local'), 'tenant-admin-acme', 'Tenant Admin Acme', 'ACTIVE'),
+    ('15000000-0000-0000-0000-000000000005', (SELECT id FROM tenants WHERE slug = 'acme'), (SELECT id FROM platform_users WHERE email = 'contractor@keygo.local'), 'acme-owner', 'Acme Owner', 'ACTIVE')
+ON CONFLICT (tenant_id, platform_user_id) DO UPDATE
+SET local_username = EXCLUDED.local_username,
+    display_name_override = EXCLUDED.display_name_override,
+    status = EXCLUDED.status;
+
+-- ---------------------------------------------------------------------------
+-- Tenant RBAC
+-- ---------------------------------------------------------------------------
+INSERT INTO tenant_roles (id, tenant_id, code, display_name, description)
+VALUES
+    ('16000000-0000-0000-0000-000000000001', (SELECT id FROM tenants WHERE slug = 'demo'), 'admin', 'Admin', 'Tenant administrators'),
+    ('16000000-0000-0000-0000-000000000002', (SELECT id FROM tenants WHERE slug = 'demo'), 'user', 'User', 'Regular tenant users'),
+    ('16000000-0000-0000-0000-000000000003', (SELECT id FROM tenants WHERE slug = 'acme'), 'owner', 'Owner', 'Tenant owner'),
+    ('16000000-0000-0000-0000-000000000004', (SELECT id FROM tenants WHERE slug = 'acme'), 'admin', 'Admin', 'Tenant administrators'),
+    ('16000000-0000-0000-0000-000000000005', (SELECT id FROM tenants WHERE slug = 'acme'), 'user', 'User', 'Regular tenant users')
+ON CONFLICT (tenant_id, code) DO UPDATE
+SET display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description;
+
+INSERT INTO tenant_user_roles (tenant_user_id, tenant_id, role_id)
+SELECT tu.id, tu.tenant_id, tr.id
+FROM tenant_users tu
+JOIN tenant_roles tr ON tr.tenant_id = tu.tenant_id
+WHERE (
+        tu.local_username = 'demo-admin' AND tr.code = 'admin'
+    ) OR (
+        tu.local_username = 'demo-user' AND tr.code = 'user'
+    ) OR (
+        tu.local_username = 'tenant-admin-demo' AND tr.code = 'admin'
+    ) OR (
+        tu.local_username = 'tenant-admin-acme' AND tr.code = 'admin'
+    ) OR (
+        tu.local_username = 'acme-owner' AND tr.code = 'owner'
+    )
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- Client apps and their OAuth configuration
+-- ---------------------------------------------------------------------------
+INSERT INTO client_apps (id, tenant_id, client_id, name, description, type, hashed_secret, status, is_internal)
+VALUES
+    ('17000000-0000-0000-0000-000000000001', (SELECT id FROM tenants WHERE slug = 'keygo'), 'keygo-ui', 'Keygo UI', 'Internal platform account UI and OAuth technical client', 'PUBLIC', NULL, 'ACTIVE', TRUE),
+    ('17000000-0000-0000-0000-000000000002', (SELECT id FROM tenants WHERE slug = 'demo'), 'demo-ui', 'Demo UI', 'Demo tenant frontend', 'PUBLIC', NULL, 'ACTIVE', FALSE),
+    ('17000000-0000-0000-0000-000000000003', (SELECT id FROM tenants WHERE slug = 'acme'), 'acme-ui', 'Acme UI', 'Commercial tenant frontend', 'PUBLIC', NULL, 'ACTIVE', FALSE)
 ON CONFLICT (client_id) DO UPDATE
-SET
-  tenant_id     = EXCLUDED.tenant_id,
-  name          = EXCLUDED.name,
-  description   = EXCLUDED.description,
-  type          = EXCLUDED.type,
-  hashed_secret = EXCLUDED.hashed_secret,
-  status        = EXCLUDED.status,
-  updated_at    = CURRENT_TIMESTAMP;
+SET name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    type = EXCLUDED.type,
+    hashed_secret = EXCLUDED.hashed_secret,
+    status = EXCLUDED.status,
+    is_internal = EXCLUDED.is_internal;
 
--- ── Redirect URIs — FK client_app_id → client_apps.client_id ──────────────
 INSERT INTO client_redirect_uris (id, client_app_id, uri)
-SELECT gen_random_uuid(), (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'), 'http://localhost:5173/callback'
-WHERE NOT EXISTS (
-  SELECT 1 FROM client_redirect_uris
-  WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'keygo-ui')
-    AND uri = 'http://localhost:5173/callback'
-);
-INSERT INTO client_redirect_uris (id, client_app_id, uri)
-SELECT gen_random_uuid(), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'http://localhost:5174/callback'
-WHERE NOT EXISTS (
-  SELECT 1 FROM client_redirect_uris
-  WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui')
-    AND uri = 'http://localhost:5174/callback'
-);
-
--- ── Allowed grants — FK client_app_id → client_apps.client_id ─────────────
-INSERT INTO client_allowed_grants (id, client_app_id, grant_type)
-SELECT gen_random_uuid(), (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'), g
-FROM (VALUES ('AUTHORIZATION_CODE'), ('REFRESH_TOKEN')) AS t(g)
-WHERE NOT EXISTS (
-  SELECT 1 FROM client_allowed_grants
-  WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'keygo-ui') AND grant_type = g
-);
-INSERT INTO client_allowed_grants (id, client_app_id, grant_type)
-SELECT gen_random_uuid(), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), g
-FROM (VALUES ('AUTHORIZATION_CODE'), ('REFRESH_TOKEN')) AS t(g)
-WHERE NOT EXISTS (
-  SELECT 1 FROM client_allowed_grants
-  WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui') AND grant_type = g
-);
-
--- ── Allowed scopes — FK client_app_id → client_apps.client_id ─────────────
-INSERT INTO client_allowed_scopes (id, client_app_id, scope)
-SELECT gen_random_uuid(), (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'), s
-FROM (VALUES ('openid'), ('profile'), ('email')) AS t(s)
-WHERE NOT EXISTS (
-  SELECT 1 FROM client_allowed_scopes
-  WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'keygo-ui') AND scope = s
-);
-INSERT INTO client_allowed_scopes (id, client_app_id, scope)
-SELECT gen_random_uuid(), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), s
-FROM (VALUES ('openid'), ('profile'), ('email')) AS t(s)
-WHERE NOT EXISTS (
-  SELECT 1 FROM client_allowed_scopes
-  WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui') AND scope = s
-);
-
--- ---------------------------------------------------------------------------
--- 3) Tenant Users
---    FK tenant_id → tenants.slug (subquery)
--- ---------------------------------------------------------------------------
-INSERT INTO tenant_users (id, tenant_id, username, email, password_hash, first_name, last_name, status)
 VALUES
-  (
-    '11111111-1111-1111-1111-000000000001',
-    (SELECT id FROM tenants WHERE slug = 'keygo'),
-    'keygo_admin', 'admin@keygo.local',
-    '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm',  -- Admin1234!
-    'KeyGo', 'Admin', 'ACTIVE'
-  ),
-  (
-    '11111111-1111-1111-1111-000000000002',
-    (SELECT id FROM tenants WHERE slug = 'keygo'),
-    'keygo_tenant_admin', 'tenant-admin@keygo.local',
-    '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm',  -- Admin1234!
-    'Tenant', 'Admin', 'ACTIVE'
-  ),
-  (
-    '11111111-1111-1111-1111-000000000003',
-    (SELECT id FROM tenants WHERE slug = 'keygo'),
-    'keygo_user', 'user@keygo.local',
-    '$2a$10$S9xpydnQYvODm7wulFBkd.EnJTyaIfiRLZCpp4FCOIN1N4.mzXIFm',  -- Admin1234!
-    'KeyGo', 'User', 'ACTIVE'
-  ),
-  (
-    '22222222-2222-2222-2222-000000000001',
-    (SELECT id FROM tenants WHERE slug = 'demo'),
-    'demo_admin', 'admin@demo.local',
-    '$2a$10$VmQ.AQnJb11Ld9nqD9hCfurlSAO6wDIYPv12HXN/f2O6RXWANXr6G',  -- DevAdmin1!
-    'Demo', 'Admin', 'ACTIVE'
-  ),
-  (
-    '22222222-2222-2222-2222-000000000002',
-    (SELECT id FROM tenants WHERE slug = 'demo'),
-    'demo_user', 'user@demo.local',
-    '$2a$10$aEfgQKzl/bJRGDK.ZkYX9uUywwiPZGjlugmdU9xdWZm/Jlf3qkcBq',  -- DevUser1!
-    'Demo', 'User', 'ACTIVE'
-  )
-ON CONFLICT (tenant_id, username) DO UPDATE
-SET
-  email         = EXCLUDED.email,
-  password_hash = EXCLUDED.password_hash,
-  first_name    = EXCLUDED.first_name,
-  last_name     = EXCLUDED.last_name,
-  status        = EXCLUDED.status,
-  updated_at    = CURRENT_TIMESTAMP;
+    ('17100000-0000-0000-0000-000000000001', (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'), 'http://localhost:3000/callback'),
+    ('17100000-0000-0000-0000-000000000002', (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'http://localhost:3001/auth/callback'),
+    ('17100000-0000-0000-0000-000000000003', (SELECT id FROM client_apps WHERE client_id = 'acme-ui'), 'http://localhost:3002/auth/callback')
+ON CONFLICT (client_app_id, uri) DO NOTHING;
+
+INSERT INTO client_allowed_grants (id, client_app_id, grant_type)
+SELECT gen_random_uuid(), ca.id, grants.grant_type
+FROM client_apps ca
+CROSS JOIN (VALUES ('AUTHORIZATION_CODE'), ('REFRESH_TOKEN')) AS grants(grant_type)
+WHERE ca.client_id IN ('keygo-ui', 'demo-ui', 'acme-ui')
+ON CONFLICT (client_app_id, grant_type) DO NOTHING;
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope)
+SELECT gen_random_uuid(), ca.id, scopes.scope
+FROM client_apps ca
+CROSS JOIN (VALUES ('openid'), ('profile'), ('email')) AS scopes(scope)
+WHERE ca.client_id IN ('keygo-ui', 'demo-ui', 'acme-ui')
+ON CONFLICT (client_app_id, scope) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 4) App Roles
---    FK client_app_id → client_apps.client_id (subquery)
+-- App RBAC and memberships. keygo-ui intentionally has no app_roles for platform RBAC.
 -- ---------------------------------------------------------------------------
-INSERT INTO app_roles (id, client_app_id, code, display_name, description)
+INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description)
 VALUES
-  (
-    '11111111-1111-1111-1111-300000000001',
-    (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
-    'admin', 'Platform Admin', 'Global KeyGo administrator role'
-  ),
-  (
-    '11111111-1111-1111-1111-300000000002',
-    (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
-    'admin_tenant', 'Tenant Admin', 'Tenant-scoped administrator role'
-  ),
-  (
-    '11111111-1111-1111-1111-300000000003',
-    (SELECT id FROM client_apps WHERE client_id = 'keygo-ui'),
-    'user_tenant', 'Tenant User', 'Standard tenant user role'
-  ),
-  (
-    '22222222-2222-2222-2222-300000000001',
-    (SELECT id FROM client_apps WHERE client_id = 'demo-ui'),
-    'demo_admin', 'Demo Admin', 'Administrator role for demo app'
-  ),
-  (
-    '22222222-2222-2222-2222-300000000002',
-    (SELECT id FROM client_apps WHERE client_id = 'demo-ui'),
-    'demo_user', 'Demo User', 'Standard user role for demo app'
-  )
+    ('18000000-0000-0000-0000-000000000001', (SELECT tenant_id FROM client_apps WHERE client_id = 'demo-ui'), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'admin', 'Admin', 'Demo UI administrators'),
+    ('18000000-0000-0000-0000-000000000002', (SELECT tenant_id FROM client_apps WHERE client_id = 'demo-ui'), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'user', 'User', 'Demo UI users'),
+    ('18000000-0000-0000-0000-000000000003', (SELECT tenant_id FROM client_apps WHERE client_id = 'acme-ui'), (SELECT id FROM client_apps WHERE client_id = 'acme-ui'), 'admin', 'Admin', 'Acme UI administrators'),
+    ('18000000-0000-0000-0000-000000000004', (SELECT tenant_id FROM client_apps WHERE client_id = 'acme-ui'), (SELECT id FROM client_apps WHERE client_id = 'acme-ui'), 'user', 'User', 'Acme UI users')
 ON CONFLICT (client_app_id, code) DO UPDATE
-SET
-  display_name = EXCLUDED.display_name,
-  description  = EXCLUDED.description,
-  updated_at   = CURRENT_TIMESTAMP;
+SET display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description;
 
--- ---------------------------------------------------------------------------
--- 5) Memberships (acceso de usuario a app)
---    FKs: user_id → tenant_users.username + tenants.slug
---         client_app_id → client_apps.client_id
---    Se usa CTE con datos semánticos para resolver los UUIDs vía JOIN.
--- ---------------------------------------------------------------------------
-WITH
-  assignments (stable_id, tenant_slug, username, app_client_id) AS (
-    VALUES
-      ('11111111-1111-1111-1111-400000000001'::UUID, 'keygo', 'keygo_admin',        'keygo-ui'),
-      ('11111111-1111-1111-1111-400000000002'::UUID, 'keygo', 'keygo_tenant_admin', 'keygo-ui'),
-      ('11111111-1111-1111-1111-400000000003'::UUID, 'keygo', 'keygo_user',         'keygo-ui'),
-      ('22222222-2222-2222-2222-400000000001'::UUID, 'demo',  'demo_admin',         'demo-ui'),
-      ('22222222-2222-2222-2222-400000000002'::UUID, 'demo',  'demo_user',          'demo-ui')
-  )
-INSERT INTO memberships (id, user_id, client_app_id, status)
-SELECT a.stable_id, tu.id, ca.id, 'ACTIVE'
-FROM assignments      a
-JOIN tenants      t  ON t.slug        = a.tenant_slug
-JOIN tenant_users tu ON tu.tenant_id  = t.id  AND tu.username  = a.username
-JOIN client_apps  ca ON ca.client_id  = a.app_client_id
-ON CONFLICT (user_id, client_app_id) DO UPDATE
-SET
-  status     = EXCLUDED.status,
-  updated_at = CURRENT_TIMESTAMP;
+INSERT INTO app_memberships (id, tenant_id, tenant_user_id, client_app_id, status)
+VALUES
+    ('19000000-0000-0000-0000-000000000001', (SELECT id FROM tenants WHERE slug = 'demo'), (SELECT id FROM tenant_users WHERE local_username = 'demo-admin'), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'ACTIVE'),
+    ('19000000-0000-0000-0000-000000000002', (SELECT id FROM tenants WHERE slug = 'demo'), (SELECT id FROM tenant_users WHERE local_username = 'demo-user'), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'ACTIVE'),
+    ('19000000-0000-0000-0000-000000000003', (SELECT id FROM tenants WHERE slug = 'demo'), (SELECT id FROM tenant_users WHERE local_username = 'tenant-admin-demo'), (SELECT id FROM client_apps WHERE client_id = 'demo-ui'), 'ACTIVE'),
+    ('19000000-0000-0000-0000-000000000004', (SELECT id FROM tenants WHERE slug = 'acme'), (SELECT id FROM tenant_users WHERE local_username = 'tenant-admin-acme'), (SELECT id FROM client_apps WHERE client_id = 'acme-ui'), 'ACTIVE'),
+    ('19000000-0000-0000-0000-000000000005', (SELECT id FROM tenants WHERE slug = 'acme'), (SELECT id FROM tenant_users WHERE local_username = 'acme-owner'), (SELECT id FROM client_apps WHERE client_id = 'acme-ui'), 'ACTIVE')
+ON CONFLICT (tenant_user_id, client_app_id) DO UPDATE
+SET status = EXCLUDED.status;
 
--- ---------------------------------------------------------------------------
--- 6) Membership Role Assignments
---    FKs: membership_id → resuelto por (tenant_slug, username, app_client_id)
---         role_id        → app_roles.code + client_apps.client_id
--- ---------------------------------------------------------------------------
-INSERT INTO membership_roles (membership_id, role_id, assigned_at)
-SELECT DISTINCT m.id, ar.id, NOW()
-FROM (VALUES
-  ('keygo', 'keygo_admin',        'keygo-ui', 'admin'),
-  ('keygo', 'keygo_tenant_admin', 'keygo-ui', 'admin_tenant'),
-  ('keygo', 'keygo_user',         'keygo-ui', 'user_tenant'),
-  ('demo',  'demo_admin',         'demo-ui',  'demo_admin'),
-  ('demo',  'demo_user',          'demo-ui',  'demo_user')
-) AS ra(tenant_slug, username, app_client_id, role_code)
-JOIN tenants      t  ON t.slug        = ra.tenant_slug
-JOIN tenant_users tu ON tu.tenant_id  = t.id  AND tu.username   = ra.username
-JOIN client_apps  ca ON ca.client_id  = ra.app_client_id
-JOIN memberships  m  ON m.user_id     = tu.id AND m.client_app_id = ca.id
-JOIN app_roles    ar ON ar.client_app_id = ca.id AND ar.code      = ra.role_code
-WHERE NOT EXISTS (
-  SELECT 1 FROM membership_roles mr
-  WHERE mr.membership_id = m.id AND mr.role_id = ar.id
-);
+INSERT INTO app_membership_roles (membership_id, client_app_id, role_id)
+SELECT am.id, am.client_app_id, ar.id
+FROM app_memberships am
+JOIN app_roles ar ON ar.client_app_id = am.client_app_id
+WHERE (
+        am.id = '19000000-0000-0000-0000-000000000001' AND ar.code = 'admin'
+    ) OR (
+        am.id = '19000000-0000-0000-0000-000000000002' AND ar.code = 'user'
+    ) OR (
+        am.id = '19000000-0000-0000-0000-000000000003' AND ar.code = 'admin'
+    ) OR (
+        am.id = '19000000-0000-0000-0000-000000000004' AND ar.code = 'admin'
+    ) OR (
+        am.id = '19000000-0000-0000-0000-000000000005' AND ar.code = 'admin'
+    )
+ON CONFLICT DO NOTHING;
+
+-- No audit seed rows are inserted here. Audit should represent real activity, not synthetic baseline noise.

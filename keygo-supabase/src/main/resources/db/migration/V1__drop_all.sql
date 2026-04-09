@@ -1,78 +1,50 @@
--- =============================================================================
--- V1: Drop all — pizarrón limpio
--- Elimina TODAS las tablas (CASCADE maneja FKs) y funciones utilitarias.
--- Idempotente: usa IF EXISTS en todo.
--- Prerequisito: ./docs/scripts/db/clean.sh  (borra flyway_schema_history)
--- =============================================================================
+-- ============================================================================
+-- V1__drop_all.sql
+-- Clean-room baseline reset for local and disposable environments.
+-- Excludes flyway_schema_history so Flyway can keep tracking the remake.
+-- ============================================================================
 
--- ── Billing payment support ───────────────────────────────────────────────────
-DROP TABLE IF EXISTS payment_methods          CASCADE;
-DROP TABLE IF EXISTS tenant_billing_profiles  CASCADE;
+DO $$
+DECLARE
+    v_record RECORD;
+BEGIN
+    FOR v_record IN
+        SELECT schemaname, matviewname AS object_name
+        FROM pg_matviews
+        WHERE schemaname = current_schema()
+    LOOP
+        EXECUTE format(
+            'DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE',
+            v_record.schemaname,
+            v_record.object_name
+        );
+    END LOOP;
 
--- ── Billing invoicing ─────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS usage_counters CASCADE;
-DROP TABLE IF EXISTS invoices       CASCADE;
+    FOR v_record IN
+        SELECT table_schema, table_name
+        FROM information_schema.views
+        WHERE table_schema = current_schema()
+    LOOP
+        EXECUTE format(
+            'DROP VIEW IF EXISTS %I.%I CASCADE',
+            v_record.table_schema,
+            v_record.table_name
+        );
+    END LOOP;
 
--- ── Billing subscriptions ─────────────────────────────────────────────────────
-DROP TABLE IF EXISTS payment_transactions CASCADE;
-DROP TABLE IF EXISTS app_subscriptions    CASCADE;
+    FOR v_record IN
+        SELECT schemaname, tablename
+        FROM pg_tables
+        WHERE schemaname = current_schema()
+          AND tablename <> 'flyway_schema_history'
+    LOOP
+        EXECUTE format(
+            'DROP TABLE IF EXISTS %I.%I CASCADE',
+            v_record.schemaname,
+            v_record.tablename
+        );
+    END LOOP;
+END $$;
 
--- ── Billing contracts ─────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS app_contracts CASCADE;
-
--- ── Contractors ───────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS contractors CASCADE;
-
--- ── Billing catalog ───────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS app_plan_entitlements  CASCADE;
-DROP TABLE IF EXISTS app_plan_billing_options CASCADE;
-DROP TABLE IF EXISTS app_plan_versions      CASCADE;
-DROP TABLE IF EXISTS app_plans              CASCADE;
-
--- ── Auth / OAuth2 ─────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS email_verifications CASCADE;
-DROP TABLE IF EXISTS refresh_tokens      CASCADE;
-DROP TABLE IF EXISTS sessions            CASCADE;
-DROP TABLE IF EXISTS authorization_codes CASCADE;
-DROP TABLE IF EXISTS signing_keys        CASCADE;
-
--- ── Memberships (plural y legado singular) ────────────────────────────────────
-DROP TABLE IF EXISTS membership_roles CASCADE;
-DROP TABLE IF EXISTS memberships      CASCADE;
-DROP TABLE IF EXISTS app_roles        CASCADE;
-DROP TABLE IF EXISTS membership_role  CASCADE;
-DROP TABLE IF EXISTS membership       CASCADE;
-DROP TABLE IF EXISTS app_role         CASCADE;
-
--- ── Client Apps ───────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS client_allowed_scopes CASCADE;
-DROP TABLE IF EXISTS client_allowed_grants CASCADE;
-DROP TABLE IF EXISTS client_redirect_uris  CASCADE;
-DROP TABLE IF EXISTS client_apps           CASCADE;
-
--- ── RBAC — Tenant User Roles ─────────────────────────────────────────────────
-DROP TABLE IF EXISTS tenant_user_roles    CASCADE;
-DROP TABLE IF EXISTS tenant_roles         CASCADE;
-
--- ── RBAC — Platform User Roles ───────────────────────────────────────────────
-DROP TABLE IF EXISTS platform_user_roles  CASCADE;
-DROP TABLE IF EXISTS platform_roles       CASCADE;
-
--- ── Tenant Users ──────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS tenant_users CASCADE;
-
--- ── Tenants ───────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS tenants CASCADE;
-
--- ── Tablas legado (usuarios y OAuth globales, nunca usados en el modelo activo)
-DROP TABLE IF EXISTS role_permissions CASCADE;
-DROP TABLE IF EXISTS user_roles       CASCADE;
-DROP TABLE IF EXISTS permissions      CASCADE;
-DROP TABLE IF EXISTS roles            CASCADE;
-DROP TABLE IF EXISTS audit_logs       CASCADE;
-DROP TABLE IF EXISTS oauth_tokens     CASCADE;
-DROP TABLE IF EXISTS oauth_providers  CASCADE;
-DROP TABLE IF EXISTS users            CASCADE;
-
--- ── Funciones utilitarias ─────────────────────────────────────────────────────
 DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+DROP FUNCTION IF EXISTS prevent_append_only_mutation() CASCADE;
