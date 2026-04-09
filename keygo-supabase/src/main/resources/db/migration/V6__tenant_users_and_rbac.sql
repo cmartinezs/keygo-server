@@ -137,6 +137,9 @@ CREATE TABLE tenant_user_roles (
 CREATE INDEX idx_tenant_user_roles_tenant_role ON tenant_user_roles(tenant_id, role_id);
 
 COMMENT ON TABLE tenant_users IS 'Membership of a platform user in a tenant. No global credentials are duplicated here.';
+COMMENT ON COLUMN tenant_users.id IS 'Technical UUID primary key for internal tenant membership relations.';
+COMMENT ON COLUMN tenant_users.platform_user_id IS 'FK to the global identity root. tenant_users never owns global credentials.';
+COMMENT ON COLUMN tenant_users.local_username IS 'Optional tenant-local alias for UX or legacy mapping. It is not the global platform identity.';
 COMMENT ON TABLE tenant_roles IS 'Tenant-scoped RBAC catalog.';
 COMMENT ON TABLE tenant_role_hierarchy IS 'Tenant role inheritance tree. One parent per child role inside the same tenant.';
 COMMENT ON TABLE tenant_user_roles IS 'Assignments of tenant roles to tenant memberships with tenant integrity enforced by composite FKs.';

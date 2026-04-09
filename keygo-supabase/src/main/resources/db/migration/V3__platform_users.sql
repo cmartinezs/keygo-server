@@ -37,6 +37,7 @@ CREATE TRIGGER trg_platform_users_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE platform_users IS 'Global identity root for Keygo platform accounts.';
+COMMENT ON COLUMN platform_users.id IS 'Technical UUID primary key for internal relations across the platform data model.';
 COMMENT ON COLUMN platform_users.email IS 'Case-insensitive unique email for the platform account.';
 COMMENT ON COLUMN platform_users.password_hash IS 'BCrypt or equivalent password hash. Raw passwords never persist.';
 COMMENT ON COLUMN platform_users.status IS 'Global account lifecycle. RESET_PASSWORD represents forced password recovery flow.';

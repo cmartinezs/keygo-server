@@ -109,6 +109,7 @@ CREATE TRIGGER trg_app_plan_entitlements_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE app_plans IS 'Commercial plans exposed by a specific client app.';
+COMMENT ON COLUMN app_plans.client_app_id IS 'Internal FK to client_apps.id. Billing relations remain anchored to technical UUID keys.';
 COMMENT ON TABLE app_plan_versions IS 'Immutable snapshots used by contracts and subscriptions.';
 COMMENT ON TABLE app_plan_billing_options IS 'Billing cadence options. Zero rows can represent a free plan.';
 COMMENT ON COLUMN app_plan_entitlements.limit_value IS 'Null means unlimited.';

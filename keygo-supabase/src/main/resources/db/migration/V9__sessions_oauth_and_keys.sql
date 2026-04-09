@@ -343,6 +343,10 @@ CREATE TRIGGER trg_refresh_tokens_updated_at
 
 COMMENT ON TABLE platform_sessions IS 'Global platform sessions for account access, activity and security UX.';
 COMMENT ON TABLE oauth_sessions IS 'Tenant/app-level OAuth sessions tied to a platform session.';
+COMMENT ON COLUMN oauth_sessions.client_app_id IS 'Internal FK to client_apps.id for session context. Protocol resolution still happens with client_apps.client_id before persistence.';
 COMMENT ON TABLE authorization_codes IS 'Authorization codes stored as hashes, never in plain text.';
+COMMENT ON COLUMN authorization_codes.client_app_id IS 'Internal FK to client_apps.id. The public client_id is resolved earlier at the OAuth boundary.';
 COMMENT ON TABLE refresh_tokens IS 'Refresh tokens stored only as SHA-256 hashes. Context integrity is validated against oauth_sessions.';
+COMMENT ON COLUMN refresh_tokens.client_app_id IS 'Internal FK to client_apps.id carried forward from oauth_sessions context.';
 COMMENT ON TABLE signing_keys IS 'JWT signing keys. tenant_id null means a global platform key.';
+COMMENT ON COLUMN signing_keys.kid IS 'Public JWK/JWT key identifier. It is functional/protocol-facing, while id remains the internal technical PK.';

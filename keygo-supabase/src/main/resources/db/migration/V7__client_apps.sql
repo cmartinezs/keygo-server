@@ -1,6 +1,10 @@
 -- ============================================================================
 -- V7__client_apps.sql
 -- Tenant-owned OAuth/OIDC client applications.
+-- id        = technical UUID primary key used by internal relations and FKs.
+-- client_id = public OAuth/OIDC client identifier resolved by protocol endpoints.
+-- client_id remains globally unique by design because Keygo acts as a shared
+-- authorization server and protocol resolution must stay unambiguous across tenants.
 -- ============================================================================
 
 CREATE TABLE client_apps (
@@ -70,7 +74,13 @@ CREATE TABLE client_allowed_scopes (
 );
 
 COMMENT ON TABLE client_apps IS 'OAuth/OIDC client applications owned by a tenant.';
+COMMENT ON COLUMN client_apps.id IS 'Technical UUID primary key used by internal relations, joins and foreign keys.';
+COMMENT ON COLUMN client_apps.client_id IS 'Public OAuth/OIDC client identifier used by protocol flows such as /authorize and /token. Deliberately unique globally to avoid cross-tenant ambiguity at the authorization server boundary.';
+COMMENT ON COLUMN client_apps.tenant_id IS 'Tenant owner of the client application. Internal relations still target client_apps.id.';
 COMMENT ON COLUMN client_apps.is_internal IS 'True for internal technical clients such as keygo-ui.';
 COMMENT ON TABLE client_redirect_uris IS 'Exact redirect URIs. Wildcards are rejected at DB level.';
+COMMENT ON COLUMN client_redirect_uris.client_app_id IS 'Internal FK to client_apps.id, never to the public client_id.';
 COMMENT ON TABLE client_allowed_grants IS 'Allowed OAuth grants for a client app.';
+COMMENT ON COLUMN client_allowed_grants.client_app_id IS 'Internal FK to client_apps.id, not a protocol lookup key.';
 COMMENT ON TABLE client_allowed_scopes IS 'Allowed scopes for a client app.';
+COMMENT ON COLUMN client_allowed_scopes.client_app_id IS 'Internal FK to client_apps.id, not a protocol lookup key.';

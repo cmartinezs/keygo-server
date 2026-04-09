@@ -59,6 +59,22 @@ V{n}__{descripcion}.sql
 - La integridad multitenant fuerte se aplica con FKs compuestas y triggers de validación.
 - Las jerarquías de roles usan árbol simple con un padre por hijo y profundidad máxima cinco.
 
+## Política de identificadores
+
+- La regla general del baseline es:
+  - PK técnica UUID para relaciones internas
+  - identificador funcional solo cuando el dominio o el protocolo lo requiere
+- `platform_users.id`, `tenant_users.id`, `client_apps.id`, `app_memberships.id` y tablas relacionadas se usan para joins internos y FKs.
+- `client_apps.client_id` se mantiene como identificador público OAuth/OIDC.
+- La unicidad global de `client_apps.client_id` es deliberada:
+  - Keygo opera como authorization server compartido
+  - `/authorize`, `/token` y validaciones relacionadas deben resolver un cliente sin ambigüedad cross-tenant
+  - las relaciones internas siguen usando `client_apps.id`, por lo que no se mezcla el identificador protocolario con las FKs
+- Otros identificadores funcionales que coexisten con PK técnica y quedan documentados explícitamente:
+  - `platform_users.email`
+  - `tenants.slug`
+  - `signing_keys.kid`
+
 ## Incompatibilidades intencionales respecto del baseline anterior
 
 - `sessions` se reemplaza por `platform_sessions` + `oauth_sessions`

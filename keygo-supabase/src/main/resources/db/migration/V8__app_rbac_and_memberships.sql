@@ -138,6 +138,8 @@ CREATE TABLE app_membership_roles (
 );
 
 COMMENT ON TABLE app_roles IS 'App-specific RBAC catalog, isolated from platform and tenant RBAC.';
+COMMENT ON COLUMN app_roles.client_app_id IS 'Internal FK to client_apps.id. App RBAC never depends on the public OAuth client_id.';
 COMMENT ON TABLE app_role_hierarchy IS 'App role inheritance tree limited to one parent per role and max depth five.';
 COMMENT ON TABLE app_memberships IS 'Access grant from a tenant membership to a specific app inside the same tenant.';
+COMMENT ON COLUMN app_memberships.client_app_id IS 'Internal FK to client_apps.id. app_memberships models access using technical keys, not protocol identifiers.';
 COMMENT ON TABLE app_membership_roles IS 'Role assignments for an app membership. Composite FKs forbid cross-app assignments.';
