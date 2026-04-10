@@ -252,7 +252,7 @@ rm -rf docs/postman docs/scripts docs/sql docs/plans
 
 ### Relocated:
 - All `docs/design/email/*` → `docs/archive/email-templates/`
-- All T-111-implementation files (keep if active, else archive)
+- `docs/design/T-111-implementation/` → `docs/plans/documentacion-2026/implementacion/T-111/` (active implementation plan)
 
 ---
 

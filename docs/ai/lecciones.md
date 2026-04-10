@@ -74,7 +74,7 @@
 3. En el seed, siempre filtrar TenantUsers del tenant `keygo` para obtener los admins de plataforma.
 4. Esta decisión es reversible: una futura T-112 puede añadir tabla `platform_users` y migrar los datos.
 
-**Archivos clave:** `V24__platform_roles_and_user_roles.sql`, `docs/design/T-111-implementation/MODEL.md`
+**Archivos clave:** `V24__platform_roles_and_user_roles.sql`, `docs/plans/documentacion-2026/implementacion/T-111/MODEL.md`
 
 ---
 

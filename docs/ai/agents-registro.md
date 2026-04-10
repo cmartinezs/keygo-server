@@ -70,7 +70,7 @@
 - **Excepciones:** `PlatformRoleNotFoundException`, `DuplicateTenantRoleException`, `TenantRoleNotFoundException`.
 - **Migraciones Flyway:** `V24__platform_roles_and_user_roles.sql`, `V25__tenant_roles_and_user_roles.sql`, `V26__seed_platform_and_tenant_roles.sql`. `V1__drop_all.sql` actualizado.
 - **Wiring (`keygo-run/ApplicationConfig`):** 5 nuevos `@Bean` para los use cases T-111.
-- **Decisión arquitectural:** `platform_user_roles.tenant_user_id → tenant_users.id` (administradores de plataforma = TenantUsers en el tenant `keygo`). No existe tabla global `users`. Documentado en `docs/design/T-111-implementation/MODEL.md`.
+- **Decisión arquitectural:** `platform_user_roles.tenant_user_id → tenant_users.id` (administradores de plataforma = TenantUsers en el tenant `keygo`). No existe tabla global `users`. Documentado en `docs/plans/documentacion-2026/implementacion/T-111/MODEL.md`.
 - **Próxima migración:** `V27__...`
 
 
