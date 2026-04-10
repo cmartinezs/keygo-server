@@ -1,6 +1,13 @@
 package io.cmartinezs.keygo.supabase.user.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -15,7 +22,7 @@ import org.hibernate.annotations.UpdateTimestamp;
  * JPA entity for global platform user identity persistence.
  *
  * <p>Represents a person's account at the KeyGo platform level, separate from tenant-scoped
- * identity ({@link TenantUserEntity}). Email and username are globally unique.
+ * participation ({@link TenantUserEntity}). Global credentials and profile fields live here.
  *
  * <p>RFC: docs/rfc/restructure-multitenant/02-modelo-identidad-multitenancy.md
  */
@@ -29,8 +36,8 @@ import org.hibernate.annotations.UpdateTimestamp;
     name = "platform_users",
     indexes = {
       @Index(name = "idx_platform_users_email", columnList = "email"),
-      @Index(name = "idx_platform_users_username", columnList = "username"),
-      @Index(name = "idx_platform_users_status", columnList = "status")
+      @Index(name = "idx_platform_users_status", columnList = "status"),
+      @Index(name = "idx_platform_users_last_login_at", columnList = "last_login_at")
     })
 public class PlatformUserEntity {
 
@@ -41,9 +48,6 @@ public class PlatformUserEntity {
   @Column(nullable = false, unique = true)
   private String email;
 
-  @Column(nullable = false, unique = true, length = 100)
-  private String username;
-
   @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
@@ -53,12 +57,18 @@ public class PlatformUserEntity {
   @Column(name = "last_name", length = 100)
   private String lastName;
 
+  @Column(name = "display_name", length = 255)
+  private String displayName;
+
   @Column(nullable = false, length = 30)
   @Builder.Default
   private String status = "ACTIVE";
 
   @Column(name = "email_verified_at")
   private OffsetDateTime emailVerifiedAt;
+
+  @Column(name = "last_login_at")
+  private OffsetDateTime lastLoginAt;
 
   @Column(name = "phone_number", length = 30)
   private String phoneNumber;
@@ -71,6 +81,12 @@ public class PlatformUserEntity {
 
   @Column(name = "profile_picture_url", columnDefinition = "TEXT")
   private String profilePictureUrl;
+
+  @Column(name = "birthdate")
+  private LocalDate birthdate;
+
+  @Column(name = "website", length = 2048)
+  private String website;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

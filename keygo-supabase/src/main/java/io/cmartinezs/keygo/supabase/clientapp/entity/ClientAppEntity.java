@@ -67,6 +67,10 @@ public class ClientAppEntity {
   @Builder.Default
   private ClientAppStatus status = ClientAppStatus.ACTIVE;
 
+  @Column(name = "is_internal", nullable = false)
+  @Builder.Default
+  private boolean internal = false;
+
   @OneToMany(
       mappedBy = "clientApp",
       cascade = CascadeType.ALL,
@@ -99,4 +103,3 @@ public class ClientAppEntity {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 }
-

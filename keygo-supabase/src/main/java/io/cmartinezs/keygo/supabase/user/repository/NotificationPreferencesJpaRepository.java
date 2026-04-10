@@ -13,8 +13,7 @@ public interface NotificationPreferencesJpaRepository
     extends JpaRepository<UserNotificationPreferencesEntity, UUID> {
 
   /**
-   * Busca las preferencias de notificación de un usuario en un tenant.
-   * Usa traversal Spring Data JPA sobre las asociaciones @ManyToOne.
+   * Busca las preferencias globales de notificación del platform user.
    */
-  Optional<UserNotificationPreferencesEntity> findByUser_IdAndTenant_Id(UUID userId, UUID tenantId);
+  Optional<UserNotificationPreferencesEntity> findByPlatformUser_Id(UUID platformUserId);
 }

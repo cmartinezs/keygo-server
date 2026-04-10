@@ -54,10 +54,9 @@ public interface ClientAppJpaRepository extends JpaRepository<ClientAppEntity, U
       "SELECT a.client_id, a.name, t.slug, COUNT(m.id) AS cnt " +
       "FROM client_apps a " +
       "JOIN tenants t ON t.id = a.tenant_id " +
-      "LEFT JOIN memberships m ON m.client_app_id = a.id " +
+      "LEFT JOIN app_memberships m ON m.client_app_id = a.id " +
       "GROUP BY a.client_id, a.name, t.slug " +
       "ORDER BY cnt DESC LIMIT :limit",
       nativeQuery = true)
   List<Object[]> findTopAppsByMembershipCount(int limit);
 }
-

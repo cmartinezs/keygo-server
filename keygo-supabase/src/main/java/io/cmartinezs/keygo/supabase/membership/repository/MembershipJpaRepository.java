@@ -24,19 +24,24 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
    * Find a membership by user ID and client app ID.
    * <p>Encuentra una membresía por ID de usuario e ID de app de cliente.
    */
-  Optional<MembershipEntity> findByUserIdAndClientAppId(UUID userId, UUID clientAppId);
+  @Query("SELECT m FROM MembershipEntity m WHERE m.user.id = :userId AND m.clientApp.id = :clientAppId")
+  Optional<MembershipEntity> findByUserIdAndClientAppId(
+      @Param("userId") UUID userId,
+      @Param("clientAppId") UUID clientAppId);
 
   /**
    * List all memberships for a user.
    * <p>Lista todas las membresías de un usuario.
    */
-  List<MembershipEntity> findByUserId(UUID userId);
+  @Query("SELECT m FROM MembershipEntity m WHERE m.user.id = :userId")
+  List<MembershipEntity> findByUserId(@Param("userId") UUID userId);
 
   /**
    * List all memberships for a client app.
    * <p>Lista todas las membresías de una app de cliente.
    */
-  List<MembershipEntity> findByClientAppId(UUID clientAppId);
+  @Query("SELECT m FROM MembershipEntity m WHERE m.clientApp.id = :clientAppId")
+  List<MembershipEntity> findByClientAppId(@Param("clientAppId") UUID clientAppId);
 
   /**
    * List all memberships for a user within a specific tenant.
@@ -77,9 +82,9 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
    */
   @Query(value =
       "SELECT ar.code FROM app_roles ar " +
-      "JOIN membership_roles mr ON ar.id = mr.role_id " +
-      "JOIN memberships m ON mr.membership_id = m.id " +
-      "WHERE m.user_id = :userId AND m.client_app_id = :clientAppId AND m.status = 'ACTIVE'",
+      "JOIN app_membership_roles mr ON ar.id = mr.role_id AND ar.client_app_id = mr.client_app_id " +
+      "JOIN app_memberships m ON mr.membership_id = m.id AND mr.client_app_id = m.client_app_id " +
+      "WHERE m.tenant_user_id = :userId AND m.client_app_id = :clientAppId AND m.status = 'ACTIVE'",
       nativeQuery = true)
   List<String> findRoleCodesByUserIdAndClientAppId(
       @Param("userId") UUID userId,
@@ -93,9 +98,9 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
       WITH RECURSIVE direct_roles AS (
         SELECT ar.id, ar.code
         FROM   app_roles ar
-        JOIN   membership_roles mr ON ar.id = mr.role_id
-        JOIN   memberships m       ON mr.membership_id = m.id
-        WHERE  m.user_id = :userId
+        JOIN   app_membership_roles mr ON ar.id = mr.role_id AND ar.client_app_id = mr.client_app_id
+        JOIN   app_memberships m       ON mr.membership_id = m.id AND mr.client_app_id = m.client_app_id
+        WHERE  m.tenant_user_id = :userId
           AND  m.client_app_id = :clientAppId
           AND  m.status = 'ACTIVE'
       ),
@@ -104,7 +109,7 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
         UNION
         SELECT ar.id, ar.code
         FROM   app_roles ar
-        JOIN   app_role_hierarchy arh ON ar.id = arh.parent_role_id
+        JOIN   app_role_hierarchy arh ON ar.id = arh.parent_role_id AND ar.client_app_id = arh.client_app_id
         JOIN   role_ancestors ra      ON arh.child_role_id = ra.id
       )
       SELECT DISTINCT code FROM role_ancestors
@@ -120,4 +125,3 @@ public interface MembershipJpaRepository extends JpaRepository<MembershipEntity,
   @Query("SELECT m.status, COUNT(m) FROM MembershipEntity m GROUP BY m.status")
   List<Object[]> countGroupByStatus();
 }
-

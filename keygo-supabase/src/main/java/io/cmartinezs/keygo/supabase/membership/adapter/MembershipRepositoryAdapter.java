@@ -12,17 +12,18 @@ import io.cmartinezs.keygo.supabase.membership.entity.MembershipEntity;
 import io.cmartinezs.keygo.supabase.membership.mapper.MembershipPersistenceMapper;
 import io.cmartinezs.keygo.supabase.membership.repository.MembershipJpaRepository;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Adapter: implements MembershipRepositoryPort using JPA persistence.
@@ -36,9 +37,13 @@ import org.springframework.stereotype.Repository;
 public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
 
   private final MembershipJpaRepository jpaRepository;
+  private final EntityManager entityManager;
 
-  public MembershipRepositoryAdapter(MembershipJpaRepository jpaRepository) {
+  public MembershipRepositoryAdapter(
+      MembershipJpaRepository jpaRepository,
+      EntityManager entityManager) {
     this.jpaRepository = jpaRepository;
+    this.entityManager = entityManager;
   }
 
   @Override
@@ -94,6 +99,7 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
   }
 
   @Override
+  @Transactional
   public Membership save(Membership membership) {
     MembershipEntity entity = new MembershipEntity();
 
@@ -101,23 +107,18 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
     TenantUserEntity userRef = new TenantUserEntity();
     userRef.setId(membership.getUserId().value());
     entity.setUser(userRef);
+    entity.setTenantId(resolveTenantId(membership.getUserId().value()));
 
     ClientAppEntity appRef = new ClientAppEntity();
     appRef.setId(membership.getClientAppId().value());
     entity.setClientApp(appRef);
 
     entity.setStatus(membership.getStatus());
-    entity.setRoles(
-        membership.getRoles().stream()
-            .map(
-                m -> {
-                  var r = new AppRoleEntity();
-                  r.setId(m.roleId().value());
-                  return r;
-                })
-            .collect(Collectors.toSet()));
 
     MembershipEntity saved = jpaRepository.save(entity);
+    replaceRoles(saved.getId(), membership.getClientAppId().value(), membership.getRoles().stream()
+        .map(role -> role.roleId().value())
+        .toList());
     return MembershipPersistenceMapper.toDomain(saved);
   }
 
@@ -190,5 +191,32 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
       return PageRequest.of(filter.getPage(), filter.getSize(), Sort.by(direction, filter.getSortBy()));
     }
     return PageRequest.of(filter.getPage(), filter.getSize());
+  }
+
+  private UUID resolveTenantId(UUID tenantUserId) {
+    return entityManager
+        .createQuery(
+            "SELECT tu.tenant.id FROM TenantUserEntity tu WHERE tu.id = :tenantUserId",
+            UUID.class)
+        .setParameter("tenantUserId", tenantUserId)
+        .getSingleResult();
+  }
+
+  private void replaceRoles(UUID membershipId, UUID clientAppId, List<UUID> roleIds) {
+    entityManager
+        .createNativeQuery("DELETE FROM app_membership_roles WHERE membership_id = :membershipId")
+        .setParameter("membershipId", membershipId)
+        .executeUpdate();
+
+    for (UUID roleId : roleIds) {
+      entityManager
+          .createNativeQuery(
+              "INSERT INTO app_membership_roles (membership_id, client_app_id, role_id, assigned_at) "
+                  + "VALUES (:membershipId, :clientAppId, :roleId, now())")
+          .setParameter("membershipId", membershipId)
+          .setParameter("clientAppId", clientAppId)
+          .setParameter("roleId", roleId)
+          .executeUpdate();
+    }
   }
 }

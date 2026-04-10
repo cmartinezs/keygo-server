@@ -89,7 +89,7 @@ public class RecoverPasswordUseCase {
       PasswordValidationHelper.validate(command.newPassword(), false);
 
     // 6. Cargar usuario
-    var user = userRepository.findByIdAndTenantId(recoveryCode.getUserId(), tenant.getId())
+    var user = userRepository.findByTenantIdAndPlatformUserId(tenant.getId(), recoveryCode.getUserId())
         .orElseThrow(() -> new UserNotFoundException("id", recoveryCode.getUserId().toString()));
 
     // 7. Actualizar contraseña + activar si estaba PENDING

@@ -55,6 +55,15 @@ public interface UserRepositoryPort {
   Optional<User> findByTenantIdAndUsername(TenantId tenantId, Username username);
 
   /**
+   * Find a tenant-scoped user by the linked global platform identity.
+   *
+   * @param tenantId the tenant scope
+   * @param platformUserId the global platform user identifier
+   * @return an Optional containing the tenant-scoped user if found
+   */
+  Optional<User> findByTenantIdAndPlatformUserId(TenantId tenantId, UserId platformUserId);
+
+  /**
    * Check whether a user with the given email already exists within a tenant.
    * <p>Verifica si ya existe un usuario con el email dado dentro de un tenant.
    * @param tenantId the tenant scope
@@ -89,4 +98,3 @@ public interface UserRepositoryPort {
    */
   PagedResult<User> findAllPaged(TenantId tenantId, UserFilter filter);
 }
-

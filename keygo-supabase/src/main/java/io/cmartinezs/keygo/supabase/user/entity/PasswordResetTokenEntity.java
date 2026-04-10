@@ -7,7 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -20,44 +20,33 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 /**
- * Entidad JPA: Preferencias de notificación del usuario.
- *
- * <p>Mapea la tabla {@code platform_user_notification_preferences} de la base de datos.
- * Las preferencias son globales por account y se comparten entre tenants.
+ * JPA entity for hashed password recovery tokens.
  */
-@Entity
-@Table(name = "platform_user_notification_preferences")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserNotificationPreferencesEntity {
+@Entity
+@Table(name = "password_reset_tokens")
+public class PasswordResetTokenEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
-  @Column(name = "id", nullable = false)
   private UUID id;
 
-  /** Relación con el platform user propietario de las preferencias. */
-  @OneToOne(fetch = FetchType.LAZY, optional = false)
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "platform_user_id", nullable = false)
   private PlatformUserEntity platformUser;
 
-  @Column(name = "security_alerts_email", nullable = false)
-  private boolean securityAlertsEmail;
+  @Column(name = "token_hash", nullable = false, unique = true, length = 128)
+  private String tokenHash;
 
-  @Column(name = "security_alerts_in_app", nullable = false)
-  private boolean securityAlertsInApp;
+  @Column(name = "expires_at", nullable = false)
+  private Instant expiresAt;
 
-  @Column(name = "billing_alerts_email", nullable = false)
-  private boolean billingAlertsEmail;
-
-  @Column(name = "product_updates_email", nullable = false)
-  private boolean productUpdatesEmail;
-
-  @Column(name = "weekly_digest", nullable = false)
-  private boolean weeklyDigest;
+  @Column(name = "used_at")
+  private Instant usedAt;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

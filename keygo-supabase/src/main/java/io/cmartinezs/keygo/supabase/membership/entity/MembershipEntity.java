@@ -5,8 +5,6 @@ import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,16 +29,18 @@ import org.hibernate.annotations.UpdateTimestamp;
 @AllArgsConstructor
 @Entity
 @Table(
-    name = "memberships",
+    name = "app_memberships",
     uniqueConstraints = {
       @UniqueConstraint(
-          name = "uq_memberships_user_app",
-          columnNames = {"user_id", "client_app_id"})
+          name = "uq_app_memberships_tenant_user_app",
+          columnNames = {"tenant_user_id", "client_app_id"}),
+      @UniqueConstraint(
+          name = "uq_app_memberships_id_client_app",
+          columnNames = {"id", "client_app_id"})
     },
     indexes = {
-      @Index(name = "idx_memberships_user_id", columnList = "user_id"),
-      @Index(name = "idx_memberships_client_app_id", columnList = "client_app_id"),
-      @Index(name = "idx_memberships_status", columnList = "status")
+      @Index(name = "idx_app_memberships_tenant_user", columnList = "tenant_user_id"),
+      @Index(name = "idx_app_memberships_client_app_status", columnList = "client_app_id, status")
     })
 public class MembershipEntity {
 
@@ -48,8 +48,11 @@ public class MembershipEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
+  @Column(name = "tenant_id", nullable = false)
+  private UUID tenantId;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "user_id", nullable = false)
+  @JoinColumn(name = "tenant_user_id", nullable = false)
   private TenantUserEntity user;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -60,14 +63,6 @@ public class MembershipEntity {
   @Column(nullable = false, length = 20)
   @Builder.Default
   private MembershipStatus status = MembershipStatus.ACTIVE;
-
-  @Builder.Default
-  @ManyToMany(fetch = FetchType.LAZY)
-  @JoinTable(
-      name = "membership_roles",
-      joinColumns = @JoinColumn(name = "membership_id", referencedColumnName = "id"),
-      inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
-  private Set<AppRoleEntity> roles = new HashSet<>();
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

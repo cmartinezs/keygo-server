@@ -2,7 +2,21 @@ package io.cmartinezs.keygo.supabase.user.entity;
 
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,15 +25,11 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
 /**
- * JPA entity for tenant-scoped user persistence.
- * <p>Entidad JPA para persistencia de usuarios con alcance de tenant.
- * Username and email are unique per tenant (composite unique constraints).
- * <p>El username y email son únicos por tenant (restricciones únicas compuestas).
+ * JPA entity for tenant participation.
+ * <p>Entidad JPA para pertenencia de un platform user a un tenant.
+ * Local usernames remain tenant-scoped aliases, while credentials and profile live in
+ * {@link PlatformUserEntity}.
  * @author cmartinezs
  * @version 1.0
  */
@@ -32,13 +42,14 @@ import java.util.UUID;
 @Table(
     name = "tenant_users",
     uniqueConstraints = {
-      @UniqueConstraint(name = "uq_tenant_users_tenant_email", columnNames = {"tenant_id", "email"}),
-      @UniqueConstraint(name = "uq_tenant_users_tenant_username", columnNames = {"tenant_id", "username"})
+      @UniqueConstraint(
+          name = "uq_tenant_users_tenant_platform_user",
+          columnNames = {"tenant_id", "platform_user_id"}),
+      @UniqueConstraint(name = "uq_tenant_users_id_tenant", columnNames = {"id", "tenant_id"})
     },
     indexes = {
       @Index(name = "idx_tenant_users_tenant_id", columnList = "tenant_id"),
-      @Index(name = "idx_tenant_users_email", columnList = "email"),
-      @Index(name = "idx_tenant_users_username", columnList = "username"),
+      @Index(name = "idx_tenant_users_platform_user", columnList = "platform_user_id"),
       @Index(name = "idx_tenant_users_status", columnList = "status")
     })
 public class TenantUserEntity {
@@ -51,50 +62,19 @@ public class TenantUserEntity {
   @JoinColumn(name = "tenant_id", nullable = false)
   private TenantEntity tenant;
 
-  @Column(nullable = false, length = 100)
-  private String username;
+  @ManyToOne(fetch = FetchType.EAGER, optional = false)
+  @JoinColumn(name = "platform_user_id", nullable = false)
+  private PlatformUserEntity platformUser;
 
-  @Column(nullable = false)
-  private String email;
+  @Column(name = "local_username", length = 100)
+  private String localUsername;
 
-  @Column(name = "password_hash", nullable = false)
-  private String passwordHash;
+  @Column(name = "display_name_override", length = 255)
+  private String displayNameOverride;
 
-  @Column(name = "first_name", length = 100)
-  private String firstName;
-
-  @Column(name = "last_name", length = 100)
-  private String lastName;
-
-  @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   @Builder.Default
   private UserStatus status = UserStatus.ACTIVE;
-
-  // ─── OIDC extended profile claims (V13) ───────────────────────────────────
-
-  @Column(name = "phone_number", length = 30)
-  private String phoneNumber;
-
-  @Column(name = "locale", length = 10)
-  private String locale;
-
-  @Column(name = "zoneinfo", length = 50)
-  private String zoneinfo;
-
-  @Column(name = "profile_picture_url", columnDefinition = "TEXT")
-  private String profilePictureUrl;
-
-  @Column(name = "birthdate")
-  private LocalDate birthdate;
-
-  @Column(name = "website", length = 2048)
-  private String website;
-
-  /** FK platform_users. Nullable — link to global platform identity. */
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "platform_user_id")
-  private PlatformUserEntity platformUser;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
@@ -103,5 +83,110 @@ public class TenantUserEntity {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
-}
 
+  @Transient
+  public String getUsername() {
+    return localUsername;
+  }
+
+  public void setUsername(String username) {
+    this.localUsername = username;
+  }
+
+  @Transient
+  public String getEmail() {
+    return platformUser != null ? platformUser.getEmail() : null;
+  }
+
+  public void setEmail(String email) {
+    ensurePlatformUser().setEmail(email);
+  }
+
+  @Transient
+  public String getPasswordHash() {
+    return platformUser != null ? platformUser.getPasswordHash() : null;
+  }
+
+  public void setPasswordHash(String passwordHash) {
+    ensurePlatformUser().setPasswordHash(passwordHash);
+  }
+
+  @Transient
+  public String getFirstName() {
+    return platformUser != null ? platformUser.getFirstName() : null;
+  }
+
+  public void setFirstName(String firstName) {
+    ensurePlatformUser().setFirstName(firstName);
+  }
+
+  @Transient
+  public String getLastName() {
+    return platformUser != null ? platformUser.getLastName() : null;
+  }
+
+  public void setLastName(String lastName) {
+    ensurePlatformUser().setLastName(lastName);
+  }
+
+  @Transient
+  public String getPhoneNumber() {
+    return platformUser != null ? platformUser.getPhoneNumber() : null;
+  }
+
+  public void setPhoneNumber(String phoneNumber) {
+    ensurePlatformUser().setPhoneNumber(phoneNumber);
+  }
+
+  @Transient
+  public String getLocale() {
+    return platformUser != null ? platformUser.getLocale() : null;
+  }
+
+  public void setLocale(String locale) {
+    ensurePlatformUser().setLocale(locale);
+  }
+
+  @Transient
+  public String getZoneinfo() {
+    return platformUser != null ? platformUser.getZoneinfo() : null;
+  }
+
+  public void setZoneinfo(String zoneinfo) {
+    ensurePlatformUser().setZoneinfo(zoneinfo);
+  }
+
+  @Transient
+  public String getProfilePictureUrl() {
+    return platformUser != null ? platformUser.getProfilePictureUrl() : null;
+  }
+
+  public void setProfilePictureUrl(String profilePictureUrl) {
+    ensurePlatformUser().setProfilePictureUrl(profilePictureUrl);
+  }
+
+  @Transient
+  public LocalDate getBirthdate() {
+    return platformUser != null ? platformUser.getBirthdate() : null;
+  }
+
+  public void setBirthdate(LocalDate birthdate) {
+    ensurePlatformUser().setBirthdate(birthdate);
+  }
+
+  @Transient
+  public String getWebsite() {
+    return platformUser != null ? platformUser.getWebsite() : null;
+  }
+
+  public void setWebsite(String website) {
+    ensurePlatformUser().setWebsite(website);
+  }
+
+  private PlatformUserEntity ensurePlatformUser() {
+    if (platformUser == null) {
+      platformUser = new PlatformUserEntity();
+    }
+    return platformUser;
+  }
+}

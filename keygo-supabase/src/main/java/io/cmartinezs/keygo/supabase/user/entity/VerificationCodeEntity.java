@@ -1,23 +1,34 @@
 package io.cmartinezs.keygo.supabase.user.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-import java.util.UUID;
+import org.hibernate.annotations.UpdateTimestamp;
 
 /**
- * Entidad JPA unificada para códigos de verificación.
+ * Entidad JPA para códigos de verificación basados en código.
  *
- * <p>Consolida {@code EmailVerificationEntity}, {@code PasswordResetCodeEntity} y
- * {@code PasswordRecoveryTokenEntity} en una sola entidad con discriminador {@code purpose}.
+ * <p>Mapea la tabla {@code email_verifications}. Se reutiliza para:
+ * <ul>
+ *   <li>{@code EMAIL_VERIFICATION}</li>
+ *   <li>{@code PASSWORD_RESET}</li>
+ * </ul>
+ * Los tokens de recuperación hashados viven en {@code password_reset_tokens}.
  *
  * @author cmartinezs
  * @version 1.0
@@ -29,12 +40,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(
-    name = "verification_codes",
+    name = "email_verifications",
     indexes = {
-        @Index(name = "idx_vc_tenant_user", columnList = "tenant_user_id"),
-        @Index(name = "idx_vc_platform_user", columnList = "platform_user_id"),
-        @Index(name = "idx_vc_code", columnList = "code"),
-        @Index(name = "idx_vc_purpose", columnList = "purpose")
+        @Index(name = "uq_email_verifications_active_user", columnList = "platform_user_id"),
+        @Index(name = "idx_email_verifications_code", columnList = "code")
     })
 public class VerificationCodeEntity {
 
@@ -42,18 +51,11 @@ public class VerificationCodeEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "tenant_user_id")
-  private TenantUserEntity tenantUser;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "platform_user_id")
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "platform_user_id", nullable = false)
   private PlatformUserEntity platformUser;
 
-  @Column(nullable = false, length = 30)
-  private String purpose;
-
-  @Column(nullable = false, length = 64)
+  @Column(nullable = false, length = 10)
   private String code;
 
   @Column(name = "expires_at", nullable = false)
@@ -62,21 +64,18 @@ public class VerificationCodeEntity {
   @Column(name = "used_at")
   private Instant usedAt;
 
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "jsonb")
-  private String metadata;
-
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
   /**
    * Retorna el UUID del usuario propietario (tenant o plataforma).
    */
   public UUID getOwnerUserId() {
-    if (platformUser != null) {
-      return platformUser.getId();
-    }
-    return tenantUser != null ? tenantUser.getId() : null;
+    return platformUser != null ? platformUser.getId() : null;
   }
 }

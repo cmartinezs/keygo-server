@@ -2,15 +2,15 @@ package io.cmartinezs.keygo.supabase.user.repository;
 
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 /**
  * JPA repository for tenant-scoped user persistence.
@@ -25,37 +25,65 @@ public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity,
    * Find a user by its UUID and tenant ID.
    * <p>Busca un usuario por su UUID y tenant ID.
    */
-  Optional<TenantUserEntity> findByIdAndTenantId(UUID id, UUID tenantId);
+  @Query(
+      "SELECT tu FROM TenantUserEntity tu "
+          + "JOIN FETCH tu.platformUser pu "
+          + "WHERE tu.id = :id AND tu.tenant.id = :tenantId")
+  Optional<TenantUserEntity> findByIdAndTenantId(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
 
   /**
    * Find a user by email within a tenant.
    * <p>Busca un usuario por email dentro de un tenant.
    */
-  Optional<TenantUserEntity> findByTenantIdAndEmail(UUID tenantId, String email);
+  @Query(
+      "SELECT tu FROM TenantUserEntity tu "
+          + "JOIN FETCH tu.platformUser pu "
+          + "WHERE tu.tenant.id = :tenantId AND lower(pu.email) = lower(:email)")
+  Optional<TenantUserEntity> findByTenantIdAndEmail(@Param("tenantId") UUID tenantId, @Param("email") String email);
 
   /**
    * Find a user by username within a tenant.
    * <p>Busca un usuario por username dentro de un tenant.
    */
-  Optional<TenantUserEntity> findByTenantIdAndUsername(UUID tenantId, String username);
+  @Query(
+      "SELECT tu FROM TenantUserEntity tu "
+          + "JOIN FETCH tu.platformUser pu "
+          + "WHERE tu.tenant.id = :tenantId AND tu.localUsername = :username")
+  Optional<TenantUserEntity> findByTenantIdAndUsername(
+      @Param("tenantId") UUID tenantId, @Param("username") String username);
+
+  @Query(
+      "SELECT tu FROM TenantUserEntity tu "
+          + "JOIN FETCH tu.platformUser pu "
+          + "WHERE tu.tenant.id = :tenantId AND tu.platformUser.id = :platformUserId")
+  Optional<TenantUserEntity> findByTenantIdAndPlatformUserId(
+      @Param("tenantId") UUID tenantId, @Param("platformUserId") UUID platformUserId);
 
   /**
    * Check whether a user with the given email exists within a tenant.
    * <p>Verifica si existe un usuario con el email dado dentro de un tenant.
    */
-  boolean existsByTenantIdAndEmail(UUID tenantId, String email);
+  @Query(
+      "SELECT CASE WHEN COUNT(tu) > 0 THEN true ELSE false END "
+          + "FROM TenantUserEntity tu "
+          + "WHERE tu.tenant.id = :tenantId AND lower(tu.platformUser.email) = lower(:email)")
+  boolean existsByTenantIdAndEmail(@Param("tenantId") UUID tenantId, @Param("email") String email);
 
   /**
    * Check whether a user with the given username exists within a tenant.
    * <p>Verifica si existe un usuario con el username dado dentro de un tenant.
    */
-  boolean existsByTenantIdAndUsername(UUID tenantId, String username);
+  boolean existsByTenantIdAndLocalUsername(UUID tenantId, String localUsername);
 
   /**
    * Find all users belonging to a tenant.
    * <p>Busca todos los usuarios de un tenant.
    */
-  List<TenantUserEntity> findAllByTenantId(UUID tenantId);
+  @Query(
+      "SELECT tu FROM TenantUserEntity tu "
+          + "JOIN FETCH tu.platformUser pu "
+          + "WHERE tu.tenant.id = :tenantId")
+  List<TenantUserEntity> findAllByTenantId(@Param("tenantId") UUID tenantId);
 
   /**
    * Count users with the given status across all tenants.
@@ -74,4 +102,3 @@ public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity,
   @Query("SELECT COUNT(u) FROM TenantUserEntity u WHERE u.id NOT IN (SELECT m.user.id FROM MembershipEntity m)")
   long countUsersWithoutMembership();
 }
-

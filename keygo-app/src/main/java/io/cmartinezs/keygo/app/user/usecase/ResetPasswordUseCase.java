@@ -101,7 +101,7 @@ public class ResetPasswordUseCase {
 
     // 4. Resolver el usuario dentro del scope del tenant (protección cross-tenant)
     TenantId tenantId = tenant.getId();
-    var user = userRepository.findByIdAndTenantId(new UserId(resetCode.getUserId().value()), tenantId)
+    var user = userRepository.findByTenantIdAndPlatformUserId(tenantId, new UserId(resetCode.getUserId().value()))
         .orElseThrow(() -> new UserNotFoundException("requestId", command.requestId()));
 
     // 5. Verificar que el usuario está en estado RESET_PASSWORD

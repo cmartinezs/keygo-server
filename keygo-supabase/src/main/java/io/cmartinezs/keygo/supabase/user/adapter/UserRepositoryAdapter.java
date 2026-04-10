@@ -7,20 +7,24 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
+import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import io.cmartinezs.keygo.supabase.user.mapper.UserPersistenceMapper;
+import io.cmartinezs.keygo.supabase.user.repository.PlatformUserJpaRepository;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
+import jakarta.persistence.criteria.Predicate;
+import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import jakarta.persistence.criteria.Predicate;
 
 /**
  * Adapter implementing UserRepositoryPort using Spring Data JPA.
@@ -31,50 +35,81 @@ import jakarta.persistence.criteria.Predicate;
 @Repository
 public class UserRepositoryAdapter implements UserRepositoryPort {
 
-  private final TenantUserJpaRepository jpaRepository;
+  private final TenantUserJpaRepository tenantUserJpaRepository;
+  private final PlatformUserJpaRepository platformUserJpaRepository;
+  private final TenantJpaRepository tenantJpaRepository;
   private final UserPersistenceMapper mapper;
 
-  public UserRepositoryAdapter(TenantUserJpaRepository jpaRepository) {
-    this.jpaRepository = jpaRepository;
+  public UserRepositoryAdapter(
+      TenantUserJpaRepository tenantUserJpaRepository,
+      PlatformUserJpaRepository platformUserJpaRepository,
+      TenantJpaRepository tenantJpaRepository) {
+    this.tenantUserJpaRepository = tenantUserJpaRepository;
+    this.platformUserJpaRepository = platformUserJpaRepository;
+    this.tenantJpaRepository = tenantJpaRepository;
     this.mapper = new UserPersistenceMapper();
   }
 
   @Override
   public User save(User user) {
-    return mapper.toDomain(jpaRepository.save(mapper.toEntity(user)));
+    TenantUserEntity entity =
+        user.getId() != null
+            ? tenantUserJpaRepository
+                .findById(user.getId().value())
+                .orElseGet(TenantUserEntity::new)
+            : new TenantUserEntity();
+
+    PlatformUserEntity platformUser = resolvePlatformUser(entity, user);
+
+    entity.setTenant(tenantJpaRepository.getReferenceById(user.getTenantId().value()));
+    entity.setPlatformUser(platformUser);
+    entity.setUsername(user.getUsername().value());
+
+    if (user.getStatus() != null && user.getStatus() != UserStatus.RESET_PASSWORD) {
+      entity.setStatus(user.getStatus());
+    } else if (entity.getStatus() == null) {
+      entity.setStatus(UserStatus.ACTIVE);
+    }
+
+    return mapper.toDomain(tenantUserJpaRepository.save(entity));
   }
 
   @Override
   public Optional<User> findByIdAndTenantId(UserId userId, TenantId tenantId) {
-    return jpaRepository.findByIdAndTenantId(userId.value(), tenantId.value())
+    return tenantUserJpaRepository.findByIdAndTenantId(userId.value(), tenantId.value())
         .map(mapper::toDomain);
   }
 
   @Override
   public Optional<User> findByTenantIdAndEmail(TenantId tenantId, EmailAddress email) {
-    return jpaRepository.findByTenantIdAndEmail(tenantId.value(), email.value())
+    return tenantUserJpaRepository.findByTenantIdAndEmail(tenantId.value(), email.value())
         .map(mapper::toDomain);
   }
 
   @Override
   public Optional<User> findByTenantIdAndUsername(TenantId tenantId, Username username) {
-    return jpaRepository.findByTenantIdAndUsername(tenantId.value(), username.value())
+    return tenantUserJpaRepository.findByTenantIdAndUsername(tenantId.value(), username.value())
+        .map(mapper::toDomain);
+  }
+
+  public Optional<User> findByTenantIdAndPlatformUserId(TenantId tenantId, UserId platformUserId) {
+    return tenantUserJpaRepository.findByTenantIdAndPlatformUserId(tenantId.value(), platformUserId.value())
         .map(mapper::toDomain);
   }
 
   @Override
   public boolean existsByTenantIdAndEmail(TenantId tenantId, EmailAddress email) {
-    return jpaRepository.existsByTenantIdAndEmail(tenantId.value(), email.value());
+    return tenantUserJpaRepository.existsByTenantIdAndEmail(tenantId.value(), email.value());
   }
 
   @Override
   public boolean existsByTenantIdAndUsername(TenantId tenantId, Username username) {
-    return jpaRepository.existsByTenantIdAndUsername(tenantId.value(), username.value());
+    return tenantUserJpaRepository.existsByTenantIdAndLocalUsername(tenantId.value(), username.value());
   }
 
   @Override
   public List<User> findAllByTenantId(TenantId tenantId) {
-    return jpaRepository.findAllByTenantId(tenantId.value()).stream()
+    return tenantUserJpaRepository.findAllByTenantId(tenantId.value()).stream()
         .map(mapper::toDomain)
         .toList();
   }
@@ -84,7 +119,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     Specification<TenantUserEntity> spec = buildSpecification(tenantId, filter);
     PageRequest pageRequest = buildPageRequest(filter);
 
-    Page<TenantUserEntity> page = jpaRepository.findAll(spec, pageRequest);
+    Page<TenantUserEntity> page = tenantUserJpaRepository.findAll(spec, pageRequest);
 
     List<User> users = page.getContent().stream()
         .map(mapper::toDomain)
@@ -108,18 +143,18 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
       // Filter by username (case-insensitive LIKE)
       if (filter.hasUsernameLike()) {
-        predicates.add(cb.like(
-            cb.lower(root.get("username")),
-            "%" + filter.getUsernameLike().toLowerCase() + "%"
-        ));
+        predicates.add(
+            cb.like(
+                cb.lower(root.get("localUsername")),
+                "%" + filter.getUsernameLike().toLowerCase() + "%"));
       }
 
       // Filter by email (case-insensitive LIKE)
       if (filter.hasEmailLike()) {
-        predicates.add(cb.like(
-            cb.lower(root.get("email")),
-            "%" + filter.getEmailLike().toLowerCase() + "%"
-        ));
+        predicates.add(
+            cb.like(
+                cb.lower(root.get("platformUser").get("email")),
+                "%" + filter.getEmailLike().toLowerCase() + "%"));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));
@@ -133,5 +168,58 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     }
     return PageRequest.of(filter.getPage(), filter.getSize());
   }
-}
 
+  private PlatformUserEntity resolvePlatformUser(TenantUserEntity entity, User user) {
+    PlatformUserEntity platformUser =
+        entity.getPlatformUser() != null
+            ? entity.getPlatformUser()
+            : resolvePlatformUserReference(user);
+
+    platformUser.setEmail(user.getEmail().value());
+    platformUser.setPasswordHash(user.getPasswordHash().value());
+    platformUser.setFirstName(user.getFirstName());
+    platformUser.setLastName(user.getLastName());
+    platformUser.setDisplayName(resolveDisplayName(user));
+    platformUser.setPhoneNumber(user.getPhoneNumber());
+    platformUser.setLocale(user.getLocale());
+    platformUser.setZoneinfo(user.getZoneinfo());
+    platformUser.setProfilePictureUrl(user.getProfilePictureUrl());
+    platformUser.setBirthdate(parseBirthdate(user.getBirthdate()));
+    platformUser.setWebsite(user.getWebsite());
+    platformUser.setStatus(user.getStatus().name());
+
+    return platformUser;
+  }
+
+  private PlatformUserEntity resolvePlatformUserReference(User user) {
+    if (user.getPlatformUserId() != null) {
+      return platformUserJpaRepository
+          .findById(user.getPlatformUserId())
+          .orElseThrow(
+              () ->
+                  new IllegalArgumentException(
+                      "PlatformUser not found: " + user.getPlatformUserId()));
+    }
+
+    return platformUserJpaRepository
+        .findByEmail(user.getEmail().value())
+        .orElseGet(PlatformUserEntity::new);
+  }
+
+  private LocalDate parseBirthdate(String birthdate) {
+    return birthdate != null && !birthdate.isBlank() ? LocalDate.parse(birthdate) : null;
+  }
+
+  private String resolveDisplayName(User user) {
+    if (user.getFirstName() != null && user.getLastName() != null) {
+      return (user.getFirstName() + " " + user.getLastName()).trim();
+    }
+    if (user.getFirstName() != null) {
+      return user.getFirstName();
+    }
+    if (user.getLastName() != null) {
+      return user.getLastName();
+    }
+    return user.getUsername().value();
+  }
+}
