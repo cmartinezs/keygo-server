@@ -1,34 +1,15 @@
-# KEYGO Server API Surface
+# API Surface (Consolidated)
 
-## 1. Objetivo
+⚠️ **This documentation has been consolidated.**
 
-Este documento define la **superficie API** de Key-go Server para el MVP.
+**See:** [`api/ENDPOINT_CATALOG.md`](api/ENDPOINT_CATALOG.md) for complete API endpoint reference with:
+- All 60+ endpoints organized by domain
+- Authentication requirements
+- Request/response examples
+- Error codes
+- Current implementation status
 
-Su propósito es aterrizar el modelo de dominio y la arquitectura en contratos concretos de integración, separando claramente los distintos planos del sistema:
-
-- **Auth Plane**
-- **Tenant Plane**
-- **Control Plane**
-
-Además, define:
-
-- endpoints principales,
-- propósito de cada endpoint,
-- payloads base,
-- errores esperados,
-- reglas de seguridad,
-- y convenciones de diseño.
-
-Este documento no busca fijar cada campo final al milímetro, sino establecer una base estable y coherente para implementación.
-
----
-
-## 2. Principios de diseño de la API
-
-### 2.1. APIs separadas por plano
-La API debe distinguir claramente entre:
-
-- autenticación y emisión de tokens,
+This file is maintained for backward compatibility only. All updates are made to the canonical `api/ENDPOINT_CATALOG.md`.- autenticación y emisión de tokens,
 - administración por tenant,
 - administración global de plataforma.
 

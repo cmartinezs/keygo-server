@@ -1,18 +1,16 @@
-# Configuración de IntelliJ IDEA - KeyGo Server
+# INTELLIJ_SETUP (Archived)
 
-Guía corta para levantar el proyecto correctamente en IntelliJ.
+⚠️ **This document is archived — IDE-specific setup is low priority.**
 
-## 1. Lombok y annotation processing
+For general development setup, see:
+- [`./ENVIRONMENT_SETUP.md`](./ENVIRONMENT_SETUP.md) — Cross-IDE development setup
 
-- Instalar plugin Lombok.
-- Habilitar annotation processing.
-- Recargar el proyecto Maven.
+IDE setup is better documented in:
+- IDE built-in help
+- Project build instructions
+- Code comments in configuration files
 
-## 2. Runner recomendado
-
-| Campo | Valor |
-|---|---|
-| Main class | `io.cmartinezs.keygo.run.KeyGoApplication` |
+Archived in: [`../archive/deprecated/`](../archive/deprecated/)
 | Module | `keygo-run` |
 | JRE | Java 21 |
 

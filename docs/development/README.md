@@ -1,8 +1,6 @@
-# Desarrollo — Índice
+# Development Documentation
 
-**Propósito:** Guía práctica para setup local, testing, debugging, IDE y troubleshooting.
-
-Todo lo que necesitas para desarrollar, testear y debuggear localmente.
+Guides for local setup, development, testing, and debugging.
 
 ---
 

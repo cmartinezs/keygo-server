@@ -1,18 +1,12 @@
-# KeyGo UI Configuration
+# UI_CONFIGURATION (Archived)
 
-> Configuración de la UI para generar enlaces directos en emails, notificaciones y otros contextos.
+⚠️ **This document is archived and no longer maintained.**
 
-## Overview
+This was a configuration guide for email templates. See:
+- [`../../development/ENVIRONMENT_SETUP.md`](../../development/ENVIRONMENT_SETUP.md) — Environment configuration
+- Application YAML files for active configuration
 
-La sección `keygo.ui` en el archivo de configuración YAML permite centralizar la configuración de la UI frontend (rutas, URL base, parámetros) para usarla desde el backend al generar enlaces en emails y notificaciones.
-
-**Ventajas:**
-- ✅ URL base configurable por ambiente (local, desa, prod)
-- ✅ Rutas de la UI documentadas en un solo lugar
-- ✅ Fácil de integrar en emails y adaptadores de notificación
-- ✅ Evita hardcoding de URLs en código
-
-## Configuration
+Archived in: [`../../archive/deprecated/`](../../archive/deprecated/)
 
 ### application.yml
 

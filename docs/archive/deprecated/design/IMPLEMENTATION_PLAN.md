@@ -1,18 +1,13 @@
-# KEYGO Server Implementation Plan
+# IMPLEMENTATION_PLAN (Archived)
 
-## 1. Objetivo
+⚠️ **This document is archived and no longer maintained.**
 
-Este documento define el **plan de implementación** de Key-go Server a partir de la arquitectura, backlog, modelo de dominio, superficie API y estructura de proyecto ya establecidos.
+This was an early implementation planning document. Implementation is now tracked through:
+- [`../../rfc/`](../../rfc/) — Active RFCs and design decisions
+- Sprint completion documents (SPRINT_1_KICKOFF.md, SPRINT_3_COMPLETION.md, SPRINT_4_COMPLETION.md)
+- Individual feature tickets
 
-Su propósito es aterrizar:
-
-- el orden técnico real de construcción,
-- qué módulos tocar primero,
-- qué componentes crear en cada etapa,
-- dependencias entre entregables,
-- y una secuencia pragmática para llegar a un MVP funcional sin degradar la arquitectura.
-
-La idea no es construir “todo a la vez”, sino cerrar primero el **núcleo autenticable y operable** del sistema.
+Archived in: [`../../archive/deprecated/`](../../archive/deprecated/)
 
 ---
 

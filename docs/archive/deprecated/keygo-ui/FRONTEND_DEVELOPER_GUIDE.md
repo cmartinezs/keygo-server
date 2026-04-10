@@ -1,32 +1,18 @@
-# Manual del Desarrollador Frontend — `keygo-ui`
+# Frontend Developer Guide (Moved)
 
-> * **Audiencia:** Desarrolladores frontend que implementan la interfaz de usuario de KeyGo usando React. 
-> * **Versión del backend:** KeyGo Server 1.0-SNAPSHOT (Fases 0-9b + Billing completadas, modelo contractor v2, respuestas de error mejoradas con `layer` + `fieldErrors`, Fase 10 pendiente).
-> * **Fecha:** 2026-04-01
-> * **Estado:** Documento vivo — se actualiza conforme avanza el backend.
+⚠️ **This documentation has been moved to the main development directory.**
 
----
+**See:** [`../development/FRONTEND_DEVELOPER_GUIDE.md`](../development/FRONTEND_DEVELOPER_GUIDE.md) for complete frontend integration guide covering:
+- OAuth2 PKCE flow implementation
+- HTTP client with auto-refresh
+- React Query patterns
+- Error handling
+- Pagination
+- Rate limiting
+- Testing (Vitest, React Testing Library)
+- Best practices
 
-## Tabla de contenidos
-
-1. [Visión general y modelo unificado](#1-visión-general-y-modelo-unificado)
-2. [Stack tecnológico recomendado](#2-stack-tecnológico-recomendado)
-3. [Estructura del proyecto](#3-estructura-del-proyecto)
-4. [Prerequisitos de backend para KeyGo-UI](#4-prerequisitos-del-backend-para-keygo-ui)
-5. [Convenciones fundamentales del backend](#5-convenciones-fundamentales-del-backend)
-6. [Flujos de autenticación — plataforma y tenant app](#6-flujos-de-autenticación--plataforma-y-tenant-app)
-7. [Gestión de roles y routing condicional](#7-gestión-de-roles-y-routing-condicional)
-8. [Vistas del rol `ADMIN` / `KEYGO_ADMIN` — Administrador Global de KeyGo](#8-vistas-del-rol-admin--administrador-global-de-keygo)
-9. [Vistas del rol `ADMIN_TENANT` / `KEYGO_TENANT_ADMIN` — Administrador de Tenant](#9-vistas-del-rol-admin_tenant--administrador-de-tenant)
-10. [Vistas del rol `USER_TENANT` / `KEYGO_USER` — Usuario del sistema](#10-vistas-del-rol-user_tenant--usuario-del-sistema)
-11. [Perfil de usuario — compartido por todos los roles](#11-perfil-de-usuario--compartido-por-todos-los-roles)
-12. [Gestión segura de tokens](#12-gestión-segura-de-tokens)
-13. [Interceptores HTTP y manejo de errores](#13-interceptores-http-y-manejo-de-errores)
-    - [13.4 Trazabilidad — header `X-Trace-ID`](#134-trazabilidad--header-x-trace-id)
-14. [Inventario de endpoints — disponibles vs. pendientes](#14-inventario-de-endpoints--disponibles-vs-pendientes)
-15. [Guía de mocking para features pendientes](#15-guía-de-mocking-para-features-pendientes)16. [Checklist de seguridad](#16-checklist-de-seguridad)
-17. [Comandos de verificación del backend](#17-comandos-de-verificación-del-backend)
-18. [Referencias](#18-referencias)
+This file is maintained for backward compatibility only. All updates are made to the canonical `../development/FRONTEND_DEVELOPER_GUIDE.md`.
 
 ---
 

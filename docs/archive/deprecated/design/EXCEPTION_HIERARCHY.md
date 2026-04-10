@@ -1,17 +1,12 @@
-# EXCEPTION_HIERARCHY.md — Jerarquía de Excepciones y Manejo de Errores
+# EXCEPTION_HIERARCHY (Archived)
 
-> **ID de propuesta:** T-106
-> **Estado:** 🔲 Pendiente de implementación
-> **Módulos afectados:** `keygo-domain`, `keygo-app`, `keygo-api`
-> **Objetivo:** Que la UI y los consumers de la API sepan exactamente qué ocurrió, desde qué capa arquitectónica y con qué excepción específica.
+⚠️ **This document is archived and no longer maintained.**
 
----
+Error handling is now documented in:
+- [`./api/ERROR_CATALOG.md`](./api/ERROR_CATALOG.md) — Complete error code reference
+- [`./patterns/PATTERNS.md`](./patterns/PATTERNS.md) — Design patterns section
 
-## 1. Contexto y motivación
-
-El estado actual tiene las siguientes limitaciones:
-
-| Limitación                    | Detalle                                                                                                                                           |
+Archived in: [`../archive/deprecated/`](../archive/deprecated/)
 |-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | Sin jerarquía de capas        | Las 24 excepciones de dominio extienden `RuntimeException` directamente — no hay distinción de capa                                               |
 | Use cases usan genéricas      | `VerifyContractEmailUseCase`, entre otros, lanza `IllegalArgumentException` / `IllegalStateException` — sin tipo ni capa                          |

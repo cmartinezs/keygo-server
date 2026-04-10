@@ -1,33 +1,10 @@
-# Entity Relationships — KeyGo Server
+# Entity Relationships (Consolidated)
 
-> Fecha de actualización: 2026-04-09  
-> Estado: alineado con baseline V1–V17
+⚠️ **This documentation has been consolidated.**
 
-## Relaciones principales
+**See:** [`../design/DATABASE_SCHEMA.md`](../design/DATABASE_SCHEMA.md#entity-relationship-diagram-erd) for complete Entity-Relationship Diagram and table relationships.
 
-### Identidad global y tenant participation
-
-```mermaid
-erDiagram
-    platform_users ||--o{ tenant_users : participates_in
-    tenants ||--o{ tenant_users : contains
-```
-
-Claves:
-
-- una persona existe una vez en `platform_users`
-- la pertenencia organizacional vive en `tenant_users`
-- no hay credenciales globales duplicadas en `tenant_users`
-
-### Tenant apps y access model
-
-```mermaid
-erDiagram
-    tenants ||--o{ client_apps : owns
-    tenant_users ||--o{ app_memberships : grants_access
-    client_apps ||--o{ app_memberships : targets
-    client_apps ||--o{ app_roles : defines
-    app_memberships ||--o{ app_membership_roles : has
+This file is maintained for backward compatibility only. All updates are made to the canonical `DATABASE_SCHEMA.md`.
     app_roles ||--o{ app_membership_roles : assigned
 ```
 

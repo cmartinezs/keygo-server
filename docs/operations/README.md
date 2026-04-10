@@ -1,8 +1,6 @@
-# Operaciones — Índice
+# Operations & Deployment Documentation
 
-**Propósito:** Deployment, runbooks, Docker, observabilidad y operación en producción.
-
-Guía para llevar la aplicación a producción y mantenerla operativa.
+Guides for running KeyGo in production, deployment pipelines, and operational runbooks.
 
 ---
 

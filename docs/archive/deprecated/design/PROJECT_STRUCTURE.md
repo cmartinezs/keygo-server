@@ -1,23 +1,12 @@
-# KEYGO Server Project Structure
+# PROJECT_STRUCTURE (Archived)
 
-## 1. Objetivo
+⚠️ **This document is archived and no longer maintained.**
 
-Este documento propone una estructura de proyecto concreta para **keygo-server**, alineada con:
+Project structure is now documented in:
+- [`../../design/ARCHITECTURE.md`](../../design/ARCHITECTURE.md) — Complete architecture overview
+- [`../../README.md`](../../README.md) — Repository structure
 
-- Clean Architecture,
-- modular monolith,
-- separación por planos (**auth**, **tenant admin**, **platform admin**),
-- y evolución controlada del código ya existente.
-
-No parte desde cero: toma como base la estructura actual del repositorio y propone ajustes para reducir acoplamiento, mejorar claridad y preparar crecimiento.
-
----
-
-## 2. Estado actual observado
-
-Actualmente el repo ya está dividido en módulos principales:
-
-- `keygo-api`
+Archived in: [`../../archive/deprecated/`](../../archive/deprecated/)
 - `keygo-app`
 - `keygo-bom`
 - `keygo-common`

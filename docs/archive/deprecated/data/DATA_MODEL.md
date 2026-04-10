@@ -1,33 +1,10 @@
-# Data Model — KeyGo Server
+# Data Model (Consolidated)
 
-> Fecha de actualización: 2026-04-09  
-> Estado: alineado con baseline Flyway V1–V17
+⚠️ **This documentation has been consolidated.**
 
-## Vista general
+**See:** [`../design/DATABASE_SCHEMA.md`](../design/DATABASE_SCHEMA.md) for complete database design, entity relationships, and schema.
 
-El modelo actual separa explícitamente:
-
-1. `platform_users`
-   Identidad global, credenciales, perfil, preferencias, actividad y sesiones globales.
-
-2. `tenant_users`
-   Participación de un `platform_user` dentro de un tenant, sin duplicar identidad global.
-
-3. `app_memberships`
-   Acceso de un `tenant_user` a una app del mismo tenant.
-
-4. RBAC por ámbito
-   - `platform_roles*`
-   - `tenant_roles*`
-   - `app_roles*`
-
-5. Billing sobre identidad global
-   - `contractors`
-   - `contractor_users`
-   - contratos, suscripciones, pagos e invoices
-
-6. Auditoría consultable
-   - `audit_events`
+This file is maintained for backward compatibility only. All updates are made to the canonical `DATABASE_SCHEMA.md`.
    - `audit_event_payloads`
    - `audit_event_tags`
    - `audit_entity_links`

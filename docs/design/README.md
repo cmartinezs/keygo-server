@@ -1,8 +1,6 @@
-# Decisiones de Arquitectura — Índice
+# Design & Architecture Documentation
 
-**Propósito:** Fuente de verdad de decisiones técnicas, patrones y contrato API del proyecto.
-
-Navega por tema o búsqueda rápida para encontrar decisiones específicas.
+Core architectural and design decisions for KeyGo.
 
 ---
 

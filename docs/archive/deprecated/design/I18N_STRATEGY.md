@@ -1,18 +1,12 @@
-# Estrategia i18n — Mensajes de Error Localizados
+# I18N_STRATEGY (Archived)
 
-> Documento de diseño para internacionalización de respuestas de API.
-> Estado: PROPUESTA (T-120, T-121, T-122, T-123)
+⚠️ **This document is archived and no longer maintained.**
 
-## Problema
+This was an incomplete design proposal. See:
+- [`./RFC_CLOSURE_PROCESS.md`](./RFC_CLOSURE_PROCESS.md) — How design decisions are made
+- [`../../rfc/`](../../rfc/) — Active RFCs for future i18n work
 
-Actualmente:
-- Los mensajes de error (`clientMessage` en `ErrorData`) están hardcodeados en español en `ApiErrorDataFactory.clientMessage()`.
-- No hay forma de que clientes en otros idiomas (EN, FR, PT, etc.) reciban mensajes en su idioma.
-- Los mensajes internos de las capas (logs, excepciones en dominio) deben seguir siendo en inglés.
-
-## Restricciones
-
-1. **Mensajes internos siempre en inglés:** logs, nombres de excepciones, detalles técnicos (`detail`, `exception` en `ErrorData`) no se localizan. Solo `clientMessage` se localiza.
+Archived in: [`../../archive/deprecated/`](../../archive/deprecated/)
 2. **Sin dependencia en tokens:** El locale no se toma del JWT (que es stateless), sino del header `Accept-Language` del request HTTP.
 3. **Fallback a inglés (en-US):** Si no hay `Accept-Language` o el idioma no está soportado, mostrar mensaje en inglés por defecto.
 4. **Catálogo extensible:** Debe permitir agregar nuevos idiomas sin modificar código, idealmente desde un archivo de propiedades o tabla.

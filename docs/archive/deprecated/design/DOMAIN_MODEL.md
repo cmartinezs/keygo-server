@@ -1,18 +1,13 @@
-# KEYGO Server Domain Model
+# DOMAIN_MODEL (Archived)
 
-## 1. Objetivo
+⚠️ **This document is archived and no longer maintained.**
 
-Este documento define el **modelo de dominio** de Key-go Server para su primera versión.
+Domain model is now documented in:
+- [`./patterns/PATTERNS.md`](./patterns/PATTERNS.md) — Domain-driven design patterns
+- [`./DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md) — Entity definitions and relationships
+- [`./ARCHITECTURE.md`](./ARCHITECTURE.md) — System design and bounded contexts
 
-Su propósito es describir:
-
-- las entidades centrales del sistema,
-- sus relaciones,
-- las invariantes de negocio,
-- las reglas que gobiernan autenticación, multitenancy y acceso por app,
-- y los límites conceptuales entre identidades humanas, aplicaciones cliente y administración de plataforma.
-
-Este documento no describe detalles de base de datos ni contratos HTTP; se enfoca en el **modelo conceptual y de negocio**.
+Archived in: [`../archive/deprecated/`](../archive/deprecated/)
 
 ---
 

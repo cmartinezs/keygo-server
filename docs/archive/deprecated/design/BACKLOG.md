@@ -1,23 +1,13 @@
-# KEYGO Server Backlog V1
+# BACKLOG (Archived)
 
-## 1. Objetivo del backlog
+⚠️ **This document is archived and no longer maintained.**
 
-Este backlog define la primera versión implementable de **Key-go Server** como SaaS IAM multi-tenant.
+This was an early roadmap document (pre-Sprint structure). For current planning, see:
+- [`../../ROADMAP.md`](../../ROADMAP.md) — Current feature roadmap
+- [`../../design/RFC_CLOSURE_PROCESS.md`](../../design/RFC_CLOSURE_PROCESS.md) — How decisions are made
+- Sprint completion documents: SPRINT_1_KICKOFF.md, SPRINT_3_COMPLETION.md, SPRINT_4_COMPLETION.md
 
-Su propósito es ordenar el trabajo en una secuencia realista, evitando construir features aisladas sin cerrar primero el núcleo del sistema.
-
-La prioridad general es:
-
-1. base técnica sólida,
-2. multitenancy correcto,
-3. flujos OAuth2/OIDC funcionales,
-4. administración de apps y usuarios,
-5. memberships y roles por app,
-6. hardening operacional.
-
----
-
-## 2. Criterios de priorización
+Archived in: [`../../archive/deprecated/`](../../archive/deprecated/)
 
 Las prioridades del backlog siguen estas reglas:
 

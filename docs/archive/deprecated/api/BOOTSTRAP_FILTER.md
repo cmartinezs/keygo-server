@@ -1,18 +1,13 @@
-# BootstrapAdminKeyFilter - Seguridad de rutas
+# BOOTSTRAP_FILTER (Archived)
 
-Fuente de verdad para la protección HTTP de rutas en `keygo-run`.
+⚠️ **This document is archived — it's an implementation detail, not a design document.**
 
-## Resumen
+For security and authorization concepts, see:
+- [`../design/AUTHORIZATION_PATTERNS.md`](../design/AUTHORIZATION_PATTERNS.md) — RBAC model
+- [`../design/OAUTH2_MULTIDOMAIN_CONTRACT.md`](../design/OAUTH2_MULTIDOMAIN_CONTRACT.md) — Auth contract
+- Implementation details should be in code comments
 
-- El filtro vive en `keygo-run`.
-- Ya no usa `X-KEYGO-ADMIN`.
-- Las rutas protegidas se validan con `Authorization: Bearer <jwt>`.
-- Las authorities se publican desde el claim `roles`.
-- La autorización fina se completa con `@PreAuthorize`.
-
-## Comportamiento vigente
-
-### Rutas protegidas
+Archived in: [`../archive/deprecated/`](../archive/deprecated/)
 
 - Base protegida: `keygo.bootstrap.api-path-prefix=/api/`
 - Las rutas protegidas requieren Bearer JWT salvo que coincidan con un prefijo o sufijo público configurado.
