@@ -9,7 +9,7 @@ Política común para agentes AI que trabajan en este repositorio.
 3. [`/ARCHITECTURE.md`](../../ARCHITECTURE.md)
 4. [`/ROADMAP.md`](../../ROADMAP.md)
 5. [`docs/README.md`](../README.md)
-6. La documentación temática relevante (`docs/api/`, `docs/data/`, `docs/design/`, `docs/development/`, `docs/operations/`, `docs/product-design/`)
+6. La documentación temática relevante (`docs/design/`, `docs/development/`, `docs/operations/`, `docs/security/`, `docs/product/`, `docs/rfc/`)
 
 ## Comportamiento obligatorio
 
@@ -18,8 +18,19 @@ Política común para agentes AI que trabajan en este repositorio.
 Antes de escribir código o tocar contratos:
 
 1. Leer los documentos canónicos relevantes.
-2. Presentar un plan explícito con módulos, archivos, flujo y pruebas.
-3. Implementar después del plan, salvo que la herramienta requiera una confirmación adicional de su propio flujo.
+2. **CREAR un plan** en `docs/plans/documentacion-2026/` con estructura clara:
+   - Directorio: `docs/plans/documentacion-2026/implementacion/` para planes técnicos
+   - Directorio: `docs/plans/documentacion-2026/sprints/` para sprints de documentación
+   - Nombre: `<tema>_<fecha>.md` (ej: `reorganizacion_rfc_2026-04-09.md`)
+   - Contenido requerido:
+     * Problema identificado
+     * Alternativas consideradas
+     * Solución elegida y por qué
+     * Pasos de implementación (en orden)
+     * Validaciones después de cada paso
+3. Presentar el plan explícito con módulos, archivos, flujo y pruebas.
+4. **Obtener aprobación del usuario** antes de ejecutar (salvo que lo pida con /fast o "ejecuta el plan")
+5. Implementar después del plan, salvo que la herramienta requiera una confirmación adicional de su propio flujo.
 
 ### Documentación
 
@@ -38,8 +49,8 @@ Si una tarea cambia comportamiento del sistema, revisar si corresponde actualiza
 
 | Cambio | Actualizar |
 |---|---|
-| Nuevo endpoint o cambio de contrato HTTP | OpenAPI/controller + `docs/postman/KeyGo-Server.postman_collection.json` + `docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md` |
-| Nueva migración Flyway | `docs/data/MIGRATIONS.md` + `docs/data/DATA_MODEL.md` + `docs/data/ENTITY_RELATIONSHIPS.md` |
+| Nuevo endpoint o cambio de contrato HTTP | OpenAPI/controller + `postman/KeyGo-Server.postman_collection.json` + `docs/development/FRONTEND_DEVELOPER_GUIDE.md` |
+| Nueva migración Flyway | `docs/data/MIGRATIONS.md` + `docs/design/DATABASE_SCHEMA.md` |
 | Cambio de quick-start, comandos o reglas para agentes | `AGENTS.md` + `docs/ai/agents-registro.md` |
 | Nueva inconsistencia doc-código | `docs/ai/inconsistencias.md` y detalle asociado |
 | Nuevo aprendizaje o patrón | `docs/ai/lecciones.md` |
@@ -65,7 +76,7 @@ Si una tarea cambia comportamiento del sistema, revisar si corresponde actualiza
 | Quick-start técnico | [`/AGENTS.md`](../../AGENTS.md) |
 | Snapshot operativo | [`/AI_CONTEXT.md`](../../AI_CONTEXT.md) |
 | Arquitectura | [`docs/design/ARCHITECTURE.md`](../design/ARCHITECTURE.md) |
-| Seguridad HTTP | [`docs/api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md) |
+| Seguridad HTTP | [`docs/design/api/ERROR_CATALOG.md`](../design/api/ERROR_CATALOG.md) + [`docs/security/SECURITY_GUIDELINES.md`](../security/SECURITY_GUIDELINES.md) |
 | Migraciones | [`docs/data/MIGRATIONS.md`](../data/MIGRATIONS.md) |
 | Setup local | [`docs/development/ENVIRONMENT_SETUP.md`](../development/ENVIRONMENT_SETUP.md) |
 | Política documental | [`docs/README.md`](../README.md) |

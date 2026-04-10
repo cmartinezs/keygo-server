@@ -49,6 +49,7 @@ Complete reference for architecture, design, development, and operations.
 - [`operations/DOCKER.md`](operations/DOCKER.md) — Docker image configuration
 
 ### Product & Project Managers
+- [`product/README.md`](product/README.md) — Product context, requirements, and business flows
 - [`ROADMAP.md`](../ROADMAP.md) — Feature roadmap and timeline
 - [`PROVISIONING_STRATEGY.md`](design/PROVISIONING_STRATEGY.md) — User provisioning (manual → SCIM → directory integration)
 - [`API_VERSIONING_STRATEGY.md`](design/API_VERSIONING_STRATEGY.md) — API evolution and deprecation lifecycle
@@ -67,8 +68,10 @@ Complete reference for architecture, design, development, and operations.
 | **Observability** | [`OBSERVABILITY.md`](design/OBSERVABILITY.md) |
 | **Security** | [`SECURITY_GUIDELINES.md`](security/SECURITY_GUIDELINES.md) |
 | **Deployment** | [`DEPLOYMENT_PIPELINE.md`](operations/DEPLOYMENT_PIPELINE.md), [`PRODUCTION_RUNBOOK.md`](operations/PRODUCTION_RUNBOOK.md) |
+| **Product Context** | [`product/README.md`](product/README.md), [`product/BOUNDED_CONTEXTS.md`](product/BOUNDED_CONTEXTS.md) |
 | **Provisioning** | [`PROVISIONING_STRATEGY.md`](design/PROVISIONING_STRATEGY.md) |
 | **Validation** | [`design/patterns/VALIDATION_STRATEGY.md`](design/patterns/VALIDATION_STRATEGY.md) |
+| **RFCs & Decisions** | [`rfc/README.md`](rfc/README.md), [`rfc/IN_PROGRESS.md`](rfc/IN_PROGRESS.md) |
 
 ---
 
@@ -107,22 +110,36 @@ docs/
 ├── security/                         ← Security & Compliance
 │   ├── README.md
 │   └── SECURITY_GUIDELINES.md
-├── data/                             ← Database
-│   └── MIGRATIONS.md
-├── product-design/                   ← Product Requirements
+├── product/                          ← Product Requirements & Context
+│   ├── README.md
 │   ├── REQUERIMIENTOS.md
+│   ├── BOUNDED_CONTEXTS.md
 │   ├── PROPUESTA_SOLUCION.md
-│   └── DIAGRAMAS/
-├── rfc/                              ← Design Decisions
+│   ├── DIAGRAMAS/
+│   └── flows/
+├── rfc/                              ← Design Decisions & RFCs
+│   ├── README.md
 │   ├── IN_PROGRESS.md
 │   ├── restructure-multitenant/
+│   ├── restructure-implementation/
+│   ├── billing-contractor-refactor/
 │   ├── account-ui-proposal/
-│   └── t108-geoip-sessions/
-├── ai/                               ← AI Agent Operations
+│   ├── t108-geoip-sessions/
+│   └── incomplete-sections/
+├── data/                             ← Database
+│   └── MIGRATIONS.md
+├── plans/                            ← Implementation Plans
+│   └── documentacion-2026/
+├── ai/                               ← AI Agent Operations (Internal)
 │   ├── AGENT_OPERATIONS.md
-│   └── (memory, lessons, register)
-└── archive/                          ← Historical Documents
-    └── deprecated/
+│   ├── lecciones/
+│   ├── propuestas/
+│   └── agents-registro/
+└── archive/                          ← Historical & Deprecated
+    ├── deprecated/
+    ├── email-templates/
+    ├── rfc-history/
+    └── research/
 ```
 
 ---
@@ -146,12 +163,33 @@ docs/
 
 ---
 
+## 🔍 Documentation Organization
+
+**Main Sections (for users):**
+- `design/` — Canonical architectural decisions
+- `development/` — Developer guides and setup
+- `operations/` — Deployment and operations
+- `security/` — Security requirements and compliance
+- `product/` — Product context, requirements, business flows
+
+**Decision Tracking:**
+- `rfc/README.md` — All RFCs in one central location (6 active)
+- `rfc/IN_PROGRESS.md` — Current status of architecture decisions
+- `design/RFC_CLOSURE_PROCESS.md` — How decisions are made and archived
+
+**Internal Operations (not user docs):**
+- `ai/` — AI agent operations, memory, and lessons learned
+- `plans/` — Implementation planning and sprints
+
+---
+
 ## 🎯 Sprints Completed
 
 - **Sprint 1:** Foundation (Architecture, Roadmap, AI Context, Agents)
 - **Sprint 2:** Design (Validation, Patterns, Endpoints, RFC Closure, AuthZ, OAuth2, Provisioning, Versioning, Runbook)
 - **Sprint 3:** Quality (Testing, Observability, Frontend)
 - **Sprint 4:** Infrastructure (Deployment, Database, Security)
+- **Phase 5:** Documentation Reorganization (2026-04-09) — Consolidated RFCs, reorganized product docs, archived email templates
 
 ---
 
