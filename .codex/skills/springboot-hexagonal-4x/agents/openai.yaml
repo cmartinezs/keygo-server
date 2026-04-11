@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spring Boot Hexagonal 4.x"
+  short_description: "Arquitectura hexagonal con Spring Boot 4.x"
+  default_prompt: "Use $springboot-hexagonal-4x to design or refactor a Spring Boot 4.x service with ports and adapters."
