@@ -4,10 +4,10 @@ Quick-start técnico para agentes que trabajan en este repositorio.
 
 ## Leer primero
 
-1. [ai-context.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/ai-context.md)
-2. [architecture.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/architecture.md)
-3. [doc/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/README.md)
-4. [agent-operations.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agent-operations.md)
+1. [ai-context.md](ai-context.md)
+2. [architecture.md](../03-architecture/architecture.md)
+3. [doc/README.md](../README.md)
+4. [agent-operations.md](agent-operations.md)
 
 ## Mapa de módulos
 
@@ -48,16 +48,16 @@ keygo-common   <- utilidades compartidas
 
 | Tema | Documento |
 |---|---|
-| Política documental | [doc/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/README.md) |
-| Arquitectura | [03-architecture/architecture.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/architecture.md) |
-| Seguridad de rutas | [03-architecture/security/bootstrap-filter.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/security/bootstrap-filter.md) |
-| Flujos OAuth2/OIDC | [02-functional/authentication-flow.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/02-functional/authentication-flow.md) |
-| Migraciones | [08-reference/data/migrations.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/08-reference/data/migrations.md) |
-| Modelo de datos | [08-reference/data/data-model.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/08-reference/data/data-model.md) |
-| Relaciones de entidades | [08-reference/data/entity-relationships.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/08-reference/data/entity-relationships.md) |
-| Setup local | [07-operations/environment-setup.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/07-operations/environment-setup.md) |
-| Guía frontend | [02-functional/frontend/frontend-developer-guide.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/02-functional/frontend/frontend-developer-guide.md) |
-| Roadmap | [05-delivery/roadmap.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/roadmap.md) |
+| Política documental | [doc/README.md](../README.md) |
+| Arquitectura | [03-architecture/architecture.md](../03-architecture/architecture.md) |
+| Seguridad de rutas | [03-architecture/security/bootstrap-filter.md](../03-architecture/security/bootstrap-filter.md) |
+| Flujos OAuth2/OIDC | [02-functional/authentication-flow.md](../02-functional/authentication-flow.md) |
+| Migraciones | [08-reference/data/migrations.md](../08-reference/data/migrations.md) |
+| Modelo de datos | [08-reference/data/data-model.md](../08-reference/data/data-model.md) |
+| Relaciones de entidades | [08-reference/data/entity-relationships.md](../08-reference/data/entity-relationships.md) |
+| Setup local | [07-operations/environment-setup.md](../07-operations/environment-setup.md) |
+| Guía frontend | [02-functional/frontend/frontend-developer-guide.md](../02-functional/frontend/frontend-developer-guide.md) |
+| Roadmap | [05-delivery/roadmap.md](../05-delivery/roadmap.md) |
 
 ## Mantenimiento documental obligatorio
 

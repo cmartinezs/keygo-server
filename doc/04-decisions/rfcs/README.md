@@ -4,13 +4,13 @@ Repositorio de RFCs, propuestas y planes de diseÃ±o que aun no se absorben por
 
 ## Navegacion
 
-- Estado general: [IN_PROGRESS.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/IN_PROGRESS.md)
-- Reestructura multi-tenant: [restructure-multitenant/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/restructure-multitenant/README.md)
-- Implementacion de la reestructura: [restructure-implementation/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/restructure-implementation/README.md)
-- Billing refactor: [billing-contractor-refactor/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/billing-contractor-refactor/README.md)
-- Account UI proposal: [account-ui-proposal/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/account-ui-proposal/README.md)
-- GeoIP sessions: [t108-geoip-sessions/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/t108-geoip-sessions/README.md)
-- Gaps e incompletos: [incomplete-sections/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisións/rfcs/incomplete-sections/README.md)
+- Estado general: [IN_PROGRESS.md](IN_PROGRESS.md)
+- Reestructura multi-tenant: [restructure-multitenant/README.md](restructure-multitenant/README.md)
+- Implementación de la reestructura: [restructure-implementation/README.md](restructure-implementation/README.md)
+- Billing refactor: [billing-contractor-refactor/README.md](billing-contractor-refactor/README.md)
+- Account UI proposal: [account-ui-proposal/README.md](account-ui-proposal/README.md)
+- GeoIP sessions: [t108-geoip-sessions/README.md](t108-geoip-sessions/README.md)
+- Gaps e incompletos: [incomplete-sections/README.md](incomplete-sections/README.md)
 
 ## Regla
 

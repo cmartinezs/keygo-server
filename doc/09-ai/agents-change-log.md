@@ -1,9 +1,9 @@
 # AGENTS — Registro de Cambios
 
-> Sub-documento de [`AGENTS.md`](../../AGENTS.md).
+> Sub-documento del quick-start de agentes consolidado en [`agents.md`](agents.md).
 >
 > Historial cronológico de actualizaciones al quick-start: módulos, comandos, patrones y URLs.
-> Entradas anteriores a 2026-03-25 en [`agents-registro-historico.md`](agents-registro-historico.md).
+> Entradas anteriores a 2026-03-25 en [`../99-archive/ai/agents-change-log-historical.md`](../99-archive/ai/agents-change-log-historical.md).
 >
 > **Regla:** Agregar entrada cada vez que cambie estructura de módulos, comandos, patrones o URLs.
 

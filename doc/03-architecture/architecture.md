@@ -69,7 +69,7 @@ HTTP request
 - El claim `roles` alimenta authorities Spring Security.
 - `@PreAuthorize` decide acceso por endpoint.
 - El aislamiento tenant para roles acotados se valida contra `tenant_slug` o `iss`.
-- Las excepciones de rutas públicas están documentadas en [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md).
+- Las excepciones de rutas públicas están documentadas en [`security/bootstrap-filter.md`](security/bootstrap-filter.md).
 
 ## Superficie funcional actual
 
@@ -102,8 +102,8 @@ El backend ya cubre:
 | Tema | Documento |
 |---|---|
 | Índice documental | [`../README.md`](../README.md) |
-| Seguridad HTTP | [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md) |
-| Flujos OAuth2/OIDC | [`../api/AUTH_FLOW.md`](../api/AUTH_FLOW.md) |
-| Migraciones | [`../data/MIGRATIONS.md`](../data/MIGRATIONS.md) |
-| Setup local | [`../development/ENVIRONMENT_SETUP.md`](../development/ENVIRONMENT_SETUP.md) |
+| Seguridad HTTP | [`security/bootstrap-filter.md`](security/bootstrap-filter.md) |
+| Flujos OAuth2/OIDC | [`../02-functional/authentication-flow.md`](../02-functional/authentication-flow.md) |
+| Migraciones | [`../08-reference/data/migrations.md`](../08-reference/data/migrations.md) |
+| Setup local | [`../07-operations/environment-setup.md`](../07-operations/environment-setup.md) |
 | Política documental | [`../README.md`](../README.md) |

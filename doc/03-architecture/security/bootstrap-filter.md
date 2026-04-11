@@ -89,7 +89,7 @@ export KEYGO_BOOTSTRAP_BYPASS_ROLES=ADMIN,ADMIN_TENANT,KEYGO_ADMIN,KEYGO_TENANT_
 
 ## Referencias
 
-- [`../README.md`](../README.md)
+- [`../../README.md`](../../README.md)
 - [`../architecture.md`](../architecture.md)
-- [`AUTH_FLOW.md`](AUTH_FLOW.md)
-- [`OPENAPI.md`](OPENAPI.md)
+- [`../../02-functional/authentication-flow.md`](../../02-functional/authentication-flow.md)
+- [`../../08-reference/api/README.md`](../../08-reference/api/README.md)

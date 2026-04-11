@@ -7,8 +7,8 @@
 ## 📌 Nota de Uso
 
 - **Autenticación:** Bearer JWT en header `Authorization: Bearer {token}`
-- **Response:** `BaseResponse<T>` con estructura de error estándar (ver [`ERROR_CATALOG.md`](ERROR_CATALOG.md))
-- **Códigos HTTP:** Mapeados en [`ERROR_CATALOG.md`](ERROR_CATALOG.md)
+- **Response:** `BaseResponse<T>` con estructura de error estándar (ver [`error-catalog.md`](error-catalog.md))
+- **Códigos HTTP:** Mapeados en [`error-catalog.md`](error-catalog.md)
 
 ---
 
@@ -286,7 +286,7 @@ Al agregar un nuevo endpoint:
 - [ ] ¿Validación? (@Valid en request DTO)
 - [ ] ¿Response type? (BaseResponse<T> con T apropriado)
 - [ ] ¿Errores documentados? (@ApiResponse para cada código HTTP)
-- [ ] ¿Actualizar ERROR_CATALOG.md? (nuevos ResponseCode)
+- [ ] ¿Actualizar `error-catalog.md`? (nuevos `ResponseCode`)
 - [ ] ¿Actualizar este catálogo? (agregar fila en tabla)
 
 ---
@@ -295,9 +295,9 @@ Al agregar un nuevo endpoint:
 
 | Recurso | Ubicación |
 |---|---|
-| **Validación** | [`VALIDATION_STRATEGY.md`](../../patterns/VALIDATION_STRATEGY.md) |
-| **Errores** | [`ERROR_CATALOG.md`](ERROR_CATALOG.md) |
-| **Debugging** | [`../../development/DEBUG_GUIDE.md`](../../development/DEBUG_GUIDE.md) |
+| **Validación** | [`../../03-architecture/patterns/validation-strategy.md`](../../03-architecture/patterns/validation-strategy.md) |
+| **Errores** | [`error-catalog.md`](error-catalog.md) |
+| **Debugging** | [`../../06-quality/debug-guide.md`](../../06-quality/debug-guide.md) |
 | **OpenAPI** | `/v3/api-docs` (Swagger UI en `/swagger-ui.html`) |
 | **Controllers** | `keygo-api/src/main/java/io/cmartinezs/keygo/api/{domain}/controller/` |
 

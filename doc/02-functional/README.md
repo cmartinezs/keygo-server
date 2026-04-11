@@ -4,9 +4,9 @@ Esta sección agrupa los flujos operativos y de integración que consumen backen
 
 ## Contenido
 
-- [authentication-flow.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/02-functional/authentication-flow.md): flujo funcional OAuth2/OIDC.
-- [frontend/frontend-developer-guide.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/02-functional/frontend/frontend-developer-guide.md): guía de integración para frontend.
-- [admin/admin-console-guide.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/02-functional/admin/admin-console-guide.md): mapa de superficies para consola admin.
+- [authentication-flow.md](authentication-flow.md): flujo funcional OAuth2/OIDC.
+- [frontend/frontend-developer-guide.md](frontend/frontend-developer-guide.md): guía de integración para frontend.
+- [admin/admin-console-guide.md](admin/admin-console-guide.md): mapa de superficies para consola admin.
 
 ## Criterio
 

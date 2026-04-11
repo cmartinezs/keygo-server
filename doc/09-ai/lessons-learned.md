@@ -1,6 +1,6 @@
 # AI Context — Lecciones Aprendidas
 
-> Sub-documento de [`AI_CONTEXT.md`](../../AI_CONTEXT.md).
+> Sub-documento de [`ai-context.md`](ai-context.md).
 >
 > Registra errores encontrados, buenas prácticas y convenciones adoptadas. Consultar antes de implementar.
 >

@@ -1,6 +1,6 @@
 # INCONSISTENCIAS — Seguridad / Autenticación
 
-> Sub-documento de [`inconsistencias.md`](inconsistencias.md).
+> Sub-documento de [`inconsistencies.md`](inconsistencies.md).
 >
 > Registra **inconsistencias encontradas entre la documentación de seguridad/autenticación y el comportamiento real del backend**.
 >

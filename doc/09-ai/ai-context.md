@@ -32,18 +32,18 @@ Snapshot operativo rápido para agentes.
 
 | Tema | Documento |
 |---|---|
-| Índice documental | [doc/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/README.md) |
-| Quick-start agentes | [agents.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agents.md) |
-| Operación compartida | [agent-operations.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agent-operations.md) |
-| Arquitectura | [03-architecture/architecture.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/architecture.md) |
-| Seguridad de rutas | [03-architecture/security/bootstrap-filter.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/security/bootstrap-filter.md) |
-| Migraciones | [08-reference/data/migrations.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/08-reference/data/migrations.md) |
-| Setup local | [07-operations/environment-setup.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/07-operations/environment-setup.md) |
+| Índice documental | [doc/README.md](../README.md) |
+| Quick-start agentes | [agents.md](agents.md) |
+| Operación compartida | [agent-operations.md](agent-operations.md) |
+| Arquitectura | [03-architecture/architecture.md](../03-architecture/architecture.md) |
+| Seguridad de rutas | [03-architecture/security/bootstrap-filter.md](../03-architecture/security/bootstrap-filter.md) |
+| Migraciones | [08-reference/data/migrations.md](../08-reference/data/migrations.md) |
+| Setup local | [07-operations/environment-setup.md](../07-operations/environment-setup.md) |
 
 ## Memoria AI
 
-- [lessons-learned.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/lessons-learned.md)
-- [proposals.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/proposals.md)
-- [inconsistencies.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/inconsistencies.md)
-- [agents-change-log.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agents-change-log.md)
+- [lessons-learned.md](lessons-learned.md)
+- [proposals.md](proposals.md)
+- [inconsistencies.md](inconsistencies.md)
+- [agents-change-log.md](agents-change-log.md)
 

@@ -36,9 +36,9 @@ flowchart LR
 
 | Documento | Categoría | Inconsistencias | Estado |
 |---|---|---|---|
-| [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
-| [`inconsistencias-seguridad.md`](inconsistencias-seguridad.md) | Seguridad / autenticación / docs operativas | 4 | 🟡 3 corregidas, 1 pendiente |
-| [`inconsistencias-datos.md`](inconsistencias-datos.md) | Modelo billing v1 (B2C sin tenant_id) | 1 | ✅ Corregida (rediseño modelo v2) |
+| [`inconsistencies-data.md`](inconsistencies-data.md) | Modelo de datos / DB schema | 12 | ✅ Todas corregidas |
+| [`inconsistencies-security.md`](inconsistencies-security.md) | Seguridad / autenticación / docs operativas | 4 | 🟡 3 corregidas, 1 pendiente |
+| [`inconsistencies-data.md`](inconsistencies-data.md) | Modelo billing v1 (B2C sin tenant_id) | 1 | ✅ Corregida (rediseño modelo v2) |
 
 ---
 
@@ -68,7 +68,7 @@ flowchart LR
    resolverse antes de cerrar la tarea que las detectó.
 
 4. **Inconsistencias no críticas** (documentación, naming) pueden quedar pendientes y
-   priorizarse en [`ROADMAP.md`](../../ROADMAP.md) si el esfuerzo de corrección es alto.
+   priorizarse en [`../05-delivery/roadmap.md`](../05-delivery/roadmap.md) si el esfuerzo de corrección es alto.
 
 ---
 

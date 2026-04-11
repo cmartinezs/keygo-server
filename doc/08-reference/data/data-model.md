@@ -1,8 +1,8 @@
 # Data Model
 
-Este documento fue consolidado en [../design/DATABASE_SCHEMA.md](../design/DATABASE_SCHEMA.md).
+Este documento fue consolidado en [../../03-architecture/database-schema.md](../../03-architecture/database-schema.md).
 
 ## Uso
 
-- Modelo de datos vigente: [../design/DATABASE_SCHEMA.md](../design/DATABASE_SCHEMA.md)
-- Relaciones principales: [ENTITY_RELATIONSHIPS.md](ENTITY_RELATIONSHIPS.md)
+- Modelo de datos vigente: [../../03-architecture/database-schema.md](../../03-architecture/database-schema.md)
+- Relaciones principales: [entity-relationships.md](entity-relationships.md)

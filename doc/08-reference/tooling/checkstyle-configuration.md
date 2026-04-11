@@ -41,7 +41,7 @@ Para que IntelliJ use **google-java-format** consistente con Checkstyle:
 | `*.json` | 2 espacios | JSON config |
 | `*.properties` | 2 espacios | Properties files |
 
-Ver [`.editorconfig`](../../.editorconfig) para la configuración completa.
+Ver [`.editorconfig`](../../../.editorconfig) para la configuración completa.
 
 ## Reglas de indentación (checkstyle.xml)
 

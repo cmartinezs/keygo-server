@@ -4,11 +4,11 @@ Política común para agentes AI que trabajan en este repositorio.
 
 ## Orden de lectura
 
-1. [agents.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agents.md)
-2. [ai-context.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/ai-context.md)
-3. [architecture.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/architecture.md)
-4. [roadmap.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/roadmap.md)
-5. [doc/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/README.md)
+1. [agents.md](agents.md)
+2. [ai-context.md](ai-context.md)
+3. [architecture.md](../03-architecture/architecture.md)
+4. [roadmap.md](../05-delivery/roadmap.md)
+5. [doc/README.md](../README.md)
 
 ## Reglas de trabajo
 

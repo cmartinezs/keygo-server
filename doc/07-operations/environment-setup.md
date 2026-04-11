@@ -93,10 +93,10 @@ Este script:
 ## IntelliJ / IDE
 
 - El archivo recomendable para EnvFile es `.env` en la raíz del repo.
-- Ver detalle en [`INTELLIJ_SETUP.md`](INTELLIJ_SETUP.md).
+- La configuración IDE específica se considera secundaria y no tiene guía separada en el canon activo.
 
 ## Referencias
 
 - [`../../README.md`](../../README.md)
-- [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md)
-- [`../data/MIGRATIONS.md`](../data/MIGRATIONS.md)
+- [`../03-architecture/security/bootstrap-filter.md`](../03-architecture/security/bootstrap-filter.md)
+- [`../08-reference/data/migrations.md`](../08-reference/data/migrations.md)

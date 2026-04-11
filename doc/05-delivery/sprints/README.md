@@ -4,7 +4,7 @@ Cada sprint debe contener `README.md`, `goal.md`, `scope.md`, `backlog.md`, `out
 
 ## Sprints iniciales
 
-- [sprint-001/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/sprints/sprint-001/README.md)
-- [sprint-002/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/sprints/sprint-002/README.md)
-- [sprint-003/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/sprints/sprint-003/README.md)
+- [sprint-001/README.md](sprint-001/README.md)
+- [sprint-002/README.md](sprint-002/README.md)
+- [sprint-003/README.md](sprint-003/README.md)
 

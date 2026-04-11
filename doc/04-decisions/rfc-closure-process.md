@@ -132,7 +132,7 @@ En documentos canónicos, agregar referencia:
 ```markdown
 ## Justificación
 
-**Decisión tomada:** RFC estructural [`restructure-multitenant`](../../rfc/restructure-multitenant/02-modelo-identidad-multitenancy.md)  
+**Decisión tomada:** RFC estructural [`restructure-multitenant`](rfcs/restructure-multitenant/02-modelo-identidad-multitenancy.md)  
 **Estado:** Implementado (92% alineado con propuesta)  
 **Fecha closure:** 2026-04-10  
 **Impactado por:** T-xyz (ticket de implementación)

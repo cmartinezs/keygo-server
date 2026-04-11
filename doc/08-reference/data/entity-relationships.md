@@ -1,8 +1,8 @@
 # Entity Relationships
 
-Este documento fue consolidado en [../design/DATABASE_SCHEMA.md](../design/DATABASE_SCHEMA.md).
+Este documento fue consolidado en [../../03-architecture/database-schema.md](../../03-architecture/database-schema.md).
 
 ## Uso
 
-- Diagrama y relaciones vigentes: [../design/DATABASE_SCHEMA.md#entity-relationship-diagram-erd](../design/DATABASE_SCHEMA.md#entity-relationship-diagram-erd)
-- Vista general del modelo: [DATA_MODEL.md](DATA_MODEL.md)
+- Diagrama y relaciones vigentes: [../../03-architecture/database-schema.md#entity-relationship-diagram-erd](../../03-architecture/database-schema.md#entity-relationship-diagram-erd)
+- Vista general del modelo: [data-model.md](data-model.md)

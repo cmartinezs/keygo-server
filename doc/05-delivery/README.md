@@ -4,11 +4,11 @@ Esta sección organiza la planificación y el seguimiento por roadmap, etapas de
 
 ## Contenido
 
-- [roadmap.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/roadmap.md)
-- [documentation-reorganization-summary.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/documentation-reorganization-summary.md)
-- [stages/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/stages/README.md)
-- [sprints/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/sprints/README.md)
-- [releases/README.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/05-delivery/releases/README.md)
+- [roadmap.md](roadmap.md)
+- [documentation-reorganization-summary.md](documentation-reorganization-summary.md)
+- [stages/README.md](stages/README.md)
+- [sprints/README.md](sprints/README.md)
+- [releases/README.md](releases/README.md)
 
 ## Criterio
 

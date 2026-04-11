@@ -1,9 +1,9 @@
 # AI Context — Propuestas de Mejoras Futuras
 
-> Sub-documento de [`AI_CONTEXT.md`](../../AI_CONTEXT.md).
+> Sub-documento de [`ai-context.md`](ai-context.md).
 >
 > Registra **propuestas técnicas y funcionales** organizadas por horizonte temporal.
-> El registro primario con IDs (`T-NNN`, `F-NNN`) está en [`ROADMAP.md`](../../ROADMAP.md).
+> El registro primario con IDs (`T-NNN`, `F-NNN`) está en [`../05-delivery/roadmap.md`](../05-delivery/roadmap.md).
 > Esta sección es un **resumen de estado rápido** para el agente.
 >
 > **⚠️ Regla de actualización:** Al concluir cualquier tarea, evaluar si hay propuestas
@@ -52,7 +52,7 @@
 | T-095 | Validar en `CreateAppPlanCommand` que si `billingOptions` no está vacía, al menos una opción tenga `isDefault=true`; lanzar `IllegalArgumentException` si ninguna es default | 🔲 Pendiente |
 | T-096 | Añadir `@NotNull` y `@Valid` en `CreateAppPlanRequest.billingOptions`, `@NotNull` en `billingPeriod` y `basePrice` de `BillingOptionRequest`; agregar test de validación Bean Validation | 🔲 Pendiente |
 | ~~T-103~~ | ~~Bloquear login cuando `status = RESET_PASSWORD` en `ValidateUserCredentialsUseCase` → `UserPasswordResetRequiredException`; `GlobalExceptionHandler` responde `403 RESET_PASSWORD_REQUIRED`; el frontend redirige al flujo de cambio de contraseña~~ | ✅ Completada 2026-04-02 |
-| ~~T-106~~ | ~~Jerarquía de excepciones tipadas por capa + `ErrorData.layer`: `KeyGoException` → `DomainException` / `UseCaseException` / `PortException`; mensajes en la clase con constructores de valores. Ver [`docs/design/EXCEPTION_HIERARCHY.md`](../../docs/design/EXCEPTION_HIERARCHY.md)~~ | ✅ Completada 2026-04-01 |
+| ~~T-106~~ | ~~Jerarquía de excepciones tipadas por capa + `ErrorData.layer`: `KeyGoException` → `DomainException` / `UseCaseException` / `PortException`; mensajes en la clase con constructores de valores. Ver [`../99-archive/deprecated/design/EXCEPTION_HIERARCHY.md`](../99-archive/deprecated/design/EXCEPTION_HIERARCHY.md)~~ | ✅ Completada 2026-04-01 |
 | ~~T-110~~ | ~~**Estandarizar paginación, filtrado y ordenamiento con JPA Specifications (DB-side):** Fase 1: infraestructura compartida (`PageFilter` base class, `InvalidPaginationParamException` en shared), 4 filter objects por entidad (`UserFilter`, `ClientAppFilter`, `MembershipFilter`, `AppRoleFilter`), 5 endpoints actualizados (tenants + sort/order, users, apps, roles, memberships) con `PagedData<T>`. Fase 2: refactorizar `TenantFilter` para extender `PageFilter` + sorting dinámico. Fase 3 (✅ Completada): **Eliminar paginación en-memoria** — reemplazar 4 adapters (User, ClientApp, Membership, AppRole) con JPA Specifications + `JpaSpecificationExecutor`. Cada adapter ahora construye dinámicamente predicados SQL reales (WHERE), sorting (ORDER BY), y paginación (LIMIT/OFFSET). Corregir TenantRepositoryAdapter para sorting dinámico. Documentación en FRONTEND_DEVELOPER_GUIDE.md § 14, Postman, y `docs/ai/lecciones.md` (regla: NUNCA paginar en aplicación).~~ | ✅ Completada 2026-04-03 |
 | ~~T-125~~ | ~~**Membership.PENDING como estado inicial + flujo de aprobación:** `CreateMembershipUseCase` crea membresías `PENDING`; endpoint `PUT .../memberships/{id}/approve`; `ApproveMembershipUseCase` cambia `PENDING→ACTIVE`; notificación email al usuario aprobado~~ | ✅ Completada 2026-04-07 |
 | T-128 | **Colisión de username generado en contratos:** `AppContract.generateUsername()` no verifica unicidad en DB; si dos contractors generan el mismo username (ej: "Carlos Martínez" y "Christian Martínez" → `cmartinez`), `VerifyContractEmailUseCase` falla con UNIQUE constraint. Solución: verificar con `PlatformUserRepositoryPort.existsByUsername()` y agregar sufijo numérico incremental. También afecta el preview en emails pre-registro. | 🔲 Pendiente |
@@ -135,7 +135,7 @@
 | T-105 | Política de expiración de contraseñas temporales (TTL 24 h): campo `temp_password_expires_at` en `tenant_users`; job `@Scheduled` que detecta usuarios `RESET_PASSWORD` con TTL vencido, genera nueva contraseña y la reenvía por email; config `keygo.security.temp-password-ttl-hours` | 🔲 Pendiente |
 | T-127 | **Event sourcing para auditoría de cambios de status multi-capa:** tabla `status_audit_events` (entity_type, entity_id, old_status, new_status, changed_by, changed_at, reason); `StatusAuditPort` emitido desde `suspend()`/`activate()`/`requirePasswordReset()`; query endpoint `GET /admin/audit/status-changes` | 🔲 Pendiente |
 | T-115 | Incrementar cobertura JaCoCo en `keygo-supabase` desde 0.15 hasta 0.60: añadir tests unitarios para `UserRepositoryAdapter`, `EmailVerificationRepositoryAdapter`, `SessionRepositoryAdapter`, `MembershipRepositoryAdapter` y adapters de billing | 🔲 Pendiente |
-| T-120 | **Diseño de catálogo i18n para respuestas API** — crear estructura i18n/messages_XX.properties (es, es-CL, en-US fallback, pt_BR, fr); ver [`docs/design/I18N_STRATEGY.md`](../../docs/design/I18N_STRATEGY.md) | 🟡 Parcial (archivos creados; faltan T-122, T-123) |
+| T-120 | **Diseño de catálogo i18n para respuestas API** — crear estructura i18n/messages_XX.properties (es, es-CL, en-US fallback, pt_BR, fr); ver [`../99-archive/deprecated/design/I18N_STRATEGY.md`](../99-archive/deprecated/design/I18N_STRATEGY.md) | 🟡 Parcial (archivos creados; faltan T-122, T-123) |
 | T-121 | **LocaleResolver + LocaleContextFilter** — resolver locale desde `Accept-Language` header; propagar vía `LocaleContextHolder`; fallback en-US | ✅ Completada 2026-04-03 (20 tests, 100% coverage) |
 | T-122 | **Refactorizar `ApiErrorDataFactory.clientMessage()`** — integrar `MessageSource`; cache `ReloadableResourceBundleMessageSource` con TTL 3600 s en prod | ✅ Completada 2026-04-03 |
 | T-123 | **Tests de i18n** — unitarios de `LocaleResolver`, `LocaleContextFilter`, `ApiErrorDataFactory` con múltiples locales × ResponseCode | ✅ Completada 2026-04-03 |
@@ -153,8 +153,8 @@
 
 ## Referencias
 
-- **Registro primario con IDs y detalle:** [`ROADMAP.md`](../../ROADMAP.md)
-- **Historial de completadas:** ver tabla "Historial de propuestas completadas" en `ROADMAP.md`
+- **Registro primario con IDs y detalle:** [`../05-delivery/roadmap.md`](../05-delivery/roadmap.md)
+- **Historial de completadas:** ver tabla "Historial de propuestas completadas" en [`../05-delivery/roadmap.md`](../05-delivery/roadmap.md)
 
 ---
 

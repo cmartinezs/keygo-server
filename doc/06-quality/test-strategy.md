@@ -55,6 +55,6 @@ Al cambiar endpoints o contratos, la colección debe mantenerse sincronizada.
 
 ## Referencias
 
-- [`ENVIRONMENT_SETUP.md`](ENVIRONMENT_SETUP.md)
-- [`../api/BOOTSTRAP_FILTER.md`](../api/BOOTSTRAP_FILTER.md)
+- [`../07-operations/environment-setup.md`](../07-operations/environment-setup.md)
+- [`../03-architecture/security/bootstrap-filter.md`](../03-architecture/security/bootstrap-filter.md)
 - [`../README.md`](../README.md)

@@ -17,9 +17,9 @@ Guia funcional para superficies de administración de KeyGo.
 
 ## Referencias cruzadas
 
-- Arquitectura multi-tenant: [architecture.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/architecture.md)
-- Autorizacion: [authorization-patterns.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/03-architecture/authorization-patterns.md)
-- Dashboard histórico: [admin-dashboard.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/99-archive/research/admin-dashboard.md)
+- Arquitectura multi-tenant: [architecture.md](../../03-architecture/architecture.md)
+- Autorización: [authorization-patterns.md](../../03-architecture/authorization-patterns.md)
+- Dashboard histórico: [admin-dashboard.md](../../99-archive/research/admin-dashboard.md)
 
 ## Pendientes documentados
 

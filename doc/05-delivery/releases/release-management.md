@@ -2,7 +2,7 @@
 
 ## Fuente de verdad
 
-- Versiones públicadas y cambios: [CHANGELOG.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/CHANGELOG.md)
+- Versiones publicadas y cambios: [CHANGELOG.md](../../../CHANGELOG.md)
 
 ## Checklist mínimo
 

@@ -1,6 +1,6 @@
 # INCONSISTENCIAS — Datos / Data Model
 
-> Sub-documento de [`inconsistencias.md`](inconsistencias.md).
+> Sub-documento de [`inconsistencies.md`](inconsistencies.md).
 >
 > Registra **inconsistencias encontradas entre la documentación del modelo de datos y el schema
 > real de la base de datos** (migraciones Flyway). Cada entrada incluye lo que estaba documentado,

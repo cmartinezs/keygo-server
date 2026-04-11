@@ -4,9 +4,9 @@ Repositorio de decisiones técnicas y funcionales de KeyGo.
 
 ## Contenido
 
-- [adr](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisions/adr): decisiones aceptadas y estables.
-- [rfcs](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisions/rfcs): propuestas, planes y gaps de diseño.
-- [rfc-closure-process.md](/C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/04-decisions/rfc-closure-process.md): cómo absorber RFCs al canon.
+- [adr](adr): decisiones aceptadas y estables.
+- [rfcs](rfcs): propuestas, planes y gaps de diseño.
+- [rfc-closure-process.md](rfc-closure-process.md): cómo absorber RFCs al canon.
 
 ## Convenciones
 
