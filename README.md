@@ -2,69 +2,36 @@
 
 Backend IAM multi-tenant para autenticación, autorización y gestión de identidades sobre Java 21 + Spring Boot 4.x.
 
-> Source of truth para documentación: [`docs/README.md`](docs/README.md)
+> Fuente de verdad documental: [`doc/README.md`](doc/README.md)
 
 ## Estado actual
 
 - Monorepo Maven multi-módulo con arquitectura hexagonal.
-- Seguridad admin actual: `Authorization: Bearer <jwt>` en rutas protegidas.
-- Módulos activos: `keygo-domain`, `keygo-app`, `keygo-infra`, `keygo-api`, `keygo-supabase`, `keygo-run`, `keygo-bom`.
-- Capacidades implementadas a nivel repo: OAuth2/OIDC base, tenants, apps, usuarios, account self-service, RBAC platform/tenant y billing de plataforma.
-- Migraciones Flyway actuales: `V1` a `V33`. La siguiente migración debe ser `V34__...`.
+- Seguridad vigente con `Authorization: Bearer <jwt>` para rutas protegidas.
+- Prioridades de dominio: multi-tenant, cuenta única por tenant, memberships por app, roles y permisos, OAuth2/OIDC y consola admin.
 
-## Estructura
+## Estructura principal
 
 ```text
 keygo-server/
-├── keygo-domain/     # Dominio puro, sin Spring
-├── keygo-app/        # Use cases + puertos
-├── keygo-infra/      # Adaptadores transversales
-├── keygo-api/        # Controllers REST + DTOs
-├── keygo-supabase/   # JPA, Flyway y PostgreSQL
-├── keygo-run/        # Main, wiring y application.yml
-├── keygo-bom/        # Gestión de versiones
-├── docs/             # Documentación canónica
-└── pom.xml           # Parent POM
+|-- keygo-domain
+|-- keygo-app
+|-- keygo-infra
+|-- keygo-api
+|-- keygo-supabase
+|-- keygo-run
+|-- keygo-bom
+`-- doc
 ```
 
-## Requisitos
+## Documentación clave
 
-- Java 21
-- Maven Wrapper incluido en el repo (`./mvnw`)
-- Docker opcional para DB local
-
-## Quick Start
-
-### 1. Build
-
-```bash
-./mvnw clean package
-```
-
-### 2. Levantar DB local
-
-```bash
-./docs/scripts/db/start.sh
-```
-
-### 3. Activar ambiente local
-
-```bash
-./docs/scripts/switch-env.sh local
-```
-
-### 4. Ejecutar la app
-
-```bash
-./mvnw spring-boot:run -pl keygo-run
-```
-
-### 5. Verificar
-
-```bash
-curl http://localhost:8080/keygo-server/actuator/health
-curl http://localhost:8080/keygo-server/swagger-ui/index.html
-```
+- Índice maestro: [`doc/README.md`](doc/README.md)
+- Arquitectura: [`doc/03-architecture/architecture.md`](doc/03-architecture/architecture.md)
+- Roadmap: [`doc/05-delivery/roadmap.md`](doc/05-delivery/roadmap.md)
+- Operación y entornos: [`doc/07-operations/README.md`](doc/07-operations/README.md)
+- Referencia API y datos: [`doc/08-reference/README.md`](doc/08-reference/README.md)
+- Guías de agentes: [`doc/09-ai/README.md`](doc/09-ai/README.md)
 
 ## URLs locales
 
@@ -73,48 +40,9 @@ curl http://localhost:8080/keygo-server/swagger-ui/index.html
 - OpenAPI: `http://localhost:8080/keygo-server/v3/api-docs`
 - Health: `http://localhost:8080/keygo-server/actuator/health`
 
-## Seguridad y API
-
-- El `context-path` activo es `/keygo-server`.
-- Las rutas protegidas usan `Authorization: Bearer <jwt>`.
-- Los detalles de rutas públicas/protegidas viven en [`docs/api/BOOTSTRAP_FILTER.md`](docs/api/BOOTSTRAP_FILTER.md).
-- La referencia humana de endpoints vive en [`docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md`](docs/keygo-ui/FRONTEND_DEVELOPER_GUIDE.md).
-- El contrato runtime lo expone OpenAPI en `/v3/api-docs`.
-
-## Documentación clave
-
-- [`docs/README.md`](docs/README.md): índice documental canónico y política de ubicación.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md): resumen arquitectónico.
-- [`AI_CONTEXT.md`](AI_CONTEXT.md): snapshot operativo para agentes.
-- [`AGENTS.md`](AGENTS.md): quick-start técnico para agentes AI.
-- [`ROADMAP.md`](ROADMAP.md): propuestas activas y completadas.
-- [`docs/development/ENVIRONMENT_SETUP.md`](docs/development/ENVIRONMENT_SETUP.md): setup local y variables de entorno.
-- [`docs/operations/DOCKER.md`](docs/operations/DOCKER.md): Docker y runtime local.
-
-## Comandos útiles
-
-```bash
-./mvnw test
-./mvnw verify
-./mvnw -pl keygo-api test
-./docs/scripts/quick-start.sh
-./docs/scripts/keygo.sh
-```
-
-## Contribución
-
-Las políticas públicas del repositorio viven en:
+## Contribución y seguridad
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - [`SECURITY.md`](SECURITY.md)
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - [`CHANGELOG.md`](CHANGELOG.md)
-
-## Nota para agentes AI
-
-Los wrappers de herramienta permanecen en raíz por compatibilidad:
-
-- [`CLAUDE.md`](CLAUDE.md)
-- [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
-
-La política operativa compartida queda centralizada en [`docs/ai/AGENT_OPERATIONS.md`](docs/ai/AGENT_OPERATIONS.md).
