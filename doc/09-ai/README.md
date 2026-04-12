@@ -14,4 +14,5 @@ Documentación operativa para agentes y mantenimiento asistido por IA.
 | [inconsistencies.md](inconsistencies.md) | Registro de divergencias detectadas entre documentación y código |
 | [agents-change-log.md](agents-change-log.md) | Historial de cambios en reglas y quick-start de agentes |
 | [agent-clients/claude.md](agent-clients/claude.md) | Wrapper de compatibilidad para Claude Code |
+| [tasks/](tasks/README.md) | Planes de implementación detallados por propuesta (T-NNN) |
 
