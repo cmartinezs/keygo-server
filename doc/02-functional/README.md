@@ -5,7 +5,7 @@ Esta sección agrupa los flujos operativos y de integración que consumen backen
 ## Contenido
 
 - [authentication-flow.md](authentication-flow.md): flujo funcional OAuth2/OIDC.
-- [frontend/frontend-developer-guide.md](frontend/frontend-developer-guide.md): guía de integración para frontend.
+- [frontend/README.md](frontend/README.md): documentación de integración para frontend (9 documentos por temática).
 - [admin/admin-console-guide.md](admin/admin-console-guide.md): mapa de superficies para consola admin.
 
 ## Criterio

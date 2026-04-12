@@ -113,7 +113,8 @@ Si se crea o modifica un documento durante el cierre, actualizar el `README.md` 
 
 | Cambio | Actualizar |
 |---|---|
-| Nuevo endpoint o contrato HTTP | OpenAPI, Postman y guía frontend |
+| Nuevo endpoint o contrato HTTP consumible por UI | OpenAPI, Postman y [`02-functional/frontend/frontend-developer-guide.md`](../02-functional/frontend/frontend-developer-guide.md) |
+| Cambio de contrato, `ResponseCode` o flujo OAuth consumible por UI | [`02-functional/frontend/frontend-developer-guide.md`](../02-functional/frontend/frontend-developer-guide.md) |
 | Nueva migración Flyway | `08-reference/data/migrations.md`, `data-model.md`, `entity-relationships.md` |
 | Cambio de quick-start o reglas de agentes | `agents.md` y `agents-change-log.md` |
 | Nuevo aprendizaje | `lessons-learned.md` |

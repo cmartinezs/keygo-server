@@ -178,7 +178,8 @@ At the end of every task, before closing the conversation:
 
 | Change | Update |
 |---|---|
-| New endpoint or HTTP contract change | OpenAPI + Postman + frontend guide |
+| New endpoint or HTTP contract change consumable by UI | OpenAPI + Postman + `doc/02-functional/frontend/frontend-developer-guide.md` |
+| Contract change, `ResponseCode` change, or OAuth flow change affecting UI | `doc/02-functional/frontend/frontend-developer-guide.md` |
 | New Flyway migration | `migrations.md` + `data-model.md` + `entity-relationships.md` |
 | Agent rule or quick-start change | `agents.md` + `agents-change-log.md` |
 | Doc/code inconsistency found | `inconsistencies.md` |
