@@ -20,6 +20,14 @@
 
 ## Registro de cambios
 
+### [2026-04-12] Política operativa de agentes — nuevas reglas en `agent-operations.md` y `CLAUDE.md`
+
+- **Respuestas:** exactas, concisas y precisas; sin verborrea, sin sacrificar claridad.
+- **Flujo obligatorio pre-implementación:** análisis previo (reusar/refactorizar/nuevo) → plan documentado (`PENDIENTE`/`APLICADO`) → RFC si afecta múltiples módulos/contratos/modelo (`BORRADOR`/`APROBADO`/`APLICADO`) → esperar aprobación explícita → registrar ideas futuras detectadas en `proposals.md`.
+- **Navegación por índices:** leer `README.md` de carpeta antes de abrir archivos; solicitar documento de partida; si no hay uno, partir de `doc/README.md`; mantener índices al agregar o crear documentos.
+- **Cierre de tarea:** preguntar qué debe recordarse → comprimir y persistir solo lo no derivable del código/git → actualizar `README.md` de la carpeta si se crea/modifica algún documento.
+- **`doc/09-ai/README.md`:** convertido de lista plana a tabla con descripción breve por documento.
+
 ### [2026-04-09] Refactoring documental canónico multi-agente
 
 - **Entrypoints raíz:** `README.md`, `AI_CONTEXT.md`, `ARCHITECTURE.md` y `AGENTS.md` reescritos como documentos resumidos, actuales y sin redundancia masiva.
