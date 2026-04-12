@@ -20,6 +20,18 @@
 
 ## Registro de cambios
 
+### [2026-04-12] Regla: documentación obligatoria al usar `/plan`
+
+- **`CLAUDE.md` §2 (Solution plan):** ampliado con instrucción explícita: al invocar `/plan`, antes de cerrar el modo plan y **sin esperar instrucción del usuario**, se debe (1) agregar entrada `T-NNN` en `doc/09-ai/proposals.md`, (2) crear `doc/09-ai/tasks/T-NNN-<slug>.md` con requisito, diseño, pasos ordenados y guía de verificación, (3) registrar la entrada en `doc/09-ai/tasks/README.md`.
+- **`agents.md` §Mantenimiento documental obligatorio:** agregado ítem "Uso de `/plan`" con los mismos 3 pasos.
+- **Motivación:** los planes se pueden implementar en una conversación futura; sin persistencia inmediata se pierde el contexto entre sesiones.
+
+### [2026-04-12] Frontend — documentación expandida a 9 documentos temáticos
+
+- Monolito `frontend-developer-guide.md` archivado en `99-archive/frontend/`.
+- Creados 9 documentos en `doc/02-functional/frontend/`: setup, authentication, api-conventions, error-handling, endpoints-account, endpoints-tenant, endpoints-billing, endpoints-admin, testing.
+- `README.md` del frontend actualizado como índice operativo con reglas de mantenimiento por tipo de cambio.
+
 ### [2026-04-12] Política operativa de agentes — nuevas reglas en `agent-operations.md` y `CLAUDE.md`
 
 - **Respuestas:** exactas, concisas y precisas; sin verborrea, sin sacrificar claridad.

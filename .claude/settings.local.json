@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"\\\\.md$|\\\\.yml$|\\\\.properties$|config\")",
-      "Bash(mvn --version)"
+      "Bash(mvn --version)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

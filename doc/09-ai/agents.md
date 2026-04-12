@@ -77,3 +77,7 @@ flowchart TD
 - Nueva migración Flyway: `migrations.md` + `data-model.md` + `entity-relationships.md`.
 - Cambio de reglas o quick-start para agentes: `agents.md` + `agents-change-log.md`.
 - Inconsistencia doc-código: `inconsistencies.md`.
+- **Uso de `/plan`:** siempre documentar antes de cerrar el modo plan, sin esperar instrucción explícita:
+  1. Agregar entrada `T-NNN` en `doc/09-ai/proposals.md` (1–2 líneas, estado 🔲 Pendiente).
+  2. Crear `doc/09-ai/tasks/T-NNN-<slug>.md` con: requisito, solución propuesta, pasos ordenados con estado `PENDING`/`APPLIED` y guía de verificación.
+  3. Registrar la nueva entrada en `doc/09-ai/tasks/README.md`.

@@ -99,7 +99,13 @@ Before any change, review existing documentation and code to determine:
 
 ### 2. Solution plan
 
-Always create a documented plan covering: problem/requirement, proposed solution (components, modules, patterns), ordered implementation steps, and status (`PENDING` | `APPLIED`). Save it in `doc/09-ai/proposals.md` or the relevant task document.
+Always create a documented plan covering: problem/requirement, proposed solution (components, modules, patterns), ordered implementation steps, and status (`PENDING` | `APPLIED`).
+
+**When `/plan` is invoked, persist the plan before closing plan mode — without waiting for explicit instruction** (plans may be implemented in a future conversation):
+
+1. Add entry `T-NNN` in `doc/09-ai/proposals.md` (1–2 lines, status 🔲 Pendiente, link to detail doc).
+2. Create `doc/09-ai/tasks/T-NNN-<slug>.md` with: requirement, response contract or component design, ordered steps with `PENDING`/`APPLIED` status, and a verification guide.
+3. Register the new entry in `doc/09-ai/tasks/README.md`.
 
 ### 3. RFC for large changes
 
