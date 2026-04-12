@@ -20,7 +20,6 @@ public class Tenant {
   private final TenantId id;
   private final TenantSlug slug;
   private final String name;
-  private final String ownerEmail;
   private TenantStatus status;
   /**
    * NULL = system/platform tenant. NOT NULL = created by a contractor.
@@ -33,18 +32,15 @@ public class Tenant {
       TenantId id,
       TenantSlug slug,
       String name,
-      String ownerEmail,
       TenantStatus status,
       UUID contractorId) {
     if (slug == null) throw new IllegalArgumentException("Tenant slug cannot be null");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("Tenant name cannot be null or blank");
-    if (ownerEmail == null || ownerEmail.isBlank()) throw new IllegalArgumentException("Tenant ownerEmail cannot be null or blank");
     if (status == null) throw new IllegalArgumentException("Tenant status cannot be null");
 
     this.id = id;
     this.slug = slug;
     this.name = name;
-    this.ownerEmail = ownerEmail;
     this.status = status;
     this.contractorId = contractorId;
   }

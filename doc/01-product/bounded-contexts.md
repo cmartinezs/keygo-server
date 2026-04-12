@@ -508,7 +508,7 @@ BillingContractController
   POST /api/v1/billing/contracts/{contractId}/mock-approve-payment [público]
   POST /api/v1/billing/contracts/{contractId}/verify-email   [público]
   POST /api/v1/billing/contracts/{contractId}/resend-verification [público]
-  POST /api/v1/billing/contracts/{contractId}/resume        [público]
+  GET  /api/v1/billing/contracts/{contractId}/resume        [público]
 
 AppSubscriptionController
   GET  /api/v1/tenants/{slug}/apps/{appId}/billing/subscription [Bearer]

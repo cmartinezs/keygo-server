@@ -79,21 +79,20 @@ public final class BillingPersistenceMapper {
   // ── AppContract ──────────────────────────────────────────────────────────
 
   public static AppContract toDomain(AppContractEntity e) {
+    String[] contactName = resolveContactName(e);
     return AppContract.builder()
         .id(e.getId())
-        .clientAppId(e.getClientApp() != null ? e.getClientApp().getId() : null)
+        .clientAppId(e.getClientApp().getId())
         .selectedPlanVersionId(e.getSelectedPlanVersion().getId())
         .billingPeriod(e.getBillingPeriod())
         .status(e.getStatus())
         .contractorEmail(e.getContractorEmail())
-        .contractorFirstName(e.getContractorFirstName())
-        .contractorLastName(e.getContractorLastName())
+        .contractorFirstName(contactName[0])
+        .contractorLastName(contactName[1])
         .companyName(e.getCompanyName())
         .companyTaxId(e.getCompanyTaxId())
         .companyAddress(e.getCompanyAddress())
         .contractorId(e.getContractor() != null ? e.getContractor().getId() : null)
-        .verificationCode(e.getVerificationCode())
-        .verificationCodeExpiresAt(e.getVerificationCodeExpiresAt())
         .emailVerifiedAt(e.getEmailVerifiedAt())
         .paymentVerifiedAt(e.getPaymentVerifiedAt())
         .expiresAt(e.getExpiresAt())
@@ -144,9 +143,34 @@ public final class BillingPersistenceMapper {
         .billingAddressSnapshot(e.getBillingAddressSnapshot())
         .planNameSnapshot(e.getPlanNameSnapshot())
         .planVersionSnapshot(e.getPlanVersionSnapshot())
-        .pdfUrl(e.getPdfUrl())
+        .pdfUrl(null)
         .createdAt(e.getCreatedAt())
         .build();
+  }
+
+  private static String[] resolveContactName(AppContractEntity entity) {
+    if (entity.getContractorFirstName() != null && !entity.getContractorFirstName().isBlank()
+        && entity.getContractorLastName() != null && !entity.getContractorLastName().isBlank()) {
+      return new String[] {entity.getContractorFirstName(), entity.getContractorLastName()};
+    }
+    return splitContactName(entity.getBillingContactName());
+  }
+
+  private static String[] splitContactName(String contactName) {
+    if (contactName == null || contactName.isBlank()) {
+      return new String[] {"N/A", "N/A"};
+    }
+    String normalized = contactName.trim().replaceAll("\\s+", " ");
+    int separator = normalized.indexOf(' ');
+    if (separator < 0) {
+      return new String[] {normalized, normalized};
+    }
+    String firstName = normalized.substring(0, separator).trim();
+    String lastName = normalized.substring(separator + 1).trim();
+    return new String[] {
+        firstName.isBlank() ? "N/A" : firstName,
+        lastName.isBlank() ? firstName : lastName
+    };
   }
 }
 

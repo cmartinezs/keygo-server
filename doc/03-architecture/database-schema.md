@@ -1,662 +1,349 @@
-# Database Schema — Diseño y Arquitectura
+# Database Schema — KeyGo Server
 
-**Propósito:** Documentar schema de base de datos, relaciones entre entidades, índices y estrategia de migraciones.
+> **Ultima actualizacion:** 2026-04-11  
+> **Fuente de verdad fisica:** `keygo-supabase/src/main/resources/db/migration/`  
+> **Baseline activo:** `V1`–`V17`  
+> **Referencia de versiones:** `../08-reference/data/migrations.md`
+
+**Proposito:** documentar la vista canonica del schema PostgreSQL vigente. Este documento describe el
+modelo actual del baseline activo; no reemplaza a Flyway ni al DDL real.
+
+---
+
+## Regla operativa
+
+- Cuando haya conflicto entre codigo, documentacion y schema, **manda Flyway**.
+- El baseline activo del remake es `V1`–`V17`.
+- El arbol `keygo-supabase/src/main/resources/db/backup_20260409_v33/` es **historico** y no debe
+  usarse como schema vigente.
+- `hibernate.ddl-auto=validate` debe seguir siendo coherente con este baseline.
+
+---
+
+## Vista general del baseline
+
+| Rango | Dominio | Resultado principal |
+|---|---|---|
+| `V1`–`V2` | Foundation | bootstrap del schema, extensiones `pgcrypto` y `citext`, helpers `update_updated_at_column()` y `prevent_append_only_mutation()` |
+| `V3`–`V10` | Identity / Access / OAuth | `platform_users`, `tenants`, `tenant_users`, `client_apps`, RBAC separado, `platform_sessions`, `oauth_sessions`, tokens, signing keys, verificacion y actividad |
+| `V11` | Audit | ledger append-only `audit_events` con payloads, tags y entity links |
+| `V12`–`V15` | Billing | `contractors`, catalogo comercial, contratos, suscripciones, pagos, facturas, uso y perfiles fiscales |
+| `V16`–`V17` | Seeds | datos de desarrollo y caso base de billing |
 
 ---
 
 ## Entity Relationship Diagram (ERD)
 
+### Identity, tenants, apps and auth
+
+```mermaid
+flowchart LR
+    pu[platform_users]
+    pur[platform_user_roles]
+    pr[platform_roles]
+    prh[platform_role_hierarchy]
+    ps[platform_sessions]
+    os[oauth_sessions]
+    ac[authorization_codes]
+    rt[refresh_tokens]
+    sk[signing_keys]
+    ev[email_verifications]
+    prt[password_reset_tokens]
+    pnp[platform_user_notification_preferences]
+    pae[platform_activity_events]
+
+    t[tenants]
+    tu[tenant_users]
+    tur[tenant_user_roles]
+    tr[tenant_roles]
+    trh[tenant_role_hierarchy]
+    ca[client_apps]
+    cru[client_redirect_uris]
+    cag[client_allowed_grants]
+    cas[client_allowed_scopes]
+    ar[app_roles]
+    arh[app_role_hierarchy]
+    am[app_memberships]
+    amr[app_membership_roles]
+    tbp[tenant_billing_profiles]
+
+    pu --> pur --> pr --> prh
+    pu --> ps --> ac
+    ps --> os --> rt
+    os --> sk
+    rt --> sk
+    pu --> ev
+    pu --> prt
+    pu --> pnp
+    pu --> pae
+
+    t --> tu --> tur --> tr --> trh
+    t --> ca
+    ca --> cru
+    ca --> cag
+    ca --> cas
+    t --> ar --> arh
+    tu --> am
+    ca --> am
+    am --> amr --> ar
+    t --> tbp
+    ac --> ca
 ```
-┌─────────────────┐
-│    tenants      │
-├─────────────────┤
-│ id (PK)         │
-│ slug (UNIQUE)   │
-│ name            │
-│ created_at      │
-│ removed_at      │  ← Soft delete
-└─────────────────┘
-    ↑       ↓
-    │      (1:N)
-    │       │
-    │   ┌─────────────────┐
-    │   │  users          │
-    │   ├─────────────────┤
-    │   │ id (PK)         │
-    │   │ tenant_id (FK)  │
-    │   │ email           │
-    │   │ username        │
-    │   │ password_hash   │
-    │   │ created_at      │
-    │   │ removed_at      │
-    │   └─────────────────┘
-    │        ↓ (1:N)
-    │   ┌─────────────────────┐
-    │   │ user_credentials    │
-    │   ├─────────────────────┤
-    │   │ id (PK)             │
-    │   │ user_id (FK)        │
-    │   │ provider            │ ← "password", "oauth", "saml"
-    │   │ provider_user_id    │
-    │   │ created_at          │
-    │   └─────────────────────┘
-    │
-    └──→ ┌──────────────────────┐
-         │ tenant_roles         │
-         ├──────────────────────┤
-         │ id (PK)              │
-         │ tenant_id (FK)       │
-         │ name (UNIQUE)        │
-         │ description          │
-         │ created_at           │
-         └──────────────────────┘
-              ↑ (M:N)
-              │
-         ┌──────────────────────┐
-         │ tenant_user_roles    │
-         ├──────────────────────┤
-         │ id (PK)              │
-         │ user_id (FK)         │
-         │ role_id (FK)         │
-         │ granted_by (FK)      │ ← User who granted
-         │ created_at           │
-         └──────────────────────┘
 
-┌──────────────────────┐
-│ platform_roles       │ ← Well-known roles
-├──────────────────────┤
-│ id (PK)              │
-│ code (ENUM)          │
-│ name                 │
-│ description          │
-│ created_at           │
-└──────────────────────┘
-    ↓ (1:N)
-┌──────────────────────┐
-│ platform_permissions │
-├──────────────────────┤
-│ id (PK)              │
-│ platform_role_id(FK) │
-│ permission_code      │
-│ created_at           │
-└──────────────────────┘
+### Billing and audit
 
-┌──────────────────────┐     ┌─────────────────────┐
-│    oauth_clients     │────→│ oauth_client_scopes │
-├──────────────────────┤     ├─────────────────────┤
-│ id (PK)              │     │ id (PK)             │
-│ tenant_id (FK)       │     │ client_id (FK)      │
-│ client_id            │     │ scope               │
-│ client_secret_hash   │     │ created_at          │
-│ redirect_uris        │     └─────────────────────┘
-│ grant_types          │
-│ created_at           │
-│ removed_at           │
-└──────────────────────┘
+```mermaid
+flowchart LR
+    c[contractors]
+    cu[contractor_users]
+    pu2[platform_users]
+    ct[app_contracts]
+    sub[app_subscriptions]
+    inv[invoices]
+    pt[payment_transactions]
+    pm[payment_methods]
+    uc[usage_counters]
 
-┌─────────────────────┐
-│ audit_logs          │
-├─────────────────────┤
-│ id (PK)             │
-│ tenant_id (FK)      │
-│ event_type          │
-│ actor_id (FK)       │
-│ resource_id         │
-│ changes (JSONB)     │ ← What changed
-│ created_at          │
-└─────────────────────┘
+    ca2[client_apps]
+    ap[app_plans]
+    apv[app_plan_versions]
+    apbo[app_plan_billing_options]
+    ape[app_plan_entitlements]
 
-┌─────────────────────┐
-│ sessions            │
-├─────────────────────┤
-│ id (PK)             │
-│ user_id (FK)        │
-│ token_hash          │
-│ expires_at          │
-│ created_at          │
-│ revoked_at          │
-└─────────────────────┘
+    ae[audit_events]
+    aep[audit_event_payloads]
+    aet[audit_event_tags]
+    ail[audit_entity_links]
+
+    c --> cu --> pu2
+    c --> ct --> sub --> inv
+    ct --> pt
+    sub --> pt
+    c --> pm
+    c --> uc
+
+    ca2 --> ap --> apv
+    apv --> apbo
+    apv --> ape
+
+    ae --> aep
+    ae --> aet
+    ae --> ail
 ```
 
 ---
 
-## Core Tables
+## Canonical model by domain
 
-### tenants
+### 1. Foundation
 
-```sql
-CREATE TABLE tenants (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug VARCHAR(255) NOT NULL UNIQUE,  -- URL-friendly identifier
-  name VARCHAR(255) NOT NULL,
-  status VARCHAR(50) DEFAULT 'ACTIVE',  -- ACTIVE, SUSPENDED, ARCHIVED
-  
-  -- Metadata
-  config JSONB,  -- Custom configuration per tenant
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by UUID,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  removed_at TIMESTAMP NULL,  -- Soft delete
-  
-  CONSTRAINT tenant_slug_format CHECK (slug ~ '^[a-z0-9_-]+$')
-);
+`V2__foundation.sql` instala:
 
-CREATE UNIQUE INDEX idx_tenant_slug ON tenants(slug) WHERE removed_at IS NULL;
-CREATE INDEX idx_tenant_status ON tenants(status);
-```
+- `pgcrypto` para UUIDs y utilidades criptograficas;
+- `citext` para comparaciones case-insensitive;
+- `update_updated_at_column()` para tablas mutables con `updated_at`;
+- `prevent_append_only_mutation()` para tablas append-only del ledger de auditoria.
 
-### users
+### 2. Identity root and tenant participation
 
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id),
-  
-  -- Identity
-  email VARCHAR(255) NOT NULL,
-  username VARCHAR(255) NOT NULL,
-  
-  -- Password (nullable for SSO-only users)
-  password_hash VARCHAR(255),
-  password_salt VARCHAR(255),
-  password_changed_at TIMESTAMP,
-  
-  -- Status
-  status VARCHAR(50) DEFAULT 'ACTIVE',  -- ACTIVE, SUSPENDED, LOCKED
-  email_verified_at TIMESTAMP,
-  phone_verified_at TIMESTAMP,
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by UUID,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  removed_at TIMESTAMP NULL,  -- Soft delete
-  
-  CONSTRAINT unique_email_per_tenant UNIQUE (tenant_id, email) WHERE removed_at IS NULL,
-  CONSTRAINT unique_username_per_tenant UNIQUE (tenant_id, username) WHERE removed_at IS NULL
-);
-
-CREATE INDEX idx_user_tenant_id ON users(tenant_id);
-CREATE INDEX idx_user_email ON users(email) WHERE removed_at IS NULL;
-CREATE INDEX idx_user_status ON users(status);
-CREATE INDEX idx_user_created_at ON users(created_at DESC);
-```
-
-### user_credentials
-
-```sql
-CREATE TABLE user_credentials (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id),
-  
-  -- Type of credential
-  provider VARCHAR(100) NOT NULL,  -- "password", "google", "okta", "azure"
-  provider_user_id VARCHAR(500),   -- External ID from provider
-  
-  -- Metadata
-  metadata JSONB,  -- Provider-specific data
-  
-  -- Status
-  verified_at TIMESTAMP,
-  expires_at TIMESTAMP,
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  CONSTRAINT unique_provider_credential UNIQUE (provider, provider_user_id)
-);
-
-CREATE INDEX idx_credential_user_id ON user_credentials(user_id);
-CREATE INDEX idx_credential_provider ON user_credentials(provider);
-```
-
-### tenant_roles
-
-```sql
-CREATE TABLE tenant_roles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id),
-  
-  -- Role definition
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  
-  -- Type: built-in or custom
-  is_builtin BOOLEAN DEFAULT FALSE,
-  
-  -- Permissions (as JSON list)
-  permissions JSONB DEFAULT '[]'::jsonb,
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by UUID,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  CONSTRAINT unique_role_per_tenant UNIQUE (tenant_id, name)
-);
-
-CREATE INDEX idx_tenant_role_tenant_id ON tenant_roles(tenant_id);
-```
-
-### tenant_user_roles
-
-```sql
-CREATE TABLE tenant_user_roles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id),
-  role_id UUID NOT NULL REFERENCES tenant_roles(id),
-  
-  -- Who granted this role
-  granted_by UUID REFERENCES users(id),
-  
-  -- Expiry (optional)
-  expires_at TIMESTAMP,
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  
-  CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
-);
-
-CREATE INDEX idx_user_role_user_id ON tenant_user_roles(user_id);
-CREATE INDEX idx_user_role_role_id ON tenant_user_roles(role_id);
-CREATE INDEX idx_user_role_expires_at ON tenant_user_roles(expires_at) WHERE expires_at IS NOT NULL;
-```
-
-### oauth_clients
-
-```sql
-CREATE TABLE oauth_clients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id),  -- NULL for platform clients
-  
-  -- Client identification
-  client_id VARCHAR(255) NOT NULL UNIQUE,
-  client_secret_hash VARCHAR(255) NOT NULL,  -- Hashed
-  
-  -- Configuration
-  client_name VARCHAR(255) NOT NULL,
-  redirect_uris TEXT NOT NULL,  -- Space-separated
-  grant_types TEXT NOT NULL,    -- "authorization_code refresh_token"
-  scope TEXT NOT NULL,          -- "openid profile email"
-  
-  -- Token lifetimes (in seconds)
-  access_token_validity 3600,
-  refresh_token_validity 86400,
-  
-  -- Settings
-  require_pkce BOOLEAN DEFAULT TRUE,
-  allow_introspection BOOLEAN DEFAULT TRUE,
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_by UUID,
-  removed_at TIMESTAMP NULL,
-  
-  CONSTRAINT client_id_unique UNIQUE (client_id) WHERE removed_at IS NULL
-);
-
-CREATE INDEX idx_oauth_client_tenant_id ON oauth_clients(tenant_id);
-```
-
-### sessions
-
-```sql
-CREATE TABLE sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id),
-  
-  -- Token info
-  token_hash VARCHAR(255) NOT NULL,  -- SHA256 hash of JWT
-  
-  -- Device info
-  user_agent VARCHAR(500),
-  ip_address INET,
-  
-  -- Validity
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  expires_at TIMESTAMP NOT NULL,
-  revoked_at TIMESTAMP,
-  
-  CONSTRAINT token_hash_unique UNIQUE (token_hash)
-);
-
-CREATE INDEX idx_session_user_id ON sessions(user_id);
-CREATE INDEX idx_session_expires_at ON sessions(expires_at);
-CREATE UNIQUE INDEX idx_session_active ON sessions(token_hash) WHERE revoked_at IS NULL;
-```
-
-### audit_logs
-
-```sql
-CREATE TABLE audit_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id),
-  
-  -- Event info
-  event_type VARCHAR(100) NOT NULL,  -- "USER_CREATED", "ROLE_ASSIGNED", etc.
-  severity VARCHAR(50) DEFAULT 'INFO',  -- INFO, WARNING, ERROR, CRITICAL
-  
-  -- Actor
-  actor_id UUID,  -- NULL for system events
-  actor_type VARCHAR(50) DEFAULT 'USER',  -- "USER", "SYSTEM", "API_KEY"
-  
-  -- Resource
-  resource_type VARCHAR(100),  -- "USER", "TENANT", "OAUTH_CLIENT"
-  resource_id UUID,
-  
-  -- Changes
-  old_values JSONB,
-  new_values JSONB,
-  changes JSONB,  -- Computed delta
-  
-  -- Tracking
-  trace_id VARCHAR(36),  -- Correlation ID
-  
-  -- Audit
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_audit_log_tenant_id ON audit_logs(tenant_id);
-CREATE INDEX idx_audit_log_event_type ON audit_logs(event_type);
-CREATE INDEX idx_audit_log_actor_id ON audit_logs(actor_id);
-CREATE INDEX idx_audit_log_resource_type ON audit_logs(resource_type);
-CREATE INDEX idx_audit_log_created_at ON audit_logs(created_at DESC);
-CREATE INDEX idx_audit_log_trace_id ON audit_logs(trace_id);
-```
-
----
-
-## Partitioning Strategy
-
-### Audit Logs Partitioning
-
-Para audit logs (tabla que crece sin límite), usar time-based partitioning:
-
-```sql
-CREATE TABLE audit_logs (
-  -- ... columns ...
-) PARTITION BY RANGE (created_at);
-
-CREATE TABLE audit_logs_2026_01 PARTITION OF audit_logs
-  FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
-
-CREATE TABLE audit_logs_2026_02 PARTITION OF audit_logs
-  FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
-
--- Automated partition creation
--- → Job que crea nuevas particiones mensualmente
-```
-
----
-
-## Indexes Strategy
-
-| Table | Index | Purpose |
+| Tabla | Rol | Claves / invariantes |
 |---|---|---|
-| users | `(tenant_id, email)` | Find user by email in tenant |
-| users | `(status)` | Filter active users |
-| tenant_user_roles | `(user_id, role_id)` | Prevent duplicates |
-| oauth_clients | `(client_id)` WHERE removed_at IS NULL | Unique active client |
-| audit_logs | `(tenant_id, created_at DESC)` | Recent logs for tenant |
-| sessions | `(user_id, expires_at)` | Check valid sessions |
+| `platform_users` | identidad global raiz | email unico case-insensitive; `password_hash`; estado global `PENDING`, `ACTIVE`, `SUSPENDED`, `RESET_PASSWORD`, `DELETED` |
+| `tenants` | frontera organizacional | `slug` unico; `contractor_id` opcional; `is_internal_reserved` distingue tenants reservados |
+| `tenant_users` | pertenencia de un `platform_user` a un tenant | unique `(tenant_id, platform_user_id)`; `local_username` opcional por tenant; no persiste credenciales globales |
+
+**Regla:** una persona se modela primero en `platform_users`; su participacion en tenants vive en
+`tenant_users`.
+
+### 3. OAuth clients and app access
+
+| Tabla | Rol | Claves / invariantes |
+|---|---|---|
+| `client_apps` | cliente OAuth/OIDC poseido por un tenant | `id` es PK tecnica; `client_id` es identificador publico globalmente unico; `type` = `PUBLIC` o `CONFIDENTIAL` |
+| `client_redirect_uris` | allowlist exacta de redirects | unique `(client_app_id, uri)`; wildcard prohibido |
+| `client_allowed_grants` | grants habilitados por app | unique `(client_app_id, grant_type)` |
+| `client_allowed_scopes` | scopes habilitados por app | unique `(client_app_id, scope)` |
+| `app_memberships` | acceso de un `tenant_user` a una app del mismo tenant | unique `(tenant_user_id, client_app_id)`; FK compuesta con tenant para impedir cruces invalidos |
+| `app_membership_roles` | roles de app asignados a una membership | PK `(membership_id, role_id)` y FK compuesta por app |
+
+**Regla:** el acceso a aplicaciones se modela con `app_memberships`, no con `tenant_users`
+directamente.
+
+### 4. RBAC in three scopes
+
+#### Platform RBAC
+
+- `platform_roles`
+- `platform_role_hierarchy`
+- `platform_user_roles`
+
+`platform_user_roles.scope_type` distingue `GLOBAL`, `CONTRACTOR` y `TENANT`. Los campos
+`contractor_id` y `tenant_id` se validan con esa semantica.
+
+#### Tenant RBAC
+
+- `tenant_roles`
+- `tenant_role_hierarchy`
+- `tenant_user_roles`
+
+La integridad se mantiene con FKs compuestas por tenant, evitando asignaciones cross-tenant.
+
+#### App RBAC
+
+- `app_roles`
+- `app_role_hierarchy`
+- `app_membership_roles`
+
+Los roles de app viven aislados del RBAC de plataforma y tenant. Todas las asignaciones dependen del
+`client_app_id` tecnico, no del `client_id` protocolario.
+
+#### Jerarquias
+
+Las tres jerarquias usan una forma de arbol simple:
+
+- un solo padre por hijo;
+- sin ciclos;
+- profundidad maxima de cinco niveles;
+- validacion en trigger.
+
+### 5. Sessions, OAuth artifacts and keys
+
+| Tabla | Rol | Invariantes destacadas |
+|---|---|---|
+| `platform_sessions` | sesion global de cuenta | pertenece a `platform_user`; status `ACTIVE`, `TERMINATED`, `EXPIRED`; registra device, UA e IP |
+| `signing_keys` | claves JWK/JWT | `kid` unico y publico; `tenant_id = NULL` implica clave global de plataforma |
+| `oauth_sessions` | sesion contextual tenant/app | referencia `platform_session`, `platform_user`, `tenant`, `tenant_user?`, `client_app`, `signing_key?`; trigger valida contexto exacto |
+| `authorization_codes` | auth codes hashados | validan `platform_session`, `platform_user`, `tenant`, `tenant_user?`, `client_app` y `redirect_uri` existente |
+| `refresh_tokens` | refresh tokens hashados | trigger exige match exacto con el contexto de `oauth_sessions`; soporta reemplazo via `replaced_by_id` |
+
+**Reglas clave:**
+
+- `platform_sessions` y `oauth_sessions` reemplazan al viejo `sessions`;
+- `client_apps.id` es la FK interna en artefactos OAuth; `client_id` se resuelve antes, en el borde
+  protocolario;
+- `tenant_user_id` puede ser `NULL` en `oauth_sessions` solo para clientes internos en tenants
+  reservados;
+- `authorization_codes` y `refresh_tokens` nunca persisten el secreto plano.
+
+### 6. Identity support and account activity
+
+| Tabla | Rol |
+|---|---|
+| `email_verifications` | codigos de verificacion de email por `platform_user` |
+| `password_reset_tokens` | tokens hashados para forgot/recover password |
+| `platform_user_notification_preferences` | preferencias globales de notificaciones por cuenta |
+| `platform_activity_events` | feed de actividad autoconsultable de la cuenta global |
+
+Estas tablas pertenecen al contexto de identidad global y no a un tenant especifico.
+
+### 7. Audit ledger
+
+| Tabla | Rol | Invariantes |
+|---|---|---|
+| `audit_events` | ledger principal | append-only; puede referenciar actor de plataforma, actor tenant, contractor, tenant, app y sesiones |
+| `audit_event_payloads` | payloads pesados | 1:1 con `audit_events`; append-only |
+| `audit_event_tags` | tags de busqueda | PK compuesta `(audit_event_id, tag)`; append-only |
+| `audit_entity_links` | links a entidades impactadas | append-only |
+
+**Regla:** la auditoria no se actualiza ni se borra. Los triggers de `prevent_append_only_mutation()`
+bloquean `UPDATE` y `DELETE`.
+
+### 8. Billing anchored in contractors
+
+#### Billing root
+
+| Tabla | Rol |
+|---|---|
+| `contractors` | entidad comercial propietaria de contratos y suscripciones |
+| `contractor_users` | administradores del contractor basados en `platform_users` |
+
+#### Catalog
+
+| Tabla | Rol |
+|---|---|
+| `app_plans` | planes comerciales por app |
+| `app_plan_versions` | snapshot versionado del plan |
+| `app_plan_billing_options` | periodos de cobro (`MONTHLY`, `YEARLY`, `ONE_TIME`) |
+| `app_plan_entitlements` | limites/flags/rates por version |
+
+#### Contracts and recurring state
+
+| Tabla | Rol |
+|---|---|
+| `app_contracts` | lifecycle comercial antes y durante activacion, incluyendo snapshot de contacto/empresa del onboarding |
+| `contract_email_verifications` | verificacion de email del onboarding del contrato antes de provisionar cuenta |
+| `app_subscriptions` | estado recurrente activo o pendiente por contractor y app |
+
+#### Billing execution
+
+| Tabla | Rol |
+|---|---|
+| `payment_transactions` | cobros y reembolsos |
+| `invoices` | snapshots historicos de facturacion |
+| `usage_counters` | medicion por contractor, app, metrica y periodo |
+| `tenant_billing_profiles` | perfil fiscal por tenant |
+| `payment_methods` | referencias externas de pago; nunca PAN/CVV |
+
+**Regla:** el billing se ancla en `contractors` y `platform_users`, no en identidades locales del
+tenant `keygo`. En onboarding, `app_contracts.contractor_id` puede permanecer `NULL` hasta que el
+pago mock/aprobado dispare el provisionamiento final; la validación de email previa vive en
+`contract_email_verifications`, y los datos capturados del formulario (`contractor_first_name`,
+`contractor_last_name`, `company_*`) quedan persistidos como snapshot del proceso.
 
 ---
 
-## Data Integrity Constraints
+## Cross-cutting invariants
 
-### Foreign Keys
-
-```sql
-ALTER TABLE users 
-  ADD CONSTRAINT fk_user_tenant 
-  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE;
-
-ALTER TABLE tenant_user_roles 
-  ADD CONSTRAINT fk_user_role_user 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-
-ALTER TABLE tenant_user_roles 
-  ADD CONSTRAINT fk_user_role_role 
-  FOREIGN KEY (role_id) REFERENCES tenant_roles(id) ON DELETE RESTRICT;
-```
-
-### Check Constraints
-
-```sql
--- Email format
-ALTER TABLE users 
-  ADD CONSTRAINT check_email_format 
-  CHECK (email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$');
-
--- Status values
-ALTER TABLE users 
-  ADD CONSTRAINT check_status_values 
-  CHECK (status IN ('ACTIVE', 'SUSPENDED', 'LOCKED', 'PENDING'));
-
--- Slug format
-ALTER TABLE tenants 
-  ADD CONSTRAINT check_slug_format 
-  CHECK (slug ~ '^[a-z0-9_-]+$');
-```
+1. **Identidad raiz:** `platform_users` es la identidad global; `tenant_users` solo representa
+   pertenencia.
+2. **Acceso a apps:** un usuario accede a una app mediante `app_memberships`; los roles de app se
+   asignan a la membership, no al `tenant_user` directamente.
+3. **PK tecnica vs identificador funcional:**
+   - PK tecnica: `id`
+   - funcional/protocolario: `platform_users.email`, `tenants.slug`, `client_apps.client_id`,
+     `signing_keys.kid`
+4. **Integridad multitenant fuerte:** varias tablas usan FKs compuestas para impedir relaciones
+   cross-tenant o cross-app.
+5. **Jerarquias validadas en DB:** platform, tenant y app RBAC usan triggers para ciclos y profundidad.
+6. **Auth artefacts hashados:** `authorization_codes`, `refresh_tokens` y `password_reset_tokens`
+   almacenan hashes o tokens opacos, nunca secretos planos.
+7. **Auditoria append-only:** `audit_events` y sus tablas satelite no admiten update/delete.
+8. **Estados explicitos:** el baseline actual usa enums de negocio y constraints `CHECK`; no depende
+   del patron de soft delete generico del schema anterior.
 
 ---
 
-## Migration Strategy
+## Integrity and indexing highlights
 
-### Flyway Version Control
-
-```
-db/migration/
-├── V1__Initial_schema.sql
-├── V2__Add_user_credentials.sql
-├── V3__Rename_column_to_email.sql
-├── V4__Add_audit_logs_table.sql
-├── V5__Add_oauth_clients_table.sql
-└── V6__Create_sessions_table.sql
-```
-
-### Migration Principles
-
-1. **Never delete columns** (backward compat)
-   - Add new column, migrate data, deprecate old column, delete in next major
-   
-2. **Reversible** (can rollback)
-   - Each migration should be reversible or documented why it's not
-   
-3. **Tested** (run against test DB first)
-   - Verify migration doesn't break app
-   - Test rollback
-   
-4. **Documented** (explain intent)
-   ```sql
-   -- V10__Add_mfa_enabled.sql
-   -- Purpose: Enable MFA feature for users
-   -- Rollback: DROP COLUMN users.mfa_enabled
-   
-   ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT FALSE;
-   ```
-
-### Data Migrations
-
-For schema changes that require data transformation:
-
-```sql
--- V7__Rename_password_column.sql
--- Old schema: password (plaintext - WRONG!)
--- New schema: password_hash + password_salt
-
-ALTER TABLE users 
-  ADD COLUMN password_hash VARCHAR(255),
-  ADD COLUMN password_salt VARCHAR(255),
-  ADD COLUMN password_changed_at TIMESTAMP;
-
--- Migrate existing data
-UPDATE users 
-  SET password_hash = password,
-      password_salt = ''
-  WHERE password IS NOT NULL;
-
--- Drop old column (in next major version)
--- ALTER TABLE users DROP COLUMN password;
-```
-
-### Deployment Safety
-
-```bash
-# 1. Test migration on staging
-./mvnw flyway:migrate -Dflyway.url=jdbc:postgresql://localhost:5432/keygo_test
-
-# 2. Deploy code (new migrations included)
-kubectl set image deployment/keygo-server \
-  keygo-server=ghcr.io/cmartinezs/keygo-server:v1.0.1
-
-# 3. Migrations run automatically on startup
-# → Check logs
-kubectl logs -f deployment/keygo-server
-
-# 4. Verify
-curl http://localhost:8080/actuator/health | jq '.components.flyway'
-```
+| Area | Mecanismo |
+|---|---|
+| Mutabilidad controlada | `update_updated_at_column()` en tablas mutables |
+| Append-only | `prevent_append_only_mutation()` en auditoria |
+| Identidad global | `platform_users.email` unico con `CITEXT` |
+| Tenant participation | unique `(tenant_id, platform_user_id)` en `tenant_users` |
+| Client resolution | `client_apps.client_id` globalmente unico |
+| Integridad por tenant/app | FKs compuestas en `app_roles`, `app_memberships`, `oauth_sessions`, `authorization_codes`, `refresh_tokens` |
+| Jerarquias RBAC | triggers de validacion de ciclo y profundidad |
+| Refresh token rotation | `replaced_by_id` y validacion contra `oauth_sessions` |
+| Facturacion activa | uniques parciales para contrato/suscripcion activos por contractor y app |
+| Default records | uniques parciales para `tenant_billing_profiles.is_default` y `payment_methods.is_default` |
 
 ---
 
-## Backup & Recovery
+## Seeds, analytics and related artifacts
 
-### Full Backup (pg_dump)
-
-```bash
-# Backup
-pg_dump -h localhost -U keygo keygo | gzip > backup.sql.gz
-
-# Restore
-gunzip < backup.sql.gz | psql -h localhost -U keygo keygo
-```
-
-### Point-in-Time Recovery (PITR)
-
-```yaml
-# PostgreSQL wal_level must be 'replica' or 'logical'
-wal_level = replica
-max_wal_senders = 10
-wal_keep_size = 1GB
-
-# Continuous archiving
-archive_mode = on
-archive_command = 'aws s3 cp %p s3://keygo-backups/wal/%f'
-```
-
-Restore to specific point in time:
-```bash
-# Restore from base backup
-pg_basebackup -D /var/lib/postgresql/data
-
-# WAL replay stops at recovery_target_time
-recovery_target_time = '2026-04-10 10:30:00'
-```
-
----
-
-## Performance Tuning
-
-### Connection Pooling
-
-```yaml
-# application-prod.yml
-spring:
-  datasource:
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-```
-
-### Query Optimization
-
-```sql
--- Analyze slow queries
-EXPLAIN ANALYZE
-SELECT * FROM users 
-WHERE tenant_id = 'abc' 
-AND email LIKE '%@example.com' 
-AND created_at > NOW() - INTERVAL '7 days';
-
--- Create appropriate index
-CREATE INDEX idx_users_tenant_email_date 
-ON users(tenant_id, email, created_at DESC);
-```
-
----
-
-## Anti-Patterns: Evitar
-
-### ❌ Hard delete
-
-```sql
--- MAL: Data loss, audit trail broken
-DELETE FROM users WHERE id = '...';
-```
-
-### ✅ Soft delete
-
-```sql
--- BIEN: Data preserved, can recover
-UPDATE users SET removed_at = NOW() WHERE id = '...';
--- Queries filter: WHERE removed_at IS NULL
-```
-
----
-
-### ❌ Storing sensitive data unencrypted
-
-```sql
--- MAL
-CREATE TABLE oauth_clients (
-  client_secret VARCHAR(255)  -- Plaintext!
-);
-```
-
-### ✅ Hash or encrypt sensitive data
-
-```sql
--- BIEN
-CREATE TABLE oauth_clients (
-  client_secret_hash VARCHAR(255)  -- SHA256(secret + salt)
-);
-```
-
----
-
-## Checklist: New Entity
-
-- [ ] **Design ERD** — Show relationships, cardinality
-- [ ] **Create table** — With NOT NULL, defaults, constraints
-- [ ] **Create indexes** — On FK, search, sort columns
-- [ ] **Soft delete** — Add removed_at TIMESTAMP if data should be preserved
-- [ ] **Audit trail** — created_by, updated_at, created_at
-- [ ] **Constraints** — FK, CHECK, UNIQUE where needed
-- [ ] **Partition plan** — If table grows unbounded
-- [ ] **Test migration** — Run on staging first
-- [ ] **Document** — Add ERD diagram, index strategy
+- Las migraciones `V16` y `V17` agregan datos de desarrollo y billing de ejemplo sobre este schema.
+- `keygo-run/src/main/resources/data-local.sql` debe mantenerse alineado con este baseline.
+- Las consultas analiticas viven fuera de Flyway en `sql/platform_dashboards/`, pero deben consultar
+  las tablas vigentes de este documento.
 
 ---
 
 ## Referencias
 
-| Aspecto | Ubicación |
+| Aspecto | Ubicacion |
 |---|---|
-| **Migrations** | `keygo-supabase/src/main/resources/db/migration/` |
-| **Entities** | `keygo-domain/src/main/java/io/cmartinezs/keygo/domain/*/entity/` |
-| **Repositories** | `keygo-infra/src/main/java/io/cmartinezs/keygo/infra/repository/` |
-| **JPA Specs** | `keygo-infra/src/main/java/io/cmartinezs/keygo/infra/repository/spec/` |
-
----
-
-**Última actualización:** 2026-04-10  
-**Estado:** Completado para Sprint 4  
-**Próxima:** SECURITY_GUIDELINES.md
+| Flyway baseline activo | `keygo-supabase/src/main/resources/db/migration/` |
+| Inventario de migraciones | `../08-reference/data/migrations.md` |
+| Referencia de datos | `../08-reference/data/` |
+| RFC del refactor DDL | `../04-decisions/rfcs/ddl-full-refactor/README.md` |

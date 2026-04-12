@@ -9,11 +9,12 @@
 # Este script cambia entre diferentes configuraciones de ambiente
 # copiando el archivo seleccionado a la raíz del proyecto como .env
 #
-# Templates: envs/.env-{environment}   (en la raíz del proyecto)
+# Templates: envs/.env.<environment>   (preferred)
+#            envs/.env-{environment}   (legacy compatibility)
 # Active .env: .env                    (en la raíz del proyecto)
 # =========================================================
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -24,7 +25,7 @@ NC='\033[0m' # No Color
 
 # Resolve directories
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 ENVS_DIR="$PROJECT_ROOT/envs"
 ENV_TARGET="$PROJECT_ROOT/.env"
 
@@ -39,18 +40,61 @@ show_usage() {
     echo "Usage / Uso:"
     echo "  $0 [environment]"
     echo ""
-    echo "Available environments / Ambientes disponibles:"
-    echo "  local - Local development with Docker Compose"
-    echo "  desa  - Development/Staging Supabase instance"
-    echo "  prod  - Production Supabase instance"
+    echo "Environment files / Archivos de ambiente:"
+    echo "  Preferred / Preferido: $ENVS_DIR/.env.<name>"
+    echo "  Legacy / Heredado:     $ENVS_DIR/.env-<name>"
     echo ""
     echo "Example / Ejemplo:"
     echo "  $0 local"
+    echo "  $0 h2"
     echo "  $0 desa"
     echo ""
     echo "Templates location / Ubicación de templates:"
     echo "  $ENVS_DIR/"
     echo ""
+}
+
+list_environment_files() {
+    local env_file
+    shopt -s nullglob
+    for env_file in "$ENVS_DIR"/.env.* "$ENVS_DIR"/.env-*; do
+        case "$(basename "$env_file")" in
+            .env.example|.env.backup.*) continue ;;
+        esac
+        [ -f "$env_file" ] && printf '%s\n' "$env_file"
+    done
+    shopt -u nullglob
+}
+
+environment_name_from_file() {
+    local env_file="$1"
+    local file_name
+    file_name="$(basename "$env_file")"
+    file_name="${file_name#'.env.'}"
+    file_name="${file_name#'.env-'}"
+    printf '%s\n' "$file_name"
+}
+
+resolve_template_file() {
+    local env="$1"
+    local candidate
+    local candidates=(
+        "$ENVS_DIR/.env.$env"
+        "$ENVS_DIR/.env-$env"
+    )
+
+    if [ "$env" = "local" ]; then
+        candidates+=("$ENVS_DIR/.env.h2")
+    fi
+
+    for candidate in "${candidates[@]}"; do
+        if [ -f "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 # Function to backup current .env if exists
@@ -80,7 +124,11 @@ show_current_env() {
 # Function to switch environment
 switch_environment() {
     local ENV=$1
-    local TEMPLATE_FILE="$ENVS_DIR/.env-$ENV"
+    local TEMPLATE_FILE=""
+
+    if ! TEMPLATE_FILE="$(resolve_template_file "$ENV")"; then
+        TEMPLATE_FILE="$ENVS_DIR/.env.$ENV"
+    fi
 
     # Check if template file exists
     if [ ! -f "$TEMPLATE_FILE" ]; then
@@ -88,7 +136,7 @@ switch_environment() {
         echo -e "${RED}   Looking for: $TEMPLATE_FILE${NC}"
         echo ""
         echo "Please create the file first using .env.example as template:"
-        echo "  cp $ENVS_DIR/.env.example $ENVS_DIR/.env-$ENV"
+        echo "  cp $ENVS_DIR/.env.example $ENVS_DIR/.env.$ENV"
         echo ""
         exit 1
     fi
@@ -145,7 +193,7 @@ switch_environment() {
     echo "  2. Restart your application or IDE to apply changes"
     echo ""
 
-    if [ "$ENV" = "local" ]; then
+    if [ "$ENV" = "local" ] || [ "$ENV" = "h2" ]; then
         echo -e "${BLUE}💡 Local Development Tips:${NC}"
         echo "  • Menú principal:         ./scripts/keygo.sh"
         echo "  • Start local database:   ./scripts/keygo.sh 5  (o ./scripts/db/start.sh)"
@@ -173,25 +221,27 @@ switch_environment() {
 list_environments() {
     echo -e "${BLUE}Available Environment Templates / Plantillas de Ambiente Disponibles:${NC}"
     echo "  Location: $ENVS_DIR"
+    echo "  Naming:   .env.<name> (preferred) or .env-<name> (legacy)"
     echo "────────────────────────────────────────────────────────"
 
     local found=false
-    for env_file in "$ENVS_DIR"/.env-*; do
+    while IFS= read -r env_file; do
         if [ -f "$env_file" ]; then
             found=true
-            ENV_NAME=$(basename "$env_file" | sed 's/\.env-//')
+            ENV_NAME="$(environment_name_from_file "$env_file")"
             ENV_VAR=$(grep "^KEYGO_ENV=" "$env_file" 2>/dev/null | cut -d'=' -f2)
             PROFILES=$(grep "^SPRING_PROFILES_ACTIVE=" "$env_file" 2>/dev/null | cut -d'=' -f2)
             echo -e "  • ${GREEN}$ENV_NAME${NC}"
+            echo -e "    file=$env_file"
             [ -n "$ENV_VAR" ]  && echo -e "    KEYGO_ENV=$ENV_VAR"
             [ -n "$PROFILES" ] && echo -e "    SPRING_PROFILES_ACTIVE=$PROFILES"
         fi
-    done
+    done < <(list_environment_files)
 
     if [ "$found" = false ]; then
         echo -e "  ${YELLOW}No templates found in $ENVS_DIR${NC}"
         echo "  Create one from the example:"
-        echo "    cp $ENVS_DIR/.env.example $ENVS_DIR/.env-local"
+        echo "    cp $ENVS_DIR/.env.example $ENVS_DIR/.env.local"
     fi
     echo ""
 }
@@ -214,9 +264,6 @@ fi
 ENV_PARAM=$1
 
 case $ENV_PARAM in
-    local|desa|prod)
-        switch_environment "$ENV_PARAM"
-        ;;
     list)
         list_environments
         ;;
@@ -224,11 +271,9 @@ case $ENV_PARAM in
         show_usage
         ;;
     *)
-        echo -e "${RED}❌ Invalid environment: $ENV_PARAM${NC}"
-        echo ""
-        show_usage
-        exit 1
+        switch_environment "$ENV_PARAM"
         ;;
 esac
+
 
 

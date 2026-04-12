@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
-import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,8 +24,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "payment_methods",
     indexes = {
-        @Index(name = "idx_payment_methods_tenant",  columnList = "tenant_id"),
-        @Index(name = "idx_payment_methods_status",  columnList = "tenant_id, status")
+        @Index(name = "idx_payment_methods_contractor",  columnList = "contractor_id"),
+        @Index(name = "idx_payment_methods_status",  columnList = "contractor_id, status")
     })
 public class PaymentMethodEntity {
 
@@ -35,8 +34,8 @@ public class PaymentMethodEntity {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "tenant_id", nullable = false)
-  private TenantEntity tenant;
+  @JoinColumn(name = "contractor_id", nullable = false)
+  private ContractorEntity contractor;
 
   @Column(nullable = false, length = 50)
   private String provider;
@@ -44,22 +43,22 @@ public class PaymentMethodEntity {
   @Column(name = "method_type", nullable = false, length = 20)
   private String methodType;
 
-  @Column(name = "provider_token", length = 500)
+  @Column(name = "external_reference", nullable = false, length = 255)
   private String providerToken;
 
-  @Column(name = "last_four", length = 4)
+  @Column(name = "last4", length = 4)
   private String lastFour;
 
-  @Column(name = "card_brand", length = 50)
+  @Column(name = "brand", length = 50)
   private String cardBrand;
 
-  @Column(name = "expiry_month")
+  @Column(name = "exp_month")
   private Short expiryMonth;
 
-  @Column(name = "expiry_year")
+  @Column(name = "exp_year")
   private Short expiryYear;
 
-  @Column(name = "paypal_email", length = 255)
+  @Transient
   private String paypalEmail;
 
   @Column(name = "display_label", length = 100)

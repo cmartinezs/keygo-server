@@ -159,13 +159,13 @@
 |---|---|---|---|---|---|
 | `GET` | `/api/v1/platform/billing/catalog` | ADMIN | `BaseResponse<List<BillingPlanCatalogData>>` | 200, 401 | Obtener catálogo de planes |
 | `GET` | `/api/v1/platform/billing/catalog/{planCode}` | ADMIN | `BaseResponse<BillingPlanCatalogData>` | 200, 401, 404 | Obtener plan específico |
-| `POST` | `/api/v1/billing/contracts` | — | `BaseResponse<ContractData>` | 201, 400, 409 | Crear contrato de facturación |
-| `GET` | `/api/v1/billing/contracts/{contractId}` | — | `BaseResponse<ContractData>` | 200, 401, 404 | Obtener contrato |
-| `GET` | `/api/v1/billing/contracts/{contractId}/resume` | — | `BaseResponse<ContractResumeData>` | 200, 401, 404 | Obtener resumen de contrato |
-| `POST` | `/api/v1/billing/contracts/{contractId}/verify-email` | — | `BaseResponse<Void>` | 200, 400, 404 | Verificar email del contrato |
-| `POST` | `/api/v1/billing/contracts/{contractId}/resend-verification` | — | `BaseResponse<Void>` | 200, 400, 404 | Reenviar verification email |
-| `POST` | `/api/v1/billing/contracts/{contractId}/activate` | — | `BaseResponse<ContractData>` | 200, 400, 404 | Activar contrato |
-| `POST` | `/api/v1/billing/contracts/{contractId}/mock-approve-payment` | — | `BaseResponse<ContractData>` | 200, 400, 404 | (MOCK) Simular aprobación de pago |
+| `POST` | `/api/v1/billing/contracts` | — | `BaseResponse<AppContractData>` | 201, 400, 404, 409 | Crear contrato de facturación |
+| `GET` | `/api/v1/billing/contracts/{contractId}` | — | `BaseResponse<AppContractData>` | 200, 404 | Obtener contrato |
+| `GET` | `/api/v1/billing/contracts/{contractId}/resume` | — | `BaseResponse<AppContractResumeData>` | 200, 404, 422 | Obtener estado de onboarding para restaurar la UI |
+| `POST` | `/api/v1/billing/contracts/{contractId}/verify-email` | — | `BaseResponse<AppContractData>` | 200, 400, 404, 422 | Verificar email del contrato |
+| `POST` | `/api/v1/billing/contracts/{contractId}/resend-verification` | — | `BaseResponse<AppContractData>` | 200, 404, 422 | Reenviar verification email |
+| `POST` | `/api/v1/billing/contracts/{contractId}/activate` | — | `BaseResponse<AppContractData>` | 200, 404, 422 | Activar contrato |
+| `POST` | `/api/v1/billing/contracts/{contractId}/mock-approve-payment` | — | `BaseResponse<AppContractData>` | 200, 404, 422 | (MOCK) Simular aprobación de pago y provisionamiento final |
 | `GET` | `/api/v1/platform/billing/subscription` | User | `BaseResponse<SubscriptionData>` | 200, 401 | Obtener suscripción del usuario/tenant |
 | `POST` | `/api/v1/platform/billing/subscription/cancel` | User | `BaseResponse<Void>` | 200, 401, 403 | Cancelar suscripción |
 | `GET` | `/api/v1/platform/billing/invoices` | User | `BaseResponse<List<InvoiceData>>` | 200, 401 | Listar facturas |

@@ -11,15 +11,26 @@ Quick-start técnico para agentes que trabajan en este repositorio.
 
 ## Mapa de módulos
 
-```text
-keygo-domain   <- dominio puro, sin Spring
-keygo-app      <- use cases + puertos OUT
-keygo-infra    <- JWT signer, JWKS builder, PKCE verifier
-keygo-api      <- controllers REST + DTOs + OpenAPI
-keygo-supabase <- JPA + Flyway + PostgreSQL
-keygo-run      <- main, wiring, seguridad y application.yml
-keygo-bom      <- versionado de dependencias
-keygo-common   <- utilidades compartidas
+```mermaid
+flowchart TD
+    domain["keygo-domain<br/>dominio puro, sin Spring"]
+    app["keygo-app<br/>use cases + puertos OUT"]
+    infra["keygo-infra<br/>JWT signer, JWKS builder, PKCE verifier"]
+    api["keygo-api<br/>controllers REST + DTOs + OpenAPI"]
+    supabase["keygo-supabase<br/>JPA + Flyway + PostgreSQL"]
+    run["keygo-run<br/>main, wiring, seguridad y application.yml"]
+    bom["keygo-bom<br/>versionado de dependencias"]
+    common["keygo-common<br/>utilidades compartidas"]
+
+    app --> domain
+    infra --> app
+    api --> app
+    supabase --> app
+    run --> api
+    run --> infra
+    run --> supabase
+    run --> common
+    run --> bom
 ```
 
 ## Reglas críticas
@@ -33,6 +44,7 @@ keygo-common   <- utilidades compartidas
 - Columnas JSONB: `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`.
 - `context-path` activo: `/keygo-server`.
 - Seguridad admin vigente: `Authorization: Bearer <jwt>`.
+- Diagramas: Mermaid primero, PlantUML si Mermaid no aplica, ASCII solo como último recurso.
 
 ## Comandos útiles
 

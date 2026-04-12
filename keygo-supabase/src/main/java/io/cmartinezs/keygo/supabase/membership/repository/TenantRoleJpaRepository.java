@@ -20,7 +20,5 @@ public interface TenantRoleJpaRepository extends JpaRepository<TenantRoleEntity,
 
   List<TenantRoleEntity> findByTenantId(UUID tenantId);
 
-  List<TenantRoleEntity> findByTenantIdAndActive(UUID tenantId, boolean active);
-
   boolean existsByTenantIdAndCode(UUID tenantId, String code);
 }

@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.supabase.billing.entity;
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
@@ -53,6 +54,10 @@ public class UsageCounterEntity {
   @Column(name = "used_value", nullable = false)
   @Builder.Default
   private long usedValue = 0;
+
+  @CreationTimestamp
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private OffsetDateTime createdAt;
 
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)

@@ -1,7 +1,6 @@
 package io.cmartinezs.keygo.domain.billing.contracting.model;
 
 import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
-import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -36,12 +35,8 @@ public class AppContract {
   private final String companyTaxId;
   private final String companyAddress;
 
-  // Contractor link (set during email verification → PENDING_PAYMENT transition)
+  // Contractor link (set during payment approval / provisioning)
   private UUID contractorId;
-
-  // Email verification (independent from email_verifications table)
-  private String verificationCode;
-  private OffsetDateTime verificationCodeExpiresAt;
 
   // Traceability
   private OffsetDateTime emailVerifiedAt;
@@ -64,8 +59,6 @@ public class AppContract {
       String companyTaxId,
       String companyAddress,
       UUID contractorId,
-      String verificationCode,
-      OffsetDateTime verificationCodeExpiresAt,
       OffsetDateTime emailVerifiedAt,
       OffsetDateTime paymentVerifiedAt,
       OffsetDateTime expiresAt,
@@ -90,8 +83,6 @@ public class AppContract {
     this.companyTaxId = companyTaxId;
     this.companyAddress = companyAddress;
     this.contractorId = contractorId;
-    this.verificationCode = verificationCode;
-    this.verificationCodeExpiresAt = verificationCodeExpiresAt;
     this.emailVerifiedAt = emailVerifiedAt;
     this.paymentVerifiedAt = paymentVerifiedAt;
     this.expiresAt = expiresAt;
@@ -140,70 +131,28 @@ public class AppContract {
     return ContractStatus.ACTIVE.equals(this.status);
   }
 
-  /**
-   * Returns true if the verification code has expired.
-   * <p>Retorna true si el código de verificación ha expirado.
-   */
-  public boolean isVerificationCodeExpired() {
-    return verificationCodeExpiresAt != null && OffsetDateTime.now().isAfter(verificationCodeExpiresAt);
-  }
-
-  /**
-   * Renews the verification code (used when resending an expired code).
-   * Only valid in PENDING_EMAIL_VERIFICATION status.
-   * <p>Renueva el código de verificación (usado cuando se reenvía un código expirado).
-   * Solo válido en estado PENDING_EMAIL_VERIFICATION.
-   *
-   * @throws IllegalStateException if the contract is not in PENDING_EMAIL_VERIFICATION state
-   */
-  public void renewVerificationCode(String newCode, OffsetDateTime newExpiresAt, OffsetDateTime now) {
-    if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
-      throw new ContractStateViolationException(this.id, this.status, "renewVerificationCode");
-    }
-    this.verificationCode = newCode;
-    this.verificationCodeExpiresAt = newExpiresAt;
-    this.updatedAt = now;
-  }
-
-  /**
-   * Validates the verification code without mutating state.
-   * Call this BEFORE any side effects (user/contractor creation).
-   *
-   * @throws ContractStateViolationException       if contract is not in PENDING_EMAIL_VERIFICATION
-   * @throws ContractVerificationCodeInvalidException if code is wrong or expired
-   */
-  public void validateVerificationCode(String inputCode, OffsetDateTime now) {
-    if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
-      throw new ContractStateViolationException(this.id, this.status, "validateVerificationCode");
-    }
-    if (this.verificationCode == null || !this.verificationCode.equalsIgnoreCase(inputCode)) {
-      throw new ContractVerificationCodeInvalidException(this.id);
-    }
-    if (this.verificationCodeExpiresAt != null && now.isAfter(this.verificationCodeExpiresAt)) {
-      throw new ContractVerificationCodeInvalidException(this.id, "code has expired");
-    }
-  }
-
-  /**
-   * Verifies the email verification code and advances the status to PENDING_PAYMENT.
-   * Also links the given contractorId to this contract.
-   * Assumes {@link #validateVerificationCode(String, OffsetDateTime)} was already called.
-   */
-  public void verifyCode(String inputCode, UUID resolvedContractorId, OffsetDateTime now) {
-    validateVerificationCode(inputCode, now);
-    this.contractorId = resolvedContractorId;
-    markEmailVerified(now);
-  }
-
   public void markEmailVerified(OffsetDateTime verifiedAt) {
-    this.emailVerifiedAt = verifiedAt;
-    if (ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
-      this.status = ContractStatus.PENDING_PAYMENT;
+    if (!ContractStatus.PENDING_EMAIL_VERIFICATION.equals(this.status)) {
+      throw new ContractStateViolationException(this.id, this.status, "markEmailVerified");
     }
+    this.emailVerifiedAt = verifiedAt;
+    this.status = ContractStatus.PENDING_PAYMENT;
     this.updatedAt = verifiedAt;
   }
 
+  public void linkContractor(UUID linkedContractorId, OffsetDateTime now) {
+    if (linkedContractorId == null) {
+      throw new IllegalArgumentException("linkedContractorId cannot be null");
+    }
+    this.contractorId = linkedContractorId;
+    this.updatedAt = now;
+  }
+
   public void markPaymentApproved(OffsetDateTime approvedAt) {
+    if (!ContractStatus.PENDING_PAYMENT.equals(this.status)
+        && !ContractStatus.READY_TO_ACTIVATE.equals(this.status)) {
+      throw new ContractStateViolationException(this.id, this.status, "markPaymentApproved");
+    }
     this.paymentVerifiedAt = approvedAt;
     this.status = ContractStatus.READY_TO_ACTIVATE;
     this.updatedAt = approvedAt;

@@ -65,15 +65,11 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .companyName(c.getCompanyName())
         .companyTaxId(c.getCompanyTaxId())
         .companyAddress(c.getCompanyAddress())
-        .verificationCode(c.getVerificationCode())
-        .verificationCodeExpiresAt(c.getVerificationCodeExpiresAt())
         .emailVerifiedAt(c.getEmailVerifiedAt())
         .paymentVerifiedAt(c.getPaymentVerifiedAt())
         .expiresAt(c.getExpiresAt());
 
-    if (c.getClientAppId() != null) {
-      builder.clientApp(clientAppRepo.getReferenceById(c.getClientAppId()));
-    }
+    builder.clientApp(clientAppRepo.getReferenceById(c.getClientAppId()));
     if (c.getContractorId() != null) {
       builder.contractor(contractorRepo.getReferenceById(c.getContractorId()));
     }

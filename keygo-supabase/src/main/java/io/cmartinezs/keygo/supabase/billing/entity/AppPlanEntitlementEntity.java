@@ -5,7 +5,10 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.catalog.model.PeriodType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -53,5 +56,13 @@ public class AppPlanEntitlementEntity {
   @Column(name = "is_enabled", nullable = false)
   @Builder.Default
   private boolean isEnabled = true;
+
+  @CreationTimestamp
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private OffsetDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private OffsetDateTime updatedAt;
 }
 

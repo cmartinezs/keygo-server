@@ -16,7 +16,7 @@ public interface RefreshTokenJpaRepository extends JpaRepository<RefreshTokenEnt
 
   Optional<RefreshTokenEntity> findByTokenHash(String tokenHash);
 
-  List<RefreshTokenEntity> findBySessionId(UUID sessionId);
+  List<RefreshTokenEntity> findBySession_Id(UUID sessionId);
 
   @Modifying
   @Query("UPDATE RefreshTokenEntity rt SET rt.status = 'REVOKED' WHERE rt.session.id = :sessionId AND rt.status = 'ACTIVE'")

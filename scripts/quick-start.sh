@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "🚀 KeyGo + Supabase Quick Start"
 echo "================================"
@@ -76,6 +76,6 @@ echo "▶️  To start the application, run:"
 echo "   ./mvnw spring-boot:run -pl keygo-run"
 echo ""
 echo "🛑 To stop the database:"
-echo "   ./docs/scripts/db/stop.sh"
+echo "   ./scripts/db/stop.sh"
 echo ""
 

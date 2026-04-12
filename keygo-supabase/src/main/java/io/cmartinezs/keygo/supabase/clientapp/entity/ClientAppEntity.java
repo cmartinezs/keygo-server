@@ -42,6 +42,9 @@ public class ClientAppEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
+  @Column(name = "tenant_id", nullable = false, insertable = false, updatable = false)
+  private UUID tenantId;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "tenant_id", nullable = false)
   private TenantEntity tenant;

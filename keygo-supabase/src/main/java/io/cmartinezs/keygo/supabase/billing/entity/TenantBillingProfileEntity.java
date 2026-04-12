@@ -38,38 +38,43 @@ public class TenantBillingProfileEntity {
   @Column(name = "billing_type", nullable = false, length = 20)
   private String billingType;
 
-  @Column(name = "billing_name", nullable = false, length = 300)
+  @Column(name = "display_name", nullable = false, length = 255)
   private String billingName;
+
+  @Column(name = "legal_name", length = 255)
+  private String legalName;
 
   @Column(name = "tax_id", length = 100)
   private String taxId;
 
-  @Column(name = "tax_regime", length = 100)
+  @Transient
   private String taxRegime;
 
-  @Column(name = "address_line1", length = 300)
+  @Column(name = "billing_address", columnDefinition = "TEXT")
   private String addressLine1;
 
-  @Column(name = "address_line2", length = 300)
+  @Transient
   private String addressLine2;
 
+  @Transient
   @Column(length = 100)
   private String city;
 
+  @Transient
   @Column(length = 100)
   private String state;
 
-  @Column(nullable = false, length = 2)
+  @Transient
   @Builder.Default
   private String country = "MX";
 
-  @Column(name = "postal_code", length = 20)
+  @Transient
   private String postalCode;
 
-  @Column(name = "contact_email", length = 255)
+  @Column(name = "billing_email", nullable = false, length = 255)
   private String contactEmail;
 
-  @Column(name = "contact_phone", length = 50)
+  @Transient
   private String contactPhone;
 
   @Column(name = "is_default", nullable = false)

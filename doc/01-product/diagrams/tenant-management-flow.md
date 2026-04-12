@@ -15,27 +15,21 @@ sequenceDiagram
     participant DB as 🗄️ Database
     participant Email as 📧 Email Service
 
-    Admin->>API: 1. POST /api/v1/tenants<br/>Header: Bearer {admin_token}<br/>body: { slug, name }
+    Admin->>API: 1. POST /api/v1/tenants<br/>Header: Bearer {admin_token}<br/>body: { name }
     
     API->>API: 2. Validate Bearer token:<br/>• Extract iss, aud<br/>• Verify signature<br/>• Check role=ADMIN
 
-    API->>DB: 3. CHECK slug UNIQUE<br/>SELECT * FROM tenants WHERE slug=?
+    API->>API: 3. Derivar slug desde `name`
 
-    API->>API: 4. Validate slug:<br/>• 3-50 chars<br/>• lowercase, alphanumeric, dash<br/>• Not reserved
+    API->>DB: 4. CHECK slug UNIQUE<br/>SELECT * FROM tenants WHERE slug=?
 
     API->>DB: 5. BEGIN TRANSACTION
 
     API->>DB: 6. INSERT tenants<br/>{ slug, name, status=ACTIVE,<br/>  created_at, updated_at }
 
-    API->>DB: 7. INSERT signing_keys<br/>{ tenant_id, algorithm=RSA,<br/>  key_id, active=true }
+    API->>DB: 7. COMMIT
 
-    API->>DB: 8. INSERT app_roles<br/>(default roles:<br/> ADMIN, USER, VIEWER)<br/>per tenant
-
-    API->>DB: 9. COMMIT
-
-    API->>Email: 10. Enviar email:<br/>"Tenant creado: {slug}"
-
-    API->>Admin: 11. Return 201<br/>tenantId + slug + name + status + createdAt
+    API->>Admin: 8. Return 201<br/>tenantId + slug + name + status
 ```
 
 ---

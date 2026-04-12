@@ -44,13 +44,14 @@ public class TenantEntity {
   @Column(nullable = false)
   private String name;
 
-  @Column(name = "owner_email", nullable = false)
-  private String ownerEmail;
-
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   @Builder.Default
   private TenantStatus status = TenantStatus.ACTIVE;
+
+  @Column(name = "is_internal_reserved", nullable = false)
+  @Builder.Default
+  private boolean internalReserved = false;
 
   /** NULL = system/platform tenant. NOT NULL = created by a contractor. */
   @ManyToOne(fetch = FetchType.LAZY)

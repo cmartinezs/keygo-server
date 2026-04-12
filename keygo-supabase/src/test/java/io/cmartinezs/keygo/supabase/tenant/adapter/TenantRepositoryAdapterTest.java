@@ -26,7 +26,6 @@ class TenantRepositoryAdapterTest {
 
   private static final String TEST_SLUG = "my-org";
   private static final String TEST_NAME = "Test Tenant";
-  private static final String TEST_EMAIL = "owner@test.com";
 
   @Mock
   private TenantJpaRepository jpaRepository;
@@ -43,7 +42,6 @@ class TenantRepositoryAdapterTest {
         .id(UUID.randomUUID())
         .slug(slug)
         .name(TEST_NAME)
-        .ownerEmail(TEST_EMAIL)
         .status(TenantStatus.ACTIVE)
         .build();
   }
@@ -53,7 +51,6 @@ class TenantRepositoryAdapterTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(TEST_SLUG))
         .name(TEST_NAME)
-        .ownerEmail(TEST_EMAIL)
         .status(TenantStatus.ACTIVE)
         .build();
   }

@@ -48,7 +48,6 @@ class ListClientAppsUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("Acme Corp")
-        .ownerEmail("owner@acme.com")
         .status(TenantStatus.ACTIVE)
         .build();
   }

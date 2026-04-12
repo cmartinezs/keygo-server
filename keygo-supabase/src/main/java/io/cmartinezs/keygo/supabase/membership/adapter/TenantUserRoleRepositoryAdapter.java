@@ -11,7 +11,6 @@ import io.cmartinezs.keygo.supabase.membership.repository.TenantUserRoleJpaRepos
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 import io.cmartinezs.keygo.supabase.user.repository.TenantUserJpaRepository;
 import jakarta.transaction.Transactional;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -19,8 +18,8 @@ import org.springframework.stereotype.Repository;
 /**
  * Adapter: implements TenantUserRoleRepositoryPort using JPA persistence.
  * <p>Adaptador: implementa TenantUserRoleRepositoryPort usando persistencia JPA.
- * Revocation uses soft-delete (sets removed_at) to preserve audit history.
- * <p>La revocación utiliza eliminación lógica (establece removed_at) para preservar el historial.
+ * Revocation deletes the join row because the baseline table has no soft-delete column.
+ * <p>La revocación elimina la fila del vínculo porque la tabla baseline no tiene columna de soft-delete.
  * @author cmartinezs
  * @version 1.0
  */
@@ -51,9 +50,11 @@ public class TenantUserRoleRepositoryAdapter implements TenantUserRoleRepository
             "TenantRole not found: " + tenantRoleId));
 
     TenantUserRoleEntity entity = TenantUserRoleEntity.builder()
+        .tenantUserId(tenantUser.getId())
+        .tenantRoleId(tenantRole.getId())
+        .tenantId(tenantUser.getTenant().getId())
         .tenantUser(tenantUser)
         .tenantRole(tenantRole)
-        .assignedAt(OffsetDateTime.now())
         .build();
 
     return MembershipPersistenceMapper.toDomain(jpaRepository.save(entity));
@@ -62,20 +63,12 @@ public class TenantUserRoleRepositoryAdapter implements TenantUserRoleRepository
   @Override
   @Transactional
   public void revoke(UUID tenantUserId, UUID tenantRoleId) {
-    jpaRepository.findActiveByTenantUserIdAndRoleCode(tenantUserId,
-        tenantRoleJpaRepository.findById(tenantRoleId)
-            .orElseThrow(() -> new TenantRolePersistenceException(
-                "TenantRole not found: " + tenantRoleId))
-            .getCode())
-        .ifPresent(entity -> {
-          entity.setRemovedAt(OffsetDateTime.now());
-          jpaRepository.save(entity);
-        });
+    jpaRepository.deleteByTenantUserIdAndTenantRoleId(tenantUserId, tenantRoleId);
   }
 
   @Override
   public List<TenantUserRole> findActiveByTenantUserId(UUID tenantUserId) {
-    return jpaRepository.findActiveByTenantUserId(tenantUserId)
+    return jpaRepository.findByTenantUserId(tenantUserId)
         .stream()
         .map(MembershipPersistenceMapper::toDomain)
         .toList();
@@ -91,6 +84,6 @@ public class TenantUserRoleRepositoryAdapter implements TenantUserRoleRepository
 
   @Override
   public boolean hasActiveRole(UUID tenantUserId, UUID tenantRoleId) {
-    return jpaRepository.existsActiveByTenantUserIdAndTenantRoleId(tenantUserId, tenantRoleId);
+    return jpaRepository.existsByTenantUserIdAndTenantRoleId(tenantUserId, tenantRoleId);
   }
 }

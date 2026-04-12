@@ -1,9 +1,7 @@
 package io.cmartinezs.keygo.domain.membership.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -27,11 +25,10 @@ class TenantUserRoleTest {
     assertThat(tur.getTenantUserId()).isNotNull();
     assertThat(tur.getTenantRoleId()).isNotNull();
     assertThat(tur.getAssignedAt()).isNotNull();
-    assertThat(tur.getRemovedAt()).isNull();
   }
 
   @Test
-  void isActive_whenRemovedAtIsNull_returnsTrue() {
+  void isActive_whenAssignmentExists_returnsTrue() {
     // Given
     TenantUserRole tur = buildRole();
 
@@ -40,43 +37,11 @@ class TenantUserRoleTest {
   }
 
   @Test
-  void isActive_whenRemovedAtIsSet_returnsFalse() {
-    // Given
-    TenantUserRole tur = TenantUserRole.builder()
-        .id(TenantUserRoleId.generate())
-        .tenantUserId(UUID.randomUUID())
-        .tenantRoleId(TenantRoleId.generate())
-        .removedAt(Instant.now())
-        .build();
-
-    // When / Then
-    assertThat(tur.isActive()).isFalse();
-  }
-
-  @Test
-  void revoke_setsRemovedAt() {
+  void toString_marksAssignmentAsActive() {
     // Given
     TenantUserRole tur = buildRole();
-    assertThat(tur.isActive()).isTrue();
-
-    // When
-    tur.revoke();
 
     // Then
-    assertThat(tur.isActive()).isFalse();
-    assertThat(tur.getRemovedAt()).isNotNull();
-  }
-
-  @Test
-  void revoke_whenAlreadyRevoked_throwsException() {
-    // Given
-    TenantUserRole tur = buildRole();
-    tur.revoke();
-    assertThat(tur.isActive()).isFalse();
-
-    // When / Then
-    assertThatThrownBy(tur::revoke)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already revoked");
+    assertThat(tur.toString()).contains("ACTIVE");
   }
 }

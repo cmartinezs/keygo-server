@@ -65,7 +65,7 @@ class GetUserAccessUseCaseTest {
     tenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
-        .name("ACME").ownerEmail("owner@acme.com")
+        .name("ACME")
         .status(TenantStatus.ACTIVE).build();
 
     when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of(mock(SigningKey.class)));

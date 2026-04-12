@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,14 +37,16 @@ import org.hibernate.annotations.UpdateTimestamp;
     },
     indexes = {
       @Index(name = "idx_tenant_roles_tenant_id", columnList = "tenant_id"),
-      @Index(name = "idx_tenant_roles_code", columnList = "code"),
-      @Index(name = "idx_tenant_roles_active", columnList = "active")
+      @Index(name = "idx_tenant_roles_code", columnList = "code")
     })
 public class TenantRoleEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
+
+  @Column(name = "tenant_id", nullable = false, insertable = false, updatable = false)
+  private UUID tenantId;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "tenant_id", nullable = false)
@@ -52,13 +55,15 @@ public class TenantRoleEntity {
   @Column(nullable = false, length = 50)
   private String code;
 
-  @Column(nullable = false, length = 255)
+  @Column(name = "display_name", length = 255)
   private String name;
 
   @Column(columnDefinition = "TEXT")
   private String description;
 
-  @Column(nullable = false)
+  @Transient
+  @Getter(AccessLevel.NONE)
+  @Setter(AccessLevel.NONE)
   @Builder.Default
   private boolean active = true;
 
@@ -69,4 +74,12 @@ public class TenantRoleEntity {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
+
+  public boolean isActive() {
+    return active;
+  }
+
+  public void setActive(boolean active) {
+    this.active = active;
+  }
 }

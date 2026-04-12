@@ -14,14 +14,12 @@ class TenantTest {
 
   private static final String VALID_SLUG = "my-tenant";
   private static final String VALID_NAME = "My Tenant";
-  private static final String VALID_EMAIL = "owner@example.com";
 
   private Tenant validTenant() {
     return Tenant.builder()
         .id(TenantId.generate())
         .slug(TenantSlug.of(VALID_SLUG))
         .name(VALID_NAME)
-        .ownerEmail(VALID_EMAIL)
         .status(TenantStatus.ACTIVE)
         .build();
   }
@@ -37,7 +35,6 @@ class TenantTest {
     assertThat(tenant.isSuspended()).isFalse();
     assertThat(tenant.getSlug().value()).isEqualTo(VALID_SLUG);
     assertThat(tenant.getName()).isEqualTo(VALID_NAME);
-    assertThat(tenant.getOwnerEmail()).isEqualTo(VALID_EMAIL);
   }
 
   @Test
@@ -91,7 +88,6 @@ class TenantTest {
         .id(null)
         .slug(TenantSlug.of("abc"))
         .name("Name")
-        .ownerEmail("e@e.com")
         .status(TenantStatus.ACTIVE)
         .build();
 
@@ -107,7 +103,6 @@ class TenantTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of("abc"))
         .name("  ")
-        .ownerEmail("e@e.com")
         .status(TenantStatus.ACTIVE);
 
     // When / Then

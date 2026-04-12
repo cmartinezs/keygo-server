@@ -1,9 +1,9 @@
 # Migraciones Flyway — KeyGo Server
 
-> Última actualización: 2026-04-09  
-> Baseline vigente: **V1–V17**  
+> Última actualización: 2026-04-11  
+> Baseline vigente: **V1–V19**  
 > Baseline anterior archivado en: `keygo-supabase/src/main/resources/db/backup_20260409_v33/`  
-> Próxima migración disponible: **V18**
+> Próxima migración disponible: **V20**
 
 ## Estrategia
 
@@ -12,6 +12,7 @@
 - Flyway gestiona el schema completo
 - `hibernate.ddl-auto=validate` sigue siendo la política esperada del proyecto
 - Las consultas analíticas viven fuera de Flyway en `sql/platform_dashboards/`
+- La vista arquitectónica sincronizada del baseline vive en `doc/03-architecture/database-schema.md`
 
 ## Convención
 
@@ -45,6 +46,8 @@ V{n}__{descripcion}.sql
 | V15 | `V15__billing_operations.sql` | Billing | `payment_transactions`, `invoices`, `usage_counters`, `tenant_billing_profiles`, `payment_methods` |
 | V16 | `V16__seed_foundation.sql` | Seed | roles, usuarios, contractor base, tenants, tenant users, apps, memberships |
 | V17 | `V17__seed_billing.sql` | Seed | planes, versiones, billing options, entitlements y caso activo de billing |
+| V18 | `V18__contract_email_verifications.sql` | Billing | `contract_email_verifications` y flexibilización de `app_contracts.contractor_id` para onboarding previo a provisión |
+| V19 | `V19__app_contract_onboarding_snapshot.sql` | Billing | snapshot persistido de contacto y empresa del onboarding dentro de `app_contracts` |
 
 ## Decisiones clave del remake
 
@@ -105,5 +108,6 @@ V{n}__{descripcion}.sql
 ## Validación esperada
 
 - Flyway debe aplicar desde cero sobre schema limpio
-- `flyway validate` debe pasar sobre V1–V17
-- La capa Java todavía debe revalidarse frente al nuevo naming físico antes de considerar cerrada la compatibilidad JPA
+- `flyway validate` debe pasar sobre V1–V19
+- `doc/03-architecture/database-schema.md` y `doc/08-reference/data/*` deben permanecer alineados con este baseline
+- La capa Java todavía debe revalidarse frente al naming físico antes de considerar cerrada la compatibilidad JPA

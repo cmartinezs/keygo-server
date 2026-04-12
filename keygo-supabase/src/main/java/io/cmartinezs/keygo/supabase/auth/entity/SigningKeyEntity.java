@@ -1,7 +1,15 @@
 package io.cmartinezs.keygo.supabase.auth.entity;
 
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -10,12 +18,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entidad JPA: Clave de firma RSA para emisión de tokens JWT.
- *
- * <p>Mapea la tabla {@code signing_keys} de la base de datos.
- */
 @Entity
 @Table(name = "signing_keys")
 @Getter
@@ -30,7 +34,7 @@ public class SigningKeyEntity {
   @Column(name = "id", nullable = false, updatable = false)
   private UUID id;
 
-  @Column(name = "kid", nullable = false, unique = true, length = 100)
+  @Column(name = "kid", nullable = false, unique = true, length = 255)
   private String kid;
 
   @Column(name = "algorithm", nullable = false, length = 20)
@@ -39,23 +43,18 @@ public class SigningKeyEntity {
   @Column(name = "status", nullable = false, length = 20)
   private String status;
 
-  @Column(name = "public_material", nullable = false, columnDefinition = "TEXT")
+  @Column(name = "public_jwk", nullable = false, columnDefinition = "jsonb")
   private String publicMaterial;
 
-  @Column(name = "private_material", columnDefinition = "TEXT")
+  @Column(name = "private_key_encrypted", columnDefinition = "TEXT")
   private String privateMaterial;
 
-  @Column(name = "activated_at", nullable = false)
+  @Column(name = "activated_at")
   private Instant activatedAt;
 
   @Column(name = "retired_at")
   private Instant retiredAt;
 
-  /**
-   * Tenant propietario de esta clave.
-   * NULL = clave global de plataforma (fallback para todos los tenants).
-   * FK: tenant_id → tenants(id)
-   */
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "tenant_id")
   private TenantEntity tenant;
@@ -63,5 +62,8 @@ public class SigningKeyEntity {
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
-}
 
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
+}

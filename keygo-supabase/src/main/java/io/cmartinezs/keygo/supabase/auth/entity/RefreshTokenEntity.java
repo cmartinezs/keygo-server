@@ -1,8 +1,16 @@
 package io.cmartinezs.keygo.supabase.auth.entity;
 
 import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
+import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -11,20 +19,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entidad JPA: Refresh Token OAuth2.
- *
- * <p>Mapea la tabla {@code refresh_tokens} de la base de datos.
- * Almacena el hash SHA-256 (hex) del token plano, nunca el token en texto claro.
- *
- * <p>Modelo restructurado (RFC restructure-multitenant):
- * <ul>
- *   <li>{@code clientApp} — nullable (NULL = RT de sesión de plataforma)
- *   <li>{@code tenantUser} — nullable (contexto tenant para lookup rápido de roles en rotación)
- *   <li>Removidos: {@code tenant} y {@code user} (ya no existen en la tabla)
- * </ul>
- */
 @Entity
 @Table(name = "refresh_tokens")
 @Getter
@@ -41,19 +37,56 @@ public class RefreshTokenEntity {
   @Column(name = "token_hash", nullable = false, unique = true, length = 64)
   private String tokenHash;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "session_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "oauth_session_id", nullable = false)
   private SessionEntity session;
 
-  /** FK client_apps. Nullable — NULL para RT de sesión de plataforma. */
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "platform_user_id", nullable = false)
+  private PlatformUserEntity platformUser;
+
+  @Column(name = "tenant_id", nullable = false)
+  private UUID tenantId;
+
+  @Column(name = "tenant_user_id")
+  private UUID tenantUserId;
+
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id")
+  @JoinColumns({
+      @JoinColumn(
+          name = "tenant_user_id",
+          referencedColumnName = "id",
+          insertable = false,
+          updatable = false),
+      @JoinColumn(
+          name = "tenant_id",
+          referencedColumnName = "tenant_id",
+          insertable = false,
+          updatable = false)
+  })
+  private TenantUserEntity tenantUser;
+
+  @Column(name = "client_app_id", nullable = false)
+  private UUID clientAppId;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumns({
+      @JoinColumn(
+          name = "client_app_id",
+          referencedColumnName = "id",
+          insertable = false,
+          updatable = false),
+      @JoinColumn(
+          name = "tenant_id",
+          referencedColumnName = "tenant_id",
+          insertable = false,
+          updatable = false)
+  })
   private ClientAppEntity clientApp;
 
-  /** FK tenant_users. Nullable — para lookup rápido de roles en rotación de tenant app. */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "tenant_user_id")
-  private TenantUserEntity tenantUser;
+  @JoinColumn(name = "signing_key_id")
+  private SigningKeyEntity signingKey;
 
   @Column(name = "requested_scopes", nullable = false, columnDefinition = "TEXT")
   private String requestedScopes;
@@ -71,16 +104,11 @@ public class RefreshTokenEntity {
   @JoinColumn(name = "replaced_by_id")
   private RefreshTokenEntity replacedBy;
 
-  /**
-   * Clave RSA que firmó el access_token emitido junto a este RT.
-   * Nullable — RT legacy anterior a V22 no tiene este dato.
-   */
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "signing_key_id")
-  private SigningKeyEntity signingKey;
-
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
-}
 
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
+}

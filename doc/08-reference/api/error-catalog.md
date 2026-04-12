@@ -203,19 +203,19 @@
 | PLATFORM_PLAN_CATALOG_RETRIEVED | Platform catalog retrieved | GET /platform/billing/catalog |
 | PLATFORM_PLAN_RETRIEVED | Platform plan retrieved | GET /platform/billing/plans/{code} |
 
-### 📝 Billing — Contratos (HTTP 200/409)
+### 📝 Billing — Contratos (HTTP 200/404/422)
 
 | Code | Mensaje | Cuándo |
 |---|---|---|
-| APP_CONTRACT_CREATED | Contract created | POST /tenants/{slug}/contracts |
-| APP_CONTRACT_RETRIEVED | Contract retrieved | GET /tenants/{slug}/contracts/{id} |
-| APP_CONTRACT_EMAIL_VERIFIED | Email verified | POST /contracts/{id}/verify-email |
-| APP_CONTRACT_PAYMENT_APPROVED | Payment approved | POST /contracts/{id}/approve-payment |
-| APP_CONTRACT_ACTIVATED | Contract activated | PUT /contracts/{id}/activate |
-| APP_CONTRACT_ONBOARDING_RESUMED | Onboarding state | GET /contracts/{id}/onboarding |
-| APP_CONTRACT_VERIFICATION_RESENT | Verification resent | POST /contracts/{id}/resend-verification |
+| APP_CONTRACT_CREATED | Contract created | POST /billing/contracts |
+| APP_CONTRACT_RETRIEVED | Contract retrieved | GET /billing/contracts/{id} |
+| APP_CONTRACT_EMAIL_VERIFIED | Email verified | POST /billing/contracts/{id}/verify-email |
+| APP_CONTRACT_PAYMENT_APPROVED | Payment approved | POST /billing/contracts/{id}/mock-approve-payment |
+| APP_CONTRACT_ACTIVATED | Contract activated | POST /billing/contracts/{id}/activate |
+| APP_CONTRACT_ONBOARDING_RESUMED | Onboarding state | GET /billing/contracts/{id}/resume |
+| APP_CONTRACT_VERIFICATION_RESENT | Verification resent | POST /billing/contracts/{id}/resend-verification |
 | CONTRACT_NOT_FOUND | Not found (error) | Contract ID no existe (404) |
-| CONTRACT_INVALID_STATE | Invalid state (error) | Contract status no permite operación (409) |
+| CONTRACT_INVALID_STATE | Invalid state (error) | Contract status no permite operación (422) |
 | CONTRACTOR_EMAIL_ALREADY_EXISTS | Email exists (error) | Email ya en uso (409) |
 | PROVIDER_APP_NOT_FOUND | App not found (error) | Provider app no existe (404) |
 | PLAN_VERSION_NOT_FOUND | Plan version not found | Plan version no existe (404) |

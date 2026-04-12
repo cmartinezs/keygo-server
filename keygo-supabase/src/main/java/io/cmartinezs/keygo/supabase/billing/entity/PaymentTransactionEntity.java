@@ -1,9 +1,11 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
+import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -36,6 +38,14 @@ public class PaymentTransactionEntity {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "contractor_id", nullable = false)
+  private ContractorEntity contractor;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "client_app_id", nullable = false)
+  private ClientAppEntity clientApp;
+
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "contract_id")
   private AppContractEntity contract;
 
@@ -64,12 +74,19 @@ public class PaymentTransactionEntity {
   @Column(name = "paid_at")
   private OffsetDateTime paidAt;
 
+  @Column(name = "refunded_at")
+  private OffsetDateTime refundedAt;
+
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "raw_response", columnDefinition = "jsonb")
+  @Column(name = "provider_payload", nullable = false, columnDefinition = "jsonb")
   private String rawResponse;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private OffsetDateTime updatedAt;
 }
 

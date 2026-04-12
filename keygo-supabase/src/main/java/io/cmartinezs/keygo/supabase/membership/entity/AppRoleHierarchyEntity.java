@@ -23,9 +23,6 @@ import org.hibernate.annotations.CreationTimestamp;
 @Entity
 @Table(
     name = "app_role_hierarchy",
-    uniqueConstraints = {
-      @UniqueConstraint(name = "uq_role_hierarchy_child", columnNames = {"child_role_id"})
-    },
     indexes = {
       @Index(name = "idx_role_hierarchy_child",  columnList = "child_role_id"),
       @Index(name = "idx_role_hierarchy_parent", columnList = "parent_role_id")
@@ -33,16 +30,48 @@ import org.hibernate.annotations.CreationTimestamp;
 public class AppRoleHierarchyEntity {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
+  @Column(name = "child_role_id", nullable = false)
+  private UUID childRoleId;
+
+  @Column(name = "client_app_id", nullable = false)
+  private UUID clientAppId;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "child_role_id", nullable = false)
+  @JoinColumns({
+      @JoinColumn(
+          name = "child_role_id",
+          referencedColumnName = "id",
+          nullable = false,
+          insertable = false,
+          updatable = false),
+      @JoinColumn(
+          name = "client_app_id",
+          referencedColumnName = "client_app_id",
+          nullable = false,
+          insertable = false,
+          updatable = false)
+  })
   private AppRoleEntity childRole;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "parent_role_id", nullable = false)
+  @JoinColumns({
+      @JoinColumn(
+          name = "parent_role_id",
+          referencedColumnName = "id",
+          nullable = false,
+          insertable = false,
+          updatable = false),
+      @JoinColumn(
+          name = "client_app_id",
+          referencedColumnName = "client_app_id",
+          nullable = false,
+          insertable = false,
+          updatable = false)
+  })
   private AppRoleEntity parentRole;
+
+  @Column(name = "parent_role_id", nullable = false)
+  private UUID parentRoleId;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

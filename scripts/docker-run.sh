@@ -6,7 +6,7 @@
 # construye la imagen Docker y ejecuta el contenedor.
 #
 # Uso:
-#   ./docs/scripts/docker-run.sh [opciones]
+#   ./scripts/docker-run.sh [opciones]
 #
 # Opciones:
 #   --build         Forzar reconstrucción de la imagen antes de iniciar
@@ -34,7 +34,7 @@ set -euo pipefail
 
 # ── Directorios ────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 # ── Colores ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -96,7 +96,7 @@ if [ ! -f "$ENV_FILE" ]; then
     echo -e "${RED}❌ Archivo .env no encontrado: $ENV_FILE${NC}"
     echo ""
     echo "   Opciones:"
-    echo "   1. Ejecuta: ./docs/scripts/switch-env.sh local"
+    echo "   1. Ejecuta: ./scripts/switch-env.sh local"
     echo "   2. Copia el template: cp envs/.env.example .env  y edita los valores"
     echo "   3. Usa --env-file /ruta/a/tu.env"
     exit 1

@@ -1,9 +1,11 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.invoice.model.InvoiceStatus;
+import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,6 +33,14 @@ public class InvoiceEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "contractor_id", nullable = false)
+  private ContractorEntity contractor;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "client_app_id", nullable = false)
+  private ClientAppEntity clientApp;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "subscription_id", nullable = false)
@@ -85,11 +95,18 @@ public class InvoiceEntity {
   @Column(name = "plan_version_snapshot", length = 20)
   private String planVersionSnapshot;
 
-  @Column(name = "pdf_url", columnDefinition = "TEXT")
+  @Column(name = "paid_at")
+  private OffsetDateTime paidAt;
+
+  @Transient
   private String pdfUrl;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private OffsetDateTime updatedAt;
 }
 

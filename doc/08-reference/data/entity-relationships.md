@@ -6,3 +6,4 @@ Este documento fue consolidado en [../../03-architecture/database-schema.md](../
 
 - Diagrama y relaciones vigentes: [../../03-architecture/database-schema.md#entity-relationship-diagram-erd](../../03-architecture/database-schema.md#entity-relationship-diagram-erd)
 - Vista general del modelo: [data-model.md](data-model.md)
+- Invariantes de relaciones: [../../03-architecture/database-schema.md#cross-cutting-invariants](../../03-architecture/database-schema.md#cross-cutting-invariants)

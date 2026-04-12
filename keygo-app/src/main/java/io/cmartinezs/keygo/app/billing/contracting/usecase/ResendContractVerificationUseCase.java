@@ -3,8 +3,10 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.port.ContractEmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
+import io.cmartinezs.keygo.domain.billing.contracting.model.ContractEmailVerification;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 
 import java.security.SecureRandom;
@@ -31,14 +33,17 @@ public class ResendContractVerificationUseCase {
   private static final SecureRandom RANDOM = new SecureRandom();
 
   private final AppContractRepositoryPort contractRepo;
+  private final ContractEmailVerificationRepositoryPort contractVerificationRepo;
   private final EmailNotificationPort emailNotification;
   private final int verificationCodeExpiryMinutes;
 
   public ResendContractVerificationUseCase(
       AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractVerificationRepo,
       EmailNotificationPort emailNotification,
       int verificationCodeExpiryMinutes) {
     this.contractRepo = contractRepo;
+    this.contractVerificationRepo = contractVerificationRepo;
     this.emailNotification = emailNotification;
     this.verificationCodeExpiryMinutes = verificationCodeExpiryMinutes;
   }
@@ -61,16 +66,22 @@ public class ResendContractVerificationUseCase {
     }
 
     OffsetDateTime now = OffsetDateTime.now();
-    String codeToSend;
+    ContractEmailVerification verification = contractVerificationRepo.findByContractId(contractId)
+        .orElse(null);
 
-    if (contract.isVerificationCodeExpired()) {
-      // Code has expired: generate a new one and persist the contract
-      codeToSend = String.format("%06d", RANDOM.nextInt(1_000_000));
-      contract.renewVerificationCode(codeToSend, now.plusMinutes(verificationCodeExpiryMinutes), now);
-      contract = contractRepo.save(contract);
-    } else {
-      // Code is still valid: just resend it — the user probably did not receive the email
-      codeToSend = contract.getVerificationCode();
+    if (verification == null) {
+      verification = contractVerificationRepo.upsert(
+          ContractEmailVerification.builder()
+              .contractId(contractId)
+              .code(String.format("%06d", RANDOM.nextInt(1_000_000)))
+              .expiresAt(now.plusMinutes(verificationCodeExpiryMinutes))
+              .build());
+    } else if (verification.isExpired(now)) {
+      verification.renew(
+          String.format("%06d", RANDOM.nextInt(1_000_000)),
+          now.plusMinutes(verificationCodeExpiryMinutes),
+          now);
+      verification = contractVerificationRepo.upsert(verification);
     }
 
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
@@ -80,7 +91,7 @@ public class ResendContractVerificationUseCase {
         Map.of("userUsername", contract.generateUsername(),
             "userFirstName", contract.getContractorFirstName() != null ? contract.getContractorFirstName() : "",
             "userLastName", contract.getContractorLastName() != null ? contract.getContractorLastName() : "",
-            "verificationCode", codeToSend,
+            "verificationCode", verification.getCode(),
             "contract_id", contract.getId().toString(),
             "resume", "1",
             "expiresInMinutes", verificationCodeExpiryMinutes));

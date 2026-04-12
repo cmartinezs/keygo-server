@@ -30,9 +30,12 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
 
   @Override
   public Invoice save(Invoice invoice) {
+    var subscription = subscriptionRepo.getReferenceById(invoice.getSubscriptionId());
     InvoiceEntity entity = InvoiceEntity.builder()
         .id(invoice.getId())
-        .subscription(subscriptionRepo.getReferenceById(invoice.getSubscriptionId()))
+        .subscription(subscription)
+        .contractor(subscription.getContractor())
+        .clientApp(subscription.getClientApp())
         .invoiceNumber(invoice.getInvoiceNumber())
         .status(invoice.getStatus())
         .issueDate(invoice.getIssueDate())
@@ -48,7 +51,7 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
         .billingAddressSnapshot(invoice.getBillingAddressSnapshot())
         .planNameSnapshot(invoice.getPlanNameSnapshot())
         .planVersionSnapshot(invoice.getPlanVersionSnapshot())
-        .pdfUrl(invoice.getPdfUrl())
+        .paidAt(null)
         .build();
     return BillingPersistenceMapper.toDomain(jpaRepo.save(entity));
   }

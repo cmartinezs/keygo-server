@@ -32,6 +32,7 @@ import io.cmartinezs.keygo.app.billing.catalog.usecase.CreateAppPlanUseCase;
 import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanCatalogUseCase;
 import io.cmartinezs.keygo.app.billing.catalog.usecase.GetAppPlanUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.port.ContractEmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.ActivateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.CreateAppContractUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.GetAppContractUseCase;
@@ -40,6 +41,7 @@ import io.cmartinezs.keygo.app.billing.contracting.usecase.ResendContractVerific
 import io.cmartinezs.keygo.app.billing.contracting.usecase.ResumeContractOnboardingUseCase;
 import io.cmartinezs.keygo.app.billing.contracting.usecase.VerifyContractEmailUseCase;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contractor.port.ContractorUserRepositoryPort;
 import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
 import io.cmartinezs.keygo.app.billing.invoice.usecase.ListAppInvoicesUseCase;
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
@@ -855,6 +857,7 @@ public class ApplicationConfig {
   @Bean
   public CreateAppContractUseCase createAppContractUseCase(
       AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractEmailVerificationRepositoryPort,
       AppPlanVersionRepositoryPort versionRepo,
       ClientAppRepositoryPort clientAppRepositoryPort,
       ContractorRepositoryPort contractorRepositoryPort,
@@ -862,6 +865,7 @@ public class ApplicationConfig {
       KeyGoBillingProperties billingProperties) {
     return new CreateAppContractUseCase(
         contractRepo,
+        contractEmailVerificationRepositoryPort,
         versionRepo,
         clientAppRepositoryPort,
         contractorRepositoryPort,
@@ -873,18 +877,10 @@ public class ApplicationConfig {
   @Bean
   public VerifyContractEmailUseCase verifyContractEmailUseCase(
       AppContractRepositoryPort contractRepo,
-      PlatformUserRepositoryPort platformUserRepositoryPort,
-      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort,
-      ContractorRepositoryPort contractorRepositoryPort,
-      CredentialEncoderPort credentialEncoderPort,
-      EmailNotificationPort emailNotificationPort) {
+      ContractEmailVerificationRepositoryPort contractEmailVerificationRepositoryPort) {
     return new VerifyContractEmailUseCase(
         contractRepo,
-        platformUserRepositoryPort,
-        platformUserRoleRepositoryPort,
-        contractorRepositoryPort,
-        credentialEncoderPort,
-        emailNotificationPort);
+        contractEmailVerificationRepositoryPort);
   }
 
   @Bean
@@ -894,8 +890,23 @@ public class ApplicationConfig {
 
   @Bean
   public MockApprovePaymentUseCase mockApprovePaymentUseCase(
-      AppContractRepositoryPort contractRepo, KeyGoBillingProperties billingProperties) {
-    return new MockApprovePaymentUseCase(contractRepo, billingProperties.isMockPaymentEnabled());
+      AppContractRepositoryPort contractRepo,
+      PlatformUserRepositoryPort platformUserRepositoryPort,
+      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort,
+      ContractorRepositoryPort contractorRepositoryPort,
+      ContractorUserRepositoryPort contractorUserRepositoryPort,
+      CredentialEncoderPort credentialEncoderPort,
+      EmailNotificationPort emailNotificationPort,
+      KeyGoBillingProperties billingProperties) {
+    return new MockApprovePaymentUseCase(
+        contractRepo,
+        platformUserRepositoryPort,
+        platformUserRoleRepositoryPort,
+        contractorRepositoryPort,
+        contractorUserRepositoryPort,
+        credentialEncoderPort,
+        emailNotificationPort,
+        billingProperties.isMockPaymentEnabled());
   }
 
   @Bean
@@ -911,17 +922,22 @@ public class ApplicationConfig {
 
   @Bean
   public ResumeContractOnboardingUseCase resumeContractOnboardingUseCase(
-      AppContractRepositoryPort contractRepo) {
-    return new ResumeContractOnboardingUseCase(contractRepo);
+      AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractEmailVerificationRepositoryPort) {
+    return new ResumeContractOnboardingUseCase(contractRepo, contractEmailVerificationRepositoryPort);
   }
 
   @Bean
   public ResendContractVerificationUseCase resendContractVerificationUseCase(
       AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractEmailVerificationRepositoryPort,
       EmailNotificationPort emailNotificationPort,
       KeyGoBillingProperties billingProperties) {
     return new ResendContractVerificationUseCase(
-        contractRepo, emailNotificationPort, billingProperties.getVerificationCodeExpiryMinutes());
+        contractRepo,
+        contractEmailVerificationRepositoryPort,
+        emailNotificationPort,
+        billingProperties.getVerificationCodeExpiryMinutes());
   }
 
   // ─── Billing: Suscripción ─────────────────────────────────────────────────

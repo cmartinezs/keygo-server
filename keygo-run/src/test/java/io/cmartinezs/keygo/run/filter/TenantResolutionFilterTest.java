@@ -52,7 +52,6 @@ class TenantResolutionFilterTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("Test")
-        .ownerEmail("owner@test.com")
         .status(TenantStatus.ACTIVE)
         .build();
   }

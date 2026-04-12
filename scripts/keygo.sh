@@ -6,12 +6,12 @@
 # del proyecto: ambiente, base de datos, app, tests y setup.
 #
 # Uso:
-#   ./docs/scripts/keygo.sh          # menú interactivo
-#   ./docs/scripts/keygo.sh <opción> # ejecución directa (ej: ./docs/scripts/keygo.sh 7)
+#   ./scripts/keygo.sh          # menú interactivo
+#   ./scripts/keygo.sh <opción> # ejecución directa (ej: ./scripts/keygo.sh 7)
 # =========================================================
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 # ── Colores ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m';   GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -73,7 +73,7 @@ _banner() {
 # ── Menú ───────────────────────────────────────────────────────────────────────
 _menu() {
     echo -e "  ${BOLD}🌐  AMBIENTE${NC}"
-    echo -e "  ${CYAN} 1)${NC} Cambiar a local     ${CYAN} 2)${NC} Cambiar a desa     ${CYAN} 3)${NC} Cambiar a prod"
+    echo -e "  ${CYAN} 1)${NC} Cambiar a local/h2  ${CYAN} 2)${NC} Cambiar a desa     ${CYAN} 3)${NC} Cambiar a prod"
     echo -e "  ${CYAN} 4)${NC} Listar ambientes"
     echo ""
     echo -e "  ${BOLD}🗄️   BASE DE DATOS (LOCAL Docker)${NC}"
@@ -130,7 +130,7 @@ _execute() {
             ;;
         14)
             echo -e "${BLUE}🚀 Iniciando servidor...${NC}"
-            echo -e "${YELLOW}   Carga el .env antes con: set -a; source keygo-supabase/.env; set +a${NC}"
+            echo -e "${YELLOW}   Carga el .env antes con: set -a; source .env; set +a${NC}"
             echo ""
             cd "$PROJECT_ROOT" && ./mvnw spring-boot:run -pl keygo-run
             ;;

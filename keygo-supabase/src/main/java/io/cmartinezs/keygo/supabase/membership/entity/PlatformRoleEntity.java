@@ -42,7 +42,7 @@ public class PlatformRoleEntity {
   @Column(nullable = false, length = 50)
   private String code;
 
-  @Column(nullable = false, length = 255)
+  @Column(name = "display_name", nullable = false, length = 255)
   private String name;
 
   @Column(columnDefinition = "TEXT")

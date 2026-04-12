@@ -48,7 +48,7 @@ class GetListUsersUseCaseTest {
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
-        .name("ACME Corp").ownerEmail("owner@acme.com")
+        .name("ACME Corp")
         .status(TenantStatus.ACTIVE).build();
 
     sampleUser = User.builder()

@@ -63,7 +63,6 @@ class AppBillingPlanControllerTest {
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("ACME")
-        .ownerEmail("admin@acme.com")
         .status(TenantStatus.ACTIVE)
         .build();
   }

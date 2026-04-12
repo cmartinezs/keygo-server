@@ -44,7 +44,6 @@ public class TenantRoleRepositoryAdapter implements TenantRoleRepositoryPort {
         .code(tenantRole.getCode())
         .name(tenantRole.getName())
         .description(tenantRole.getDescription())
-        .active(tenantRole.isActive())
         .build();
 
     return MembershipPersistenceMapper.toDomain(jpaRepository.save(entity));
@@ -66,8 +65,9 @@ public class TenantRoleRepositoryAdapter implements TenantRoleRepositoryPort {
 
   @Override
   public List<TenantRole> findActiveByTenantId(UUID tenantId) {
-    return jpaRepository.findByTenantIdAndActive(tenantId, true)
+    return jpaRepository.findByTenantId(tenantId)
         .stream()
+        .filter(TenantRoleEntity::isActive)
         .map(MembershipPersistenceMapper::toDomain)
         .toList();
   }
@@ -79,7 +79,6 @@ public class TenantRoleRepositoryAdapter implements TenantRoleRepositoryPort {
             "TenantRole not found: " + tenantRole.getId()));
     entity.setName(tenantRole.getName());
     entity.setDescription(tenantRole.getDescription());
-    entity.setActive(tenantRole.isActive());
     return MembershipPersistenceMapper.toDomain(jpaRepository.save(entity));
   }
 

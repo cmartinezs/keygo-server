@@ -25,7 +25,6 @@ public class TenantPersistenceMapper {
     var builder = TenantEntity.builder()
         .slug(tenant.getSlug().value())
         .name(tenant.getName())
-        .ownerEmail(tenant.getOwnerEmail())
         .status(tenant.getStatus());
     if (tenant.getId() != null) {
       builder.id(tenant.getId().value());
@@ -45,7 +44,6 @@ public class TenantPersistenceMapper {
         .id(TenantId.of(entity.getId()))
         .slug(TenantSlug.of(entity.getSlug()))
         .name(entity.getName())
-        .ownerEmail(entity.getOwnerEmail())
         .status(entity.getStatus())
         .contractorId(entity.getContractor() != null ? entity.getContractor().getId() : null)
         .build();

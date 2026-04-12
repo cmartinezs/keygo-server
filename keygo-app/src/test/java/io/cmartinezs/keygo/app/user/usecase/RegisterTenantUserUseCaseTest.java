@@ -76,7 +76,6 @@ class RegisterTenantUserUseCaseTest {
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("ACME Corp")
-        .ownerEmail("owner@acme.com")
         .status(TenantStatus.ACTIVE)
         .build();
 
@@ -142,7 +141,6 @@ class RegisterTenantUserUseCaseTest {
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("ACME Corp")
-        .ownerEmail("owner@acme.com")
         .status(TenantStatus.SUSPENDED)
         .build();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(suspended));

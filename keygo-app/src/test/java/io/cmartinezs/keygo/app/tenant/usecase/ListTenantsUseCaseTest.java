@@ -35,7 +35,6 @@ class ListTenantsUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("Tenant " + slug)
-        .ownerEmail("owner@" + slug + ".com")
         .status(status)
         .build();
   }

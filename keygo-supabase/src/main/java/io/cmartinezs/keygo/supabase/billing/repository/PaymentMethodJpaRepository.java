@@ -12,7 +12,7 @@ import java.util.UUID;
  * @version 1.0
  */
 public interface PaymentMethodJpaRepository extends JpaRepository<PaymentMethodEntity, UUID> {
-  List<PaymentMethodEntity> findByTenantIdAndStatus(UUID tenantId, String status);
-  java.util.Optional<PaymentMethodEntity> findByTenantIdAndIsDefaultTrue(UUID tenantId);
+  List<PaymentMethodEntity> findByContractorIdAndStatus(UUID contractorId, String status);
+  java.util.Optional<PaymentMethodEntity> findByContractorIdAndIsDefaultTrue(UUID contractorId);
 }
 

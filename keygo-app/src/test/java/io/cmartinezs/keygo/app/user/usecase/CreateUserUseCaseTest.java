@@ -51,7 +51,6 @@ class CreateUserUseCaseTest {
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("ACME Corp")
-        .ownerEmail("owner@acme.com")
         .status(TenantStatus.ACTIVE)
         .build();
   }
@@ -97,7 +96,7 @@ class CreateUserUseCaseTest {
     Tenant suspended = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
-        .name("ACME Corp").ownerEmail("o@acme.com")
+        .name("ACME Corp")
         .status(TenantStatus.SUSPENDED).build();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(suspended));
     CreateUserCommand command = new CreateUserCommand(TENANT_SLUG, USERNAME, EMAIL, RAW_PASSWORD, null, null);

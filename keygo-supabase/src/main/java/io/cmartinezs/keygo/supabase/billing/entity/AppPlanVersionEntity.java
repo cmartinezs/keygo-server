@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.AppPlanVersionStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -62,4 +63,8 @@ public class AppPlanVersionEntity {
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at", nullable = false)
+  private OffsetDateTime updatedAt;
 }

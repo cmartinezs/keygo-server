@@ -8,6 +8,10 @@
 # Solo .env.example se versiona en git.
 # =========================================================
 .env
+.env.local
+.env.h2
+.env.desa
+.env.prod
 .env-local
 .env-desa
 .env-prod

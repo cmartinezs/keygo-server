@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.supabase.billing.entity;
 
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
+import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorType;
 import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,8 +13,8 @@ import java.util.UUID;
 
 /**
  * JPA entity for contractors table (billing model v2).
- * A Contractor is the central billing entity — a person or company that signs
- * contracts with the platform. Has a 1:1 link to a PlatformUser.
+ * A Contractor is the central billing entity — a person or company that signs contracts with the
+ * platform. The primary contact is a platform user, but the contractor has its own commercial data.
  * @author cmartinezs
  * @version 1.0
  */
@@ -32,8 +33,25 @@ public class ContractorEntity {
   private UUID id;
 
   @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "platform_user_id", nullable = false, unique = true)
-  private PlatformUserEntity platformUser;
+  @JoinColumn(name = "primary_contact_platform_user_id")
+  private PlatformUserEntity primaryContactPlatformUser;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type", nullable = false, length = 20)
+  @Builder.Default
+  private ContractorType type = ContractorType.PERSON;
+
+  @Column(name = "display_name", nullable = false, length = 255)
+  private String displayName;
+
+  @Column(name = "legal_name", length = 255)
+  private String legalName;
+
+  @Column(name = "tax_id", length = 100)
+  private String taxId;
+
+  @Column(name = "billing_email", nullable = false, length = 255)
+  private String billingEmail;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
@@ -47,5 +65,22 @@ public class ContractorEntity {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
+
+  @PrePersist
+  @PreUpdate
+  void syncDerivedCommercialFields() {
+    if (billingEmail == null && primaryContactPlatformUser != null) {
+      billingEmail = primaryContactPlatformUser.getEmail();
+    }
+    if (displayName == null || displayName.isBlank()) {
+      if (primaryContactPlatformUser != null
+          && primaryContactPlatformUser.getDisplayName() != null
+          && !primaryContactPlatformUser.getDisplayName().isBlank()) {
+        displayName = primaryContactPlatformUser.getDisplayName();
+      } else if (primaryContactPlatformUser != null && primaryContactPlatformUser.getEmail() != null) {
+        displayName = primaryContactPlatformUser.getEmail();
+      }
+    }
+  }
 }
 

@@ -69,8 +69,6 @@ class AppBillingContractControllerTest {
         .contractorFirstName("John")
         .contractorLastName("Doe")
         .companyName("ACME Corp")
-        .verificationCode("123456")
-        .verificationCodeExpiresAt(codeExpiresAt)
         .expiresAt(OffsetDateTime.now().plusHours(48))
         .createdAt(OffsetDateTime.now())
         .updatedAt(OffsetDateTime.now())
@@ -196,7 +194,7 @@ class AppBillingContractControllerTest {
     AppContract c = contractWithCode(ContractStatus.PENDING_EMAIL_VERIFICATION,
         OffsetDateTime.now().plusMinutes(20));
     when(resumeContractOnboardingUseCase.execute(contractId))
-        .thenReturn(new AppContractResult(c, null));
+        .thenReturn(new AppContractResult(c, null, false));
 
     // When
     var response = controller.resumeOnboarding(contractId);
@@ -217,7 +215,7 @@ class AppBillingContractControllerTest {
     AppContract c = contractWithCode(ContractStatus.PENDING_EMAIL_VERIFICATION,
         OffsetDateTime.now().minusMinutes(5));
     when(resumeContractOnboardingUseCase.execute(contractId))
-        .thenReturn(new AppContractResult(c, null));
+        .thenReturn(new AppContractResult(c, null, true));
 
     // When
     var response = controller.resumeOnboarding(contractId);
@@ -234,7 +232,7 @@ class AppBillingContractControllerTest {
     UUID contractId = UUID.randomUUID();
     AppContract c = contract(ContractStatus.PENDING_PAYMENT);
     when(resumeContractOnboardingUseCase.execute(contractId))
-        .thenReturn(new AppContractResult(c, null));
+        .thenReturn(new AppContractResult(c, null, false));
 
     // When
     var response = controller.resumeOnboarding(contractId);
@@ -251,7 +249,7 @@ class AppBillingContractControllerTest {
     UUID contractId = UUID.randomUUID();
     AppContract c = contract(ContractStatus.READY_TO_ACTIVATE);
     when(resumeContractOnboardingUseCase.execute(contractId))
-        .thenReturn(new AppContractResult(c, null));
+        .thenReturn(new AppContractResult(c, null, false));
 
     // When
     var response = controller.resumeOnboarding(contractId);
@@ -267,7 +265,7 @@ class AppBillingContractControllerTest {
     UUID contractId = UUID.randomUUID();
     AppContract c = contract(ContractStatus.ACTIVE);
     when(resumeContractOnboardingUseCase.execute(contractId))
-        .thenReturn(new AppContractResult(c, null));
+        .thenReturn(new AppContractResult(c, null, false));
 
     // When
     var response = controller.resumeOnboarding(contractId);

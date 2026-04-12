@@ -11,6 +11,8 @@ public enum ContractorStatus {
   /** First contract activated successfully. */
   ACTIVE,
   /** Suspended due to payment issue or administrative decision. */
-  SUSPENDED
+  SUSPENDED,
+  /** Contractor removed from the active billing lifecycle. */
+  DELETED
 }
 

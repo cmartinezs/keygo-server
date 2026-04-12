@@ -154,7 +154,6 @@ class CreateMembershipUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("Acme Corp")
-        .ownerEmail("owner@acme.local")
         .status(TenantStatus.ACTIVE)
         .build();
   }
@@ -164,7 +163,6 @@ class CreateMembershipUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("Acme Corp")
-        .ownerEmail("owner@acme.local")
         .status(TenantStatus.SUSPENDED)
         .build();
   }

@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.command.CreateAppContractCommand;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractorEmailAlreadyExistsException;
+import io.cmartinezs.keygo.app.billing.contracting.port.ContractEmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
@@ -10,6 +11,7 @@ import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
+import io.cmartinezs.keygo.domain.billing.contracting.model.ContractEmailVerification;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 
@@ -30,6 +32,7 @@ public class CreateAppContractUseCase {
   private static final SecureRandom RANDOM = new SecureRandom();
 
   private final AppContractRepositoryPort contractRepo;
+  private final ContractEmailVerificationRepositoryPort contractVerificationRepo;
   private final AppPlanVersionRepositoryPort versionRepo;
   private final ClientAppRepositoryPort clientAppRepo;
   private final ContractorRepositoryPort contractorRepo;
@@ -39,6 +42,7 @@ public class CreateAppContractUseCase {
 
   public CreateAppContractUseCase(
       AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractVerificationRepo,
       AppPlanVersionRepositoryPort versionRepo,
       ClientAppRepositoryPort clientAppRepo,
       ContractorRepositoryPort contractorRepo,
@@ -46,6 +50,7 @@ public class CreateAppContractUseCase {
       int contractExpiryHours,
       int verificationCodeExpiryMinutes) {
     this.contractRepo = contractRepo;
+    this.contractVerificationRepo = contractVerificationRepo;
     this.versionRepo = versionRepo;
     this.clientAppRepo = clientAppRepo;
     this.contractorRepo = contractorRepo;
@@ -72,6 +77,7 @@ public class CreateAppContractUseCase {
 
     OffsetDateTime now = OffsetDateTime.now();
     String verificationCode = String.format("%06d", RANDOM.nextInt(1_000_000));
+    OffsetDateTime verificationExpiresAt = now.plusMinutes(verificationCodeExpiryMinutes);
 
     AppContract contract = AppContract.builder()
         .clientAppId(cmd.clientAppId())
@@ -84,14 +90,18 @@ public class CreateAppContractUseCase {
         .companyName(cmd.companyName())
         .companyTaxId(cmd.companyTaxId())
         .companyAddress(cmd.companyAddress())
-        .verificationCode(verificationCode)
-        .verificationCodeExpiresAt(now.plusMinutes(verificationCodeExpiryMinutes))
         .expiresAt(now.plusHours(contractExpiryHours))
         .createdAt(now)
         .updatedAt(now)
         .build();
 
     contract = contractRepo.save(contract);
+    contractVerificationRepo.upsert(
+        ContractEmailVerification.builder()
+            .contractId(contract.getId())
+            .code(verificationCode)
+            .expiresAt(verificationExpiresAt)
+            .build());
 
     String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
     emailNotification.sendEmail(

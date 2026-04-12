@@ -42,6 +42,9 @@ public class AppRoleEntity {
   @Column(name = "tenant_id", nullable = false)
   private UUID tenantId;
 
+  @Column(name = "client_app_id", nullable = false, insertable = false, updatable = false)
+  private UUID clientAppId;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "client_app_id", nullable = false)
   private ClientAppEntity clientApp;

@@ -6,9 +6,9 @@ import io.cmartinezs.keygo.app.membership.port.TenantUserRoleRepositoryPort;
 import java.util.UUID;
 
 /**
- * Use case: revoke a tenant role from a tenant user (soft delete).
- * <p>Caso de uso: revocar un rol de tenant de un usuario de tenant (eliminación lógica).
- * Sets removed_at on the assignment to preserve audit history.
+ * Use case: revoke a tenant role from a tenant user.
+ * <p>Caso de uso: revocar un rol de tenant de un usuario de tenant.
+ * Revocation deletes the join row because {@code tenant_user_roles} is a pure link table.
  * Idempotent: if not currently assigned, no action is taken.
  * @author cmartinezs
  * @version 1.0
@@ -26,7 +26,7 @@ public class RevokeTenantRoleUseCase {
   }
 
   /**
-   * Revoke (soft-delete) the specified tenant role from the given tenant user.
+   * Revoke the specified tenant role from the given tenant user.
    * @param tenantUserId the user whose role is being revoked
    * @param tenantRoleId the ID of the tenant role to revoke
    * @throws TenantRoleNotFoundException if the role does not exist

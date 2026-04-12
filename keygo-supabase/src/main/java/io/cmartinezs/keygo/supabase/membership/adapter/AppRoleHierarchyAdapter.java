@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.supabase.membership.adapter;
 import io.cmartinezs.keygo.app.membership.port.AppRoleHierarchyPort;
 import io.cmartinezs.keygo.supabase.membership.entity.AppRoleEntity;
 import io.cmartinezs.keygo.supabase.membership.entity.AppRoleHierarchyEntity;
+import io.cmartinezs.keygo.supabase.membership.repository.AppRoleJpaRepository;
 import io.cmartinezs.keygo.supabase.membership.repository.AppRoleHierarchyJpaRepository;
 import java.util.List;
 import java.util.UUID;
@@ -16,9 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class AppRoleHierarchyAdapter implements AppRoleHierarchyPort {
 
   private final AppRoleHierarchyJpaRepository jpaRepository;
+  private final AppRoleJpaRepository appRoleJpaRepository;
 
-  public AppRoleHierarchyAdapter(AppRoleHierarchyJpaRepository jpaRepository) {
+  public AppRoleHierarchyAdapter(
+      AppRoleHierarchyJpaRepository jpaRepository,
+      AppRoleJpaRepository appRoleJpaRepository) {
     this.jpaRepository = jpaRepository;
+    this.appRoleJpaRepository = appRoleJpaRepository;
   }
 
   @Override
@@ -27,16 +32,33 @@ public class AppRoleHierarchyAdapter implements AppRoleHierarchyPort {
     // Replace any existing parent link (idempotent)
     jpaRepository.deleteByChildRoleId(childRoleId);
 
-    AppRoleEntity childRef = new AppRoleEntity();
-    childRef.setId(childRoleId);
+    AppRoleEntity childRef =
+        appRoleJpaRepository
+            .findById(childRoleId)
+            .orElseThrow(() -> new IllegalArgumentException("Child role not found: " + childRoleId));
 
-    AppRoleEntity parentRef = new AppRoleEntity();
-    parentRef.setId(parentRoleId);
+    AppRoleEntity parentRef =
+        appRoleJpaRepository
+            .findById(parentRoleId)
+            .orElseThrow(
+                () -> new IllegalArgumentException("Parent role not found: " + parentRoleId));
+
+    UUID clientAppId = childRef.getClientApp().getId();
+    if (!clientAppId.equals(parentRef.getClientApp().getId())) {
+      throw new IllegalArgumentException(
+          "App roles must belong to the same client app: "
+              + childRoleId
+              + " -> "
+              + parentRoleId);
+    }
 
     jpaRepository.save(
         AppRoleHierarchyEntity.builder()
+            .childRoleId(childRoleId)
             .childRole(childRef)
+            .parentRoleId(parentRoleId)
             .parentRole(parentRef)
+            .clientAppId(clientAppId)
             .build());
   }
 

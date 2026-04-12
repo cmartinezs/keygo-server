@@ -37,7 +37,6 @@ class GetTenantBySlugUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("My Tenant")
-        .ownerEmail("owner@example.com")
         .status(TenantStatus.ACTIVE)
         .build();
     when(tenantRepositoryPort.findBySlug(TenantSlug.of(slug))).thenReturn(Optional.of(tenant));

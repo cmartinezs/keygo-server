@@ -51,12 +51,44 @@ public class MembershipEntity {
   @Column(name = "tenant_id", nullable = false)
   private UUID tenantId;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "tenant_user_id", nullable = false)
-  private TenantUserEntity user;
+  @Column(name = "tenant_user_id", nullable = false)
+  private UUID tenantUserId;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumns({
+      @JoinColumn(
+          name = "tenant_user_id",
+          referencedColumnName = "id",
+          nullable = false,
+          insertable = false,
+          updatable = false),
+      @JoinColumn(
+          name = "tenant_id",
+          referencedColumnName = "tenant_id",
+          nullable = false,
+          insertable = false,
+          updatable = false)
+  })
+  private TenantUserEntity user;
+
+  @Column(name = "client_app_id", nullable = false)
+  private UUID clientAppId;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumns({
+      @JoinColumn(
+          name = "client_app_id",
+          referencedColumnName = "id",
+          nullable = false,
+          insertable = false,
+          updatable = false),
+      @JoinColumn(
+          name = "tenant_id",
+          referencedColumnName = "tenant_id",
+          nullable = false,
+          insertable = false,
+          updatable = false)
+  })
   private ClientAppEntity clientApp;
 
   @Enumerated(EnumType.STRING)

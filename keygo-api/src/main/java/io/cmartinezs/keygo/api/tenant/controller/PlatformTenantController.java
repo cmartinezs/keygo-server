@@ -131,7 +131,7 @@ public class PlatformTenantController {
   @PostMapping
   @Operation(
       summary = "Create a new tenant",
-      description = "Creates a new tenant with the given name and owner email. "
+      description = "Creates a new tenant with the given name. "
                     + "A URL-friendly slug is automatically generated from the name.")
   @ApiResponse(responseCode = "201", description = "Tenant created successfully (code: TENANT_CREATED)")
   @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
@@ -144,7 +144,7 @@ public class PlatformTenantController {
       @Valid @RequestBody CreateTenantRequest request) {
 
     Tenant tenant = createTenantUseCase.execute(
-        new CreateTenantCommand(request.name(), request.ownerEmail()));
+        new CreateTenantCommand(request.name()));
 
     BaseResponse<TenantData> response = BaseResponse.<TenantData>builder()
         .data(toData(tenant))
@@ -250,7 +250,6 @@ public class PlatformTenantController {
         .id(tenant.getId().toString())
         .name(tenant.getName())
         .slug(tenant.getSlug().value())
-        .ownerEmail(tenant.getOwnerEmail())
         .status(tenant.getStatus().name())
         .build();
   }

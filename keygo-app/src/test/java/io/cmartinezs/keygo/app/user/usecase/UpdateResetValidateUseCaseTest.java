@@ -55,7 +55,7 @@ class UpdateResetValidateUseCaseTest {
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
-        .name("ACME").ownerEmail("o@acme.com")
+        .name("ACME")
         .status(TenantStatus.ACTIVE).build();
 
     activeUser = User.builder()

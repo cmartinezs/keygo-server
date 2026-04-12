@@ -29,14 +29,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(
     name = "platform_user_roles",
-    uniqueConstraints = {
-      @UniqueConstraint(
-          name = "uq_platform_user_roles_user_role",
-          columnNames = {"platform_user_id", "platform_role_id"})
-    },
     indexes = {
       @Index(name = "idx_platform_user_roles_platform_user", columnList = "platform_user_id"),
-      @Index(name = "idx_platform_user_roles_platform_role_id", columnList = "platform_role_id")
+      @Index(name = "idx_platform_user_roles_role_scope", columnList = "role_id, scope_type")
     })
 public class PlatformUserRoleEntity {
 
@@ -49,8 +44,18 @@ public class PlatformUserRoleEntity {
   private PlatformUserEntity platformUser;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "platform_role_id", nullable = false)
+  @JoinColumn(name = "role_id", nullable = false)
   private PlatformRoleEntity platformRole;
+
+  @Column(name = "scope_type", nullable = false, length = 20)
+  @Builder.Default
+  private String scopeType = "GLOBAL";
+
+  @Column(name = "contractor_id")
+  private UUID contractorId;
+
+  @Column(name = "tenant_id")
+  private UUID tenantId;
 
   @Column(name = "assigned_at", nullable = false)
   @Builder.Default

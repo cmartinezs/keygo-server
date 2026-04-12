@@ -11,6 +11,7 @@ import io.cmartinezs.keygo.app.billing.contracting.command.CreateAppContractComm
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractorEmailAlreadyExistsException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.port.ContractEmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
@@ -21,6 +22,7 @@ import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
+import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorType;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
@@ -52,6 +54,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CreateAppContractUseCaseTest {
 
   @Mock private AppContractRepositoryPort contractRepo;
+  @Mock private ContractEmailVerificationRepositoryPort contractVerificationRepo;
   @Mock private AppPlanVersionRepositoryPort versionRepo;
   @Mock private ClientAppRepositoryPort clientAppRepo;
   @Mock private ContractorRepositoryPort contractorRepo;
@@ -73,6 +76,7 @@ class CreateAppContractUseCaseTest {
     useCase =
         new CreateAppContractUseCase(
             contractRepo,
+            contractVerificationRepo,
             versionRepo,
             clientAppRepo,
             contractorRepo,
@@ -131,14 +135,12 @@ class CreateAppContractUseCaseTest {
             .companyName("Acme Corp")
             .companyTaxId("12345678-9")
             .companyAddress("123 Main St")
-            .verificationCode("123456")
-            .verificationCodeExpiresAt(
-                OffsetDateTime.now().plusMinutes(VERIFICATION_CODE_EXPIRY_MINUTES))
             .expiresAt(OffsetDateTime.now().plusHours(CONTRACT_EXPIRY_HOURS))
             .createdAt(OffsetDateTime.now())
             .updatedAt(OffsetDateTime.now())
             .build();
     when(contractRepo.save(any(AppContract.class))).thenReturn(savedContract);
+    when(contractVerificationRepo.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     AppContractResult result = useCase.execute(cmd);
@@ -153,6 +155,7 @@ class CreateAppContractUseCaseTest {
     verify(clientAppRepo).findById(ClientAppId.of(CLIENT_APP_ID));
     verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
     verify(contractRepo).save(any(AppContract.class));
+    verify(contractVerificationRepo).upsert(any());
     verify(emailNotification)
         .sendEmail(
             eq(EmailNotificationPort.TYPE_CONTRACT_VERIFICATION),
@@ -197,7 +200,10 @@ class CreateAppContractUseCaseTest {
     Contractor existingContractor =
         Contractor.builder()
             .id(UUID.randomUUID())
-            .platformUserId(UUID.randomUUID())
+            .primaryContactPlatformUserId(UUID.randomUUID())
+            .type(ContractorType.PERSON)
+            .displayName("John Doe")
+            .billingEmail(CONTRACTOR_EMAIL)
             .status(ContractorStatus.ACTIVE)
             .build();
     when(contractorRepo.findByPlatformUserEmail(CONTRACTOR_EMAIL))
@@ -306,13 +312,12 @@ class CreateAppContractUseCaseTest {
             .contractorEmail(CONTRACTOR_EMAIL)
             .contractorFirstName(CONTRACTOR_FIRST_NAME)
             .contractorLastName(CONTRACTOR_LAST_NAME)
-            .verificationCode("123456")
-            .verificationCodeExpiresAt(OffsetDateTime.now().plusMinutes(VERIFICATION_CODE_EXPIRY_MINUTES))
             .expiresAt(OffsetDateTime.now().plusHours(CONTRACT_EXPIRY_HOURS))
             .createdAt(OffsetDateTime.now())
             .updatedAt(OffsetDateTime.now())
             .build();
     when(contractRepo.save(any(AppContract.class))).thenReturn(savedContract);
+    when(contractVerificationRepo.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
     AppContractResult result = useCase.execute(cmd);
@@ -322,5 +327,6 @@ class CreateAppContractUseCaseTest {
     assertThat(result.contract().getClientAppId()).isNull();
     verify(clientAppRepo, never()).findById(any());
     verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
+    verify(contractVerificationRepo).upsert(any());
   }
 }

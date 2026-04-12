@@ -46,7 +46,6 @@ class PlatformTenantControllerTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("Test Tenant")
-        .ownerEmail("owner@test.com")
         .status(status)
         .build();
   }
@@ -56,7 +55,7 @@ class PlatformTenantControllerTest {
   void shouldCreateTenantAndReturn201() {
     // Given
     CreateTenantRequest request =
-        new CreateTenantRequest("Test Tenant", "owner@test.com");
+        new CreateTenantRequest("Test Tenant");
     Tenant created = buildTenant("test-tenant", TenantStatus.ACTIVE);
     when(createTenantUseCase.execute(any(CreateTenantCommand.class))).thenReturn(created);
 

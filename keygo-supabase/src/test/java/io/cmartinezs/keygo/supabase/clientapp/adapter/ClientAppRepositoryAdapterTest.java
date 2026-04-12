@@ -45,7 +45,6 @@ class ClientAppRepositoryAdapterTest {
         .id(tenantUuid)
         .slug("acme")
         .name("Acme")
-        .ownerEmail("owner@acme.test")
         .status(ACTIVE)
         .build();
 
@@ -120,7 +119,6 @@ class ClientAppRepositoryAdapterTest {
         .id(tenantUuid)
         .slug("acme")
         .name("Acme")
-        .ownerEmail("owner@acme.test")
         .status(ACTIVE)
         .build();
 

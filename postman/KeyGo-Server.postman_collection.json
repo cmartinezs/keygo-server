@@ -103,7 +103,7 @@
                 "info"
               ]
             },
-            "description": "Retorna información pública del servicio (nombre, versión, título).\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**ResponseCode esperado:** `SERVICE_INFO_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Retorna información pública del servicio (nombre, versión, título).\n\n**Ruta pública** — no requiere autenticación.\n\n**ResponseCode esperado:** `SERVICE_INFO_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -180,7 +180,7 @@
                 "response-codes"
               ]
             },
-            "description": "Retorna el catálogo completo de códigos de respuesta del sistema, dividido en `successCodes` y `failureCodes`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN` (heredado de la colección).\n\n**ResponseCode esperado:** `RESPONSE_CODES_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Retorna el catálogo completo de códigos de respuesta del sistema, dividido en `successCodes` y `failureCodes`.\n\n**Ruta protegida** — requiere `Authorization: Bearer {{adminToken}}`.\n\n**ResponseCode esperado:** `RESPONSE_CODES_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -472,7 +472,7 @@
                 "health"
               ]
             },
-            "description": "Endpoint de salud de Spring Boot Actuator.\n\n**Ruta pública** — no requiere `X-KEYGO-ADMIN`.\n\n**HTTP Status:** `200 OK`"
+            "description": "Endpoint de salud de Spring Boot Actuator.\n\n**Ruta pública** — no requiere autenticación.\n\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -558,7 +558,7 @@
     },
     {
       "name": "🏢 Tenants",
-      "description": "Operaciones CRUD sobre tenants. Todos los endpoints requieren `X-KEYGO-ADMIN`.\n\nFlujo de prueba recomendado:\n1. **POST Create Tenant** → guarda `tenantSlug` automáticamente en el entorno.\n2. **GET Tenant by Slug** → usa el `tenantSlug` guardado.\n3. **PUT Suspend Tenant** → suspende el tenant.\n4. **GET Tenant by Slug (Suspended)** → verifica el nuevo estado.",
+      "description": "Operaciones CRUD sobre tenants. Todos los endpoints requieren `Authorization: Bearer {{adminToken}}`.\n\nFlujo de prueba recomendado:\n1. **POST Create Tenant** → guarda `tenantSlug` automáticamente en el entorno.\n2. **GET Tenant by Slug** → usa el `tenantSlug` guardado.\n3. **PUT Suspend Tenant** → suspende el tenant.\n4. **GET Tenant by Slug (Suspended)** → verifica el nuevo estado.",
       "item": [
         {
           "name": "POST Create Tenant",
@@ -569,11 +569,15 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"ownerEmail\": \"{{tenantOwnerEmail}}\"\n}",
+              "raw": "{\n  \"name\": \"{{_dynamicTenantName}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -591,7 +595,7 @@
                 "tenants"
               ]
             },
-            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n- `ownerEmail`: requerido, formato email válido.\n\nEl `slug` se genera automáticamente en el servidor a partir del `name` (minúsculas, guiones, sin caracteres especiales).\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
+            "description": "Crea un nuevo tenant.\n\n**Ruta protegida** — requiere `Authorization: Bearer {{adminToken}}`.\n\n**Validaciones del body:**\n- `name`: requerido, máx 255 chars.\n\nEl `slug` se genera automáticamente en el servidor a partir del `name` (minúsculas, guiones, sin caracteres especiales).\n\n**ResponseCode esperado:** `TENANT_CREATED`\n**HTTP Status:** `201 Created`\n\nEl script de tests guarda automáticamente el `slug` del tenant creado en la variable de entorno `tenantSlug`."
           },
           "event": [
             {
@@ -626,7 +630,6 @@
                   "    pm.expect(body.data).to.have.property('id');",
                   "    pm.expect(body.data).to.have.property('name');",
                   "    pm.expect(body.data).to.have.property('slug');",
-                  "    pm.expect(body.data).to.have.property('ownerEmail');",
                   "    pm.expect(body.data).to.have.property('status');",
                   "});",
                   "",
@@ -637,12 +640,6 @@
                   "pm.test('data.id no está vacío (UUID generado)', function () {",
                   "    pm.expect(body.data.id).to.be.a('string').and.not.empty;",
                   "});",
-                  "",
-                  "pm.test('data.ownerEmail coincide con el enviado', function () {",
-                  "    const sentEmail = pm.environment.get('tenantOwnerEmail');",
-                  "    pm.expect(body.data.ownerEmail).to.equal(sentEmail);",
-                  "});",
-                  "",
                   "// Guardar slug en el entorno para requests subsiguientes",
                   "if (pm.response.code === 201 && body.data && body.data.slug) {",
                   "    pm.environment.set('tenantSlug', body.data.slug);",
@@ -663,7 +660,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_CREATED\",\n    \"message\": \"Tenant created successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"ACTIVE\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_CREATED\",\n    \"message\": \"Tenant created successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"status\": \"ACTIVE\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -710,7 +707,7 @@
                   "disabled": true
                 },
                 {
-                  "key": "nameLike",
+                  "key": "name_like",
                   "value": "",
                   "description": "Búsqueda parcial en nombre del tenant (case-insensitive). Opcional.",
                   "disabled": true
@@ -739,7 +736,7 @@
                 }
               ]
             },
-            "description": "Lista todos los tenants con paginación y filtros opcionales.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminJwt>`.\n\n**Query params:**\n- `status` (opcional): `ACTIVE`, `SUSPENDED`, `PENDING`\n- `nameLike` (opcional): búsqueda parcial en nombre (case-insensitive)\n- `page` (default 0): número de página (base 0)\n- `size` (default 20): tamaño de página (1–200)\n\n**ResponseCode esperado:** `TENANT_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Lista todos los tenants con paginación y filtros opcionales.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminJwt>`.\n\n**Query params:**\n- `status` (opcional): `ACTIVE`, `SUSPENDED`, `PENDING`\n- `name_like` (opcional): búsqueda parcial en nombre (case-insensitive)\n- `page` (default 0): número de página (base 0)\n- `size` (default 20): tamaño de página (1–200)\n\n**ResponseCode esperado:** `TENANT_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -779,7 +776,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-27T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_LIST_RETRIEVED\",\n    \"message\": \"Tenant list retrieved successfully\"\n  },\n  \"data\": {\n    \"content\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Acme Corp\",\n        \"slug\": \"acme-corp\",\n        \"ownerEmail\": \"admin@acme.com\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"page\": 0,\n    \"size\": 20,\n    \"totalElements\": 1,\n    \"totalPages\": 1,\n    \"last\": true\n  }\n}",
+              "body": "{\n  \"date\": \"2026-03-27T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_LIST_RETRIEVED\",\n    \"message\": \"Tenant list retrieved successfully\"\n  },\n  \"data\": {\n    \"content\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Acme Corp\",\n        \"slug\": \"acme-corp\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"page\": 0,\n    \"size\": 20,\n    \"totalElements\": 1,\n    \"totalPages\": 1,\n    \"last\": true\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -789,7 +786,12 @@
           "id": "req-get-tenant",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}",
               "host": [
@@ -802,7 +804,7 @@
                 "{{tenantSlug}}"
               ]
             },
-            "description": "Obtiene un tenant por su slug.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno (se setea automáticamente al crear un tenant).\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`"
+            "description": "Obtiene un tenant por su slug.\n\n**Ruta protegida** — requiere `Authorization: Bearer {{adminToken}}`.\n\nUsa la variable `{{tenantSlug}}` del entorno (se setea automáticamente al crear un tenant).\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`"
           },
           "event": [
             {
@@ -838,7 +840,7 @@
                   "});",
                   "",
                   "pm.test('data contiene todos los campos del tenant', function () {",
-                  "    pm.expect(body.data).to.have.all.keys('id', 'name', 'slug', 'ownerEmail', 'status');",
+                  "    pm.expect(body.data).to.have.all.keys('id', 'name', 'slug', 'status');",
                   "});"
                 ]
               }
@@ -855,7 +857,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_RETRIEVED\",\n    \"message\": \"Tenant retrieved successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"ACTIVE\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_RETRIEVED\",\n    \"message\": \"Tenant retrieved successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"status\": \"ACTIVE\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -878,7 +880,12 @@
           "id": "req-suspend-tenant",
           "request": {
             "method": "PUT",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/suspend",
               "host": [
@@ -892,7 +899,7 @@
                 "suspend"
               ]
             },
-            "description": "Suspende un tenant existente. El tenant pasa de estado `ACTIVE` a `SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nUsa la variable `{{tenantSlug}}` del entorno.\n\n**ResponseCode esperado:** `TENANT_SUSPENDED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`\n**Si ya está suspendido:** `403 Forbidden` con code `BUSINESS_RULE_VIOLATION`"
+            "description": "Suspende un tenant existente. El tenant pasa de estado `ACTIVE` a `SUSPENDED`.\n\n**Ruta protegida** — requiere `Authorization: Bearer {{adminToken}}`.\n\nUsa la variable `{{tenantSlug}}` del entorno.\n\n**ResponseCode esperado:** `TENANT_SUSPENDED`\n**HTTP Status:** `200 OK`\n**Si no existe:** `404 Not Found` con code `RESOURCE_NOT_FOUND`\n**Si ya está suspendido:** `403 Forbidden` con code `BUSINESS_RULE_VIOLATION`"
           },
           "event": [
             {
@@ -945,7 +952,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_SUSPENDED\",\n    \"message\": \"Tenant suspended successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"SUSPENDED\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-03-21T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_SUSPENDED\",\n    \"message\": \"Tenant suspended successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"status\": \"SUSPENDED\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -968,7 +975,12 @@
           "id": "req-get-tenant-suspended",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}",
               "host": [
@@ -981,7 +993,7 @@
                 "{{tenantSlug}}"
               ]
             },
-            "description": "Verifica el estado del tenant después de suspenderlo. Debe retornar `status: SUSPENDED`.\n\n**Ruta protegida** — requiere `X-KEYGO-ADMIN`.\n\nEjecutar después de **PUT Suspend Tenant** para confirmar el cambio de estado.\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`"
+            "description": "Verifica el estado del tenant después de suspenderlo. Debe retornar `status: SUSPENDED`.\n\n**Ruta protegida** — requiere `Authorization: Bearer {{adminToken}}`.\n\nEjecutar después de **PUT Suspend Tenant** para confirmar el cambio de estado.\n\n**ResponseCode esperado:** `TENANT_RETRIEVED`\n**HTTP Status:** `200 OK`"
           },
           "event": [
             {
@@ -1085,7 +1097,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-03-28T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_ACTIVATED\",\n    \"message\": \"Tenant activated successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"ownerEmail\": \"admin@acme.com\",\n    \"status\": \"ACTIVE\"\n  }\n}",
+              "body": "{\n  \"date\": \"2026-03-28T12:00:00\",\n  \"success\": {\n    \"code\": \"TENANT_ACTIVATED\",\n    \"message\": \"Tenant activated successfully\"\n  },\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Acme Corp\",\n    \"slug\": \"acme-corp-1711022400000\",\n    \"status\": \"ACTIVE\"\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1105,6 +1117,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
             "body": {
@@ -1127,7 +1143,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant con body vacío. Dispara validación `@Valid` en el backend → retorna 400 con `fieldErrors` por campo.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.origin:** `CLIENT_REQUEST`\n**data.clientRequestCause:** `USER_INPUT`\n**data.fieldErrors:** lista con los campos faltantes (`name`, `ownerEmail`)"
+            "description": "Intenta crear un tenant con body vacío. Dispara validación `@Valid` en el backend → retorna 400 con `fieldErrors` por campo.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.origin:** `CLIENT_REQUEST`\n**data.clientRequestCause:** `USER_INPUT`\n**data.fieldErrors:** lista con los campos faltantes (`name`)"
           },
           "event": [
             {
@@ -1181,25 +1197,29 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  },\n  \"data\": {\n    \"code\": \"INVALID_INPUT\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"Revisa los datos enviados e intenta otra vez.\",\n    \"fieldErrors\": [\n      { \"field\": \"name\", \"message\": \"must not be blank\" },\n      { \"field\": \"ownerEmail\", \"message\": \"must not be blank\" }\n    ]\n  }\n}",
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  },\n  \"data\": {\n    \"code\": \"INVALID_INPUT\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"Revisa los datos enviados e intenta otra vez.\",\n    \"fieldErrors\": [\n      { \"field\": \"name\", \"message\": \"must not be blank\" }\n    ]\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
         },
         {
-          "name": "POST Create Tenant — Email inválido (400 + fieldErrors)",
-          "id": "req-create-tenant-invalid-email",
+          "name": "POST Create Tenant — Nombre demasiado largo (400 + fieldErrors)",
+          "id": "req-create-tenant-name-too-long",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Tenant\",\n  \"ownerEmail\": \"no-es-un-email\"\n}",
+              "raw": "{\n  \"name\": \"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1217,7 +1237,7 @@
                 "tenants"
               ]
             },
-            "description": "Intenta crear un tenant con un email mal formado. Dispara validación `@Email` → retorna 400 con `fieldErrors`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.fieldErrors:** debe indicar `ownerEmail` inválido"
+            "description": "Intenta crear un tenant con un nombre que supera el máximo de 255 caracteres. Dispara validación `@Size` → retorna 400 con `fieldErrors`.\n\n**HTTP Status esperado:** `400 Bad Request`\n**ResponseCode esperado:** `INVALID_INPUT`\n**data.fieldErrors:** debe indicar `name` inválido"
           },
           "event": [
             {
@@ -1225,7 +1245,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400 Bad Request por email inválido', function () {",
+                  "pm.test('Status 400 Bad Request por nombre demasiado largo', function () {",
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
@@ -1240,10 +1260,10 @@
                   "    pm.expect(body.data).to.have.property('clientRequestCause', 'USER_INPUT');",
                   "});",
                   "",
-                  "pm.test('data.fieldErrors referencia el campo ownerEmail', function () {",
+                  "pm.test('data.fieldErrors referencia el campo name', function () {",
                   "    pm.expect(body.data.fieldErrors).to.be.an('array').and.not.empty;",
-                  "    const emailError = body.data.fieldErrors.find(function(e) { return e.field === 'ownerEmail'; });",
-                  "    pm.expect(emailError).to.not.be.undefined;",
+                  "    const nameError = body.data.fieldErrors.find(function(e) { return e.field === 'name'; });",
+                  "    pm.expect(nameError).to.not.be.undefined;",
                   "});"
                 ]
               }
@@ -1251,7 +1271,7 @@
           ],
           "response": [
             {
-              "name": "400 Bad Request — Email inválido (con fieldErrors)",
+              "name": "400 Bad Request — Nombre demasiado largo (con fieldErrors)",
               "status": "Bad Request",
               "code": 400,
               "header": [
@@ -1260,7 +1280,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  },\n  \"data\": {\n    \"code\": \"INVALID_INPUT\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"Revisa los datos enviados e intenta otra vez.\",\n    \"fieldErrors\": [\n      { \"field\": \"ownerEmail\", \"message\": \"must be a well-formed email address\" }\n    ]\n  }\n}",
+              "body": "{\n  \"date\": \"2026-04-01T12:00:00Z\",\n  \"failure\": {\n    \"code\": \"INVALID_INPUT\",\n    \"message\": \"Invalid input data provided\"\n  },\n  \"data\": {\n    \"code\": \"INVALID_INPUT\",\n    \"origin\": \"CLIENT_REQUEST\",\n    \"clientRequestCause\": \"USER_INPUT\",\n    \"clientMessage\": \"Revisa los datos enviados e intenta otra vez.\",\n    \"fieldErrors\": [\n      { \"field\": \"name\", \"message\": \"Tenant name must not exceed 255 characters\" }\n    ]\n  }\n}",
               "_postman_previewlanguage": "json"
             }
           ]
@@ -1274,11 +1294,15 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"ownerEmail\": \"test@example.com\"\n}",
+              "raw": "{\n  \"name\": \"{{tenantName}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1806,7 +1830,7 @@
     },
     {
       "name": "📦 Client Apps",
-      "description": "CRUD de aplicaciones cliente OAuth2 bajo un tenant. Requiere que el tenant exista (variable {{tenantSlug}}) y el header X-KEYGO-ADMIN.",
+      "description": "CRUD de aplicaciones cliente OAuth2 bajo un tenant. Requiere que el tenant exista (variable {{tenantSlug}}) y `Authorization: Bearer {{adminToken}}` con permisos administrativos.",
       "item": [
         {
           "name": "POST Create Client App",
@@ -2194,7 +2218,7 @@
                 "roles"
               ]
             },
-            "description": "Crea un rol dentro de la app del tenant. Requiere `X-KEYGO-ADMIN` o Bearer JWT con rol admin."
+            "description": "Crea un rol dentro de la app del tenant. Requiere `Authorization: Bearer` con rol administrativo."
           },
           "response": []
         },
@@ -2284,7 +2308,7 @@
     },
     {
       "name": "👤 Users",
-      "description": "Gestión de identidades de usuario con alcance por tenant. Requiere X-KEYGO-ADMIN.",
+      "description": "Gestión de identidades de usuario con alcance por tenant. Requiere `Authorization: Bearer` con permisos administrativos.",
       "item": [
         {
           "name": "Crear usuario",
@@ -2933,7 +2957,7 @@
                 "openid-configuration"
               ]
             },
-            "description": "Obtiene el OIDC Discovery Document para el tenant.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration"
+            "description": "Obtiene el OIDC Discovery Document para el tenant.\n\nRuta pública — no requiere autenticación.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/openid-configuration"
           },
           "event": [
             {
@@ -2994,7 +3018,7 @@
                 "jwks.json"
               ]
             },
-            "description": "Obtiene el JWK Set con las claves públicas RSA para verificar tokens JWT.\n\nRuta pública — no requiere X-KEYGO-ADMIN.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json"
+            "description": "Obtiene el JWK Set con las claves públicas RSA para verificar tokens JWT.\n\nRuta pública — no requiere autenticación.\n\nEndpoint: GET /api/v1/tenants/{tenantSlug}/.well-known/jwks.json"
           },
           "event": [
             {
@@ -3433,7 +3457,7 @@
                 "profile"
               ]
             },
-            "description": "Retorna el perfil completo del usuario autenticado (todos los campos OIDC extendidos).\n\nRequiere Authorization: Bearer <access_token>.\nNO requiere X-KEYGO-ADMIN.\n\n**ResponseCode esperado:** USER_PROFILE_RETRIEVED\n**HTTP Status:** 200 OK"
+            "description": "Retorna el perfil completo del usuario autenticado (todos los campos OIDC extendidos).\n\nRequiere Authorization: Bearer <access_token>.\n\n**ResponseCode esperado:** USER_PROFILE_RETRIEVED\n**HTTP Status:** 200 OK"
           },
           "event": [
             {
@@ -3494,7 +3518,7 @@
                 "profile"
               ]
             },
-            "description": "Actualiza parcialmente el perfil del usuario autenticado (PATCH semántica — solo actualiza campos enviados).\n\nRequiere Authorization: Bearer <access_token>.\nNO requiere X-KEYGO-ADMIN.\n\n**ResponseCode esperado:** USER_PROFILE_UPDATED\n**HTTP Status:** 200 OK\n\nTodos los campos son opcionales. null = no cambiar."
+            "description": "Actualiza parcialmente el perfil del usuario autenticado (PATCH semántica — solo actualiza campos enviados).\n\nRequiere Authorization: Bearer <access_token>.\n\n**ResponseCode esperado:** USER_PROFILE_UPDATED\n**HTTP Status:** 200 OK\n\nTodos los campos son opcionales. null = no cambiar."
           },
           "event": [
             {
@@ -3919,7 +3943,7 @@
                 "resume"
               ]
             },
-            "description": "Recupera el estado del onboarding enriquecido con `next_action` y `verification_code_expired` para que el frontend pueda restaurar el paso correcto.\n\n**`next_action` posibles:** ENTER_VERIFICATION_CODE | REQUEST_NEW_CODE | COMPLETE_PAYMENT | ACTIVATE | COMPLETE | CANCELLED\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_ONBOARDING_RESUMED | **HTTP:** 200 | **400** si estado terminal"
+            "description": "Recupera el estado del onboarding enriquecido con `nextAction` y `verificationCodeExpired` para que el frontend pueda restaurar el paso correcto.\n\n**`nextAction` posibles:** ENTER_VERIFICATION_CODE | REQUEST_NEW_CODE | COMPLETE_PAYMENT | ACTIVATE | COMPLETE | CANCELLED\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_ONBOARDING_RESUMED | **HTTP:** 200 | **422** si estado terminal"
           },
           "event": [
             {
@@ -3932,9 +3956,9 @@
                   "  pm.expect(body.success.code).to.equal(\"APP_CONTRACT_ONBOARDING_RESUMED\");",
                   "  const data = body.data;",
                   "  pm.expect(data).to.have.property(\"status\");",
-                  "  pm.expect(data).to.have.property(\"next_action\");",
-                  "  pm.expect(data).to.have.property(\"verification_code_expired\");",
-                  "  pm.expect([\"ENTER_VERIFICATION_CODE\",\"REQUEST_NEW_CODE\",\"COMPLETE_PAYMENT\",\"ACTIVATE\",\"COMPLETE\",\"CANCELLED\"]).to.include(data.next_action);",
+                  "  pm.expect(data).to.have.property(\"nextAction\");",
+                  "  pm.expect(data).to.have.property(\"verificationCodeExpired\");",
+                  "  pm.expect([\"ENTER_VERIFICATION_CODE\",\"REQUEST_NEW_CODE\",\"COMPLETE_PAYMENT\",\"ACTIVATE\",\"COMPLETE\",\"CANCELLED\"]).to.include(data.nextAction);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -4009,7 +4033,7 @@
                 "resend-verification"
               ]
             },
-            "description": "Reenvía el código de verificación al email del contratante.\n\n**Comportamiento:**\n- Código aún válido → reenvía el mismo (sin regenerar)\n- Código expirado → genera uno nuevo, actualiza el contrato y envía\n\nÚsalo cuando el usuario no recibió el email o cuando `verification_code_expired=true` en `/resume`.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_VERIFICATION_RESENT | **HTTP:** 200 | **400** si no está en PENDING_EMAIL_VERIFICATION"
+            "description": "Reenvía el código de verificación al email del contratante.\n\n**Comportamiento:**\n- Código aún válido → reenvía el mismo (sin regenerar)\n- Código expirado → genera uno nuevo y lo persiste en `contract_email_verifications`\n\nÚsalo cuando el usuario no recibió el email o cuando `verificationCodeExpired=true` en `/resume`.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_VERIFICATION_RESENT | **HTTP:** 200 | **422** si no está en PENDING_EMAIL_VERIFICATION"
           },
           "event": [
             {
@@ -4047,7 +4071,7 @@
                 "mock-approve-payment"
               ]
             },
-            "description": "Simula aprobación de pago (solo dev). Requiere `keygo.billing.mock-payment-enabled=true`.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_PAYMENT_APPROVED | **HTTP:** 200"
+            "description": "Simula aprobación de pago (solo dev). Requiere `keygo.billing.mock-payment-enabled=true`.\n\nAdemás del cambio a `READY_TO_ACTIVATE`, este paso provisiona `PlatformUser`/`Contractor` si faltan, vincula `contractor_users` con rol `OWNER` y envía password temporal.\n\n**Auth:** Público | **ResponseCode:** APP_CONTRACT_PAYMENT_APPROVED | **HTTP:** 200"
           },
           "event": [
             {

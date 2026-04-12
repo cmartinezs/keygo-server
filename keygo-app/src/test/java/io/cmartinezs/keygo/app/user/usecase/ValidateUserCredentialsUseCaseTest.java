@@ -222,7 +222,6 @@ class ValidateUserCredentialsUseCaseTest {
         .id(new TenantId(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("Acme Corp")
-        .ownerEmail("owner@acme.local")
         .status(TenantStatus.ACTIVE)
         .build();
   }

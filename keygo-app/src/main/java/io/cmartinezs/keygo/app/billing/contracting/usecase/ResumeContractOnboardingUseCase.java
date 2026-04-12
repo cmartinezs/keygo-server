@@ -3,9 +3,11 @@ package io.cmartinezs.keygo.app.billing.contracting.usecase;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.port.ContractEmailVerificationRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 
+import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,9 +31,13 @@ public class ResumeContractOnboardingUseCase {
   );
 
   private final AppContractRepositoryPort contractRepo;
+  private final ContractEmailVerificationRepositoryPort contractVerificationRepo;
 
-  public ResumeContractOnboardingUseCase(AppContractRepositoryPort contractRepo) {
+  public ResumeContractOnboardingUseCase(
+      AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractVerificationRepo) {
     this.contractRepo = contractRepo;
+    this.contractVerificationRepo = contractVerificationRepo;
   }
 
   /**
@@ -51,7 +57,12 @@ public class ResumeContractOnboardingUseCase {
           "contract is in a terminal state and cannot be resumed");
     }
 
-    return new AppContractResult(contract, null);
+    boolean verificationExpired = ContractStatus.PENDING_EMAIL_VERIFICATION.equals(contract.getStatus())
+        && contractVerificationRepo.findByContractId(contractId)
+            .map(v -> v.isExpired(OffsetDateTime.now()))
+            .orElse(true);
+
+    return new AppContractResult(contract, null, verificationExpired);
   }
 }
 

@@ -53,7 +53,6 @@ class ListUsersUseCaseTest {
         .id(tenantId)
         .name("Test Tenant")
         .slug(TenantSlug.of("test-tenant"))
-        .ownerEmail("owner@test.com")
         .status(TenantStatus.ACTIVE)
         .build();
   }

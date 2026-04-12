@@ -127,7 +127,6 @@ class CreateAppRoleUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("KeyGo")
-        .ownerEmail("admin@keygo.local")
         .status(TenantStatus.SUSPENDED)
         .build();
 
@@ -147,7 +146,6 @@ class CreateAppRoleUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("KeyGo")
-        .ownerEmail("admin@keygo.local")
         .status(TenantStatus.ACTIVE)
         .build();
   }

@@ -122,10 +122,9 @@ public class MembershipPersistenceMapper {
   public static TenantUserRole toDomain(TenantUserRoleEntity entity) {
     return TenantUserRole.builder()
         .id(TenantUserRoleId.of(entity.getId()))
-        .tenantUserId(entity.getTenantUser().getId())
-        .tenantRoleId(TenantRoleId.of(entity.getTenantRole().getId()))
+        .tenantUserId(entity.getTenantUserId())
+        .tenantRoleId(TenantRoleId.of(entity.getTenantRoleId()))
         .assignedAt(entity.getAssignedAt().toInstant())
-        .removedAt(entity.getRemovedAt() != null ? entity.getRemovedAt().toInstant() : null)
         .build();
   }
 }

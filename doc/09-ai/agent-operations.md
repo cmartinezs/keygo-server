@@ -17,6 +17,9 @@ Política común para agentes AI que trabajan en este repositorio.
 - No usar `99-archive/` como fuente primaria.
 - Si una decisión ya es efectiva, dejar ADR o actualizar el existente.
 - Si hay drift documental, registrarlo en `inconsistencies.md`.
+- Todo diagrama debe escribirse en **Mermaid** cuando sea técnicamente viable.
+- Si Mermaid no alcanza para el caso, usar **PlantUML**.
+- Diagramas ASCII solo se aceptan como último recurso y deben evitarse en documentación canónica.
 
 ## Regla de mantenimiento
 

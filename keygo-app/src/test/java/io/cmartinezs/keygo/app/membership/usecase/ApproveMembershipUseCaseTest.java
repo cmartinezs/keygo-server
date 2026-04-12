@@ -232,7 +232,6 @@ class ApproveMembershipUseCaseTest {
         .id(tenantId)
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("Acme Corp")
-        .ownerEmail("admin@acme.local")
         .status(TenantStatus.ACTIVE)
         .build();
   }

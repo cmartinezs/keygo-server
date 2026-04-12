@@ -13,11 +13,14 @@ import java.util.UUID;
 public interface ContractorRepositoryPort {
   Contractor save(Contractor contractor);
   Optional<Contractor> findById(UUID id);
+
+  /**
+   * Resolve a contractor accessible by a platform user through contractor_users.
+   */
   Optional<Contractor> findByPlatformUserId(UUID platformUserId);
 
   /**
-   * Find a contractor by the email of its linked PlatformUser.
-   * Email is globally unique in platform_users, so no tenantId is needed.
+   * Resolve a contractor accessible by a platform user email through contractor_users.
    *
    * @param email the email address
    * @return optional contractor if found

@@ -8,6 +8,9 @@ package io.cmartinezs.keygo.domain.user.model;
  */
 public enum UserStatus {
 
+  /* User was invited to the tenant but has not completed activation. */
+  INVITED,
+
   /* User account is active and can authenticate.
    * La cuenta de usuario está activa y puede autenticarse. */
   ACTIVE,
@@ -22,6 +25,9 @@ public enum UserStatus {
 
   /* User was provisioned with a temporary password and must reset it before gaining full access.
    * El usuario fue aprovisionado con una contraseña temporal y debe cambiarla antes de tener acceso completo. */
-  RESET_PASSWORD
+  RESET_PASSWORD,
+
+  /* User was deleted from the tenant scope. */
+  DELETED
 }
 

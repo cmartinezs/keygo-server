@@ -41,18 +41,27 @@ public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
 
   @Override
   public Optional<Contractor> findByPlatformUserId(UUID platformUserId) {
-    return jpaRepo.findByPlatformUserId(platformUserId).map(this::toDomain);
+    return jpaRepo.findByAssociatedPlatformUserId(platformUserId).map(this::toDomain);
   }
 
   @Override
   public Optional<Contractor> findByPlatformUserEmail(String email) {
-    return jpaRepo.findByPlatformUser_Email(email)
+    return jpaRepo.findByAssociatedPlatformUserEmail(email)
         .map(this::toDomain);
   }
 
   private ContractorEntity toEntity(Contractor c) {
     return ContractorEntity.builder()
-        .platformUser(platformUserRepo.getReferenceById(c.getPlatformUserId()))
+        .id(c.getId())
+        .primaryContactPlatformUser(
+            c.getPrimaryContactPlatformUserId() != null
+                ? platformUserRepo.getReferenceById(c.getPrimaryContactPlatformUserId())
+                : null)
+        .type(c.getType())
+        .displayName(c.getDisplayName())
+        .legalName(c.getLegalName())
+        .taxId(c.getTaxId())
+        .billingEmail(c.getBillingEmail())
         .status(c.getStatus())
         .build();
   }
@@ -60,7 +69,13 @@ public class ContractorRepositoryAdapter implements ContractorRepositoryPort {
   private Contractor toDomain(ContractorEntity e) {
     return Contractor.builder()
         .id(e.getId())
-        .platformUserId(e.getPlatformUser().getId())
+        .primaryContactPlatformUserId(
+            e.getPrimaryContactPlatformUser() != null ? e.getPrimaryContactPlatformUser().getId() : null)
+        .type(e.getType())
+        .displayName(e.getDisplayName())
+        .legalName(e.getLegalName())
+        .taxId(e.getTaxId())
+        .billingEmail(e.getBillingEmail())
         .status(e.getStatus())
         .createdAt(e.getCreatedAt())
         .updatedAt(e.getUpdatedAt())

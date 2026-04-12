@@ -42,11 +42,7 @@ public class AppPlanEntity {
   @Column(columnDefinition = "TEXT")
   private String description;
 
-  /**
-   * Who can subscribe to this plan: TENANT (B2B) or TENANT_USER (B2C).
-   * Matches app_plan_entitlements.subscriber_type in the DB.
-   */
-  @Column(name = "subscriber_type", nullable = false, length = 20)
+  @Transient
   @Builder.Default
   private String subscriberType = "TENANT";
 

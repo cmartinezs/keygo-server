@@ -40,7 +40,6 @@ public class CreateTenantUseCase {
     Tenant tenant = Tenant.builder()
         .slug(slug)
         .name(command.name())
-        .ownerEmail(command.ownerEmail())
         .status(TenantStatus.ACTIVE)
         .build();
 

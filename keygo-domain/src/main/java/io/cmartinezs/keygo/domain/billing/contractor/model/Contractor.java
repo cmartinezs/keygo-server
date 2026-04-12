@@ -18,8 +18,13 @@ import java.util.UUID;
 public class Contractor {
 
   private final UUID id;
-  /** 1:1 link to PlatformUser (platform-level identity). */
-  private final UUID platformUserId;
+  /** Primary contact of the contractor account, if defined. */
+  private final UUID primaryContactPlatformUserId;
+  private final ContractorType type;
+  private final String displayName;
+  private final String legalName;
+  private final String taxId;
+  private final String billingEmail;
   private ContractorStatus status;
   private final OffsetDateTime createdAt;
   private OffsetDateTime updatedAt;
@@ -27,16 +32,27 @@ public class Contractor {
   @Builder
   private Contractor(
       UUID id,
-      UUID platformUserId,
+      UUID primaryContactPlatformUserId,
+      ContractorType type,
+      String displayName,
+      String legalName,
+      String taxId,
+      String billingEmail,
       ContractorStatus status,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt) {
-    if (platformUserId == null) throw new IllegalArgumentException("platformUserId cannot be null");
-    if (status == null) throw new IllegalArgumentException("status cannot be null");
+    if (billingEmail == null || billingEmail.isBlank()) {
+      throw new IllegalArgumentException("billingEmail cannot be blank");
+    }
 
     this.id = id;
-    this.platformUserId = platformUserId;
-    this.status = status;
+    this.primaryContactPlatformUserId = primaryContactPlatformUserId;
+    this.type = type != null ? type : ContractorType.PERSON;
+    this.displayName = displayName != null && !displayName.isBlank() ? displayName : billingEmail;
+    this.legalName = legalName;
+    this.taxId = taxId;
+    this.billingEmail = billingEmail;
+    this.status = status != null ? status : ContractorStatus.PENDING;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }

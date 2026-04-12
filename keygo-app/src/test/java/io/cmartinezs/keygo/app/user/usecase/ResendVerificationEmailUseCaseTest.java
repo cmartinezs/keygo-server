@@ -90,7 +90,6 @@ class ResendVerificationEmailUseCaseTest {
             .id(TenantId.of(UUID.randomUUID()))
             .slug(TenantSlug.of(TENANT_SLUG))
             .name("ACME Corp")
-            .ownerEmail("owner@acme.com")
             .status(TenantStatus.ACTIVE)
             .build();
 

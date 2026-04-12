@@ -12,12 +12,5 @@ public record CreateTenantCommand(
 
     /* Human-readable display name of the tenant.
      * Nombre de visualización legible del tenant. */
-    String name,
-
-    /* Email address of the tenant owner.
-     * Dirección de email del propietario del tenant. */
-    String ownerEmail
+    String name
 ) {}
-
-
-

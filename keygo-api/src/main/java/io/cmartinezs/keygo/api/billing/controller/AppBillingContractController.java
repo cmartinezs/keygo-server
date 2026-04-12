@@ -123,6 +123,8 @@ public class AppBillingContractController {
   @Operation(
       summary = "[DEV] Mock approve payment",
       description = "Simulates a successful payment for a contract in PENDING_PAYMENT status. "
+                  + "After payment approval the backend provisions the contractor/platform account if needed "
+                  + "and sends the temporary password email. "
                   + "Only available when `keygo.billing.mock-payment-enabled=true`.")
   @ApiResponse(responseCode = "200", description = "Payment approved (code: APP_CONTRACT_PAYMENT_APPROVED)")
   @ApiResponse(responseCode = "404", description = "Contract not found or mock disabled (code: CONTRACT_NOT_FOUND / RESOURCE_NOT_FOUND)",
@@ -170,7 +172,8 @@ public class AppBillingContractController {
   @Operation(
       summary = "Verify contract email",
       description = "Validates the 6-digit code sent to the contractor's email. "
-                  + "Advances contract status from PENDING_EMAIL_VERIFICATION → PENDING_PAYMENT.")
+                  + "Advances contract status from PENDING_EMAIL_VERIFICATION → PENDING_PAYMENT without "
+                  + "creating the platform account yet.")
   @ApiResponse(responseCode = "200", description = "Email verified — contract now in PENDING_PAYMENT (code: APP_CONTRACT_EMAIL_VERIFIED)")
   @ApiResponse(responseCode = "400", description = "Verification code is invalid or already used (code: INVALID_INPUT)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
@@ -207,7 +210,7 @@ public class AppBillingContractController {
 
     var result = resumeContractOnboardingUseCase.execute(contractId);
     return ResponseEntity.ok(BaseResponse.<AppContractResumeData>builder()
-        .data(AppContractResumeData.from(result.contract()))
+        .data(AppContractResumeData.from(result))
         .success(ResponseHelper.message(ResponseCode.APP_CONTRACT_ONBOARDING_RESUMED))
         .build());
   }

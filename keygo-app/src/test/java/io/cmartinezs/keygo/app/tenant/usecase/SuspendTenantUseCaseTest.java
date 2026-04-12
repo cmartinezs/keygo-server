@@ -35,7 +35,6 @@ class SuspendTenantUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("My Tenant")
-        .ownerEmail("owner@example.com")
         .status(TenantStatus.ACTIVE)
         .build();
   }

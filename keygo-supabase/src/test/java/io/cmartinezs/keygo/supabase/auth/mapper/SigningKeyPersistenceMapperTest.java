@@ -58,7 +58,7 @@ class SigningKeyPersistenceMapperTest {
     assertThat(entity.getKid()).isEqualTo("kid-42");
     assertThat(entity.getAlgorithm()).isEqualTo("RS256");
     assertThat(entity.getStatus()).isEqualTo("RETIRED");
-    assertThat(entity.getPublicMaterial()).isEqualTo("PUB");
+    assertThat(entity.getPublicMaterial()).isEqualTo("\"PUB\"");
     assertThat(entity.getPrivateMaterial()).isNull();
   }
 }

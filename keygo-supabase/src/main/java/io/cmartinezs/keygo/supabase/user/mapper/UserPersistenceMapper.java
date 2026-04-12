@@ -18,35 +18,36 @@ import io.cmartinezs.keygo.supabase.user.entity.TenantUserEntity;
 public class UserPersistenceMapper {
 
   public User toDomain(TenantUserEntity entity) {
-    String birthdate = entity.getBirthdate() != null
-        ? entity.getBirthdate().toString()
+    var platformUser = requirePlatformUser(entity);
+    String birthdate = platformUser.getBirthdate() != null
+        ? platformUser.getBirthdate().toString()
         : null;
 
     return User.builder()
         .id(UserId.of(entity.getId()))
         .tenantId(TenantId.of(entity.getTenant().getId()))
         .username(Username.of(resolveUsername(entity)))
-        .email(EmailAddress.of(entity.getEmail()))
-        .passwordHash(PasswordHash.of(entity.getPasswordHash()))
-        .firstName(entity.getFirstName())
-        .lastName(entity.getLastName())
+        .email(EmailAddress.of(platformUser.getEmail()))
+        .passwordHash(PasswordHash.of(platformUser.getPasswordHash()))
+        .firstName(platformUser.getFirstName())
+        .lastName(platformUser.getLastName())
         .status(entity.getStatus())
-        .phoneNumber(entity.getPhoneNumber())
-        .locale(entity.getLocale())
-        .zoneinfo(entity.getZoneinfo())
-        .profilePictureUrl(entity.getProfilePictureUrl())
+        .phoneNumber(platformUser.getPhoneNumber())
+        .locale(platformUser.getLocale())
+        .zoneinfo(platformUser.getZoneinfo())
+        .profilePictureUrl(platformUser.getProfilePictureUrl())
         .birthdate(birthdate)
-        .website(entity.getWebsite())
+        .website(platformUser.getWebsite())
         .platformUserId(entity.getPlatformUser() != null ? entity.getPlatformUser().getId() : null)
         .build();
   }
 
   private String resolveUsername(TenantUserEntity entity) {
-    if (entity.getUsername() != null && !entity.getUsername().isBlank()) {
-      return entity.getUsername();
+    if (entity.getLocalUsername() != null && !entity.getLocalUsername().isBlank()) {
+      return entity.getLocalUsername();
     }
 
-    String email = entity.getEmail();
+    String email = requirePlatformUser(entity).getEmail();
     if (email != null && email.contains("@")) {
       String candidate = email.substring(0, email.indexOf('@')).replaceAll("[^a-zA-Z0-9_.\\-]", ".");
       if (candidate.length() >= 3) {
@@ -55,5 +56,14 @@ public class UserPersistenceMapper {
     }
 
     return "user." + entity.getId().toString().substring(0, 8);
+  }
+
+  private io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity requirePlatformUser(
+      TenantUserEntity entity) {
+    if (entity.getPlatformUser() == null) {
+      throw new IllegalStateException(
+          "TenantUserEntity " + entity.getId() + " is missing platformUser");
+    }
+    return entity.getPlatformUser();
   }
 }

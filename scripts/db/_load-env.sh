@@ -8,10 +8,10 @@
 # =========================================================
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 ENV_FILE="$PROJECT_ROOT/.env"
 
-# Load active .env from keygo-supabase/
+# Load active .env from project root
 load_env() {
     if [ -f "$ENV_FILE" ]; then
         set -a
@@ -24,7 +24,7 @@ load_env() {
         return 0
     else
         echo "⚠️  No se encontró .env en la raíz del proyecto ($PROJECT_ROOT/.env)"
-        echo "   Ejecuta: ./scripts/switch-env.sh local"
+        echo "   Ejecuta: ./scripts/switch-env.sh <env>"
         return 1
     fi
 }
@@ -39,7 +39,7 @@ verify_db_vars() {
         echo "❌ Faltan variables de entorno:"
         for v in "${missing[@]}"; do echo "   • $v"; done
         echo ""
-        echo "   Ejecuta: ./scripts/switch-env.sh [local|desa|prod]"
+        echo "   Ejecuta: ./scripts/switch-env.sh <env>"
         return 1
     fi
     return 0

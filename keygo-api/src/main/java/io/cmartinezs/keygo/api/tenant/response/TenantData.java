@@ -18,7 +18,6 @@ public class TenantData {
   private final String id;
   private final String name;
   private final String slug;
-  private final String ownerEmail;
   private final String status;
 
 }

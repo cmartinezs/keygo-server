@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.billing.response;
 
+import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 
@@ -45,8 +46,9 @@ public record AppContractResumeData(
     OffsetDateTime createdAt
 ) {
 
-  public static AppContractResumeData from(AppContract c) {
-    boolean codeExpired = c.isVerificationCodeExpired();
+  public static AppContractResumeData from(AppContractResult result) {
+    AppContract c = result.contract();
+    boolean codeExpired = result.verificationCodeExpired();
     return new AppContractResumeData(
         c.getId(),
         c.getClientAppId(),

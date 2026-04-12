@@ -51,7 +51,6 @@ class AppBillingSubscriptionControllerTest {
         .id(TenantId.of(UUID.randomUUID()))
         .slug(TenantSlug.of(TENANT_SLUG))
         .name("ACME")
-        .ownerEmail("admin@acme.com")
         .status(TenantStatus.ACTIVE)
         .contractorId(CONTRACTOR_ID) // ← modelo v2: tenant creado por un Contractor
         .build();

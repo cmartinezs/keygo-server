@@ -15,16 +15,13 @@ public interface TenantUserRoleRepositoryPort {
   /** Assign a tenant role to a tenant user. Returns the created assignment. */
   TenantUserRole assign(UUID tenantUserId, UUID tenantRoleId);
 
-  /**
-   * Revoke (soft-delete) a tenant role from a tenant user.
-   * Sets removed_at timestamp on the assignment.
-   */
+  /** Revoke a tenant role from a tenant user by deleting the persisted link row. */
   void revoke(UUID tenantUserId, UUID tenantRoleId);
 
   /** Retrieve all ACTIVE role assignments for a tenant user. */
   List<TenantUserRole> findActiveByTenantUserId(UUID tenantUserId);
 
-  /** Retrieve ALL role assignments (active and revoked) for a tenant user. */
+  /** Retrieve all persisted role assignments for a tenant user. */
   List<TenantUserRole> findAllByTenantUserId(UUID tenantUserId);
 
   /** Check if a tenant user has an active assignment for a specific role. */

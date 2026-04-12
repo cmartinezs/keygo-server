@@ -241,7 +241,7 @@ POST   /api/v1/billing/contracts/{contractId}/activate               [público]
 POST   /api/v1/billing/contracts/{contractId}/mock-approve-payment   [público]
 POST   /api/v1/billing/contracts/{contractId}/verify-email           [público]
 POST   /api/v1/billing/contracts/{contractId}/resend-verification    [público]
-POST   /api/v1/billing/contracts/{contractId}/resume                 [público]
+GET    /api/v1/billing/contracts/{contractId}/resume                 [público]
 ```
 
 ### **ROLES & MEMBERSHIPS (2 controllers, 5 endpoints)**

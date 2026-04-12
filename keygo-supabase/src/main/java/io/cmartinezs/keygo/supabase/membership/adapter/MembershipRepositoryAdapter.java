@@ -107,11 +107,13 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
     TenantUserEntity userRef = new TenantUserEntity();
     userRef.setId(membership.getUserId().value());
     entity.setUser(userRef);
+    entity.setTenantUserId(userRef.getId());
     entity.setTenantId(resolveTenantId(membership.getUserId().value()));
 
     ClientAppEntity appRef = new ClientAppEntity();
     appRef.setId(membership.getClientAppId().value());
     entity.setClientApp(appRef);
+    entity.setClientAppId(appRef.getId());
 
     entity.setStatus(membership.getStatus());
 

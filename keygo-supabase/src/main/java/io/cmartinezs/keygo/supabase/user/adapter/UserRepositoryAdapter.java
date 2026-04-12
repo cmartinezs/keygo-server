@@ -63,7 +63,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     entity.setTenant(tenantJpaRepository.getReferenceById(user.getTenantId().value()));
     entity.setPlatformUser(platformUser);
-    entity.setUsername(user.getUsername().value());
+    entity.setLocalUsername(user.getUsername().value());
 
     if (user.getStatus() != null && user.getStatus() != UserStatus.RESET_PASSWORD) {
       entity.setStatus(user.getStatus());

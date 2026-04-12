@@ -14,6 +14,7 @@ import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionNotFou
 import io.cmartinezs.keygo.app.billing.subscription.port.AppSubscriptionRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
+import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
 import io.cmartinezs.keygo.domain.billing.subscription.model.SubscriptionStatus;
 import java.time.OffsetDateTime;
@@ -48,7 +49,10 @@ class CancelPlatformSubscriptionUseCaseTest {
     UUID contractorId = UUID.randomUUID();
 
     Contractor contractor = Contractor.builder()
-        .id(contractorId).platformUserId(platformUserId)
+        .id(contractorId).primaryContactPlatformUserId(platformUserId)
+        .type(ContractorType.PERSON)
+        .displayName("Active Contractor")
+        .billingEmail("billing@example.com")
         .status(ContractorStatus.ACTIVE).build();
     when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.of(contractor));
 
@@ -94,7 +98,10 @@ class CancelPlatformSubscriptionUseCaseTest {
     UUID contractorId = UUID.randomUUID();
 
     Contractor contractor = Contractor.builder()
-        .id(contractorId).platformUserId(platformUserId)
+        .id(contractorId).primaryContactPlatformUserId(platformUserId)
+        .type(ContractorType.PERSON)
+        .displayName("Active Contractor")
+        .billingEmail("billing@example.com")
         .status(ContractorStatus.ACTIVE).build();
     when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.of(contractor));
     when(subscriptionRepo.findPlatformSubscriptionByContractorId(contractorId))
@@ -114,7 +121,10 @@ class CancelPlatformSubscriptionUseCaseTest {
     UUID contractorId = UUID.randomUUID();
 
     Contractor contractor = Contractor.builder()
-        .id(contractorId).platformUserId(platformUserId)
+        .id(contractorId).primaryContactPlatformUserId(platformUserId)
+        .type(ContractorType.PERSON)
+        .displayName("Active Contractor")
+        .billingEmail("billing@example.com")
         .status(ContractorStatus.ACTIVE).build();
     when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.of(contractor));
 

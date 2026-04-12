@@ -36,7 +36,6 @@ class ActivateTenantUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("My Tenant")
-        .ownerEmail("owner@example.com")
         .status(TenantStatus.SUSPENDED)
         .build();
     return t;
@@ -84,7 +83,6 @@ class ActivateTenantUseCaseTest {
         .id(TenantId.generate())
         .slug(TenantSlug.of(slug))
         .name("Pending Tenant")
-        .ownerEmail("owner@example.com")
         .status(TenantStatus.PENDING)
         .build();
     when(tenantRepositoryPort.findBySlug(TenantSlug.of(slug))).thenReturn(Optional.of(tenant));

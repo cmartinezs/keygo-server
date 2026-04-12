@@ -50,11 +50,62 @@ public class PlatformSessionEntity {
   @Column(name = "user_agent", columnDefinition = "TEXT")
   private String userAgent;
 
+  @Column(name = "login_method", length = 30)
+  private String loginMethod;
+
+  @Column(name = "auth_strength", length = 30)
+  private String authStrength;
+
+  @Column(name = "device_fingerprint", length = 255)
+  private String deviceFingerprint;
+
+  @Column(name = "browser_name", length = 100)
+  private String browserName;
+
+  @Column(name = "browser_version", length = 50)
+  private String browserVersion;
+
+  @Column(name = "os_name", length = 100)
+  private String osName;
+
+  @Column(name = "os_version", length = 50)
+  private String osVersion;
+
+  @Column(name = "device_type", length = 50)
+  private String deviceType;
+
   @Column(name = "ip_address", length = 64)
   private String ipAddress;
 
-  @Column(name = "started_at")
+  @Column(name = "forwarded_for", columnDefinition = "TEXT")
+  private String forwardedFor;
+
+  @Column(name = "country_code", length = 10)
+  private String countryCode;
+
+  @Column(name = "region", length = 100)
+  private String region;
+
+  @Column(name = "city", length = 100)
+  private String city;
+
+  @Column(name = "timezone_detected", length = 50)
+  private String timezoneDetected;
+
+  @Column(name = "started_at", nullable = false)
   private Instant startedAt;
+
+  @Column(name = "ended_at")
+  private Instant endedAt;
+
+  @Column(name = "termination_reason", length = 50)
+  private String terminationReason;
+
+  @Column(name = "last_route", length = 500)
+  private String lastRoute;
+
+  @Column(name = "last_activity_at")
+  private Instant lastActivityAt;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

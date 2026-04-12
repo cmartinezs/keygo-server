@@ -6,6 +6,7 @@ package io.cmartinezs.keygo.domain.billing.contracting.model;
  * @version 1.0
  */
 public enum ContractStatus {
+  DRAFT,
   PENDING_EMAIL_VERIFICATION,
   PENDING_PAYMENT,
   READY_TO_ACTIVATE,

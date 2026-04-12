@@ -6,7 +6,16 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 ## 📋 Active RFCs
 
-### 1️⃣ restructure-multitenant/
+### 1️⃣ ddl-full-refactor/
+**Status:** 📋 In Progress  
+**Purpose:** Realinear todo el backend al DDL vigente  
+**Timeline:** 2026-04 a 2026-Q2  
+**Next Step:** Cerrar Fase 0 y Fase 1 de persistencia  
+**See:** [`./ddl-full-refactor/README.md`](./ddl-full-refactor/README.md)
+
+---
+
+### 2️⃣ restructure-multitenant/
 **Status:** ✅ Active  
 **Purpose:** Multi-tenant service restructuring  
 **Timeline:** Sprint 1-4 (2026-Q2)  
@@ -15,7 +24,7 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 ---
 
-### 2️⃣ restructure-implementation/
+### 3️⃣ restructure-implementation/
 **Status:** 📋 In Progress  
 **Purpose:** Phase-by-phase implementation strategy  
 **Timeline:** Ongoing  
@@ -24,7 +33,7 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 ---
 
-### 3️⃣ billing-contractor-refactor/
+### 4️⃣ billing-contractor-refactor/
 **Status:** 📋 In Progress  
 **Purpose:** Refactor billing for contractor workflows  
 **Timeline:** Sprint 2-3  
@@ -33,7 +42,7 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 ---
 
-### 4️⃣ t108-geoip-sessions/
+### 5️⃣ t108-geoip-sessions/
 **Status:** ✅ Active  
 **Purpose:** Geo-IP tracking & session analytics  
 **Timeline:** T-108 (backlog priority)  
@@ -42,7 +51,7 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 ---
 
-### 5️⃣ account-ui-proposal/
+### 6️⃣ account-ui-proposal/
 **Status:** 🔍 Review  
 **Purpose:** Account management UI proposal  
 **Timeline:** Sprint 4+  
@@ -65,6 +74,7 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 | Month | RFC | Phase | Owner |
 |---|---|---|---|
+| 2026-04 | ddl-full-refactor | Fase 0–1 | @Backend |
 | 2026-04 | restructure-multitenant | Implementation Phase 2 | @Architecture |
 | 2026-04 | restructure-implementation | Design Phase 2 | @Architecture |
 | 2026-05 | billing-contractor-refactor | Implementation Phase 1 | @Backend |
