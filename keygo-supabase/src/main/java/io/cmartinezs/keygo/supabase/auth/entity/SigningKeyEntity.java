@@ -18,7 +18,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "signing_keys")
@@ -43,6 +45,7 @@ public class SigningKeyEntity {
   @Column(name = "status", nullable = false, length = 20)
   private String status;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "public_jwk", nullable = false, columnDefinition = "jsonb")
   private String publicMaterial;
 
