@@ -73,8 +73,11 @@ export function parseError(error: unknown): ApiError {
 | `MEMBERSHIP_ALREADY_ACTIVE` | 409 | Intento de aprobar una membresía ya activa |
 | `MEMBERSHIP_PENDING` | 403 | Login bloqueado por membresía en estado PENDING |
 | `INVALID_CREDENTIALS` | 401 | Credenciales incorrectas |
+| `AUTHENTICATION_REQUIRED` | 401 | Sesión/token ausente, inválido o expirada |
 | `USER_PASSWORD_RESET_REQUIRED` | 403 | Usuario debe cambiar contraseña antes de continuar |
 | `PLATFORM_USER_SUSPENDED` | 403 | Usuario de plataforma suspendido |
+| `PLATFORM_USER_EMAIL_FOUND` | 200 | Hosted login de plataforma: el email ya existe y la UI debe enviar al login |
+| `PLATFORM_USER_EMAIL_NOT_FOUND` | 404 | Hosted login de plataforma: el email no existe y la UI puede continuar onboarding |
 | `RESET_PASSWORD_REQUIRED` | 403 | Reset de contraseña requerido |
 | `OPERATION_FAILED` | 500 | Error genérico del servidor |
 | `INVALID_INPUT` | 400 | Parámetro de request inválido o faltante |

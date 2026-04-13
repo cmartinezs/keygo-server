@@ -24,6 +24,8 @@ public enum ResponseCode {
   // Platform Authentication
   PLATFORM_AUTHORIZATION_INITIATED("PLATFORM_AUTHORIZATION_INITIATED", "Platform authorization initiated successfully"),
   PLATFORM_LOGIN_SUCCESS("PLATFORM_LOGIN_SUCCESS", "Platform login successful"),
+  PLATFORM_USER_EMAIL_FOUND("PLATFORM_USER_EMAIL_FOUND", "Platform user email found"),
+  PLATFORM_USER_EMAIL_NOT_FOUND("PLATFORM_USER_EMAIL_NOT_FOUND", "Platform user email not found"),
   PLATFORM_TOKEN_ISSUED("PLATFORM_TOKEN_ISSUED", "Platform tokens issued successfully"),
   PLATFORM_TOKEN_ROTATED("PLATFORM_TOKEN_ROTATED", "Platform token rotated successfully"),
   PLATFORM_TOKEN_REVOKED("PLATFORM_TOKEN_REVOKED", "Platform token revoked successfully"),

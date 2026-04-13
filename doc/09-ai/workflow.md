@@ -17,6 +17,7 @@ hasta que se completa o descarta.
 | En desarrollo | 🔵 | Implementación en curso. |
 | Bloqueada | 🚫 | No puede avanzar por una dependencia o blocker externo. |
 | En revisión | 🔄 | Implementación completa. Verificando contra los criterios del plan. |
+| Pendiente integración UI | 🧩 | Backend listo, pero la tarea depende de integración o confirmación desde UI. |
 | Completada | ✅ | Verificada y cerrada. |
 | Archivada | ⬛ | Cancelada, descartada o absorbida por otra tarea. |
 
@@ -36,6 +37,7 @@ flowchart TD
     DEV["🔵 En desarrollo"]
     BLO["🚫 Bloqueada"]
     REV["🔄 En revisión"]
+    UI["🧩 Pendiente integración UI"]
     DONE["✅ Completada"]
     ARC["⬛ Archivada"]
     END(( ))
@@ -60,8 +62,12 @@ flowchart TD
     DEV -->|dependencia no resuelta| BLO
     BLO -->|blocker resuelto| DEV
 
+    REV -->|requiere integración UI| UI
     REV -->|verificación OK| DONE
     REV -->|requiere ajustes| DEV
+
+    UI -->|integración UI confirmada| DONE
+    UI -->|backend requiere ajustes| DEV
 
     DONE --> END
     ARC --> END
@@ -76,6 +82,7 @@ flowchart TD
     style DEV   fill:#cce5ff,stroke:#0056b3,color:#fff,font-weight:bold
     style BLO   fill:#f8d7da,stroke:#721c24,color:#333
     style REV   fill:#e2d9f3,stroke:#6f42c1,color:#333
+    style UI    fill:#ffe5b4,stroke:#b36b00,color:#333
     style DONE  fill:#d4edda,stroke:#155724,color:#333,font-weight:bold
     style ARC   fill:#343a40,stroke:#343a40,color:#fff
 ```
@@ -95,6 +102,25 @@ Cambiar el estado de una tarea **no basta por sí solo**. En cada etapa, el agen
 persistir en el archivo `T-NNN` el contenido generado durante esa fase, dejando trazabilidad
 útil para retomar el trabajo después.
 
+### Ubicación del contenido de transiciones
+
+El contenido generado en cada cambio de estado debe quedar **al final de la documentación
+inicial de la tarea**, en orden cronológico, como historial acumulado de transiciones.
+
+Reglas:
+
+- La documentación inicial de la tarea (requisito, análisis base, solución, pasos,
+  verificación, etc.) se mantiene al inicio del archivo.
+- Cada transición agrega su contenido nuevo **al final**, no reemplaza ni dispersa el
+  historial en distintas partes del documento.
+- El objetivo es que la tarea conserve no solo el estado actual, sino también el
+  contenido producido en cada cambio de estado.
+- Si una sección base necesita actualización, puede ajustarse, pero el contenido propio de
+  la transición debe igual quedar registrado al final como trazabilidad.
+- Se recomienda usar secciones cronológicas claras, por ejemplo:
+  `## Historial de transiciones`, `### 2026-04-13 — 🔍 En análisis`,
+  `### 2026-04-13 — 📋 Planificada`, etc.
+
 ### Contenido mínimo esperado por etapa
 
 | Etapa | Contenido que debe agregarse o actualizarse en la tarea |
@@ -106,6 +132,7 @@ persistir en el archivo `T-NNN` el contenido generado durante esa fase, dejando 
 | `🔵 En desarrollo` | Progreso real de implementación: pasos marcados `APPLIED`, decisiones tomadas y cualquier ajuste relevante al plan. |
 | `🚫 Bloqueada` | Descripción concreta del blocker, dependencia o decisión faltante, y condición de desbloqueo. |
 | `🔄 En revisión` | Resultado de verificación, pendientes detectados y alcance realmente implementado. |
+| `🧩 Pendiente integración UI` | Qué debe integrar la UI, artefactos/notas entregadas al frontend y condición para dar la tarea por cerrada. |
 | `✅ Completada` | Cierre de tarea con resultado final, referencias a validación/documentación actualizada y fecha de cierre si aplica. |
 | `⬛ Archivada` | Motivo del descarte, absorción o cancelación, con referencia cruzada si fue absorbida por otra tarea/RFC. |
 
@@ -274,6 +301,66 @@ Continúa T-NNN, [razón de desbloqueo]
 - El código compila y los tests pasan.
 - El agente actualiza el estado y notifica al usuario que está listo para verificación.
 - La tarea resume el resultado implementado y la verificación realizada.
+- Si la implementación reveló trabajo adicional, el agente puede registrar una o más tareas
+  derivadas antes o durante esta transición.
+
+---
+
+### 🔄 En revisión → 🧩 Pendiente integración UI
+
+**Quién activa:** 👤🤖 cualquiera
+
+**Criterios:**
+- El backend ya quedó implementado y verificado desde su lado.
+- Falta que la UI consuma, adapte o confirme la integración para poder cerrar la tarea.
+- La tarea documenta explícitamente qué debe hacer UI, qué contrato queda disponible y cuál es la condición de cierre.
+
+**Prompt pattern:**
+```
+Deja T-NNN pendiente de integración UI
+```
+```
+T-NNN depende de integración UI
+```
+```
+Pasa T-NNN a pendiente UI
+```
+
+---
+
+### 🧩 Pendiente integración UI → ✅ Completada
+
+**Quién activa:** 👤 usuario
+
+**Criterios:**
+- La integración o confirmación desde UI ya ocurrió.
+- La tarea deja trazabilidad de la confirmación recibida o del criterio cumplido.
+
+**Prompt pattern:**
+```
+UI confirmó T-NNN, ciérrala
+```
+```
+Cierra T-NNN, integración UI completa
+```
+
+---
+
+### 🧩 Pendiente integración UI → 🔵 En desarrollo
+
+**Quién activa:** 👤 usuario
+
+**Criterios:**
+- La integración UI detectó ajustes necesarios en backend.
+- La tarea documenta qué hallazgo de UI obliga a retomar desarrollo.
+
+**Prompt pattern:**
+```
+UI detectó ajustes en T-NNN
+```
+```
+Vuelve T-NNN a desarrollo por integración UI
+```
 
 ---
 
@@ -286,6 +373,8 @@ Continúa T-NNN, [razón de desbloqueo]
 - Documentación actualizada según el tipo de cambio (migrations, OpenAPI, frontend guide, etc.).
 - `roadmap.md` actualizado si aplica.
 - La tarea incorpora el cierre con el resultado final y deja trazabilidad suficiente para consulta futura.
+- Si quedaron extensiones, complementos o deuda técnica fuera del alcance, deben quedar
+  registradas como tareas derivadas antes del cierre o dentro del mismo cierre.
 
 **Prompt pattern:**
 ```
@@ -502,3 +591,12 @@ Marca INC-NNN como resuelta
 - Solo el usuario puede mover una tarea de `📋 Planificada` → `🟢 Aprobada`. El agente no aprueba por cuenta propia.
 - Una tarea `🚫 Bloqueada` debe tener documentado el blocker. Sin esa nota, el bloqueo no es válido.
 - Las tareas `✅ Completadas` no se eliminan de `tasks/README.md` — se mueven a la sección **Historial** al final del archivo.
+- `🧩 Pendiente integración UI` no reemplaza a `🚫 Bloqueada`: se usa cuando el backend ya está listo
+  y la dependencia restante es la adopción/confirmación desde frontend, no un bloqueo técnico del backend.
+- Una tarea implementada puede originar **una o más tareas derivadas**. Esto incluye tareas
+  de tipo derivada, complementaria, extensión funcional o correctiva cuando queda deuda técnica.
+- Si durante `🔵 En desarrollo`, `🔄 En revisión` o `✅ Completada` se detecta trabajo nuevo que no
+  corresponde mezclar en la tarea actual, el agente debe crear `T-NNN-<slug>.md`, registrarla en
+  `tasks/README.md` y referenciarla explícitamente desde la tarea origen.
+- La tarea origen debe dejar ese registro en su historial de transiciones al final del documento,
+  indicando el tipo de derivación, la razón y el/los links a las tareas creadas.

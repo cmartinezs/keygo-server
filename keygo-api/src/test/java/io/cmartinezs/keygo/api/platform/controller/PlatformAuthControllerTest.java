@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.platform.controller;
 
+import io.cmartinezs.keygo.api.platform.request.CheckPlatformUserEmailRequest;
 import io.cmartinezs.keygo.api.platform.request.PlatformLoginRequest;
 import io.cmartinezs.keygo.api.platform.request.PlatformTokenRequest;
 import io.cmartinezs.keygo.api.platform.response.PlatformAuthorizationData;
@@ -16,6 +17,7 @@ import io.cmartinezs.keygo.app.platform.usecase.IssuePlatformTokensUseCase;
 import io.cmartinezs.keygo.app.platform.usecase.RotatePlatformRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.user.command.AuthenticatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.CheckPlatformUserEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
@@ -53,6 +55,7 @@ class PlatformAuthControllerTest {
   @Mock RotatePlatformRefreshTokenUseCase rotateRefreshTokenUseCase;
   @Mock GetPlatformUserUseCase getPlatformUserUseCase;
   @Mock SendPlatformPasswordResetCodeUseCase sendPlatformPasswordResetCodeUseCase;
+  @Mock CheckPlatformUserEmailUseCase checkPlatformUserEmailUseCase;
   @Mock HttpServletRequest httpRequest;
   @Mock HttpSession httpSession;
 
@@ -73,7 +76,8 @@ class PlatformAuthControllerTest {
   void setUp() {
     controller = new PlatformAuthController(
         authenticateUseCase, issueTokensUseCase, rotateRefreshTokenUseCase,
-        getPlatformUserUseCase, sendPlatformPasswordResetCodeUseCase, platformConfig);
+        getPlatformUserUseCase, sendPlatformPasswordResetCodeUseCase,
+        checkPlatformUserEmailUseCase, platformConfig);
 
     activePlatformUser = PlatformUser.builder()
         .id(UserId.of(userId))
@@ -151,6 +155,73 @@ class PlatformAuthControllerTest {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
       assertThat(response.getBody().getFailure().getCode())
           .isEqualTo(ResponseCode.REQUIRED_FIELD_MISSING.getCode());
+    }
+  }
+
+  // ─── Check email tests ──────────────────────────────────────────────────────
+
+  @Nested
+  class CheckEmailTests {
+
+    @Test
+    void givenNoSession_whenCheckEmail_thenReturnsUnauthorized() {
+      when(httpRequest.getSession(false)).thenReturn(null);
+
+      var response = controller.checkEmail(
+          new CheckPlatformUserEmailRequest("admin@keygo.local"), httpRequest);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+      assertThat(response.getBody()).isNotNull();
+      assertThat(response.getBody().getFailure().getCode())
+          .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    }
+
+    @Test
+    void givenNoAuthState_whenCheckEmail_thenReturnsUnauthorized() {
+      when(httpRequest.getSession(false)).thenReturn(httpSession);
+      when(httpSession.getAttribute(PlatformAuthController.SESSION_ATTR_AUTH_STATE)).thenReturn(null);
+
+      var response = controller.checkEmail(
+          new CheckPlatformUserEmailRequest("admin@keygo.local"), httpRequest);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+      assertThat(response.getBody()).isNotNull();
+      assertThat(response.getBody().getFailure().getCode())
+          .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    }
+
+    @Test
+    void givenExistingEmail_whenCheckEmail_thenReturnsOk() {
+      when(httpRequest.getSession(false)).thenReturn(httpSession);
+      when(httpSession.getAttribute(PlatformAuthController.SESSION_ATTR_AUTH_STATE))
+          .thenReturn(new PlatformAuthorizationSessionState(
+              "http://localhost:5173/callback", "openid", "challenge", "S256"));
+      when(checkPlatformUserEmailUseCase.execute(any())).thenReturn(true);
+
+      var response = controller.checkEmail(
+          new CheckPlatformUserEmailRequest("admin@keygo.local"), httpRequest);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getBody()).isNotNull();
+      assertThat(response.getBody().getSuccess().getCode())
+          .isEqualTo(ResponseCode.PLATFORM_USER_EMAIL_FOUND.getCode());
+    }
+
+    @Test
+    void givenMissingEmail_whenCheckEmail_thenReturnsNotFound() {
+      when(httpRequest.getSession(false)).thenReturn(httpSession);
+      when(httpSession.getAttribute(PlatformAuthController.SESSION_ATTR_AUTH_STATE))
+          .thenReturn(new PlatformAuthorizationSessionState(
+              "http://localhost:5173/callback", "openid", "challenge", "S256"));
+      when(checkPlatformUserEmailUseCase.execute(any())).thenReturn(false);
+
+      var response = controller.checkEmail(
+          new CheckPlatformUserEmailRequest("missing@keygo.local"), httpRequest);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+      assertThat(response.getBody()).isNotNull();
+      assertThat(response.getBody().getFailure().getCode())
+          .isEqualTo(ResponseCode.PLATFORM_USER_EMAIL_NOT_FOUND.getCode());
     }
   }
 

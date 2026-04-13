@@ -27,6 +27,22 @@ sequenceDiagram
 
 > Prefijo completo: `http://localhost:8080/keygo-server` (no `/api/v1`).
 
+## Hosted login de plataforma
+
+En el flujo hosted login de plataforma existe un paso previo a credenciales para decidir si
+el usuario continúa por login o por onboarding:
+
+| Acción | Método | Path | Resultado esperado |
+|---|---|---|---|
+| Verificar email de platform user | `POST` | `/api/v1/platform/account/check-email` | `200 PLATFORM_USER_EMAIL_FOUND`, `404 PLATFORM_USER_EMAIL_NOT_FOUND`, `401 AUTHENTICATION_REQUIRED` |
+
+Notas:
+
+- Debe llamarse **después** de `GET /api/v1/platform/oauth2/authorize`.
+- Requiere conservar la cookie de sesión (`JSESSIONID`) creada por `authorize`.
+- `401` indica que la sesión no existe o expiró; la UI debe reiniciar el flujo desde `authorize`.
+- `data` viene `null`; la decisión se toma por HTTP status + `ResponseCode`.
+
 ## Implementación: OAuthService
 
 ```typescript

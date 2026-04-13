@@ -6,7 +6,7 @@
 
 ## Cambio
 
-Se implementará el endpoint `POST /api/v1/platform/account/check-email` para verificar
+Se implementó el endpoint `POST /api/v1/platform/account/check-email` para verificar
 si un email está registrado como `platform_user`.
 
 ## Cuándo usarlo

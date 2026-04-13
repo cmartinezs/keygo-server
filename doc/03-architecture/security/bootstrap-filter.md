@@ -19,6 +19,7 @@ Referencia vigente para el filtro bootstrap y sus rutas públicas.
 | `keygo.bootstrap.platform-authorize-path-prefix` | `/api/v1/platform/oauth2/authorize` | authorize plataforma |
 | `keygo.bootstrap.platform-direct-login-path-prefix` | `/api/v1/platform/account/direct-login` | login API/CLI plataforma |
 | `keygo.bootstrap.platform-forgot-password-path-prefix` | `/api/v1/platform/account/forgot-password` | forgot password plataforma |
+| `keygo.bootstrap.platform-check-email-path-prefix` | `/api/v1/platform/account/check-email` | pre-check de email para hosted login |
 | `keygo.bootstrap.platform-recover-password-path-prefix` | `/api/v1/platform/account/recover-password` | recover password plataforma |
 | `keygo.bootstrap.platform-reset-password-path-prefix` | `/api/v1/platform/account/reset-password` | reset password plataforma |
 

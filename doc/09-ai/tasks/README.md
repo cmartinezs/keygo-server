@@ -12,6 +12,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 | En desarrollo | 🔵 | Implementación en curso |
 | Bloqueada | 🚫 | Dependencia no resuelta |
 | En revisión | 🔄 | Implementación completa, verificando |
+| Pendiente integración UI | 🧩 | Backend listo, esperando integración o confirmación desde UI |
 | Completada | ✅ | Cerrada y verificada |
 | Archivada | ⬛ | Cancelada o descartada |
 
@@ -43,9 +44,10 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 | [T-126-platform-user-status-endpoints.md](T-126-platform-user-status-endpoints.md) | Endpoints admin `suspend`/`activate`/`require-reset-password` en `PlatformUser` | ⬜ Registrada |
 | [T-128-username-collision.md](T-128-username-collision.md) | Resolver colisión de username generado en contratos | ⬜ Registrada |
 | [T-129-domain-services-generation.md](T-129-domain-services-generation.md) | Consolidar 5 factories de generación en `keygo-domain` | ⬜ Registrada |
-| [T-130-check-email.md](T-130-check-email.md) | `POST /platform/account/check-email` — valida email antes del ToS | 📋 Planificada |
+| [T-130-check-email.md](T-130-check-email.md) | `POST /platform/account/check-email` — valida email antes del ToS | 🧩 Pendiente integración UI |
 | [T-131-pii-inventory.md](T-131-pii-inventory.md) | Inventario formal de PII por entidad y superficie de exposición | ⬜ Registrada |
 | [T-132-doc-filenames-english.md](T-132-doc-filenames-english.md) | Migrar nombres de archivos y carpetas de `doc/` a inglés | ⬜ Registrada |
+| [T-134-application-config-categories.md](T-134-application-config-categories.md) | Separar `ApplicationConfig` por dominios y estereotipos de configuración | ⬜ Registrada |
 
 ## Mediano plazo
 

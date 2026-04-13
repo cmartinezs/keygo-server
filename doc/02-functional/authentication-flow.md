@@ -129,6 +129,7 @@ Con el filtro `BootstrapAdminKeyFilter` actual:
 ### Endpoints públicos de plataforma
 
   - `GET /api/v1/platform/oauth2/authorize` — inicio del flujo PKCE
+  - `POST /api/v1/platform/account/check-email` — verificación de email previa al ToS en hosted login
   - `POST /api/v1/platform/account/login` — autenticación + emision de authorization code
   - `POST /api/v1/platform/oauth2/token` — intercambio de code (PKCE) + refresh_token grant
   - `POST /api/v1/platform/oauth2/revoke` — revocación de token
@@ -198,6 +199,7 @@ Adicionalmente, existe un endpoint **direct-login** (`POST /platform/account/dir
 | Método | Endpoint | Propósito |
 |---|---|---|
 | `GET` | `/api/v1/platform/oauth2/authorize` | Iniciar flujo PKCE — valida redirect_uri contra allowlist, almacena estado PKCE en sesión HTTP |
+| `POST` | `/api/v1/platform/account/check-email` | Verificar si el email ya existe como `platform_user` antes del ToS; requiere la sesión previa de `authorize` |
 | `POST` | `/api/v1/platform/account/login` | Autenticar usuario de plataforma + emitir authorization code (almacenado en sesión) |
 | `POST` | `/api/v1/platform/oauth2/token` | Multi-grant: `authorization_code` (intercambio PKCE) + `refresh_token` (rotación) |
 | `POST` | `/api/v1/platform/account/direct-login` | **Solo API/CLI** — email/password → tokens directos (sin PKCE, sin sesión HTTP) |
@@ -208,10 +210,11 @@ Adicionalmente, existe un endpoint **direct-login** (`POST /platform/account/dir
 |---|---|---|---|
 | 0. PKCE | No interactúa | Genera `code_verifier` + `code_challenge` (SHA256) | — |
 | 1. Authorize | No interactúa | Envía `GET /platform/oauth2/authorize` con PKCE + redirect_uri | Valida redirect_uri contra allowlist, almacena estado PKCE en sesión HTTP |
-| 2. Login | Escribe email y password | Envía `POST /platform/account/login` (con cookie JSESSIONID) | Valida credenciales, genera authorization code, lo almacena en sesión |
-| 3. Token exchange | No interactúa | Envía `POST /platform/oauth2/token` con code + code_verifier | Verifica PKCE, invalida code, crea sesión, emite tokens |
-| 4. Sesión activa | Usa el panel de administración | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
-| 5. Renovación | Normalmente no interactúa | Llama `POST /platform/oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
+| 2. Check email | Ingresa su correo | Envía `POST /platform/account/check-email` con cookie JSESSIONID | Responde `200` si el email existe, `404` si no existe, `401` si la sesión expiró o falta |
+| 3. Login | Escribe email y password | Envía `POST /platform/account/login` (con cookie JSESSIONID) | Valida credenciales, genera authorization code, lo almacena en sesión |
+| 4. Token exchange | No interactúa | Envía `POST /platform/oauth2/token` con code + code_verifier | Verifica PKCE, invalida code, crea sesión, emite tokens |
+| 5. Sesión activa | Usa el panel de administración | Adjunta Bearer token a llamadas API | Valida token en endpoints protegidos |
+| 6. Renovación | Normalmente no interactúa | Llama `POST /platform/oauth2/token` con `grant_type=refresh_token` | Rota refresh token y emite nuevos tokens |
 
 ### Diagrama de secuencia — Flujo PKCE de plataforma
 

@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.platform.controller;
 
+import io.cmartinezs.keygo.api.platform.request.CheckPlatformUserEmailRequest;
 import io.cmartinezs.keygo.api.platform.request.PlatformLoginRequest;
 import io.cmartinezs.keygo.api.platform.request.PlatformTokenRequest;
 import io.cmartinezs.keygo.api.platform.response.PlatformAuthorizationData;
@@ -16,7 +17,9 @@ import io.cmartinezs.keygo.app.platform.result.IssuePlatformTokensResult;
 import io.cmartinezs.keygo.app.platform.usecase.IssuePlatformTokensUseCase;
 import io.cmartinezs.keygo.app.platform.usecase.RotatePlatformRefreshTokenUseCase;
 import io.cmartinezs.keygo.app.user.command.AuthenticatePlatformUserCommand;
+import io.cmartinezs.keygo.app.user.command.CheckPlatformUserEmailCommand;
 import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.CheckPlatformUserEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
@@ -83,6 +86,7 @@ public class PlatformAuthController {
   private final RotatePlatformRefreshTokenUseCase rotateRefreshTokenUseCase;
   private final GetPlatformUserUseCase getPlatformUserUseCase;
   private final SendPlatformPasswordResetCodeUseCase sendPlatformPasswordResetCodeUseCase;
+  private final CheckPlatformUserEmailUseCase checkPlatformUserEmailUseCase;
   private final PlatformConfigPort platformConfig;
 
   public PlatformAuthController(
@@ -91,12 +95,14 @@ public class PlatformAuthController {
       RotatePlatformRefreshTokenUseCase rotateRefreshTokenUseCase,
       GetPlatformUserUseCase getPlatformUserUseCase,
       SendPlatformPasswordResetCodeUseCase sendPlatformPasswordResetCodeUseCase,
+      CheckPlatformUserEmailUseCase checkPlatformUserEmailUseCase,
       PlatformConfigPort platformConfig) {
     this.authenticateUseCase = authenticateUseCase;
     this.issueTokensUseCase = issueTokensUseCase;
     this.rotateRefreshTokenUseCase = rotateRefreshTokenUseCase;
     this.getPlatformUserUseCase = getPlatformUserUseCase;
     this.sendPlatformPasswordResetCodeUseCase = sendPlatformPasswordResetCodeUseCase;
+    this.checkPlatformUserEmailUseCase = checkPlatformUserEmailUseCase;
     this.platformConfig = platformConfig;
   }
 
@@ -175,6 +181,49 @@ public class PlatformAuthController {
             .data(data)
             .success(ResponseHelper.message(ResponseCode.PLATFORM_AUTHORIZATION_INITIATED))
             .build());
+  }
+
+  // ─── POST /account/check-email ─────────────────────────────────────────────
+
+  @PostMapping("/account/check-email")
+  @Operation(
+      summary = "Verificar si un email de plataforma existe",
+      description =
+          "Valida si un email ya está registrado como platform_user. "
+              + "Requiere una sesión HTTP iniciada por GET /oauth2/authorize.")
+  @ApiResponse(responseCode = "200", description = "Platform user email found")
+  @ApiResponse(responseCode = "401", description = "No authorization session found")
+  @ApiResponse(responseCode = "404", description = "Platform user email not found")
+  public ResponseEntity<BaseResponse<Void>> checkEmail(
+      @Valid @RequestBody CheckPlatformUserEmailRequest request, HttpServletRequest httpRequest) {
+
+    HttpSession session = httpRequest.getSession(false);
+    if (session == null || session.getAttribute(SESSION_ATTR_AUTH_STATE) == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(
+              BaseResponse.<Void>builder()
+                  .failure(
+                      ResponseHelper.message(
+                          ResponseCode.AUTHENTICATION_REQUIRED,
+                          "No authorization session found. Start with GET /oauth2/authorize"))
+                  .build());
+    }
+
+    boolean exists = checkPlatformUserEmailUseCase.execute(
+        new CheckPlatformUserEmailCommand(request.email()));
+
+    if (exists) {
+      return ResponseEntity.ok(
+          BaseResponse.<Void>builder()
+              .success(ResponseHelper.message(ResponseCode.PLATFORM_USER_EMAIL_FOUND))
+              .build());
+    }
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(
+            BaseResponse.<Void>builder()
+                .failure(ResponseHelper.message(ResponseCode.PLATFORM_USER_EMAIL_NOT_FOUND))
+                .build());
   }
 
   // ─── POST /account/login ───────────────────────────────────────────────────

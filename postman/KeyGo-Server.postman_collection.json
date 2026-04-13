@@ -4621,6 +4621,42 @@
       "description": "Platform account self-service endpoints — forgot/recover/reset password and token revocation",
       "item": [
         {
+          "name": "POST Platform Check Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@keygo.local\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/check-email",
+              "host": ["{{fullBaseUrl}}"],
+              "path": ["api", "v1", "platform", "account", "check-email"]
+            },
+            "description": "Verifica si un email ya existe como platform user antes del ToS en hosted login. Requiere la cookie de sesión creada por `GET /platform/oauth2/authorize`.\n\n**Auth:** Público con JSESSIONID previa | **ResponseCode:** `PLATFORM_USER_EMAIL_FOUND` / `PLATFORM_USER_EMAIL_NOT_FOUND` / `AUTHENTICATION_REQUIRED` | **HTTP:** 200 / 404 / 401"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200, 401 or 404\", () => pm.expect([200, 401, 404]).to.include(pm.response.code));",
+                  "pm.test(\"Response code matches expected contract\", () => {",
+                  "  const body = pm.response.json();",
+                  "  const successCode = body.success?.code;",
+                  "  const failureCode = body.failure?.code;",
+                  "  pm.expect([successCode, failureCode]).to.satisfy(codes => codes.includes(\"PLATFORM_USER_EMAIL_FOUND\") || codes.includes(\"PLATFORM_USER_EMAIL_NOT_FOUND\") || codes.includes(\"AUTHENTICATION_REQUIRED\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "POST Platform Forgot Password",
           "request": {
             "method": "POST",

@@ -126,6 +126,25 @@ Reactiva un platform user. Rol: `ADMIN`.
 
 Endpoints de gestión de cuenta propia para platform users.
 
+### POST /platform/account/check-email
+Verifica si un email ya existe como `platform_user`. **Público**, pero requiere la sesión
+iniciada previamente por `GET /platform/oauth2/authorize`.
+
+```typescript
+POST /api/v1/platform/account/check-email
+Content-Type: application/json
+Cookie: JSESSIONID=...
+
+{
+  "email": "admin@keygo.local"
+}
+
+// Response 200: success.code = PLATFORM_USER_EMAIL_FOUND
+// Response 404: failure.code = PLATFORM_USER_EMAIL_NOT_FOUND
+// Response 401: failure.code = AUTHENTICATION_REQUIRED
+// data = null en todos los casos
+```
+
 ### POST /platform/account/forgot-password
 Solicita recovery de contraseña. **Público**, siempre responde 200 (anti-enumeración).
 

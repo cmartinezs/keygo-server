@@ -103,6 +103,7 @@
 | Método | Path | Auth | Respuesta | Códigos | Propósito |
 |---|---|---|---|---|---|
 | `GET` | `/api/v1/platform/oauth2/authorize` | — | Redirect a login | 302, 400 | Iniciar flujo PKCE OAuth2 |
+| `POST` | `/api/v1/platform/account/check-email` | — | `BaseResponse<Void>` | 200, 401, 404 | Verificar si un email ya existe como platform user antes del ToS |
 | `POST` | `/api/v1/platform/account/login` | — | `BaseResponse<LoginData>` | 200, 400, 401, 403 | Login con email/password (PKCE) |
 | `POST` | `/api/v1/platform/account/direct-login` | — | `BaseResponse<TokenData>` | 200, 400, 401 | Login directo (sin PKCE, para API/CLI) |
 | `POST` | `/api/v1/platform/oauth2/token` | — | `BaseResponse<TokenData>` | 200, 400, 401 | Intercambiar código/refresh → tokens |

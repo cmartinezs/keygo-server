@@ -156,6 +156,9 @@ public class KeyGoBootstrapProperties {
   /** Platform forgot-password path prefix that is public (self-service password recovery). */
   private String platformForgotPasswordPathPrefix;
 
+  /** Platform check-email path prefix that is public (hosted login email discovery). */
+  private String platformCheckEmailPathPrefix;
+
   /** Platform recover-password path prefix that is public (self-service password reset with token). */
   private String platformRecoverPasswordPathPrefix;
 

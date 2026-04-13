@@ -139,6 +139,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasPrefix(path, bootstrapProperties.getPlatformAuthorizePathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformDirectLoginPathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformForgotPasswordPathPrefix())
+        || hasPrefix(path, bootstrapProperties.getPlatformCheckEmailPathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformRecoverPasswordPathPrefix())
         || hasPrefix(path, bootstrapProperties.getPlatformResetPasswordPathPrefix());
   }

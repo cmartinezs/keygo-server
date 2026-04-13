@@ -199,6 +199,20 @@ class BootstrapAdminKeyFilterTest {
     assertThat(response.getStatus()).isEqualTo(200);
   }
 
+  @Test
+  void doFilterInternal_shouldAllowPlatformCheckEmailPathWithoutAuth()
+      throws ServletException, IOException {
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getPlatformCheckEmailPathPrefix())
+        .thenReturn("/api/v1/platform/account/check-email");
+    request.setServletPath("/api/v1/platform/account/check-email");
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
   // ─── Bearer JWT auth ───────────────────────────────────────────────────────
 
   @Test

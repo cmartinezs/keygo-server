@@ -104,6 +104,7 @@ import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.ActivatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.CheckPlatformUserEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendPlatformUserUseCase;
@@ -1090,6 +1091,12 @@ public class ApplicationConfig {
       EmailNotificationPort emailNotification) {
     return new ForgotPlatformPasswordUseCase(
         platformUserRepository, codeRepository, emailNotification);
+  }
+
+  @Bean
+  public CheckPlatformUserEmailUseCase checkPlatformUserEmailUseCase(
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new CheckPlatformUserEmailUseCase(platformUserRepository);
   }
 
   @Bean
