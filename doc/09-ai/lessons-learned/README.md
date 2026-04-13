@@ -9,7 +9,7 @@ Consultar antes de implementar. Agregar entrada al concluir cualquier tarea dond
 
 | Archivo | Categoría | Entradas | Última entrada |
 |---|---|---|---|
-| [persistencia.md](persistencia.md) | JPA, Flyway, DB schema, queries | 16 | 2026-04-07 |
+| [persistencia.md](persistencia.md) | JPA, Flyway, DB schema, queries | 17 | 2026-04-13 |
 | [tests.md](tests.md) | Tests unitarios, Mockito, cobertura | 14 | 2026-04-07 |
 | [seguridad.md](seguridad.md) | Autenticación, autorización, anti-abuso | 9 | 2026-04-07 |
 | [spring.md](spring.md) | Spring Boot 4, AOP, Logback, i18n | 10 | 2026-04-06 |

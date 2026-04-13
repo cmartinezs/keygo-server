@@ -882,8 +882,19 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
   }
 
+  /**
+   * Handles lazy initialization failures - returns 500 for persistence/session boundary bugs.
+   */
+  ResponseEntity<BaseResponse<ErrorData>> handleLazyInitializationException(Throwable ex) {
+    log.error("Lazy initialization error: {}", ex.getMessage(), ex);
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<BaseResponse<ErrorData>> handleGenericException(Exception ex) {
+    if (isLazyInitializationException(ex)) {
+      return handleLazyInitializationException(ex);
+    }
     log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
     return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
   }
@@ -902,6 +913,19 @@ public class GlobalExceptionHandler {
 
   private boolean includeTechnicalDetails() {
     return environment.acceptsProfiles(Profiles.of("local", "dev"));
+  }
+
+  private boolean isLazyInitializationException(Throwable throwable) {
+    Throwable current = throwable;
+    while (current != null) {
+      String className = current.getClass().getName();
+      if ("org.hibernate.LazyInitializationException".equals(className)
+          || "LazyInitializationException".equals(current.getClass().getSimpleName())) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   /**

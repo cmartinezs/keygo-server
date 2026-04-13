@@ -149,6 +149,47 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  void handleLazyInitializationException_shouldReturnInternalServerError() {
+    // Given
+    RuntimeException exception =
+        new RuntimeException("Could not initialize proxy - no session");
+
+    // When
+    ResponseEntity<BaseResponse<ErrorData>> response =
+        handler.handleLazyInitializationException(exception);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin())
+        .isEqualTo(ApiErrorOrigin.SERVER_PROCESSING);
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.OPERATION_FAILED.getCode());
+  }
+
+  @Test
+  void handleGenericException_shouldRouteLazyInitializationFailuresToSpecificHandler() {
+    // Given
+    Exception exception =
+        new LazyInitializationException("Could not initialize proxy [x] - no session");
+
+    // When
+    ResponseEntity<BaseResponse<ErrorData>> response = handler.handleGenericException(exception);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getFailure()).isNotNull();
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getOrigin())
+        .isEqualTo(ApiErrorOrigin.SERVER_PROCESSING);
+    assertThat(response.getBody().getFailure().getCode())
+        .isEqualTo(ResponseCode.OPERATION_FAILED.getCode());
+  }
+
+  @Test
   void handleInvalidCredentialsException_shouldClassifyAsUserInput() {
     // Given
     InvalidCredentialsException exception = new InvalidCredentialsException();
@@ -253,6 +294,12 @@ class GlobalExceptionHandlerTest {
     assertThat(handler.handleIllegalArgumentException(illegalArg).getBody().getFailure())
         .isNotNull();
     assertThat(handler.handleGenericException(generic).getBody().getFailure()).isNotNull();
+  }
+
+  private static final class LazyInitializationException extends RuntimeException {
+    private LazyInitializationException(String message) {
+      super(message);
+    }
   }
 
   // ─── Password flow handlers ────────────────────────────────────────────────

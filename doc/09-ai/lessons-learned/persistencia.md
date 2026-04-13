@@ -4,6 +4,18 @@ JPA, Flyway, DB schema, queries y migraciones.
 
 ---
 
+### [2026-04-13] `LazyInitializationException` al mapear sesión OAuth fuera del límite transaccional
+
+**Contexto / Síntoma:** El flujo `authorize -> login -> token` de plataforma fallaba al emitir tokens con `Could not initialize proxy [...PlatformSessionEntity...] - no session`.
+
+**Problema / Causa:** `SessionRepositoryAdapter.save()` persistía `SessionEntity`/`PlatformSessionEntity` y luego convertía la entidad JPA a dominio tocando asociaciones `LAZY` (`platformSession`, `platformUser`, `clientApp`, `signingKey`) sin una transacción activa. El proxy quedaba sin sesión de Hibernate al resolver el mapper.
+
+**Solución / Buena práctica:** Cuando un adapter JPA devuelve dominio a partir de entidades con asociaciones `LAZY`, envolver el método en `@Transactional` (o cargar explícitamente el grafo requerido) para que el mapper ejecute dentro del contexto de persistencia. Además, registrar un `@ExceptionHandler(LazyInitializationException.class)` explícito para distinguir este tipo de bug de persistencia del fallback genérico.
+
+**Archivos clave:** `SessionRepositoryAdapter.java`, `SessionPersistenceMapper.java`, `GlobalExceptionHandler.java`.
+
+---
+
 ### [2026-04-07] Tabla unificada `verification_codes` reemplaza 3 tablas duplicadas
 
 **Contexto:** Refactorización de `email_verifications`, `password_reset_codes` y `password_recovery_tokens`.

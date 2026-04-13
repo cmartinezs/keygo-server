@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class SessionRepositoryAdapter implements SessionRepositoryPort {
@@ -48,6 +49,7 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
   }
 
   @Override
+  @Transactional
   public Session save(Session session) {
     PlatformUserEntity platformUserEntity =
         platformUserJpaRepository
@@ -97,11 +99,13 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public Optional<Session> findById(SessionId sessionId) {
     return sessionJpaRepository.findById(sessionId.value()).map(SessionPersistenceMapper::toDomain);
   }
 
   @Override
+  @Transactional
   public void update(Session session) {
     sessionJpaRepository
         .findById(session.getId().value())
@@ -118,6 +122,7 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public List<Session> findAllByPlatformUserId(UUID platformUserId) {
     return sessionJpaRepository.findAllByPlatformUserId(platformUserId).stream()
         .map(SessionPersistenceMapper::toDomain)
