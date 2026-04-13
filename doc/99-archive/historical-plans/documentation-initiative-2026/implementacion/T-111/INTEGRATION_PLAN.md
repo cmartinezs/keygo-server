@@ -4,6 +4,9 @@
 > **Prerrequisito:** T-111 Fase A–J completada (modelos, entidades JPA, migraciones V24–V26, use cases CRUD, wiring, tests).  
 > **Propósito:** Integrar los nuevos roles de plataforma y tenant en los flujos de autorización (JWT) y onboarding/billing.
 
+> **Referencia vigente:** Este plan quedó como antecedente histórico. La lectura actualizada del problema y su
+> cierre propuesto vive en el RFC [RBAC Multi-Scope Alignment](../../../../../04-decisions/rfcs/rbac-multi-scope-alignment/README.md).
+
 ---
 
 ## Contexto y problema

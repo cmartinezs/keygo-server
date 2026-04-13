@@ -20,6 +20,14 @@
 
 ## Registro de cambios
 
+### [2026-04-13] Workflow RFC: ingreso directo y submáquina interna
+
+- **`workflow.md`:** ampliado para permitir ingreso directo por RFC sin tarea previa y para modelar el RFC como artefacto que sigue el flujo general existente.
+- **Submaquina interna de RFC:** agregada definicion formal de fases y subtareas, con decisiones por subtarea (`aprobada`, `replanteada`, `descartada`) e implementacion secuencial solo despues de aprobar el conjunto implementable.
+- **Semantica refinada:** `Implementacion secuencial subtarea 1..N` ocurre en estado general `🔵 En desarrollo`; la verificacion del RFC completo ocurre en `🔄 En revisión`; `🛂 Control de cambio` puede dispararse desde revision aun sin dependencia UI.
+- **Regla de reingreso a desarrollo:** si un RFC vuelve a `🔵 En desarrollo`, el ajuste debe anexarse a una fase/subtarea existente o crear una nueva subtarea en la fase correspondiente, manteniendo continuidad sobre lo ya implementado.
+- **`agents.md`, `agent-operations.md` y `tasks/README.md`:** alineados para explicar que un RFC puede ser el artefacto primario y que su seguimiento interno no reemplaza el estado general.
+
 ### [2026-04-13] Regla de contratos API: JSON en `snake_case`
 
 - **`03-api-conventions.md`:** explicitada la regla de que request bodies y response bodies deben usar claves `snake_case`, corrigiendo ejemplos base del envelope y paginación.

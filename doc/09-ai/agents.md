@@ -83,5 +83,10 @@ flowchart TD
 - **Uso de `/plan`:** siempre documentar antes de cerrar el modo plan, sin esperar instrucción explícita:
   1. Crear `doc/09-ai/tasks/T-NNN-<slug>.md` con: requisito, solución propuesta, pasos ordenados con estado `PENDING`/`APPLIED` y guía de verificación.
   2. Registrar la nueva entrada en `doc/09-ai/tasks/README.md`.
+- No toda iniciativa nace como tarea: si el cambio entra directo por RFC, el RFC pasa a ser el artefacto primario del flujo general y debe llevar además su control interno de fases y subtareas.
+- En un RFC, las subtareas se revisan y se marcan como aprobadas, replanteadas o descartadas; solo cuando el conjunto implementable queda aprobado se ejecutan una a una.
+- En un RFC, la implementacion secuencial de subtareas ocurre bajo `🔵 En desarrollo`, y la verificacion del RFC completo ocurre bajo `🔄 En revisión`.
+- `🛂 Control de cambio` tambien puede aplicar a RFC o tarea en `🔄 En revisión` aunque no haya dependencia UI.
+- Si un RFC vuelve a `🔵 En desarrollo`, el ajuste debe asociarse a una fase/subtarea existente o crear una nueva dentro de la fase correcta; no se agrega como cambio suelto.
 - Si una tarea `🧩 Pendiente integración UI` recibe cambios pedidos desde UI o negocio, primero pasa a `🛂 Control de cambio`; solo con aprobación explícita vuelve a `🔵 En desarrollo`.
 - Si el control de cambio no se aprueba para la tarea original, esta se cierra y el nuevo alcance se registra como tarea derivada nueva.

@@ -1,7 +1,7 @@
-# Workflow de Features y Tareas Técnicas
+# Workflow de Features, Tareas Tecnicas y RFCs
 
-Define los estados del ciclo de vida de una tarea (`T-NNN` / `F-NNN`) desde que se registra
-hasta que se completa o descarta.
+Define los estados del ciclo de vida de una tarea (`T-NNN` / `F-NNN`) o de una iniciativa que
+entra directamente por RFC, desde que se registra hasta que se completa o descarta.
 
 ---
 
@@ -12,13 +12,13 @@ hasta que se completa o descarta.
 | Registrada | ⬜ | Mínima descripción. Sin análisis ni plan aún. |
 | En análisis | 🔍 | Alguien tomó la tarea: leyendo código y documentación para determinar impacto. |
 | Planificada | 📋 | Plan completo en el archivo de tarea. Esperando aprobación explícita. |
-| En RFC | 📄 | Cambio de alto impacto. RFC creado en `04-decisions/rfc/`. Pendiente de aprobación. |
+| En RFC | 📄 | Cambio de alto impacto. Puede nacer desde una tarea o ingresar directo por RFC. Pendiente de aprobacion dentro del flujo general. |
 | Aprobada | 🟢 | Aprobación explícita recibida. Lista para implementar. |
 | En desarrollo | 🔵 | Implementación en curso. |
 | Bloqueada | 🚫 | No puede avanzar por una dependencia o blocker externo. |
 | En revisión | 🔄 | Implementación completa. Verificando contra los criterios del plan. |
 | Pendiente integración UI | 🧩 | Backend listo, pero la tarea depende de integración o confirmación desde UI. |
-| Control de cambio | 🛂 | UI o negocio solicita un ajuste sobre una tarea ya entregada; se evalúa si reabre la misma tarea o deriva una nueva. |
+| Control de cambio | 🛂 | Se solicita un ajuste sobre una tarea o RFC ya revisado/entregado; se evalúa si reabre el mismo artefacto o deriva uno nuevo. |
 | Completada | ✅ | Verificada y cerrada. |
 | Archivada | ⬛ | Cancelada, descartada o absorbida por otra tarea. |
 
@@ -46,11 +46,13 @@ flowchart TD
 
     REG -->|tarea tomada| ANA
     REG -->|descartada| ARC
+    START -->|ingreso directo por RFC| RFC
 
     ANA -->|"cambio acotado\nplan documentado"| PLAN
     ANA -->|"alto impacto\nmulti-módulo / contrato / datos"| RFC
 
     RFC -->|RFC aprobado| PLAN
+    RFC -->|RFC aprobado sin tarea previa| APR
     RFC -->|RFC rechazado| ARC
 
     PLAN -->|aprobación explícita| APR
@@ -65,13 +67,14 @@ flowchart TD
     BLO -->|blocker resuelto| DEV
 
     REV -->|requiere integración UI| UI
+    REV -->|control de cambio sin UI| CC
     REV -->|verificación OK| DONE
-    REV -->|requiere ajustes| DEV
+    REV -->|requiere ajustes técnicos directos| DEV
 
     UI -->|integración UI confirmada| DONE
     UI -->|solicitud de ajuste| CC
     CC -->|control aprobado| DEV
-    CC -->|control rechazado + nueva tarea| DONE
+    CC -->|control rechazado + nuevo artefacto| DONE
 
     DONE --> END
     ARC --> END
@@ -103,22 +106,22 @@ flowchart TD
 
 ## Regla transversal — contenido por etapa
 
-Cambiar el estado de una tarea **no basta por sí solo**. En cada etapa, el agente debe
-persistir en el archivo `T-NNN` el contenido generado durante esa fase, dejando trazabilidad
-útil para retomar el trabajo después.
+Cambiar el estado de una tarea o RFC **no basta por sí solo**. En cada etapa, el agente debe
+persistir en el artefacto principal (`T-NNN` o RFC) el contenido generado durante esa fase,
+dejando trazabilidad útil para retomar el trabajo después.
 
 ### Ubicación del contenido de transiciones
 
 El contenido generado en cada cambio de estado debe quedar **al final de la documentación
-inicial de la tarea**, en orden cronológico, como historial acumulado de transiciones.
+inicial del artefacto principal**, en orden cronológico, como historial acumulado de transiciones.
 
 Reglas:
 
-- La documentación inicial de la tarea (requisito, análisis base, solución, pasos,
+- La documentación inicial del artefacto principal (requisito, análisis base, solución, pasos,
   verificación, etc.) se mantiene al inicio del archivo.
 - Cada transición agrega su contenido nuevo **al final**, no reemplaza ni dispersa el
   historial en distintas partes del documento.
-- El objetivo es que la tarea conserve no solo el estado actual, sino también el
+- El objetivo es que el artefacto conserve no solo el estado actual, sino también el
   contenido producido en cada cambio de estado.
 - Si una sección base necesita actualización, puede ajustarse, pero el contenido propio de
   la transición debe igual quedar registrado al final como trazabilidad.
@@ -128,11 +131,11 @@ Reglas:
 
 ### Contenido mínimo esperado por etapa
 
-| Etapa | Contenido que debe agregarse o actualizarse en la tarea |
+| Etapa | Contenido que debe agregarse o actualizarse en el artefacto principal |
 |---|---|
 | `🔍 En análisis` | Sección `## Análisis realizado` con hallazgos, impacto técnico, riesgos, drift detectado y decisiones preliminares. |
 | `📋 Planificada` | Solución propuesta consolidada, pasos ordenados de implementación y guía de verificación. |
-| `📄 En RFC` | Referencia al RFC creado, motivo del RFC y resumen del impacto detectado. |
+| `📄 En RFC` | Referencia al RFC creado, motivo del RFC, resumen del impacto detectado y, si el RFC es artefacto primario, sus fases y subtareas con estado inicial. |
 | `🟢 Aprobada` | Nota breve de aprobación explícita recibida y alcance aprobado si hubo ajustes. |
 | `🔵 En desarrollo` | Progreso real de implementación: pasos marcados `APPLIED`, decisiones tomadas y cualquier ajuste relevante al plan. |
 | `🚫 Bloqueada` | Descripción concreta del blocker, dependencia o decisión faltante, y condición de desbloqueo. |
@@ -144,6 +147,104 @@ Reglas:
 
 Si el contenido detallado vive mejor en otro artefacto (por ejemplo un RFC), la tarea debe
 igual dejar un resumen y el link correspondiente; nunca debe quedar solo el cambio de estado.
+
+---
+
+## Regla transversal — ingreso directo por RFC
+
+No toda iniciativa debe nacer como `T-NNN` o `F-NNN`.
+
+Cuando el primer artefacto correcto es una decision formal, un cambio multi-modulo o una propuesta
+de arquitectura, se puede **ingresar directo por RFC** sin crear antes una tarea.
+
+Reglas:
+
+1. El RFC entra al flujo general en `📄 En RFC`.
+2. El RFC puede luego:
+   - derivar una tarea contenedora o una o varias tareas hijas;
+   - seguir como artefacto primario hasta `🟢 Aprobada`, `🔵 En desarrollo`, `🔄 En revisión`,
+     `🧩 Pendiente integración UI` y `✅ Completada`;
+   - archivarse si se rechaza o descarta.
+3. Si no existe tarea previa, la trazabilidad del estado general vive en el propio RFC.
+4. Si despues aparecen tareas derivadas, estas deben referenciar al RFC con tipo de relacion
+   `derivada de` o `relacionada con RFC`, segun corresponda.
+
+---
+
+## Submáquina interna de RFC
+
+El estado general del RFC **no reemplaza** su control interno. Un RFC puede estar, por ejemplo,
+`🔵 En desarrollo` en el flujo general y al mismo tiempo llevar internamente una fase en revisión y
+otra ya implementada.
+
+### Regla
+
+Cada RFC debe poder descomponerse en:
+
+- fases;
+- subtareas por fase;
+- decision por subtarea: `aprobada`, `replanteada` o `descartada`.
+
+### Flujo interno canónico
+
+```mermaid
+flowchart TD
+    F0["Fases definidas"]
+    F1["Subtareas propuestas"]
+    F2["Subtareas revisadas\naprobadas / replanteadas / descartadas"]
+    F3["Conjunto de subtareas aprobado"]
+    F4["Implementacion secuencial\nsubtarea 1..N"]
+    F5["Revision integral del RFC"]
+    F6["Salida al flujo general\n✅ Completada / 🧩 Pendiente integración UI /\nvolver a 🔵 En desarrollo"]
+
+    F0 --> F1
+    F1 --> F2
+    F2 -->|hay subtareas replanteadas| F1
+    F2 -->|todas las subtareas resueltas| F3
+    F3 --> F4
+    F4 -->|quedan subtareas aprobadas pendientes| F4
+    F4 -->|ultima subtarea implementada| F5
+    F5 --> F6
+```
+
+### Reglas operativas
+
+1. Cada fase puede tener una o varias subtareas.
+2. Ninguna subtarea se implementa mientras el conjunto pendiente de esa fase no haya sido revisado.
+3. En la revision de subtareas, cada una debe quedar explicitamente como:
+   - `aprobada`;
+   - `replanteada`;
+   - `descartada`.
+4. Las subtareas `replanteadas` deben volver a revision antes de entrar a implementacion.
+5. Las subtareas `descartadas` deben quedar trazadas con su motivo; no desaparecen silenciosamente.
+6. Una vez que el conjunto completo de subtareas aprobadas queda listo, la implementacion se hace
+   **una por una**.
+7. Terminada la ultima subtarea, se hace una revision integral del RFC completo antes de decidir la
+   salida del flujo general.
+8. La revision integral ocurre bajo estado general `🔄 En revisión`.
+9. La implementacion secuencial de subtareas (`subtarea 1..N`) ocurre bajo estado general `🔵 En desarrollo`.
+10. La revision integral puede terminar en:
+    - `✅ Completada`, si el RFC quedo cerrado de punta a punta;
+    - `🧩 Pendiente integración UI`, si backend/RFC quedo listo pero falta cierre con UI;
+    - `🛂 Control de cambio`, si aparece una solicitud de ajuste posterior a la revision aunque no exista dependencia UI;
+    - vuelta a `🔵 En desarrollo`, si la revision integral detecta ajustes adicionales.
+11. Si un RFC vuelve a `🔵 En desarrollo`, se debe identificar explicitamente **que fase y que subtarea existente**
+    absorben el cambio. El ajuste no debe quedar como trabajo flotante: debe agregarse a una subtarea ya
+    existente o crear una nueva subtarea dentro de la fase correspondiente, manteniendo trazabilidad sobre
+    lo ya implementado.
+
+### Contenido minimo que debe reflejar un RFC con submáquina interna
+
+El RFC debe mantener, como minimo:
+
+| Sección | Contenido esperado |
+|---|---|
+| `## Fases` | Lista ordenada de fases del RFC |
+| `## Subtareas por fase` | Tabla o listas con cada subtarea y su estado interno |
+| `## Decisiones de revisión` | Qué subtareas fueron aprobadas, replanteadas o descartadas y por qué |
+| `## Avance de implementación` | Qué subtareas ya se implementaron y cuáles faltan |
+| `## Revisión integral` | Resultado final del RFC completo antes de salir a `✅`, `🧩` o `🛂` |
+| `## Ajustes posteriores` | Si vuelve a `🔵`, qué fase/subtarea existente absorbe el cambio o qué nueva subtarea se agrega |
 
 ---
 
@@ -239,6 +340,7 @@ Planifica T-NNN
 - El análisis determina que el cambio afecta múltiples módulos, contratos públicos, modelo de datos o arquitectura.
 - El agente crea el RFC en `doc/04-decisions/rfc/` con estado `BORRADOR` y lo referencia en el archivo de la tarea.
 - La tarea conserva el análisis y agrega el resumen del RFC generado.
+- Si luego se decide que la tarea ya no es el artefacto principal, debe dejar referencia cruzada al RFC y explicitar que el seguimiento principal continua ahi.
 
 **Prompt pattern:** el mismo que para Planificada — el agente decide la ruta según el impacto detectado:
 ```
@@ -250,12 +352,35 @@ Planifica T-NNN
 
 ---
 
+### Inicio directo → 📄 En RFC
+
+**Quién activa:** 👤 usuario o 🤖 agente durante planificación de alto impacto
+
+**Criterios:**
+- La iniciativa nace directamente como RFC y no aporta valor crear primero una tarea.
+- El RFC queda creado como artefacto primario con contexto, impacto, fases y subtareas iniciales.
+- Si mas adelante se crean tareas derivadas, estas referencian al RFC y no reemplazan su trazabilidad historica.
+
+**Prompt pattern:**
+```
+Crea un RFC para [tema]
+```
+```
+Esto debe entrar directo por RFC
+```
+```
+Necesito un RFC, no una tarea
+```
+
+---
+
 ### 📄 En RFC → 📋 Planificada
 
 **Quién activa:** 👤 usuario (aprueba el RFC) + 🤖 agente (detalla el plan)
 
 **Criterios:**
 - Usuario aprueba el RFC explícitamente.
+- Existe una tarea asociada o se decide crearla en este punto.
 - El agente actualiza el RFC a `APROBADO`, detalla los pasos en el archivo de la tarea y cambia el estado a `📋 Planificada`.
 - La tarea agrega el contenido nuevo producido en la etapa RFC/aprobación, no solo la referencia.
 
@@ -265,6 +390,26 @@ Apruebo RFC-NNN, detalla el plan de T-NNN
 ```
 ```
 RFC-NNN aprobado, procede con el plan
+```
+
+---
+
+### 📄 En RFC → 🟢 Aprobada
+
+**Quién activa:** 👤 usuario
+
+**Criterios:**
+- El RFC es el artefacto primario y no se va a convertir primero en una tarea separada.
+- El usuario aprueba explícitamente el RFC como paquete de trabajo.
+- Las fases y subtareas del RFC quedaron revisadas, con cada subtarea aprobada, replanteada o descartada.
+- Solo cuando el conjunto implementable queda aprobado, el RFC puede pasar a `🟢 Aprobada`.
+
+**Prompt pattern:**
+```
+Apruebo este RFC, implementalo por fases
+```
+```
+RFC aprobado, parte por sus subtareas
 ```
 
 ---
@@ -317,6 +462,28 @@ T-NNN está bloqueada por [razón]
 ```
 ```
 Bloquea T-NNN, depende de T-MMM
+```
+
+---
+
+### 🔄 En revisión → 🛂 Control de cambio
+
+**Quién activa:** 👤 usuario
+
+**Criterios:**
+- Existe una solicitud de ajuste posterior a la revision integral del artefacto.
+- No requiere que exista dependencia UI; puede venir de negocio, arquitectura, backend o revision funcional.
+- El agente documenta el cambio pedido, su impacto y si se incorpora al mismo artefacto o si debe derivarse.
+
+**Prompt pattern:**
+```
+Pasa RFC-NNN a control de cambio
+```
+```
+Abre control de cambio para T-NNN
+```
+```
+Hay ajustes sobre este RFC; llévalo a control de cambio
 ```
 
 ---

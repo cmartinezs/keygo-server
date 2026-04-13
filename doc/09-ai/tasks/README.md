@@ -2,6 +2,9 @@
 
 Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md](../workflow.md).
 
+> Nota: no toda iniciativa nace como tarea. Algunas entran directo por RFC y solo crean tareas
+> derivadas cuando conviene para la implementacion o la trazabilidad.
+
 ## Convención de relaciones
 
 Si una tarea referencia otra tarea, RFC o inconsistencia, debe incluir una sección

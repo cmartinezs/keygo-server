@@ -60,6 +60,14 @@ Current architectural decisions, proposals, and their implementation timeline.
 
 ---
 
+### 7️⃣ rbac-multi-scope-alignment/
+**Status:** 📋 Draft  
+**Purpose:** Alinear el RBAC multi-ambito con el baseline, flows y contratos vigentes  
+**Decision:** Pending — Revisar catalogo canonico, tenant RBAC API y read models de autorizacion  
+**See:** [`./rbac-multi-scope-alignment/README.md`](./rbac-multi-scope-alignment/README.md)
+
+---
+
 ## ⏸️ Pending / Incomplete
 
 ### incomplete-sections/

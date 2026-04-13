@@ -54,6 +54,11 @@ Resumen de la transición crítica que el agente debe respetar:
 - El agente puede mover una tarea hasta `📋 Planificada`.
 - Solo el usuario puede aprobarla (`🟢 Aprobada`). Sin esa transición, no se implementa.
 - Si el cambio es de alto impacto: `🔍 En análisis → 📄 En RFC → 📋 Planificada`.
+- Una iniciativa tambien puede **entrar directo por RFC** sin tarea previa; en ese caso el RFC usa el mismo flujo general y actua como artefacto primario.
+- Todo RFC mantiene ademas una submaquina interna de fases y subtareas: las subtareas se revisan, se aprueban/replantean/descartan, y solo cuando el conjunto implementable queda aprobado se ejecutan una a una dentro de `🔵 En desarrollo`.
+- La verificacion del RFC completo corresponde al estado general `🔄 En revisión`.
+- Un RFC o tarea en `🔄 En revisión` puede pasar a `🛂 Control de cambio` aun cuando no exista dependencia UI.
+- Si un RFC vuelve de `🛂` o de `🔄` a `🔵`, primero se debe identificar que fase/subtarea existente absorbe el ajuste, o crear una nueva subtarea dentro de la fase correspondiente.
 - Si una tarea en `🧩 Pendiente integración UI` recibe un ajuste posterior, debe pasar antes por `🛂 Control de cambio`; solo si el usuario lo aprueba vuelve a `🔵 En desarrollo`.
 - Si el control de cambio es rechazado para la tarea original, esta puede cerrarse, pero el nuevo alcance debe quedar como tarea derivada explícita.
 
