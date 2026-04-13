@@ -49,6 +49,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 | [T-132-doc-filenames-english.md](T-132-doc-filenames-english.md) | Migrar nombres de archivos y carpetas de `doc/` a inglés | ⬜ Registrada |
 | [T-134-application-config-categories.md](T-134-application-config-categories.md) | Separar `ApplicationConfig` por dominios y estereotipos de configuración | ⬜ Registrada |
 | [T-135-shell-scripts-review.md](T-135-shell-scripts-review.md) | Revisar scripts `*.sh` con fallas de ejecución y compatibilidad | ⬜ Registrada |
+| [T-136-message-contract-redesign.md](T-136-message-contract-redesign.md) | Redefinir contrato de mensajes backend para que UI sepa qué mostrar, cuándo y cómo | ⬜ Registrada |
 
 ## Mediano plazo
 
