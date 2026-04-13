@@ -67,6 +67,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-140-aggregate-status-queries.md](T-140-aggregate-status-queries.md) | Preferir queries agregadas por estado (`GROUP BY`) en vez de consultas repetidas por cada status | ⬜ Registrada |
 | [T-141-platform-user-public-profile.md](T-141-platform-user-public-profile.md) | Endpoint para exponer perfil público de `platform_user` consumible por UI | ⬜ Registrada |
 | [T-144-review-json-snake-case-contracts.md](T-144-review-json-snake-case-contracts.md) | Revisar request/response JSON para detectar y planificar corrección de contratos que no estén en `snake_case`. | ⬜ Registrada |
+| [T-145-platform-billing-catalog-empty.md](T-145-platform-billing-catalog-empty.md) | Registro retroactivo de la corrección que alinea Flyway y seeds para que `GET /platform/billing/catalog` deje de responder `data: []`. | 🧩 Pendiente integración UI |
 
 ## Mediano plazo
 

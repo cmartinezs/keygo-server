@@ -1,9 +1,9 @@
 # Migraciones Flyway — KeyGo Server
 
-> Última actualización: 2026-04-11  
-> Baseline vigente: **V1–V19**  
+> Última actualización: 2026-04-13  
+> Baseline vigente: **V1–V20**  
 > Baseline anterior archivado en: `keygo-supabase/src/main/resources/db/backup_20260409_v33/`  
-> Próxima migración disponible: **V20**
+> Próxima migración disponible: **V21**
 
 ## Estrategia
 
@@ -48,6 +48,7 @@ V{n}__{descripcion}.sql
 | V17 | `V17__seed_billing.sql` | Seed | planes, versiones, billing options, entitlements y caso activo de billing |
 | V18 | `V18__contract_email_verifications.sql` | Billing | `contract_email_verifications` y flexibilización de `app_contracts.contractor_id` para onboarding previo a provisión |
 | V19 | `V19__app_contract_onboarding_snapshot.sql` | Billing | snapshot persistido de contacto y empresa del onboarding dentro de `app_contracts` |
+| V20 | `V20__platform_plan_catalog.sql` | Billing | habilita `app_plans.client_app_id = NULL` para catálogo de plataforma y siembra planes públicos de KeyGo |
 
 ## Decisiones clave del remake
 
@@ -108,6 +109,6 @@ V{n}__{descripcion}.sql
 ## Validación esperada
 
 - Flyway debe aplicar desde cero sobre schema limpio
-- `flyway validate` debe pasar sobre V1–V19
+- `flyway validate` debe pasar sobre V1–V20
 - `doc/03-architecture/database-schema.md` y `doc/08-reference/data/*` deben permanecer alineados con este baseline
 - La capa Java todavía debe revalidarse frente al naming físico antes de considerar cerrada la compatibilidad JPA

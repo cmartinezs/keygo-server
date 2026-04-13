@@ -1,8 +1,8 @@
 # Database Schema — KeyGo Server
 
-> **Ultima actualizacion:** 2026-04-11  
+> **Ultima actualizacion:** 2026-04-13  
 > **Fuente de verdad fisica:** `keygo-supabase/src/main/resources/db/migration/`  
-> **Baseline activo:** `V1`–`V17`  
+> **Baseline activo:** `V1`–`V20`  
 > **Referencia de versiones:** `../08-reference/data/migrations.md`
 
 **Proposito:** documentar la vista canonica del schema PostgreSQL vigente. Este documento describe el
@@ -13,7 +13,7 @@ modelo actual del baseline activo; no reemplaza a Flyway ni al DDL real.
 ## Regla operativa
 
 - Cuando haya conflicto entre codigo, documentacion y schema, **manda Flyway**.
-- El baseline activo del remake es `V1`–`V17`.
+- El baseline activo del remake es `V1`–`V20`.
 - El arbol `keygo-supabase/src/main/resources/db/backup_20260409_v33/` es **historico** y no debe
   usarse como schema vigente.
 - `hibernate.ddl-auto=validate` debe seguir siendo coherente con este baseline.
@@ -29,6 +29,7 @@ modelo actual del baseline activo; no reemplaza a Flyway ni al DDL real.
 | `V11` | Audit | ledger append-only `audit_events` con payloads, tags y entity links |
 | `V12`–`V15` | Billing | `contractors`, catalogo comercial, contratos, suscripciones, pagos, facturas, uso y perfiles fiscales |
 | `V16`–`V17` | Seeds | datos de desarrollo y caso base de billing |
+| `V18`–`V20` | Billing evolution | onboarding de contratos y catalogo publico de plataforma |
 
 ---
 
@@ -122,7 +123,8 @@ flowchart LR
     c --> pm
     c --> uc
 
-    ca2 --> ap --> apv
+    ca2 -. app-specific owner .-> ap
+    ap --> apv
     apv --> apbo
     apv --> ape
 
@@ -261,7 +263,7 @@ bloquean `UPDATE` y `DELETE`.
 
 | Tabla | Rol |
 |---|---|
-| `app_plans` | planes comerciales por app |
+| `app_plans` | planes comerciales por app o de plataforma (`client_app_id = NULL`) |
 | `app_plan_versions` | snapshot versionado del plan |
 | `app_plan_billing_options` | periodos de cobro (`MONTHLY`, `YEARLY`, `ONE_TIME`) |
 | `app_plan_entitlements` | limites/flags/rates por version |
@@ -285,10 +287,12 @@ bloquean `UPDATE` y `DELETE`.
 | `payment_methods` | referencias externas de pago; nunca PAN/CVV |
 
 **Regla:** el billing se ancla en `contractors` y `platform_users`, no en identidades locales del
-tenant `keygo`. En onboarding, `app_contracts.contractor_id` puede permanecer `NULL` hasta que el
-pago mock/aprobado dispare el provisionamiento final; la validación de email previa vive en
-`contract_email_verifications`, y los datos capturados del formulario (`contractor_first_name`,
-`contractor_last_name`, `company_*`) quedan persistidos como snapshot del proceso.
+tenant `keygo`. `app_plans.client_app_id = NULL` representa catalogo publico de plataforma ofrecido
+por KeyGo; cuando viene informado, el plan pertenece a una `client_app` especifica. En onboarding,
+`app_contracts.contractor_id` puede permanecer `NULL` hasta que el pago mock/aprobado dispare el
+provisionamiento final; la validación de email previa vive en `contract_email_verifications`, y los
+datos capturados del formulario (`contractor_first_name`, `contractor_last_name`, `company_*`)
+quedan persistidos como snapshot del proceso.
 
 ---
 

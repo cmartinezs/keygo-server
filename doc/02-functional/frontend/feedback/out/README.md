@@ -10,6 +10,7 @@ Cambios en el backend que impactan al equipo de UI.
 | [BE-002-billing-entitlement-limitvalue-decimal.md](BE-002-billing-entitlement-limitvalue-decimal.md) | 🔴 Abierto | `entitlements[].limitValue` de billing se alinea a decimal (`NUMERIC(18,4)`) |
 | [BE-003-platform-users-list-endpoint.md](BE-003-platform-users-list-endpoint.md) | 🔴 Abierto | Backend notifica a UI que `GET /platform/users` ya quedó disponible con paginación. |
 | [BE-004-platform-user-roles-endpoint.md](BE-004-platform-user-roles-endpoint.md) | 🟢 Confirmado | Backend notificó a UI que `GET /platform/users/{userId}/platform-roles` quedó disponible con scope y contractor resumido, y la revisión fue aprobada. |
+| [BE-005-platform-billing-catalog-available.md](BE-005-platform-billing-catalog-available.md) | 🔴 Abierto | Backend notifica a UI que `GET /platform/billing/catalog` ya quedó poblado con el catálogo público de plataforma tras aplicar `V20`. |
 
 ## Cómo agregar una entrada
 
