@@ -141,6 +141,48 @@ igual dejar un resumen y el link correspondiente; nunca debe quedar solo el camb
 
 ---
 
+## Relaciones entre tareas
+
+Cuando una tarea referencie otra (`T-NNN`, `F-NNN`, `RFC-NNN`, `INC-NNN`), no basta con nombrarla:
+se debe indicar explícitamente el **tipo de relación**.
+
+### Regla
+
+Cada tarea que tenga dependencias, afinidad funcional o impacto cruzado debe incluir una sección
+`## Relaciones` con una tabla como esta:
+
+| Artefacto relacionado | Tipo de relación | Descripción |
+|---|---|---|
+| `T-NNN` | `bloqueante` | Esta tarea no puede avanzar o cerrarse hasta que la otra se resuelva. |
+| `T-MMM` | `habilitadora` | Esta tarea habilita trabajo posterior en la otra. |
+| `T-PPP` | `complementaria` | Ambas cubren partes distintas de una misma capacidad y conviene tratarlas coordinadamente. |
+
+### Tipos de relación permitidos
+
+| Tipo | Significado |
+|---|---|
+| `bloqueante` | La tarea relacionada impide avanzar o cerrar la actual. |
+| `habilitadora` | La tarea actual o la relacionada habilita a la otra como prerequisito técnico o funcional. |
+| `complementaria` | Ambas tareas se refuerzan, pero ninguna bloquea estrictamente a la otra. |
+| `derivada de` | La tarea nace como consecuencia directa de otra tarea, RFC o inconsistencia. |
+| `absorbe a` | La tarea actual incorpora el alcance de otra, que luego puede archivarse. |
+| `absorbida por` | La tarea actual deja de avanzar por separado y su alcance pasa a otra. |
+| `relacionada con UI` | La tarea depende de integración, validación o coordinación con frontend/UI. |
+| `relacionada con RFC` | La tarea implementa, detalla o depende de una decisión formalizada en RFC. |
+| `relacionada con INC` | La tarea corrige o nace desde una inconsistencia documentada. |
+
+### Criterios
+
+- No usar solo “relacionada con” sin tipificar la relación.
+- Si la relación afecta el orden de ejecución, usar `bloqueante` o `habilitadora`, no
+  `complementaria`.
+- Si una tarea pasa a depender de otra durante la ejecución, actualizar también su archivo y no
+  solo el estado.
+- Si una tarea queda bloqueada por otra, la relación debe aparecer tanto en `## Relaciones` como
+  en la documentación del bloqueo.
+
+---
+
 ### ⬜ Registrada → 🔍 En análisis
 
 **Quién activa:** 👤 usuario

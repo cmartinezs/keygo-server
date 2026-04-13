@@ -2,6 +2,13 @@
 
 Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md](../workflow.md).
 
+## Convención de relaciones
+
+Si una tarea referencia otra tarea, RFC o inconsistencia, debe incluir una sección
+`## Relaciones` en su archivo y declarar el **tipo de relación** (`bloqueante`,
+`habilitadora`, `complementaria`, `derivada de`, etc.). La definición canónica de tipos vive
+en [workflow.md](../workflow.md#relaciones-entre-tareas).
+
 | Estado | Emoji | Significado |
 |---|---|---|
 | Registrada | ⬜ | Sin análisis ni plan |
@@ -50,6 +57,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 | [T-134-application-config-categories.md](T-134-application-config-categories.md) | Separar `ApplicationConfig` por dominios y estereotipos de configuración | ⬜ Registrada |
 | [T-135-shell-scripts-review.md](T-135-shell-scripts-review.md) | Revisar scripts `*.sh` con fallas de ejecución y compatibilidad | ⬜ Registrada |
 | [T-136-message-contract-redesign.md](T-136-message-contract-redesign.md) | Redefinir contrato de mensajes backend para que UI sepa qué mostrar, cuándo y cómo | ⬜ Registrada |
+| [T-137-password-history-reuse-policy.md](T-137-password-history-reuse-policy.md) | Modelar restricción para no reutilizar las últimas N contraseñas | ⬜ Registrada |
 
 ## Mediano plazo
 
