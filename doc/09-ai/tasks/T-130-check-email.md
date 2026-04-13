@@ -1,7 +1,7 @@
 # T-130 — Endpoint `POST /api/v1/platform/account/check-email`
 
-**Estado:** 🔲 PENDING  
-**Módulos afectados:** `keygo-app`, `keygo-api`, `keygo-run`, docs
+**Estado:** 📋 Planificada  
+**Módulos afectados:** `keygo-app`, `keygo-api`, `keygo-run`, `postman`, docs
 
 ---
 
@@ -30,6 +30,30 @@ Nuevo endpoint **`POST /api/v1/platform/account/check-email`** que:
 
 ---
 
+## Análisis realizado
+
+- **Reutilización disponible:** `PlatformUserRepositoryPort.existsByEmail(EmailAddress)` ya existe,
+  por lo que T-130 no requiere nueva lógica de persistencia ni cambios en `keygo-supabase`.
+- **Encaje funcional correcto:** el endpoint calza en `PlatformAuthController`, porque reutiliza
+  la sesión HTTP del flujo PKCE y el atributo `platformAuthorizationState` ya definido como
+  `SESSION_ATTR_AUTH_STATE`.
+- **Impacto real en seguridad de borde:** para que sea público sin Bearer token hay que agregar
+  el prefijo en `application.yml`, `KeyGoBootstrapProperties` y `BootstrapAdminKeyFilter`.
+- **Contrato consistente con el proyecto:** `AUTHENTICATION_REQUIRED` ya existe y es coherente
+  para el caso sin sesión; los códigos nuevos necesarios son solo
+  `PLATFORM_USER_EMAIL_FOUND` y `PLATFORM_USER_EMAIL_NOT_FOUND`.
+- **Cobertura de pruebas esperable:** el cambio debe extender al menos
+  `PlatformAuthControllerTest` y `BootstrapAdminKeyFilterTest`, además de agregar test unitario
+  para el nuevo use case.
+- **Drift documental detectado:** `doc/06-quality/security-guidelines.md` y
+  `doc/02-functional/frontend/feedback/out/BE-001-check-email-endpoint.md` ya describen este
+  endpoint como esperado, aunque todavía no existe en código.
+- **Ajuste al plan documental:** la referencia previa a
+  `doc/02-functional/frontend/frontend-developer-guide.md` está obsoleta; la documentación viva
+  a actualizar está hoy bajo `doc/02-functional/frontend/`.
+
+---
+
 ## Pasos de Implementación
 
 | # | Acción | Archivo | Estado |
@@ -45,7 +69,9 @@ Nuevo endpoint **`POST /api/v1/platform/account/check-email`** que:
 | 9 | Registrar bean `CheckPlatformUserEmailUseCase` | `keygo-run/…/config/ApplicationConfig.java` | PENDING |
 | 10 | Actualizar `bootstrap-filter.md` (tabla de prefijos públicos) | `doc/03-architecture/security/bootstrap-filter.md` | PENDING |
 | 11 | Actualizar `authentication-flow.md` (paso entre authorize y login) | `doc/02-functional/authentication-flow.md` | PENDING |
-| 12 | Actualizar `frontend-developer-guide.md` (nuevo endpoint) | `doc/02-functional/frontend/frontend-developer-guide.md` | PENDING |
+| 12 | Actualizar docs frontend vivas del flujo/endpoint (`02-authentication.md`, `08-endpoints-admin.md` y `04-error-handling.md` si aplica) | `doc/02-functional/frontend/…` | PENDING |
+| 13 | Actualizar catálogo de endpoints | `doc/08-reference/api/endpoint-catalog.md` | PENDING |
+| 14 | Actualizar colección Postman | `postman/KeyGo-Server.postman_collection.json` | PENDING |
 
 ---
 

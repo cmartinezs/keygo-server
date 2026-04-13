@@ -3,7 +3,10 @@
     "allow": [
       "Bash(grep -E \"\\\\.md$|\\\\.yml$|\\\\.properties$|config\")",
       "Bash(mvn --version)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(sed -i 's|`lessons-learned\\\\.md`|`lessons-learned/<categoría>.md`|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agent-operations.md\")",
+      "Bash(sed -i 's|\\\\[lessons-learned\\\\.md\\\\]\\(lessons-learned\\\\.md\\)|[lessons-learned/]\\(lessons-learned/README.md\\)|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/ai-context.md\")",
+      "Bash(sed -i 's|\\\\[lessons-learned\\\\.md\\\\]\\(lessons-learned\\\\.md\\)|[lessons-learned/]\\(lessons-learned/README.md\\)|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/README.md\")"
     ]
   }
 }

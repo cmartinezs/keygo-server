@@ -42,8 +42,8 @@ Snapshot operativo rápido para agentes.
 
 ## Memoria AI
 
-- [lessons-learned.md](lessons-learned.md)
-- [proposals.md](proposals.md)
-- [inconsistencies.md](inconsistencies.md)
+- [lessons-learned/](lessons-learned/README.md)
+- [tasks/README.md](tasks/README.md)
+- [inconsistencies/README.md](inconsistencies/README.md)
 - [agents-change-log.md](agents-change-log.md)
 

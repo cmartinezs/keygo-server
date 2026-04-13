@@ -35,10 +35,23 @@ Toda documentación nueva o ampliada debe mantener el patrón:
 - Toda documentación nueva debe vivir en `doc/`.
 - No usar `99-archive/` como fuente primaria.
 - Si una decisión ya es efectiva, dejar ADR o actualizar el existente.
-- Si hay drift documental, registrarlo en `inconsistencies.md`.
+- Si hay drift documental, registrarlo en `inconsistencies/README.md`.
 - Todo diagrama debe escribirse en **Mermaid** cuando sea técnicamente viable.
 - Si Mermaid no alcanza para el caso, usar **PlantUML**.
 - Diagramas ASCII solo se aceptan como último recurso y deben evitarse en documentación canónica.
+
+## Ciclo de vida de una tarea
+
+El ciclo completo de estados está definido en [workflow.md](workflow.md).
+Resumen de la transición crítica que el agente debe respetar:
+
+```
+⬜ Registrada → 🔍 En análisis → 📋 Planificada → 🟢 Aprobada → 🔵 En desarrollo → 🔄 En revisión → ✅ Completada
+```
+
+- El agente puede mover una tarea hasta `📋 Planificada`.
+- Solo el usuario puede aprobarla (`🟢 Aprobada`). Sin esa transición, no se implementa.
+- Si el cambio es de alto impacto: `🔍 En análisis → 📄 En RFC → 📋 Planificada`.
 
 ## Flujo de trabajo obligatorio antes de implementar
 
@@ -59,7 +72,7 @@ Siempre crear un plan documentado con:
 - Pasos de implementación ordenados.
 - Estado: `PENDIENTE` | `APLICADO`.
 
-El plan debe guardarse en `doc/09-ai/proposals.md` o en el documento de tarea correspondiente.
+El plan debe guardarse en `doc/09-ai/tasks/T-NNN-<slug>.md`, registrando la entrada en `doc/09-ai/tasks/README.md`.
 
 ### 3. RFC para cambios grandes
 
@@ -77,13 +90,13 @@ Si el cambio afecta múltiples módulos, contratos públicos, modelo de datos o 
 
 ### 5. Registrar ideas futuras detectadas
 
-A medida que el software crece, una feature implementada puede habilitar naturalmente otras futuras. Si se detecta una de estas oportunidades, **registrarla brevemente** en `doc/09-ai/proposals.md` con:
+A medida que el software crece, una feature implementada puede habilitar naturalmente otras futuras. Si se detecta una de estas oportunidades, **registrarla brevemente** creando `doc/09-ai/tasks/T-NNN-<slug>.md` con:
 
 - ID correlativo (`T-NNN` o `F-NNN`).
-- Descripción corta (1–2 líneas): qué habilita y por qué tiene sentido.
-- Estado: `🔲 Pendiente`.
+- Descripción corta (1–2 líneas) como requisito.
+- Estado: `🔲 PENDING`.
 
-No desarrollar el análisis completo en ese momento. Queda pendiente para cuando se retome: se hará el análisis, el plan y/o RFC según corresponda.
+Agregar la entrada en `doc/09-ai/tasks/README.md`. No desarrollar el análisis completo en ese momento — queda pendiente hasta que se retome explícitamente.
 
 ## Cierre de tarea y compresión de contexto
 
@@ -99,9 +112,9 @@ Con base en la respuesta, guardar únicamente lo que no sea derivable del códig
 
 | Qué recordar | Dónde guardar |
 |---|---|
-| Aprendizaje o patrón reutilizable | `lessons-learned.md` |
-| Inconsistencia doc-código detectada | `inconsistencies.md` |
-| Propuesta futura detectada | `proposals.md` |
+| Aprendizaje o patrón reutilizable | `lessons-learned/<categoría>.md` |
+| Inconsistencia doc-código detectada | `inconsistencies/README.md` |
+| Propuesta futura detectada | `tasks/T-NNN-<slug>.md` + entrada en `tasks/README.md` |
 | Cambio de reglas de agentes | `agents.md` + `agents-change-log.md` |
 | Decisión arquitectónica efectiva | ADR en `04-decisions/adr/` |
 
@@ -117,8 +130,8 @@ Si se crea o modifica un documento durante el cierre, actualizar el `README.md` 
 | Cambio de contrato, `ResponseCode` o flujo OAuth consumible por UI | [`02-functional/frontend/frontend-developer-guide.md`](../02-functional/frontend/frontend-developer-guide.md) |
 | Nueva migración Flyway | `08-reference/data/migrations.md`, `data-model.md`, `entity-relationships.md` |
 | Cambio de quick-start o reglas de agentes | `agents.md` y `agents-change-log.md` |
-| Nuevo aprendizaje | `lessons-learned.md` |
-| Nueva propuesta | `proposals.md` y, si aplica, `05-delivery/roadmap.md` |
+| Nuevo aprendizaje | `lessons-learned/<categoría>.md` |
+| Nueva propuesta | `tasks/T-NNN-<slug>.md` + `tasks/README.md` y, si aplica, `05-delivery/roadmap.md` |
 
 ## Checklist rápido
 

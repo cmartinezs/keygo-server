@@ -630,6 +630,38 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
 
 ---
 
+## PII — Datos Personales Identificables
+
+### Regla: PII nunca en URLs
+
+Los datos personales identificables (PII) **no deben aparecer en URLs** — ni como path variable ni como query param.
+
+**Por qué:** las URLs se registran automáticamente en logs de acceso (Nginx, CDN, load balancers), historial del navegador, headers `Referer` y herramientas de monitoreo de red. El cifrado TLS no protege la URL en esos contextos.
+
+**Aplica a:** email, nombre, teléfono, dirección, número de documento, cualquier identificador que permita individualizar a una persona.
+
+```java
+// ❌ MAL — email en URL queda en logs
+GET /api/v1/users/check?email=user@example.com
+
+// ✅ BIEN — email en body cifrado por TLS, fuera de logs
+POST /api/v1/platform/account/check-email
+{ "email": "user@example.com" }
+```
+
+> Catálogo completo de PII manejados en el sistema: ver T-131 (pendiente).
+
+### Checklist PII por endpoint
+
+Al diseñar o revisar un endpoint que recibe o devuelve datos de usuario, verificar:
+
+- [ ] Ningún campo PII aparece en el path o query string.
+- [ ] Los campos PII en response son los mínimos necesarios (principio de minimización).
+- [ ] Los emails en response están enmascarados cuando no es el propio recurso del usuario (usar `EmailMasker`).
+- [ ] Los logs no imprime valores PII — solo IDs o datos enmascarados.
+
+---
+
 ## Anti-Patterns: Evitar
 
 ### ❌ Storing plaintext passwords

@@ -103,9 +103,8 @@ Always create a documented plan covering: problem/requirement, proposed solution
 
 **When `/plan` is invoked, persist the plan before closing plan mode — without waiting for explicit instruction** (plans may be implemented in a future conversation):
 
-1. Add entry `T-NNN` in `doc/09-ai/proposals.md` (1–2 lines, status 🔲 Pendiente, link to detail doc).
-2. Create `doc/09-ai/tasks/T-NNN-<slug>.md` with: requirement, response contract or component design, ordered steps with `PENDING`/`APPLIED` status, and a verification guide.
-3. Register the new entry in `doc/09-ai/tasks/README.md`.
+1. Create `doc/09-ai/tasks/T-NNN-<slug>.md` with: requirement, response contract or component design, ordered steps with `PENDING`/`APPLIED` status, and a verification guide.
+2. Register the new entry in `doc/09-ai/tasks/README.md`.
 
 ### 3. RFC for large changes
 
@@ -117,7 +116,7 @@ If the change affects multiple modules, public contracts, data model, or archite
 
 ### 5. Record detected future ideas
 
-As a feature is implemented, it may naturally enable other future features. If such an opportunity is detected, **briefly register it** in `doc/09-ai/proposals.md` with: correlative ID (`T-NNN` / `F-NNN`), 1–2 line description (what it enables and why it makes sense), and status `🔲 Pendiente`. Do not develop the full analysis at that point — it stays pending until explicitly picked up.
+As a feature is implemented, it may naturally enable other future features. If such an opportunity is detected, **briefly register it** by creating `doc/09-ai/tasks/T-NNN-<slug>.md` with: correlative ID (`T-NNN` / `F-NNN`), 1–2 line description as the requirement, and status `🔲 PENDING`. Add the entry to `doc/09-ai/tasks/README.md`. Do not develop the full analysis at that point — it stays pending until explicitly picked up.
 
 ## Task Closure and Context Compression
 
@@ -129,8 +128,8 @@ At the end of every task, before closing the conversation:
 | What | Where |
 |---|---|
 | Reusable learning or pattern | `lessons-learned.md` |
-| Doc/code inconsistency | `inconsistencies.md` |
-| Detected future proposal | `proposals.md` |
+| Doc/code inconsistency | `inconsistencies/INC-NNN-<slug>.md` + entry in `inconsistencies/README.md` |
+| Detected future proposal | `tasks/T-NNN-<slug>.md` + entry in `tasks/README.md` |
 | Agent rule change | `agents.md` + `agents-change-log.md` |
 | Effective architectural decision | ADR in `04-decisions/adr/` |
 
@@ -160,6 +159,12 @@ At the end of every task, before closing the conversation:
 | Repository adapter | `FooRepositoryAdapter` |
 | REST controller | `FooController` |
 
+### File and folder names
+
+- **All file and folder names under `doc/` must be in English** — `kebab-case` for multi-word names (e.g. `data-model.md`, `lessons-learned/`, `frontend-developer-guide.md`).
+- Doc **content** is written in Spanish (es-CL) by convention; only the names are English.
+- This applies to new files and folders. Existing names are migrated incrementally — see T-132.
+
 ## Code Quality
 
 - **Checkstyle**: Google Java Format style — 2-space indent, 120-char line limit, no star imports, no `System.out.println`. Warnings enabled; does not fail build.
@@ -188,4 +193,4 @@ At the end of every task, before closing the conversation:
 | Contract change, `ResponseCode` change, or OAuth flow change affecting UI | `doc/02-functional/frontend/frontend-developer-guide.md` |
 | New Flyway migration | `migrations.md` + `data-model.md` + `entity-relationships.md` |
 | Agent rule or quick-start change | `agents.md` + `agents-change-log.md` |
-| Doc/code inconsistency found | `inconsistencies.md` |
+| Doc/code inconsistency found | `inconsistencies/INC-NNN-<slug>.md` + entry in `inconsistencies/README.md` |
