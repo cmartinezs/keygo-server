@@ -446,6 +446,98 @@
               "_postman_previewlanguage": "json"
             }
           ]
+        },
+        {
+          "name": "GET Platform Users",
+          "id": "req-platform-users-list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "description": "JWT de admin"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/users?page=0&size=20&sort=email&order=ASC",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "email"
+                },
+                {
+                  "key": "order",
+                  "value": "ASC"
+                }
+              ]
+            },
+            "description": "Lista usuarios globales de plataforma con paginacion, filtros opcionales y ordenamiento.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminToken>` con rol `KEYGO_ADMIN`.\n\n**ResponseCode esperado:** `PLATFORM_USER_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es PLATFORM_USER_LIST_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'PLATFORM_USER_LIST_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data contiene metadatos de paginacion', function () {",
+                  "    pm.expect(body.data).to.have.property('content');",
+                  "    pm.expect(body.data).to.have.property('page');",
+                  "    pm.expect(body.data).to.have.property('size');",
+                  "    pm.expect(body.data).to.have.property('totalElements');",
+                  "    pm.expect(body.data).to.have.property('totalPages');",
+                  "    pm.expect(body.data).to.have.property('last');",
+                  "});",
+                  "",
+                  "pm.test('content es un array', function () {",
+                  "    pm.expect(body.data.content).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Platform Users",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-04-13T07:50:00Z\",\n  \"success\": {\n    \"code\": \"PLATFORM_USER_LIST_RETRIEVED\",\n    \"message\": \"Platform user list retrieved successfully\"\n  },\n  \"data\": {\n    \"content\": [\n      {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"email\": \"admin@keygo.io\",\n        \"username\": \"admin\",\n        \"firstName\": \"Key\",\n        \"lastName\": \"Go\",\n        \"status\": \"ACTIVE\"\n      }\n    ],\n    \"page\": 0,\n    \"size\": 20,\n    \"totalElements\": 1,\n    \"totalPages\": 1,\n    \"last\": true\n  }\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },

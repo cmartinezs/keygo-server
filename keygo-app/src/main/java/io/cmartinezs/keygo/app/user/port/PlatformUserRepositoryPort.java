@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.app.user.port;
 
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.app.user.filter.PlatformUserFilter;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
@@ -27,4 +29,6 @@ public interface PlatformUserRepositoryPort {
   boolean existsByEmail(EmailAddress email);
 
   boolean existsByUsername(Username username);
+
+  PagedResult<PlatformUser> findAllPaged(PlatformUserFilter filter);
 }

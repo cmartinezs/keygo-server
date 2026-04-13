@@ -6,7 +6,7 @@ Gaps e inconsistencias detectados por el equipo de UI al consumir la API.
 
 | Archivo | Estado | Resumen |
 |---|---|---|
-| _(sin entradas aún)_ | — | — |
+| [UI-001-missing-platform-users-list-endpoint.md](UI-001-missing-platform-users-list-endpoint.md) | 🟢 Resuelto | La UI reportó que `GET /platform/users` no estaba implementado; backend lo habilitó con paginación. |
 
 ## Cómo agregar una entrada
 

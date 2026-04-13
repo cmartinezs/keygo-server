@@ -104,6 +104,39 @@ GET /api/v1/admin/platform/stats
 ### GET /platform/users
 Lista usuarios de plataforma con paginación. Rol: `ADMIN`.
 
+```typescript
+GET /api/v1/platform/users?page=0&size=20&sort=email&order=ASC
+
+// Response 200 — PagedData<PlatformUserData>
+{
+  "data": {
+    "content": [
+      {
+        "id": "uuid",
+        "email": "admin@keygo.io",
+        "username": "admin",
+        "firstName": "Key",
+        "lastName": "Go",
+        "status": "ACTIVE"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "last": true
+  }
+}
+```
+
+Filtros soportados:
+
+- `status=ACTIVE|SUSPENDED|PENDING|RESET_PASSWORD`
+- `username_like=<texto>`
+- `email_like=<texto>`
+- `sort=username|email|status|createdAt|firstName|lastName`
+- `order=ASC|DESC`
+
 ### POST /platform/users
 Crea un usuario de plataforma.
 

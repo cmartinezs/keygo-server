@@ -33,6 +33,7 @@ public enum ResponseCode {
   // Platform User Management
   PLATFORM_USER_CREATED("PLATFORM_USER_CREATED", "Platform user created successfully"),
   PLATFORM_USER_RETRIEVED("PLATFORM_USER_RETRIEVED", "Platform user retrieved successfully"),
+  PLATFORM_USER_LIST_RETRIEVED("PLATFORM_USER_LIST_RETRIEVED", "Platform user list retrieved successfully"),
   PLATFORM_USER_UPDATED("PLATFORM_USER_UPDATED", "Platform user updated successfully"),
   PLATFORM_USER_SUSPENDED("PLATFORM_USER_SUSPENDED", "Platform user suspended successfully"),
   PLATFORM_USER_ACTIVATED("PLATFORM_USER_ACTIVATED", "Platform user activated successfully"),

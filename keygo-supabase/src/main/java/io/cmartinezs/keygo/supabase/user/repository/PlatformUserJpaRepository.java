@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.supabase.user.entity.PlatformUserEntity;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,8 @@ import org.springframework.stereotype.Repository;
  * <p>Provides CRUD operations and lookup methods for global platform users.
  */
 @Repository
-public interface PlatformUserJpaRepository extends JpaRepository<PlatformUserEntity, UUID> {
+public interface PlatformUserJpaRepository
+    extends JpaRepository<PlatformUserEntity, UUID>, JpaSpecificationExecutor<PlatformUserEntity> {
 
   Optional<PlatformUserEntity> findByEmail(String email);
 

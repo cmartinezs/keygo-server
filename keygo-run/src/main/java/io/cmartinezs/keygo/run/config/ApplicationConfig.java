@@ -107,6 +107,7 @@ import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CheckPlatformUserEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListPlatformUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendPlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
@@ -1115,6 +1116,12 @@ public class ApplicationConfig {
       VerificationCodeRepositoryPort codeRepository) {
     return new ResetPlatformPasswordUseCase(
         platformUserRepository, credentialEncoder, codeRepository);
+  }
+
+  @Bean
+  public ListPlatformUsersUseCase listPlatformUsersUseCase(
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new ListPlatformUsersUseCase(platformUserRepository);
   }
 
   @Bean

@@ -5,17 +5,22 @@ import io.cmartinezs.keygo.api.platform.request.CreatePlatformUserRequest;
 import io.cmartinezs.keygo.api.platform.response.PlatformUserData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
 import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokePlatformRoleUseCase;
+import io.cmartinezs.keygo.app.user.filter.PlatformUserFilter;
 import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.usecase.ActivatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListPlatformUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendPlatformUserUseCase;
 import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,6 +29,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +52,7 @@ import org.springframework.web.bind.annotation.*;
 public class PlatformUserController {
 
   private final CreatePlatformUserUseCase createPlatformUserUseCase;
+  private final ListPlatformUsersUseCase listPlatformUsersUseCase;
   private final GetPlatformUserUseCase getPlatformUserUseCase;
   private final SuspendPlatformUserUseCase suspendPlatformUserUseCase;
   private final ActivatePlatformUserUseCase activatePlatformUserUseCase;
@@ -54,17 +61,81 @@ public class PlatformUserController {
 
   public PlatformUserController(
       CreatePlatformUserUseCase createPlatformUserUseCase,
+      ListPlatformUsersUseCase listPlatformUsersUseCase,
       GetPlatformUserUseCase getPlatformUserUseCase,
       SuspendPlatformUserUseCase suspendPlatformUserUseCase,
       ActivatePlatformUserUseCase activatePlatformUserUseCase,
       AssignPlatformRoleUseCase assignPlatformRoleUseCase,
       RevokePlatformRoleUseCase revokePlatformRoleUseCase) {
     this.createPlatformUserUseCase = createPlatformUserUseCase;
+    this.listPlatformUsersUseCase = listPlatformUsersUseCase;
     this.getPlatformUserUseCase = getPlatformUserUseCase;
     this.suspendPlatformUserUseCase = suspendPlatformUserUseCase;
     this.activatePlatformUserUseCase = activatePlatformUserUseCase;
     this.assignPlatformRoleUseCase = assignPlatformRoleUseCase;
     this.revokePlatformRoleUseCase = revokePlatformRoleUseCase;
+  }
+
+  /**
+   * List platform users with optional pagination, filtering, and sorting.
+   * <p>Lista usuarios de plataforma con paginacion, filtrado y ordenamiento opcionales.
+   */
+  @GetMapping
+  @Operation(
+      summary = "List platform users",
+      description = "Returns a paginated list of global platform users. Supports filtering by "
+          + "status and partial username or email match, plus sorting. Requires KEYGO_ADMIN role.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Platform user list retrieved successfully (code: PLATFORM_USER_LIST_RETRIEVED)")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "401",
+      description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<PagedData<PlatformUserData>>> listPlatformUsers(
+      @Parameter(description = "Filter by platform user status (ACTIVE, SUSPENDED, PENDING, RESET_PASSWORD)")
+      @RequestParam(required = false) UserStatus status,
+      @Parameter(description = "Partial match on username (case-insensitive)")
+      @RequestParam(name = "username_like", required = false) String usernameLike,
+      @Parameter(description = "Partial match on email (case-insensitive)")
+      @RequestParam(name = "email_like", required = false) String emailLike,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (username, email, status, createdAt, firstName, lastName)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
+
+    PlatformUserFilter filter =
+        PlatformUserFilter.of(status, usernameLike, emailLike, page, size, sort, order);
+    PagedResult<PlatformUser> result = listPlatformUsersUseCase.execute(filter);
+
+    List<PlatformUserData> content = result.getContent().stream().map(PlatformUserData::from).toList();
+
+    PagedData<PlatformUserData> pagedData =
+        PagedData.<PlatformUserData>builder()
+            .content(content)
+            .page(result.getPage())
+            .size(result.getSize())
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .last(result.isLast())
+            .build();
+
+    BaseResponse<PagedData<PlatformUserData>> response =
+        BaseResponse.<PagedData<PlatformUserData>>builder()
+            .data(pagedData)
+            .success(ResponseHelper.message(ResponseCode.PLATFORM_USER_LIST_RETRIEVED))
+            .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
   /**

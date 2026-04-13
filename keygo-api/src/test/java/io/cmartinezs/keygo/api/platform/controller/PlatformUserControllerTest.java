@@ -1,7 +1,9 @@
 package io.cmartinezs.keygo.api.platform.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -9,7 +11,10 @@ import io.cmartinezs.keygo.api.platform.request.AssignPlatformRoleRequest;
 import io.cmartinezs.keygo.api.platform.request.CreatePlatformUserRequest;
 import io.cmartinezs.keygo.api.platform.response.PlatformUserData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.app.shared.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
 import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokePlatformRoleUseCase;
@@ -17,6 +22,7 @@ import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.usecase.ActivatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListPlatformUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendPlatformUserUseCase;
 import io.cmartinezs.keygo.domain.membership.model.PlatformRoleId;
 import io.cmartinezs.keygo.domain.membership.model.PlatformUserRole;
@@ -42,6 +48,7 @@ import org.springframework.http.ResponseEntity;
 class PlatformUserControllerTest {
 
   @Mock private CreatePlatformUserUseCase createPlatformUserUseCase;
+  @Mock private ListPlatformUsersUseCase listPlatformUsersUseCase;
   @Mock private GetPlatformUserUseCase getPlatformUserUseCase;
   @Mock private SuspendPlatformUserUseCase suspendPlatformUserUseCase;
   @Mock private ActivatePlatformUserUseCase activatePlatformUserUseCase;
@@ -56,6 +63,7 @@ class PlatformUserControllerTest {
   void setUp() {
     controller = new PlatformUserController(
         createPlatformUserUseCase,
+        listPlatformUsersUseCase,
         getPlatformUserUseCase,
         suspendPlatformUserUseCase,
         activatePlatformUserUseCase,
@@ -73,6 +81,57 @@ class PlatformUserControllerTest {
         .lastName("User")
         .status(status)
         .build();
+  }
+
+  @Test
+  @DisplayName("GET /platform/users should return 200 with paginated user list")
+  void shouldListPlatformUsersAndReturn200() {
+    PlatformUser first = buildUser(USER_ID, UserStatus.ACTIVE);
+    PlatformUser second = buildUser(UUID.randomUUID(), UserStatus.SUSPENDED);
+    when(listPlatformUsersUseCase.execute(any()))
+        .thenReturn(PagedResult.of(java.util.List.of(first, second), 0, 20, 2));
+
+    ResponseEntity<BaseResponse<PagedData<PlatformUserData>>> response =
+        controller.listPlatformUsers(null, null, null, 0, 20, null, null);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getSuccess().getCode())
+        .isEqualTo(ResponseCode.PLATFORM_USER_LIST_RETRIEVED.getCode());
+    assertThat(response.getBody().getData()).isNotNull();
+    assertThat(response.getBody().getData().getContent()).hasSize(2);
+    assertThat(response.getBody().getData().getTotalElements()).isEqualTo(2L);
+    assertThat(response.getBody().getData().isLast()).isTrue();
+  }
+
+  @Test
+  @DisplayName("GET /platform/users should pass filter values to use case")
+  void shouldPassListFilterToUseCase() {
+    when(listPlatformUsersUseCase.execute(any()))
+        .thenReturn(PagedResult.of(java.util.List.of(), 1, 10, 0));
+
+    controller.listPlatformUsers(UserStatus.ACTIVE, "admin", "keygo.io", 1, 10, "email", "DESC");
+
+    verify(listPlatformUsersUseCase)
+        .execute(
+            argThat(
+                filter ->
+                    filter.hasStatus()
+                        && filter.getStatus() == UserStatus.ACTIVE
+                        && "admin".equals(filter.getUsernameLike())
+                        && "keygo.io".equals(filter.getEmailLike())
+                        && filter.getPage() == 1
+                        && filter.getSize() == 10
+                        && "email".equals(filter.getSortBy())
+                        && "DESC".equals(filter.getSortOrder())));
+  }
+
+  @Test
+  @DisplayName("GET /platform/users should propagate invalid pagination params")
+  void shouldPropagateInvalidPaginationParams() {
+    assertThatThrownBy(() -> controller.listPlatformUsers(null, null, null, -1, 20, null, null))
+        .isInstanceOf(InvalidPaginationParamException.class)
+        .hasMessageContaining("Pagination parameter 'page' is invalid");
   }
 
   @Test
