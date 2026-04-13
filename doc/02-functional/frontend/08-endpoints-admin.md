@@ -166,6 +166,58 @@ GET /api/v1/platform/users/{userId}/platform-roles
 }
 ```
 
+### GET /platform/roles
+Lista el catálogo de roles de plataforma disponibles para asignación. Rol:
+`KEYGO_ADMIN` o `KEYGO_ACCOUNT_ADMIN`.
+
+```typescript
+GET /api/v1/platform/roles
+
+// Response 200 — PlatformRoleData[]
+{
+  "data": [
+    {
+      "id": "10000000-0000-0000-0000-000000000001",
+      "code": "KEYGO_ADMIN",
+      "name": "Keygo Admin",
+      "description": "Global platform administration"
+    },
+    {
+      "id": "10000000-0000-0000-0000-000000000002",
+      "code": "KEYGO_ACCOUNT_ADMIN",
+      "name": "Keygo Account Admin",
+      "description": "Contractor or tenant scoped account administration"
+    }
+  ]
+}
+```
+
+### GET /platform/roles
+Lista el catálogo de roles de plataforma disponibles para asignación. Rol:
+`KEYGO_ADMIN` o `KEYGO_ACCOUNT_ADMIN`.
+
+```typescript
+GET /api/v1/platform/roles
+
+// Response 200 — PlatformRoleData[]
+{
+  "data": [
+    {
+      "id": "10000000-0000-0000-0000-000000000001",
+      "code": "KEYGO_ADMIN",
+      "name": "Keygo Admin",
+      "description": "Global platform administration"
+    },
+    {
+      "id": "10000000-0000-0000-0000-000000000002",
+      "code": "KEYGO_ACCOUNT_ADMIN",
+      "name": "Keygo Account Admin",
+      "description": "Contractor or tenant scoped account administration"
+    }
+  ]
+}
+```
+
 ### POST /platform/users
 Crea un usuario de plataforma.
 
