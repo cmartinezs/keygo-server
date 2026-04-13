@@ -30,7 +30,8 @@ Toda documentación nueva o ampliada debe mantener el patrón:
 
 ## Reglas de trabajo
 
-- Las respuestas deben ser exactas, concisas y precisas; evitar verborrea sin sacrificar claridad.
+- Las respuestas del asistente deben ser exactas, concisas y precisas; evitar siempre la verborrea innecesaria y limitarse a lo importante.
+- Esta regla aplica a la respuesta conversacional del agente, no al código: el código, tests, contratos y documentación técnica deben desarrollarse con el nivel de detalle que realmente requiera la solución.
 - Leer documentos canónicos antes de tocar código o contratos.
 - Toda documentación nueva debe vivir en `doc/`.
 - No usar `99-archive/` como fuente primaria.

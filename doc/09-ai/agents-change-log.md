@@ -20,6 +20,11 @@
 
 ## Registro de cambios
 
+### [2026-04-13] Regla de estilo: respuestas sin verborrea innecesaria
+
+- **`agents.md` y `agent-operations.md`:** reforzada la instrucción de que las respuestas del agente deben ser solo lo justo, concisas, precisas y centradas en lo importante.
+- **Aclaración explícita:** la regla aplica a la conversación del asistente y no restringe el nivel de detalle necesario en código, tests, contratos o documentación técnica.
+
 ### [2026-04-13] Workflow RFC: ingreso directo y submáquina interna
 
 - **`workflow.md`:** ampliado para permitir ingreso directo por RFC sin tarea previa y para modelar el RFC como artefacto que sigue el flujo general existente.

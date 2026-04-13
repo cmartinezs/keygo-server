@@ -35,6 +35,7 @@ flowchart TD
 
 ## Reglas críticas
 
+- Las respuestas del agente deben limitarse a lo justo: concisas, precisas y sin verborrea innecesaria. Esta regla aplica siempre a la conversación, no al código.
 - Nunca agregar Spring a `keygo-domain`.
 - No cruzar dependencias hacia atrás entre módulos.
 - En dominio, todo campo nullable debe exponerse como `Optional<T>`.
