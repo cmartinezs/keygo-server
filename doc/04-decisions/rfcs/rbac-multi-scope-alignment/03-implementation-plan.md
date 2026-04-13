@@ -102,3 +102,12 @@ Razon:
 - luego se corrige la semantica de la capa app;
 - despues se publica la API faltante;
 - y recien entonces se agrega la lectura efectiva y se limpia la seguridad/documentacion.
+
+## Tareas derivadas anticipadas
+
+Algunas partes del RFC se implementan como tareas independientes antes de que el RFC sea aprobado
+formalmente, para desbloquear la UI lo antes posible.
+
+| Tarea | Fase RFC relacionada | Estado |
+|---|---|---|
+| [T-146 — GET /platform/roles](../../../09-ai/tasks/T-146-platform-roles-catalog-endpoint.md) | Pre-Fase A (habilita UI de asignacion de roles) | ⬜ Registrada |
