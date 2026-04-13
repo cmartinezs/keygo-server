@@ -20,6 +20,12 @@
 
 ## Registro de cambios
 
+### [2026-04-13] Regla: feedback resuelto debe apuntar al artefacto que lo cerró
+
+- **`doc/02-functional/frontend/feedback/README.md`:** nueva regla para que todo feedback `🟢 Resuelto` deje explícita la tarea, RFC o artefacto que materializó la resolución.
+- **`doc/02-functional/frontend/feedback/in/README.md`:** plantilla y pasos de mantenimiento actualizados para exigir la referencia al cerrar una entrada.
+- **`agents.md` y `agent-operations.md`:** incorporada la regla operativa para mantener trazabilidad entre feedback UI↔Backend y la tarea técnica que lo resolvió.
+
 ### [2026-04-13] Regla de codificación: evitar `Object` y `Object[]` en firmas
 
 - **`agents.md` §Reglas críticas:** nueva regla para evitar `Object`, `Object[]` y genéricos parametrizados con `Object` en firmas públicas o internas relevantes.

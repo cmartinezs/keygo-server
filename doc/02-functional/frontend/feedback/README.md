@@ -27,3 +27,5 @@ out/ → BE-NNN-<slug>.md     ej: BE-001-membership-activatedat-rename.md
 ```
 
 Si el feedback deriva en un plan o RFC, referenciar el ID en el archivo (`T-NNN` / `RFC-NNN`).
+Si el feedback queda en estado **🟢 Resuelto**, debe además dejar explícita la tarea, RFC o artefacto
+que materializó la resolución.

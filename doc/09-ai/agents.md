@@ -78,6 +78,7 @@ flowchart TD
 - Nueva migración Flyway: `migrations.md` + `data-model.md` + `entity-relationships.md`.
 - Cambio de reglas o quick-start para agentes: `agents.md` + `agents-change-log.md`.
 - Inconsistencia doc-código: crear `inconsistencies/INC-NNN-<slug>.md` y registrar en `inconsistencies/README.md`.
+- Todo feedback UI↔Backend marcado como `🟢 Resuelto` debe referenciar la tarea, RFC o artefacto que materializó la resolución.
 - **Uso de `/plan`:** siempre documentar antes de cerrar el modo plan, sin esperar instrucción explícita:
   1. Crear `doc/09-ai/tasks/T-NNN-<slug>.md` con: requisito, solución propuesta, pasos ordenados con estado `PENDING`/`APPLIED` y guía de verificación.
   2. Registrar la nueva entrada en `doc/09-ai/tasks/README.md`.

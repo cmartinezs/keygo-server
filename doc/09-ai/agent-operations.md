@@ -130,6 +130,7 @@ Si se crea o modifica un documento durante el cierre, actualizar el `README.md` 
 | Cambio de contrato, `ResponseCode` o flujo OAuth consumible por UI | [`02-functional/frontend/frontend-developer-guide.md`](../02-functional/frontend/frontend-developer-guide.md) |
 | Nueva migración Flyway | `08-reference/data/migrations.md`, `data-model.md`, `entity-relationships.md` |
 | Cambio de quick-start o reglas de agentes | `agents.md` y `agents-change-log.md` |
+| Feedback UI↔Backend resuelto | Dejar en el archivo la tarea, RFC o artefacto que materializó la resolución |
 | Nuevo aprendizaje | `lessons-learned/<categoría>.md` |
 | Nueva propuesta | `tasks/T-NNN-<slug>.md` + `tasks/README.md` y, si aplica, `05-delivery/roadmap.md` |
 

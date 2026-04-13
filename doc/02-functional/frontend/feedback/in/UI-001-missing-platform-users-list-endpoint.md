@@ -21,3 +21,7 @@ Se implemento `GET /api/v1/platform/users` siguiendo el patron existente de list
 del proyecto. El endpoint ahora soporta `page`, `size`, filtros opcionales (`status`,
 `username_like`, `email_like`) y ordenamiento (`sort`, `order`), devolviendo
 `BaseResponse<PagedData<PlatformUserData>>`.
+
+**Tarea que lo resolvio:** [T-142-platform-users-list-endpoint.md](../../../../09-ai/tasks/T-142-platform-users-list-endpoint.md)
+  
+**Feedback OUT asociado:** [BE-003-platform-users-list-endpoint.md](../out/BE-003-platform-users-list-endpoint.md)
