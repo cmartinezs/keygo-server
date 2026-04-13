@@ -100,6 +100,9 @@ public class MembershipPersistenceMapper {
         .id(PlatformUserRoleId.of(entity.getId()))
         .userId(UserId.of(entity.getPlatformUser().getId()))
         .platformRoleId(PlatformRoleId.of(entity.getPlatformRole().getId()))
+        .scopeType(entity.getScopeType())
+        .contractorId(entity.getContractorId())
+        .tenantId(entity.getTenantId())
         .assignedAt(entity.getAssignedAt().toInstant())
         .build();
   }

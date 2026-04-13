@@ -3,13 +3,16 @@ package io.cmartinezs.keygo.api.platform.controller;
 import io.cmartinezs.keygo.api.platform.request.AssignPlatformRoleRequest;
 import io.cmartinezs.keygo.api.platform.request.CreatePlatformUserRequest;
 import io.cmartinezs.keygo.api.platform.response.PlatformUserData;
+import io.cmartinezs.keygo.api.platform.response.PlatformUserRoleData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.membership.result.PlatformUserRoleResult;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
 import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ListPlatformUserRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokePlatformRoleUseCase;
 import io.cmartinezs.keygo.app.user.filter.PlatformUserFilter;
 import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
@@ -56,6 +59,7 @@ public class PlatformUserController {
   private final GetPlatformUserUseCase getPlatformUserUseCase;
   private final SuspendPlatformUserUseCase suspendPlatformUserUseCase;
   private final ActivatePlatformUserUseCase activatePlatformUserUseCase;
+  private final ListPlatformUserRolesUseCase listPlatformUserRolesUseCase;
   private final AssignPlatformRoleUseCase assignPlatformRoleUseCase;
   private final RevokePlatformRoleUseCase revokePlatformRoleUseCase;
 
@@ -65,6 +69,7 @@ public class PlatformUserController {
       GetPlatformUserUseCase getPlatformUserUseCase,
       SuspendPlatformUserUseCase suspendPlatformUserUseCase,
       ActivatePlatformUserUseCase activatePlatformUserUseCase,
+      ListPlatformUserRolesUseCase listPlatformUserRolesUseCase,
       AssignPlatformRoleUseCase assignPlatformRoleUseCase,
       RevokePlatformRoleUseCase revokePlatformRoleUseCase) {
     this.createPlatformUserUseCase = createPlatformUserUseCase;
@@ -72,6 +77,7 @@ public class PlatformUserController {
     this.getPlatformUserUseCase = getPlatformUserUseCase;
     this.suspendPlatformUserUseCase = suspendPlatformUserUseCase;
     this.activatePlatformUserUseCase = activatePlatformUserUseCase;
+    this.listPlatformUserRolesUseCase = listPlatformUserRolesUseCase;
     this.assignPlatformRoleUseCase = assignPlatformRoleUseCase;
     this.revokePlatformRoleUseCase = revokePlatformRoleUseCase;
   }
@@ -264,6 +270,41 @@ public class PlatformUserController {
     BaseResponse<PlatformUserData> response = BaseResponse.<PlatformUserData>builder()
         .data(PlatformUserData.from(user))
         .success(ResponseHelper.message(ResponseCode.PLATFORM_USER_ACTIVATED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  /**
+   * List platform roles assigned to a platform user.
+   * <p>Lista roles de plataforma asignados a un usuario global.
+   */
+  @GetMapping("/{userId}/platform-roles")
+  @Operation(
+      summary = "List platform roles for a user",
+      description = "Retrieves the platform roles currently assigned to a global user. "
+          + "Requires KEYGO_ADMIN role.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Platform role list retrieved successfully (code: PLATFORM_ROLE_LIST_RETRIEVED)")
+  @ApiResponse(
+      responseCode = "401",
+      description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "Platform user not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<List<PlatformUserRoleData>>> listPlatformUserRoles(
+      @Parameter(description = "UUID of the platform user", example = "550e8400-e29b-41d4-a716-446655440000")
+      @PathVariable UUID userId) {
+
+    List<PlatformUserRoleResult> roles = listPlatformUserRolesUseCase.execute(userId);
+    List<PlatformUserRoleData> data = roles.stream().map(PlatformUserRoleData::from).toList();
+
+    BaseResponse<List<PlatformUserRoleData>> response = BaseResponse.<List<PlatformUserRoleData>>builder()
+        .data(data)
+        .success(ResponseHelper.message(ResponseCode.PLATFORM_ROLE_LIST_RETRIEVED))
         .build();
 
     return ResponseEntity.status(HttpStatus.OK).body(response);

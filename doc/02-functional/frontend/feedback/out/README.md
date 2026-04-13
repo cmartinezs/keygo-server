@@ -9,6 +9,7 @@ Cambios en el backend que impactan al equipo de UI.
 | [BE-001-check-email-endpoint.md](BE-001-check-email-endpoint.md) | 🔴 Abierto | Nuevo endpoint `POST /platform/account/check-email` para validar email en onboarding |
 | [BE-002-billing-entitlement-limitvalue-decimal.md](BE-002-billing-entitlement-limitvalue-decimal.md) | 🔴 Abierto | `entitlements[].limitValue` de billing se alinea a decimal (`NUMERIC(18,4)`) |
 | [BE-003-platform-users-list-endpoint.md](BE-003-platform-users-list-endpoint.md) | 🔴 Abierto | Backend notifica a UI que `GET /platform/users` ya quedó disponible con paginación. |
+| [BE-004-platform-user-roles-endpoint.md](BE-004-platform-user-roles-endpoint.md) | 🟢 Confirmado | Backend notificó a UI que `GET /platform/users/{userId}/platform-roles` quedó disponible con scope y contractor resumido, y la revisión fue aprobada. |
 
 ## Cómo agregar una entrada
 

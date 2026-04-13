@@ -10,13 +10,16 @@ import static org.mockito.Mockito.when;
 import io.cmartinezs.keygo.api.platform.request.AssignPlatformRoleRequest;
 import io.cmartinezs.keygo.api.platform.request.CreatePlatformUserRequest;
 import io.cmartinezs.keygo.api.platform.response.PlatformUserData;
+import io.cmartinezs.keygo.api.platform.response.PlatformUserRoleData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.shared.exception.InvalidPaginationParamException;
 import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
+import io.cmartinezs.keygo.app.membership.result.PlatformUserRoleResult;
 import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ListPlatformUserRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokePlatformRoleUseCase;
 import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.usecase.ActivatePlatformUserUseCase;
@@ -52,6 +55,7 @@ class PlatformUserControllerTest {
   @Mock private GetPlatformUserUseCase getPlatformUserUseCase;
   @Mock private SuspendPlatformUserUseCase suspendPlatformUserUseCase;
   @Mock private ActivatePlatformUserUseCase activatePlatformUserUseCase;
+  @Mock private ListPlatformUserRolesUseCase listPlatformUserRolesUseCase;
   @Mock private AssignPlatformRoleUseCase assignPlatformRoleUseCase;
   @Mock private RevokePlatformRoleUseCase revokePlatformRoleUseCase;
 
@@ -67,6 +71,7 @@ class PlatformUserControllerTest {
         getPlatformUserUseCase,
         suspendPlatformUserUseCase,
         activatePlatformUserUseCase,
+        listPlatformUserRolesUseCase,
         assignPlatformRoleUseCase,
         revokePlatformRoleUseCase);
   }
@@ -132,6 +137,44 @@ class PlatformUserControllerTest {
     assertThatThrownBy(() -> controller.listPlatformUsers(null, null, null, -1, 20, null, null))
         .isInstanceOf(InvalidPaginationParamException.class)
         .hasMessageContaining("Pagination parameter 'page' is invalid");
+  }
+
+  @Test
+  @DisplayName("GET /platform/users/{userId}/platform-roles should return 200 with assigned roles")
+  void shouldListPlatformUserRolesAndReturn200() {
+    when(listPlatformUserRolesUseCase.execute(USER_ID))
+        .thenReturn(
+            java.util.List.of(
+                new PlatformUserRoleResult(
+                    UUID.randomUUID(),
+                    UUID.randomUUID(),
+                    "keygo_admin",
+                    "KeyGo Admin",
+                    "Full administrative access",
+                    "CONTRACTOR",
+                    UUID.fromString("33000000-0000-0000-0000-000000000001"),
+                    UUID.fromString("44000000-0000-0000-0000-000000000001"),
+                    new io.cmartinezs.keygo.app.membership.result.PlatformRoleContractorResult(
+                        UUID.fromString("33000000-0000-0000-0000-000000000001"),
+                        "Acme SpA",
+                        "billing@acme.cl"),
+                    java.time.Instant.parse("2026-04-13T08:00:00Z"))));
+
+    ResponseEntity<BaseResponse<java.util.List<PlatformUserRoleData>>> response =
+        controller.listPlatformUserRoles(USER_ID);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getSuccess().getCode())
+        .isEqualTo(ResponseCode.PLATFORM_ROLE_LIST_RETRIEVED.getCode());
+    assertThat(response.getBody().getData()).hasSize(1);
+    assertThat(response.getBody().getData().getFirst().getAssignmentId()).isNotBlank();
+    assertThat(response.getBody().getData().getFirst().getRoleCode()).isEqualTo("keygo_admin");
+    assertThat(response.getBody().getData().getFirst().getRoleName()).isEqualTo("KeyGo Admin");
+    assertThat(response.getBody().getData().getFirst().getScopeType()).isEqualTo("CONTRACTOR");
+    assertThat(response.getBody().getData().getFirst().getContractor()).isNotNull();
+    assertThat(response.getBody().getData().getFirst().getContractor().getDisplayName())
+        .isEqualTo("Acme SpA");
   }
 
   @Test

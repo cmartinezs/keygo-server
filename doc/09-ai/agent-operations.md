@@ -36,6 +36,7 @@ Toda documentación nueva o ampliada debe mantener el patrón:
 - No usar `99-archive/` como fuente primaria.
 - Si una decisión ya es efectiva, dejar ADR o actualizar el existente.
 - Si hay drift documental, registrarlo en `inconsistencies/README.md`.
+- Los atributos JSON de request body y response body deben escribirse en `snake_case`, no `camelCase`.
 - Todo diagrama debe escribirse en **Mermaid** cuando sea técnicamente viable.
 - Si Mermaid no alcanza para el caso, usar **PlantUML**.
 - Diagramas ASCII solo se aceptan como último recurso y deben evitarse en documentación canónica.
@@ -47,11 +48,14 @@ Resumen de la transición crítica que el agente debe respetar:
 
 ```
 ⬜ Registrada → 🔍 En análisis → 📋 Planificada → 🟢 Aprobada → 🔵 En desarrollo → 🔄 En revisión → ✅ Completada
+                                           └─ si queda a la espera de UI: 🧩 Pendiente integración UI → 🛂 Control de cambio → 🔵 En desarrollo / ✅ Completada
 ```
 
 - El agente puede mover una tarea hasta `📋 Planificada`.
 - Solo el usuario puede aprobarla (`🟢 Aprobada`). Sin esa transición, no se implementa.
 - Si el cambio es de alto impacto: `🔍 En análisis → 📄 En RFC → 📋 Planificada`.
+- Si una tarea en `🧩 Pendiente integración UI` recibe un ajuste posterior, debe pasar antes por `🛂 Control de cambio`; solo si el usuario lo aprueba vuelve a `🔵 En desarrollo`.
+- Si el control de cambio es rechazado para la tarea original, esta puede cerrarse, pero el nuevo alcance debe quedar como tarea derivada explícita.
 
 ## Flujo de trabajo obligatorio antes de implementar
 

@@ -80,6 +80,7 @@ import io.cmartinezs.keygo.app.membership.port.TenantUserRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.AssignTenantRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateTenantRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.ListPlatformUserRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokePlatformRoleUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeTenantRoleUseCase;
 import io.cmartinezs.keygo.app.platform.port.PlatformDashboardPort;
@@ -472,6 +473,19 @@ public class ApplicationConfig {
       PlatformRoleRepositoryPort platformRoleRepositoryPort,
       PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort) {
     return new RevokePlatformRoleUseCase(platformRoleRepositoryPort, platformUserRoleRepositoryPort);
+  }
+
+  @Bean
+  public ListPlatformUserRolesUseCase listPlatformUserRolesUseCase(
+      PlatformUserRepositoryPort platformUserRepositoryPort,
+      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort,
+      PlatformRoleRepositoryPort platformRoleRepositoryPort,
+      ContractorRepositoryPort contractorRepositoryPort) {
+    return new ListPlatformUserRolesUseCase(
+        platformUserRepositoryPort,
+        platformUserRoleRepositoryPort,
+        platformRoleRepositoryPort,
+        contractorRepositoryPort);
   }
 
   // ── T-111: Tenant RBAC ───────────────────────────────────────────────────

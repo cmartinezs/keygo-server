@@ -137,6 +137,35 @@ Filtros soportados:
 - `sort=username|email|status|createdAt|firstName|lastName`
 - `order=ASC|DESC`
 
+### GET /platform/users/{userId}/platform-roles
+Lista los roles asignados a un platform user. Rol: `ADMIN`.
+
+```typescript
+GET /api/v1/platform/users/{userId}/platform-roles
+
+// Response 200 — PlatformUserRoleData[]
+{
+  "data": [
+    {
+      "assignmentId": "uuid",
+      "roleId": "uuid",
+      "roleCode": "keygo_admin",
+      "roleName": "KeyGo Admin",
+      "description": "Full administrative access to the platform",
+      "scopeType": "CONTRACTOR",
+      "contractorId": "uuid",
+      "tenantId": "uuid",
+      "contractor": {
+        "id": "uuid",
+        "displayName": "Acme SpA",
+        "billingEmail": "billing@acme.cl"
+      },
+      "assignedAt": "2026-04-13T08:00:00Z"
+    }
+  ]
+}
+```
+
 ### POST /platform/users
 Crea un usuario de plataforma.
 

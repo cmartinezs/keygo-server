@@ -22,6 +22,7 @@ Punto de entrada para equipos de UI/frontend que consumen la API de KeyGo Server
 - Contratos HTTP consumibles por el frontend (request/response, headers, códigos de error).
 - Flujos de autenticación y sesión desde la perspectiva del cliente.
 - Convenciones de paginación, filtrado y ordenamiento.
+- Convención de naming JSON: request/response bodies en `snake_case`.
 - Ejemplos por dominio: account, tenant, billing, admin.
 - Patrones de testing e integración con mocks.
 
@@ -33,6 +34,7 @@ Actualizar ante cualquier cambio que impacte al cliente UI:
 |---|---|
 | Nuevo endpoint consumible por UI | Documento del dominio correspondiente (`05` al `08`) + este `README.md` si aplica |
 | Cambio de contrato (request/response/headers) | Sección del endpoint en el documento del dominio |
+| Cambio de convención de naming JSON (`snake_case` / `camelCase`) | `03-api-conventions.md` |
 | Nuevo `ResponseCode` o cambio de código de error | `04-error-handling.md` — tabla de códigos frecuentes |
 | Cambio de flujo OAuth2/OIDC | `02-authentication.md` + `../authentication-flow.md` |
 | Nueva convención de paginación o filtros | `03-api-conventions.md` |

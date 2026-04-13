@@ -41,6 +41,7 @@ flowchart TD
 - Al crear un agregado nuevo persistible, no setear `id`.
 - Jackson 3 usa `tools.jackson.databind.*`.
 - Evitar `Object`, `Object[]` y genéricos crudos con `Object` en firmas públicas o internas relevantes; preferir contratos tipados explícitos (`record`, DTO, proyección, VO o interfaz dedicada).
+- Los atributos JSON de request body y response body deben escribirse en `snake_case`, no `camelCase`.
 - Entidades JPA: `@Getter @Setter @Builder`, nunca `@Data`.
 - Columnas JSONB: `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`.
 - `context-path` activo: `/keygo-server`.
@@ -82,3 +83,5 @@ flowchart TD
 - **Uso de `/plan`:** siempre documentar antes de cerrar el modo plan, sin esperar instrucción explícita:
   1. Crear `doc/09-ai/tasks/T-NNN-<slug>.md` con: requisito, solución propuesta, pasos ordenados con estado `PENDING`/`APPLIED` y guía de verificación.
   2. Registrar la nueva entrada en `doc/09-ai/tasks/README.md`.
+- Si una tarea `🧩 Pendiente integración UI` recibe cambios pedidos desde UI o negocio, primero pasa a `🛂 Control de cambio`; solo con aprobación explícita vuelve a `🔵 En desarrollo`.
+- Si el control de cambio no se aprueba para la tarea original, esta se cierra y el nuevo alcance se registra como tarea derivada nueva.

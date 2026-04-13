@@ -20,6 +20,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | Bloqueada | 🚫 | Dependencia no resuelta |
 | En revisión | 🔄 | Implementación completa, verificando |
 | Pendiente integración UI | 🧩 | Backend listo, esperando integración o confirmación desde UI |
+| Control de cambio | 🛂 | Ajuste solicitado sobre una entrega ya hecha, pendiente decisión de reabrir o derivar |
 | Completada | ✅ | Cerrada y verificada |
 | Archivada | ⬛ | Cancelada o descartada |
 
@@ -62,7 +63,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-139-eliminate-raw-object-signatures.md](T-139-eliminate-raw-object-signatures.md) | Corregir uso de `Object` / `Object[]` en parámetros, retornos y genéricos en favor de contratos tipados | ⬜ Registrada |
 | [T-140-aggregate-status-queries.md](T-140-aggregate-status-queries.md) | Preferir queries agregadas por estado (`GROUP BY`) en vez de consultas repetidas por cada status | ⬜ Registrada |
 | [T-141-platform-user-public-profile.md](T-141-platform-user-public-profile.md) | Endpoint para exponer perfil público de `platform_user` consumible por UI | ⬜ Registrada |
-| [T-143-platform-user-roles-read-endpoint.md](T-143-platform-user-roles-read-endpoint.md) | Exponer `GET /platform/users/{userId}/platform-roles` para que la UI consulte roles asignados. | 📋 Planificada |
+| [T-144-review-json-snake-case-contracts.md](T-144-review-json-snake-case-contracts.md) | Revisar request/response JSON para detectar y planificar corrección de contratos que no estén en `snake_case`. | ⬜ Registrada |
 
 ## Mediano plazo
 
@@ -137,3 +138,4 @@ Las tareas completadas se mueven aquí. No se eliminan.
 | Archivo / ID | Resumen | Fecha |
 |---|---|---|
 | [T-142-platform-users-list-endpoint.md](T-142-platform-users-list-endpoint.md) | Registro retroactivo de la corrección que habilitó `GET /platform/users` para la UI, con paginación y artefactos sincronizados. | 2026-04-13 |
+| [T-143-platform-user-roles-read-endpoint.md](T-143-platform-user-roles-read-endpoint.md) | Endpoint `GET /platform/users/{userId}/platform-roles` completado con metadata de asignación, scope y contractor resumido para la UI. | 2026-04-13 |

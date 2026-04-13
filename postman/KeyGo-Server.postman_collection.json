@@ -538,6 +538,82 @@
               "_postman_previewlanguage": "json"
             }
           ]
+        },
+        {
+          "name": "GET Platform User Roles",
+          "id": "req-platform-user-roles-list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "description": "JWT de admin"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/users/11000000-0000-0000-0000-000000000002/platform-roles",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "users",
+                "11000000-0000-0000-0000-000000000002",
+                "platform-roles"
+              ]
+            },
+            "description": "Lista los roles asignados a un platform user.\n\n**Ruta protegida** — requiere `Authorization: Bearer <adminToken>` con rol `KEYGO_ADMIN`.\n\n**ResponseCode esperado:** `PLATFORM_ROLE_LIST_RETRIEVED`\n**HTTP Status:** `200 OK`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('success.code es PLATFORM_ROLE_LIST_RETRIEVED', function () {",
+                  "    pm.expect(body.success).to.have.property('code', 'PLATFORM_ROLE_LIST_RETRIEVED');",
+                  "});",
+                  "",
+                  "pm.test('data es un array', function () {",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('si hay elementos, exponen assignmentId, scopeType y assignedAt', function () {",
+                  "    if (body.data.length > 0) {",
+                  "        pm.expect(body.data[0]).to.have.property('assignmentId');",
+                  "        pm.expect(body.data[0]).to.have.property('roleCode');",
+                  "        pm.expect(body.data[0]).to.have.property('scopeType');",
+                  "        pm.expect(body.data[0]).to.have.property('assignedAt');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Platform User Roles",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"date\": \"2026-04-13T08:20:00Z\",\n  \"success\": {\n    \"code\": \"PLATFORM_ROLE_LIST_RETRIEVED\",\n    \"message\": \"Platform role list retrieved successfully\"\n  },\n  \"data\": [\n    {\n      \"assignmentId\": \"11000000-0000-0000-0000-000000000031\",\n      \"roleId\": \"22000000-0000-0000-0000-000000000001\",\n      \"roleCode\": \"keygo_admin\",\n      \"roleName\": \"KeyGo Admin\",\n      \"description\": \"Full administrative access to the platform\",\n      \"scopeType\": \"CONTRACTOR\",\n      \"contractorId\": \"33000000-0000-0000-0000-000000000001\",\n      \"tenantId\": \"44000000-0000-0000-0000-000000000001\",\n      \"contractor\": {\n        \"id\": \"33000000-0000-0000-0000-000000000001\",\n        \"displayName\": \"Acme SpA\",\n        \"billingEmail\": \"billing@acme.cl\"\n      },\n      \"assignedAt\": \"2026-04-13T08:00:00Z\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },

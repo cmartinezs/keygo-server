@@ -7,7 +7,7 @@ Gaps e inconsistencias detectados por el equipo de UI al consumir la API.
 | Archivo | Estado | Resumen |
 |---|---|---|
 | [UI-001-missing-platform-users-list-endpoint.md](UI-001-missing-platform-users-list-endpoint.md) | 🟢 Resuelto | La UI reportó que `GET /platform/users` no estaba implementado; backend lo habilitó con paginación. |
-| [UI-002-missing-platform-user-roles-endpoint.md](UI-002-missing-platform-user-roles-endpoint.md) | 🔴 Abierto | La UI reportó que no existe `GET /platform/users/{userId}/platform-roles` para consultar roles asignados. |
+| [UI-002-missing-platform-user-roles-endpoint.md](UI-002-missing-platform-user-roles-endpoint.md) | 🟢 Resuelto | La UI reportó que no existía `GET /platform/users/{userId}/platform-roles`; backend lo habilitó con metadata de rol, assignment y contractor resumido. |
 
 ## Cómo agregar una entrada
 

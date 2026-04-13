@@ -20,6 +20,18 @@
 
 ## Registro de cambios
 
+### [2026-04-13] Regla de contratos API: JSON en `snake_case`
+
+- **`03-api-conventions.md`:** explicitada la regla de que request bodies y response bodies deben usar claves `snake_case`, corrigiendo ejemplos base del envelope y paginación.
+- **`frontend/README.md`:** agregado el naming JSON como convención de integración que UI debe considerar.
+- **`agents.md` y `agent-operations.md`:** incorporada la regla operativa para evitar nuevos contratos `camelCase` en body de request/response.
+
+### [2026-04-13] Workflow de tareas: nuevo estado `🛂 Control de cambio`
+
+- **`workflow.md`:** se incorporó el estado `🛂 Control de cambio` para solicitudes de ajuste detectadas después de `🧩 Pendiente integración UI`.
+- **Transiciones nuevas:** `🧩 Pendiente integración UI → 🛂 Control de cambio → 🔵 En desarrollo` si el usuario aprueba reabrir la misma tarea; o `🛂 Control de cambio → ✅ Completada` si se rechaza y el nuevo alcance se registra como tarea derivada.
+- **`agents.md`, `agent-operations.md` y `tasks/README.md`:** alineados para exigir trazabilidad del control de cambio y la creación de una nueva tarea cuando el ajuste no se incorpora al alcance original.
+
 ### [2026-04-13] Regla: feedback resuelto debe apuntar al artefacto que lo cerró
 
 - **`doc/02-functional/frontend/feedback/README.md`:** nueva regla para que todo feedback `🟢 Resuelto` deje explícita la tarea, RFC o artefacto que materializó la resolución.

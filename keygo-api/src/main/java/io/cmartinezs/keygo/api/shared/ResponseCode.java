@@ -37,6 +37,7 @@ public enum ResponseCode {
   PLATFORM_USER_UPDATED("PLATFORM_USER_UPDATED", "Platform user updated successfully"),
   PLATFORM_USER_SUSPENDED("PLATFORM_USER_SUSPENDED", "Platform user suspended successfully"),
   PLATFORM_USER_ACTIVATED("PLATFORM_USER_ACTIVATED", "Platform user activated successfully"),
+  PLATFORM_ROLE_LIST_RETRIEVED("PLATFORM_ROLE_LIST_RETRIEVED", "Platform role list retrieved successfully"),
   PLATFORM_ROLE_ASSIGNED("PLATFORM_ROLE_ASSIGNED", "Platform role assigned successfully"),
   PLATFORM_ROLE_REVOKED("PLATFORM_ROLE_REVOKED", "Platform role revoked successfully"),
 

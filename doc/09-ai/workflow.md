@@ -18,6 +18,7 @@ hasta que se completa o descarta.
 | Bloqueada | 🚫 | No puede avanzar por una dependencia o blocker externo. |
 | En revisión | 🔄 | Implementación completa. Verificando contra los criterios del plan. |
 | Pendiente integración UI | 🧩 | Backend listo, pero la tarea depende de integración o confirmación desde UI. |
+| Control de cambio | 🛂 | UI o negocio solicita un ajuste sobre una tarea ya entregada; se evalúa si reabre la misma tarea o deriva una nueva. |
 | Completada | ✅ | Verificada y cerrada. |
 | Archivada | ⬛ | Cancelada, descartada o absorbida por otra tarea. |
 
@@ -38,6 +39,7 @@ flowchart TD
     BLO["🚫 Bloqueada"]
     REV["🔄 En revisión"]
     UI["🧩 Pendiente integración UI"]
+    CC["🛂 Control de cambio"]
     DONE["✅ Completada"]
     ARC["⬛ Archivada"]
     END(( ))
@@ -67,7 +69,9 @@ flowchart TD
     REV -->|requiere ajustes| DEV
 
     UI -->|integración UI confirmada| DONE
-    UI -->|backend requiere ajustes| DEV
+    UI -->|solicitud de ajuste| CC
+    CC -->|control aprobado| DEV
+    CC -->|control rechazado + nueva tarea| DONE
 
     DONE --> END
     ARC --> END
@@ -83,6 +87,7 @@ flowchart TD
     style BLO   fill:#f8d7da,stroke:#721c24,color:#333
     style REV   fill:#e2d9f3,stroke:#6f42c1,color:#333
     style UI    fill:#ffe5b4,stroke:#b36b00,color:#333
+    style CC    fill:#ffd6cc,stroke:#c05621,color:#333
     style DONE  fill:#d4edda,stroke:#155724,color:#333,font-weight:bold
     style ARC   fill:#343a40,stroke:#343a40,color:#fff
 ```
@@ -133,6 +138,7 @@ Reglas:
 | `🚫 Bloqueada` | Descripción concreta del blocker, dependencia o decisión faltante, y condición de desbloqueo. |
 | `🔄 En revisión` | Resultado de verificación, pendientes detectados y alcance realmente implementado. |
 | `🧩 Pendiente integración UI` | Qué debe integrar la UI, artefactos/notas entregadas al frontend y condición para dar la tarea por cerrada. |
+| `🛂 Control de cambio` | Solicitud de ajuste detectada tras la entrega, decisión tomada (aprobar o rechazar), impacto en alcance y referencia a la tarea derivada si corresponde. |
 | `✅ Completada` | Cierre de tarea con resultado final, referencias a validación/documentación actualizada y fecha de cierre si aplica. |
 | `⬛ Archivada` | Motivo del descarte, absorción o cancelación, con referencia cruzada si fue absorbida por otra tarea/RFC. |
 
@@ -388,20 +394,61 @@ Cierra T-NNN, integración UI completa
 
 ---
 
-### 🧩 Pendiente integración UI → 🔵 En desarrollo
+### 🧩 Pendiente integración UI → 🛂 Control de cambio
 
 **Quién activa:** 👤 usuario
 
 **Criterios:**
 - La integración UI detectó ajustes necesarios en backend.
-- La tarea documenta qué hallazgo de UI obliga a retomar desarrollo.
+- La tarea documenta qué hallazgo de UI obliga a evaluar un ajuste sobre una entrega ya hecha.
+- El cambio se registra primero como `🛂 Control de cambio`; desde ahí se decide si reabre la misma tarea o deriva una nueva.
 
 **Prompt pattern:**
 ```
 UI detectó ajustes en T-NNN
 ```
 ```
-Vuelve T-NNN a desarrollo por integración UI
+Pasa T-NNN a control de cambio
+```
+```
+Abre control de cambio para T-NNN
+```
+
+---
+
+### 🛂 Control de cambio → 🔵 En desarrollo
+
+**Quién activa:** 👤 usuario
+
+**Criterios:**
+- El usuario aprueba que el ajuste forme parte de la misma tarea.
+- La tarea documenta el alcance adicional aceptado y qué pasos vuelven a estado de trabajo.
+
+**Prompt pattern:**
+```
+Apruebo el control de cambio de T-NNN
+```
+```
+Reabre T-NNN con el control de cambio aprobado
+```
+
+---
+
+### 🛂 Control de cambio → ✅ Completada
+
+**Quién activa:** 👤 usuario
+
+**Criterios:**
+- El usuario decide no reabrir la tarea original con el ajuste solicitado.
+- Antes del cierre, el agente crea una nueva tarea `T-NNN` derivada que incorpore el cambio rechazado.
+- La tarea original documenta la decisión, referencia la nueva tarea y cierra manteniendo intacto su alcance aprobado.
+
+**Prompt pattern:**
+```
+No apruebo el control de cambio de T-NNN; crea una nueva tarea y cierra esta
+```
+```
+El ajuste de T-NNN va en una tarea nueva; completa la actual
 ```
 
 ---
@@ -635,6 +682,7 @@ Marca INC-NNN como resuelta
 - Las tareas `✅ Completadas` no se eliminan de `tasks/README.md` — se mueven a la sección **Historial** al final del archivo.
 - `🧩 Pendiente integración UI` no reemplaza a `🚫 Bloqueada`: se usa cuando el backend ya está listo
   y la dependencia restante es la adopción/confirmación desde frontend, no un bloqueo técnico del backend.
+- `🛂 Control de cambio` se usa cuando una tarea ya entregada recibe una solicitud de ajuste posterior; no implica aprobación automática del nuevo alcance.
 - Una tarea implementada puede originar **una o más tareas derivadas**. Esto incluye tareas
   de tipo derivada, complementaria, extensión funcional o correctiva cuando queda deuda técnica.
 - Si durante `🔵 En desarrollo`, `🔄 En revisión` o `✅ Completada` se detecta trabajo nuevo que no
@@ -642,3 +690,4 @@ Marca INC-NNN como resuelta
   `tasks/README.md` y referenciarla explícitamente desde la tarea origen.
 - La tarea origen debe dejar ese registro en su historial de transiciones al final del documento,
   indicando el tipo de derivación, la razón y el/los links a las tareas creadas.
+- Si un control de cambio se rechaza para la tarea original, la nueva necesidad **debe** registrarse como una tarea derivada antes de cerrar la anterior.

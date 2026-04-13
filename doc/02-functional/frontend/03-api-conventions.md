@@ -1,39 +1,54 @@
 # Convenciones de la API
 
+## Naming JSON
+
+- Los atributos de **request body** y **response body** deben escribirse en `snake_case`.
+- No introducir claves JSON en `camelCase` en contratos nuevos o al modificar contratos existentes.
+- Si existe drift entre contratos documentados/implementados y esta regla, debe corregirse y
+  dejarse trazabilidad en una tarea técnica.
+
 ## Envelope de respuesta
 
 Todos los endpoints (excepto los RFC/OIDC nativos) responden con `BaseResponse<T>`:
 
 ```typescript
 interface BaseResponse<T> {
-  success: boolean;
+  success: {
+    code: string;
+    message: string;
+  } | null;
   data: T | null;
-  error: ErrorData | null;
-  timestamp: string; // ISO-8601
+  failure: {
+    code: string;
+    message: string;
+  } | null;
+  date: string; // ISO-8601
 }
 ```
 
 Ejemplo exitoso:
 ```json
 {
-  "success": true,
-  "data": { "userId": "abc-123", "email": "user@example.com" },
-  "error": null,
-  "timestamp": "2026-04-12T10:00:00"
+  "success": {
+    "code": "USER_RETRIEVED",
+    "message": "User retrieved successfully"
+  },
+  "data": { "user_id": "abc-123", "email": "user@example.com" },
+  "failure": null,
+  "date": "2026-04-12T10:00:00"
 }
 ```
 
 Ejemplo con error:
 ```json
 {
-  "success": false,
+  "success": null,
   "data": null,
-  "error": {
+  "failure": {
     "code": "USER_NOT_FOUND",
-    "message": "User not found",
-    "traceId": "550e8400-e29b-41d4-a716-446655440000"
+    "message": "User not found"
   },
-  "timestamp": "2026-04-12T10:00:00"
+  "date": "2026-04-12T10:00:00"
 }
 ```
 
@@ -61,8 +76,9 @@ interface PagedData<T> {
   content: T[];
   page: number;
   size: number;
-  totalElements: number;
-  totalPages: number;
+  total_elements: number;
+  total_pages: number;
+  last: boolean;
 }
 ```
 
