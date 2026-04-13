@@ -14,6 +14,13 @@ Repositorio de RFCs, propuestas y planes de diseÃ±o que aun no se absorben por
 - GeoIP sessions: [t108-geoip-sessions/README.md](t108-geoip-sessions/README.md)
 - Gaps e incompletos: [incomplete-sections/README.md](incomplete-sections/README.md)
 
+## Plantilla y reglas de nombrado
+
+Ver [TEMPLATE.md](TEMPLATE.md) para la plantilla completa de RFC, las reglas de nombrado de
+carpeta y archivos, y la tabla de correlativos retroactivos (RFC-001 a RFC-008).
+
+El próximo RFC nuevo es **RFC-009**.
+
 ## Regla
 
 Cuando una decisión queda absorbida por el sistema, el RFC sigue como trazabilidad pero la fuente de verdad debe reflejarse también en `03-architecture/`, `08-reference/` o en un ADR.

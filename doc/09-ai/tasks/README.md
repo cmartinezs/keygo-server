@@ -5,6 +5,13 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 > Nota: no toda iniciativa nace como tarea. Algunas entran directo por RFC y solo crean tareas
 > derivadas cuando conviene para la implementacion o la trazabilidad.
 
+## Plantilla y reglas de nombrado
+
+Ver [TEMPLATE.md](TEMPLATE.md) para la plantilla completa, reglas de correlativo (`T-NNN` /
+`F-NNN`) y convenciones de nombre de archivo.
+
+El próximo correlativo disponible es **T-147** (y **F-043** para features de largo plazo).
+
 ## Convención de relaciones
 
 Si una tarea referencia otra tarea, RFC o inconsistencia, debe incluir una sección
