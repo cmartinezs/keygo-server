@@ -40,6 +40,7 @@ flowchart TD
 - En dominio, todo campo nullable debe exponerse como `Optional<T>`.
 - Al crear un agregado nuevo persistible, no setear `id`.
 - Jackson 3 usa `tools.jackson.databind.*`.
+- Evitar `Object`, `Object[]` y genéricos crudos con `Object` en firmas públicas o internas relevantes; preferir contratos tipados explícitos (`record`, DTO, proyección, VO o interfaz dedicada).
 - Entidades JPA: `@Getter @Setter @Builder`, nunca `@Data`.
 - Columnas JSONB: `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`.
 - `context-path` activo: `/keygo-server`.

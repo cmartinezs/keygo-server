@@ -58,6 +58,9 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-135-shell-scripts-review.md](T-135-shell-scripts-review.md) | Revisar scripts `*.sh` con fallas de ejecución y compatibilidad | ⬜ Registrada |
 | [T-136-message-contract-redesign.md](T-136-message-contract-redesign.md) | Redefinir contrato de mensajes backend para que UI sepa qué mostrar, cuándo y cómo | ⬜ Registrada |
 | [T-137-password-history-reuse-policy.md](T-137-password-history-reuse-policy.md) | Modelar restricción para no reutilizar las últimas N contraseñas | ⬜ Registrada |
+| [T-138-controller-tests-response-not-null-guards.md](T-138-controller-tests-response-not-null-guards.md) | Endurecer tests de controller validando `isNotNull()` antes de dereferenciar `BaseResponse` y sus nodos | ⬜ Registrada |
+| [T-139-eliminate-raw-object-signatures.md](T-139-eliminate-raw-object-signatures.md) | Corregir uso de `Object` / `Object[]` en parámetros, retornos y genéricos en favor de contratos tipados | ⬜ Registrada |
+| [T-140-aggregate-status-queries.md](T-140-aggregate-status-queries.md) | Preferir queries agregadas por estado (`GROUP BY`) en vez de consultas repetidas por cada status | ⬜ Registrada |
 
 ## Mediano plazo
 

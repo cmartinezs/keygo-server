@@ -20,6 +20,12 @@
 
 ## Registro de cambios
 
+### [2026-04-13] Regla de codificación: evitar `Object` y `Object[]` en firmas
+
+- **`agents.md` §Reglas críticas:** nueva regla para evitar `Object`, `Object[]` y genéricos parametrizados con `Object` en firmas públicas o internas relevantes.
+- **Criterio:** preferir contratos tipados explícitos (`record`, DTO, value object, proyección o interfaz dedicada) para parámetros, retornos y estructuras genéricas.
+- **Motivación:** reducir ambigüedad, casts inseguros y fallas tardías en compilación/tests/runtime.
+
 ### [2026-04-12] Regla: documentación obligatoria al usar `/plan`
 
 - **`CLAUDE.md` §2 (Solution plan):** ampliado con instrucción explícita: al invocar `/plan`, antes de cerrar el modo plan y **sin esperar instrucción del usuario**, se debe (1) agregar entrada `T-NNN` en `doc/09-ai/proposals.md`, (2) crear `doc/09-ai/tasks/T-NNN-<slug>.md` con requisito, diseño, pasos ordenados y guía de verificación, (3) registrar la entrada en `doc/09-ai/tasks/README.md`.
