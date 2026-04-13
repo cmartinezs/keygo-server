@@ -27,7 +27,7 @@ sus `README.md`.
 | RFC-007 | `incomplete-sections/` |
 | RFC-008 | `rbac-multi-scope-alignment/` |
 
-> El próximo RFC nuevo es **RFC-009**.
+> El próximo RFC nuevo es **RFC-010**.
 
 ### Nombre de carpeta
 

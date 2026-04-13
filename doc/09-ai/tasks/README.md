@@ -10,7 +10,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 Ver [TEMPLATE.md](TEMPLATE.md) para la plantilla completa, reglas de correlativo (`T-NNN` /
 `F-NNN`) y convenciones de nombre de archivo.
 
-El próximo correlativo disponible es **T-147** (y **F-043** para features de largo plazo).
+El próximo correlativo disponible es **T-148** (y **F-043** para features de largo plazo).
 
 ## Convención de relaciones
 
@@ -76,6 +76,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-144-review-json-snake-case-contracts.md](T-144-review-json-snake-case-contracts.md) | Revisar request/response JSON para detectar y planificar corrección de contratos que no estén en `snake_case`. | ⬜ Registrada |
 | [T-145-platform-billing-catalog-empty.md](T-145-platform-billing-catalog-empty.md) | Registro retroactivo de la corrección que alinea Flyway y seeds para que `GET /platform/billing/catalog` deje de responder `data: []`. | 🧩 Pendiente integración UI |
 | [T-146-platform-roles-catalog-endpoint.md](T-146-platform-roles-catalog-endpoint.md) | `GET /platform/roles` — catálogo de roles de plataforma disponibles para asignación desde UI | ✅ Completada |
+| [T-147-platform-plan-entitlements-update.md](T-147-platform-plan-entitlements-update.md) | Completar entitlements de planes de plataforma: agregar `MAX_APPS` y `MAX_ADMINS`; revisar discrepancia en `MAX_TENANTS` para TEAM/BUSINESS | ⬜ Registrada |
 
 ## Mediano plazo
 
