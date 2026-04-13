@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.app.billing.usage.port;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -10,7 +11,8 @@ import java.util.UUID;
  */
 public interface UsageCounterRepositoryPort {
   /** Returns current usage values for all metrics (metricCode -> usedValue) for a Contractor. */
-  Map<String, Long> getCurrentUsageForContractor(UUID clientAppId, UUID contractorId);
+  Map<String, BigDecimal> getCurrentUsageForContractor(UUID clientAppId, UUID contractorId);
   /** Atomically increments a usage counter for a Contractor. */
-  void incrementForContractor(UUID clientAppId, UUID contractorId, String metricCode, long delta);
+  void incrementForContractor(
+      UUID clientAppId, UUID contractorId, String metricCode, BigDecimal delta);
 }

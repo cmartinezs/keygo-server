@@ -5,6 +5,8 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
+
 /**
  * Result of checking an entitlement for a specific metric.
  * Used internally by CheckAppEntitlementUseCase.
@@ -19,9 +21,9 @@ public class EntitlementCheck {
   private final MetricType metricType;
   private final EnforcementMode enforcementMode;
   /** Current usage value. */
-  private final long currentValue;
+  private final BigDecimal currentValue;
   /** Maximum allowed value. Null = unlimited. */
-  private final Long limitValue;
+  private final BigDecimal limitValue;
   /** Whether the operation is allowed. */
   private final boolean allowed;
 
@@ -34,7 +36,7 @@ public class EntitlementCheck {
         .metricCode(metricCode)
         .metricType(MetricType.QUOTA)
         .enforcementMode(EnforcementMode.SOFT)
-        .currentValue(0)
+        .currentValue(BigDecimal.ZERO)
         .limitValue(null)
         .allowed(true)
         .build();

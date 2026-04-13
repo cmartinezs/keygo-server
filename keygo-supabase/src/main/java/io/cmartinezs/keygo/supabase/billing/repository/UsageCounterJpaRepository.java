@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -31,5 +32,5 @@ public interface UsageCounterJpaRepository extends JpaRepository<UsageCounterEnt
       @Param("appId") UUID appId,
       @Param("contractorId") UUID contractorId,
       @Param("metricCode") String metricCode,
-      @Param("delta") long delta);
+      @Param("delta") BigDecimal delta);
 }

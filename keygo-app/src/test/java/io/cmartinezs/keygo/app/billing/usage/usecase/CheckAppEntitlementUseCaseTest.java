@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,7 @@ class CheckAppEntitlementUseCaseTest {
         .build();
   }
 
-  private AppPlanEntitlement quotaEntitlement(UUID versionId, long limit, EnforcementMode mode) {
+  private AppPlanEntitlement quotaEntitlement(UUID versionId, BigDecimal limit, EnforcementMode mode) {
     return AppPlanEntitlement.builder()
         .id(UUID.randomUUID())
         .appPlanVersionId(versionId)
@@ -86,17 +87,18 @@ class CheckAppEntitlementUseCaseTest {
     UUID planVersionId = UUID.randomUUID();
     UUID contractorId = UUID.randomUUID();
     AppSubscription sub = activeSubscription(appId, planVersionId, contractorId);
-    AppPlanEntitlement ent = quotaEntitlement(planVersionId, 10L, EnforcementMode.HARD);
+    AppPlanEntitlement ent = quotaEntitlement(planVersionId, new BigDecimal("10.0000"), EnforcementMode.HARD);
 
     when(subscriptionRepo.findByClientAppIdAndContractorId(any(), any())).thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
-    when(usageRepo.getCurrentUsageForContractor(any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
+    when(usageRepo.getCurrentUsageForContractor(any(), any()))
+        .thenReturn(Map.of("MAX_USERS", new BigDecimal("5.0000")));
     // When
     EntitlementCheck result = useCase.executeForContractor(appId, contractorId, "MAX_USERS");
     // Then
     assertThat(result.isAllowed()).isTrue();
-    assertThat(result.getCurrentValue()).isEqualTo(5L);
-    assertThat(result.getLimitValue()).isEqualTo(10L);
+    assertThat(result.getCurrentValue()).isEqualByComparingTo("5.0000");
+    assertThat(result.getLimitValue()).isEqualByComparingTo("10.0000");
   }
 
   @Test
@@ -106,11 +108,12 @@ class CheckAppEntitlementUseCaseTest {
     UUID planVersionId = UUID.randomUUID();
     UUID contractorId = UUID.randomUUID();
     AppSubscription sub = activeSubscription(appId, planVersionId, contractorId);
-    AppPlanEntitlement ent = quotaEntitlement(planVersionId, 5L, EnforcementMode.HARD);
+    AppPlanEntitlement ent = quotaEntitlement(planVersionId, new BigDecimal("5.0000"), EnforcementMode.HARD);
 
     when(subscriptionRepo.findByClientAppIdAndContractorId(any(), any())).thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
-    when(usageRepo.getCurrentUsageForContractor(any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
+    when(usageRepo.getCurrentUsageForContractor(any(), any()))
+        .thenReturn(Map.of("MAX_USERS", new BigDecimal("5.0000")));
     // When
     EntitlementCheck result = useCase.executeForContractor(appId, contractorId, "MAX_USERS");
     // Then
@@ -124,11 +127,12 @@ class CheckAppEntitlementUseCaseTest {
     UUID planVersionId = UUID.randomUUID();
     UUID contractorId = UUID.randomUUID();
     AppSubscription sub = activeSubscription(appId, planVersionId, contractorId);
-    AppPlanEntitlement ent = quotaEntitlement(planVersionId, 5L, EnforcementMode.SOFT);
+    AppPlanEntitlement ent = quotaEntitlement(planVersionId, new BigDecimal("5.0000"), EnforcementMode.SOFT);
 
     when(subscriptionRepo.findByClientAppIdAndContractorId(any(), any())).thenReturn(Optional.of(sub));
     when(entitlementRepo.findByAppPlanVersionId(planVersionId)).thenReturn(List.of(ent));
-    when(usageRepo.getCurrentUsageForContractor(any(), any())).thenReturn(Map.of("MAX_USERS", 5L));
+    when(usageRepo.getCurrentUsageForContractor(any(), any()))
+        .thenReturn(Map.of("MAX_USERS", new BigDecimal("5.0000")));
     // When
     EntitlementCheck result = useCase.executeForContractor(appId, contractorId, "MAX_USERS");
     // Then

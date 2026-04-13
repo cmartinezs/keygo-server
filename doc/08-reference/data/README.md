@@ -7,6 +7,7 @@ Modelos y reglas de persistencia consultables.
 - [migrations.md](migrations.md)
 - [data-model.md](data-model.md)
 - [entity-relationships.md](entity-relationships.md)
+- [data-type-dictionary.md](data-type-dictionary.md)
 
 ## Fuente de verdad
 

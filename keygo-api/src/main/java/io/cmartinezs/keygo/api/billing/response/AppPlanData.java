@@ -63,7 +63,7 @@ public record AppPlanData(
       UUID id,
       String metricCode,
       MetricType metricType,
-      Long limitValue,
+      BigDecimal limitValue,
       PeriodType periodType,
       EnforcementMode enforcementMode,
       boolean isEnabled

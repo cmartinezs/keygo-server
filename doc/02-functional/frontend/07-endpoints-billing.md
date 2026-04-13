@@ -37,6 +37,52 @@ GET /api/v1/billing/catalog
 ### GET /billing/catalog/{planCode}
 Detalle de un plan específico. **Público**.
 
+### POST /tenants/{tenantSlug}/apps/{clientId}/billing/plans
+Crea un plan de billing con versión inicial y entitlements. Requiere token Bearer con rol
+`ADMIN_TENANT` scoped al tenant del path.
+
+```typescript
+POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/billing/plans
+Authorization: Bearer {token}
+
+{
+  "code": "STARTER",
+  "name": "Plan Starter",
+  "description": "Plan de entrada",
+  "isPublic": true,
+  "sortOrder": 10,
+  "version": "v1.0",
+  "currency": "USD",
+  "trialDays": 14,
+  "effectiveFrom": "2026-04-01",
+  "billingOptions": [
+    {
+      "billingPeriod": "MONTHLY",
+      "basePrice": 9.99,
+      "discountPct": 0,
+      "isDefault": true
+    }
+  ],
+  "entitlements": [
+    {
+      "metricCode": "MAX_USERS",
+      "metricType": "QUOTA",
+      "limitValue": 10.0000,
+      "periodType": "NONE",
+      "enforcementMode": "HARD",
+      "isEnabled": true
+    }
+  ]
+}
+```
+
+#### Nota de integración
+
+- `entitlements[].limitValue` ahora debe tratarse como **decimal** (`NUMERIC(18,4)` en backend),
+  no como entero estricto.
+- Aunque ejemplos comunes usen `10.0000` o `25.0000`, UI no debe asumir que el valor siempre
+  llegará sin escala decimal.
+
 ## Contratos
 
 ### POST /billing/contracts

@@ -71,7 +71,7 @@ public class TenantBillingProfileEntity {
   @Transient
   private String postalCode;
 
-  @Column(name = "billing_email", nullable = false, length = 255)
+  @Column(name = "billing_email", nullable = false, columnDefinition = "citext")
   private String contactEmail;
 
   @Transient

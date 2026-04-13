@@ -62,7 +62,7 @@ public class AppContractEntity {
   @Builder.Default
   private ContractStatus status = ContractStatus.PENDING_EMAIL_VERIFICATION;
 
-  @Column(name = "billing_contact_email", nullable = false, length = 255)
+  @Column(name = "billing_contact_email", nullable = false, columnDefinition = "citext")
   private String contractorEmail;
 
   @Column(name = "contractor_first_name", length = 100)
@@ -80,7 +80,7 @@ public class AppContractEntity {
   @Column(name = "company_tax_id", length = 100)
   private String companyTaxId;
 
-  @Column(name = "company_address")
+  @Column(name = "company_address", columnDefinition = "TEXT")
   private String companyAddress;
 
   @Column(name = "contractor_email_verified_at")

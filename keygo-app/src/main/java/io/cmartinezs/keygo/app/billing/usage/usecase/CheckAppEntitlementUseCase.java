@@ -10,6 +10,7 @@ import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
 import io.cmartinezs.keygo.domain.billing.subscription.model.AppSubscription;
 import io.cmartinezs.keygo.domain.billing.usage.model.EntitlementCheck;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,12 +43,14 @@ public class CheckAppEntitlementUseCase {
   /** Check entitlement for a Contractor (billing model v2). */
   public EntitlementCheck executeForContractor(UUID clientAppId, UUID contractorId, String metricCode) {
     Optional<AppSubscription> sub = subscriptionRepo.findByClientAppIdAndContractorId(clientAppId, contractorId);
-    Map<String, Long> usage = sub.map(s -> usageRepo.getCurrentUsageForContractor(clientAppId, contractorId))
+    Map<String, BigDecimal> usage =
+        sub.map(s -> usageRepo.getCurrentUsageForContractor(clientAppId, contractorId))
         .orElse(Map.of());
     return check(sub, usage, metricCode);
   }
 
-  private EntitlementCheck check(Optional<AppSubscription> subscriptionOpt, Map<String, Long> usage, String metricCode) {
+  private EntitlementCheck check(
+      Optional<AppSubscription> subscriptionOpt, Map<String, BigDecimal> usage, String metricCode) {
     if (subscriptionOpt.isEmpty() || !subscriptionOpt.get().isActive()) {
       return EntitlementCheck.unlimited(metricCode);
     }
@@ -69,8 +72,8 @@ public class CheckAppEntitlementUseCase {
           .metricCode(metricCode)
           .metricType(entitlement.getMetricType())
           .enforcementMode(entitlement.getEnforcementMode())
-          .currentValue(0)
-          .limitValue(0L)
+          .currentValue(BigDecimal.ZERO)
+          .limitValue(BigDecimal.ZERO)
           .allowed(false)
           .build();
     }
@@ -80,15 +83,15 @@ public class CheckAppEntitlementUseCase {
           .metricCode(metricCode)
           .metricType(MetricType.BOOLEAN)
           .enforcementMode(entitlement.getEnforcementMode())
-          .currentValue(0)
+          .currentValue(BigDecimal.ZERO)
           .limitValue(null)
           .allowed(entitlement.isEnabled())
           .build();
     }
 
-    long currentValue = usage.getOrDefault(metricCode, 0L);
-    Long limitValue = entitlement.getLimitValue();
-    boolean allowed = limitValue == null || currentValue < limitValue
+    BigDecimal currentValue = usage.getOrDefault(metricCode, BigDecimal.ZERO);
+    BigDecimal limitValue = entitlement.getLimitValue();
+    boolean allowed = limitValue == null || currentValue.compareTo(limitValue) < 0
         || EnforcementMode.SOFT.equals(entitlement.getEnforcementMode());
 
     return EntitlementCheck.builder()

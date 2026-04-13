@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.domain.billing.usage.model;
 
 import io.cmartinezs.keygo.domain.billing.catalog.model.EnforcementMode;
 import io.cmartinezs.keygo.domain.billing.catalog.model.MetricType;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
@@ -25,8 +26,8 @@ class EntitlementCheckTest {
         .metricCode("MAX_USERS")
         .metricType(MetricType.QUOTA)
         .enforcementMode(EnforcementMode.HARD)
-        .currentValue(5)
-        .limitValue(5L)
+        .currentValue(new BigDecimal("5.0000"))
+        .limitValue(new BigDecimal("5.0000"))
         .allowed(false)
         .build();
     // Then
@@ -40,8 +41,8 @@ class EntitlementCheckTest {
         .metricCode("MAX_USERS")
         .metricType(MetricType.QUOTA)
         .enforcementMode(EnforcementMode.SOFT)
-        .currentValue(5)
-        .limitValue(5L)
+        .currentValue(new BigDecimal("5.0000"))
+        .limitValue(new BigDecimal("5.0000"))
         .allowed(true) // SOFT allows over-limit
         .build();
     // Then
@@ -55,7 +56,7 @@ class EntitlementCheckTest {
         .metricCode("EXPORT_PDF")
         .metricType(MetricType.BOOLEAN)
         .enforcementMode(EnforcementMode.HARD)
-        .currentValue(0)
+        .currentValue(BigDecimal.ZERO)
         .limitValue(null)
         .allowed(false)
         .build();

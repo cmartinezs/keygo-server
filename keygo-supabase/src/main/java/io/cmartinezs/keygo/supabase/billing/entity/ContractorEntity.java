@@ -50,7 +50,7 @@ public class ContractorEntity {
   @Column(name = "tax_id", length = 100)
   private String taxId;
 
-  @Column(name = "billing_email", nullable = false, length = 255)
+  @Column(name = "billing_email", nullable = false, columnDefinition = "citext")
   private String billingEmail;
 
   @Enumerated(EnumType.STRING)

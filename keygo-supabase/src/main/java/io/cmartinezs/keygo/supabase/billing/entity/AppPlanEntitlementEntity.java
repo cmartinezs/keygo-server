@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -40,8 +41,8 @@ public class AppPlanEntitlementEntity {
   @Column(name = "metric_type", nullable = false, length = 20)
   private MetricType metricType;
 
-  @Column(name = "limit_value")
-  private Long limitValue;
+  @Column(name = "limit_value", precision = 18, scale = 4)
+  private BigDecimal limitValue;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "period_type", nullable = false, length = 20)

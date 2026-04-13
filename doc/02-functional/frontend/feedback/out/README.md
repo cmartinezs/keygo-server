@@ -7,6 +7,7 @@ Cambios en el backend que impactan al equipo de UI.
 | Archivo | Estado | Resumen |
 |---|---|---|
 | [BE-001-check-email-endpoint.md](BE-001-check-email-endpoint.md) | 🔴 Abierto | Nuevo endpoint `POST /platform/account/check-email` para validar email en onboarding |
+| [BE-002-billing-entitlement-limitvalue-decimal.md](BE-002-billing-entitlement-limitvalue-decimal.md) | 🔴 Abierto | `entitlements[].limitValue` de billing se alinea a decimal (`NUMERIC(18,4)`) |
 
 ## Cómo agregar una entrada
 

@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -51,9 +52,9 @@ public class UsageCounterEntity {
   @Column(name = "period_end", nullable = false)
   private OffsetDateTime periodEnd;
 
-  @Column(name = "used_value", nullable = false)
+  @Column(name = "used_value", nullable = false, precision = 18, scale = 4)
   @Builder.Default
-  private long usedValue = 0;
+  private BigDecimal usedValue = BigDecimal.ZERO;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

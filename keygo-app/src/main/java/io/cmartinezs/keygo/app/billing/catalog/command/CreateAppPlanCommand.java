@@ -41,7 +41,7 @@ public record CreateAppPlanCommand(
   public record EntitlementDef(
       String metricCode,
       MetricType metricType,
-      Long limitValue,
+      BigDecimal limitValue,
       PeriodType periodType,
       EnforcementMode enforcementMode,
       boolean isEnabled

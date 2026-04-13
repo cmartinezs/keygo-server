@@ -63,7 +63,8 @@ class CreateAppPlanUseCaseTest {
         ),
         List.of(
             new CreateAppPlanCommand.EntitlementDef(
-                "MAX_USERS", MetricType.QUOTA, 25L, PeriodType.NONE, EnforcementMode.HARD, true),
+                "MAX_USERS", MetricType.QUOTA, new BigDecimal("25.0000"),
+                PeriodType.NONE, EnforcementMode.HARD, true),
             new CreateAppPlanCommand.EntitlementDef(
                 "SOCIAL_LOGIN", MetricType.BOOLEAN, null, PeriodType.NONE, EnforcementMode.HARD, true)
         )

@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.domain.billing.catalog.model;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -19,7 +20,7 @@ public class AppPlanEntitlement {
   private final String metricCode;
   private final MetricType metricType;
   /** Null means unlimited (only relevant for QUOTA and RATE types). */
-  private final Long limitValue;
+  private final BigDecimal limitValue;
   private final PeriodType periodType;
   private final EnforcementMode enforcementMode;
   private final boolean isEnabled;

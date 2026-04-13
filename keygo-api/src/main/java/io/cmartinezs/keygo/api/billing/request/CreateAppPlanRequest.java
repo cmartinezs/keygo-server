@@ -43,7 +43,7 @@ public record CreateAppPlanRequest(
   public record EntitlementRequest(
       @NotBlank(message = "metric_code is required") String metricCode,
       @NotNull(message = "metric_type is required") MetricType metricType,
-      Long limitValue,
+      BigDecimal limitValue,
       PeriodType periodType,
       EnforcementMode enforcementMode,
       boolean isEnabled

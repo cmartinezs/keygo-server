@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.app.billing.usage.port.UsageCounterRepositoryPort;
 import io.cmartinezs.keygo.supabase.billing.repository.UsageCounterJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -24,7 +25,7 @@ public class UsageCounterRepositoryAdapter implements UsageCounterRepositoryPort
   }
 
   @Override
-  public Map<String, Long> getCurrentUsageForContractor(UUID clientAppId, UUID contractorId) {
+  public Map<String, BigDecimal> getCurrentUsageForContractor(UUID clientAppId, UUID contractorId) {
     OffsetDateTime now = OffsetDateTime.now();
     return jpaRepo
         .findByClientAppIdAndContractorIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqual(
@@ -34,7 +35,8 @@ public class UsageCounterRepositoryAdapter implements UsageCounterRepositoryPort
   }
 
   @Override
-  public void incrementForContractor(UUID clientAppId, UUID contractorId, String metricCode, long delta) {
+  public void incrementForContractor(
+      UUID clientAppId, UUID contractorId, String metricCode, BigDecimal delta) {
     jpaRepo.incrementAtomic(clientAppId, contractorId, metricCode, delta);
   }
 }
