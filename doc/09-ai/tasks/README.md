@@ -61,6 +61,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-138-controller-tests-response-not-null-guards.md](T-138-controller-tests-response-not-null-guards.md) | Endurecer tests de controller validando `isNotNull()` antes de dereferenciar `BaseResponse` y sus nodos | ⬜ Registrada |
 | [T-139-eliminate-raw-object-signatures.md](T-139-eliminate-raw-object-signatures.md) | Corregir uso de `Object` / `Object[]` en parámetros, retornos y genéricos en favor de contratos tipados | ⬜ Registrada |
 | [T-140-aggregate-status-queries.md](T-140-aggregate-status-queries.md) | Preferir queries agregadas por estado (`GROUP BY`) en vez de consultas repetidas por cada status | ⬜ Registrada |
+| [T-141-platform-user-public-profile.md](T-141-platform-user-public-profile.md) | Endpoint para exponer perfil público de `platform_user` consumible por UI | ⬜ Registrada |
 
 ## Mediano plazo
 
