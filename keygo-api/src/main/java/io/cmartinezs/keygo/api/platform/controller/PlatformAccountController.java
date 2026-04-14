@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.api.platform.controller;
 
+import io.cmartinezs.keygo.api.error.UnauthorizedException;
 import io.cmartinezs.keygo.api.platform.request.PlatformRevokeTokenRequest;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
@@ -7,15 +8,23 @@ import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.user.request.AccountResetPasswordRequest;
 import io.cmartinezs.keygo.api.user.request.ForgotPasswordRequest;
 import io.cmartinezs.keygo.api.user.request.RecoverPasswordRequest;
+import io.cmartinezs.keygo.api.user.request.UpdateUserProfileRequest;
+import io.cmartinezs.keygo.api.user.response.UserProfileData;
 import io.cmartinezs.keygo.app.auth.command.RevokeTokenCommand;
 import io.cmartinezs.keygo.app.auth.usecase.RevokeTokenUseCase;
+import io.cmartinezs.keygo.app.user.command.GetPlatformUserProfileCommand;
+import io.cmartinezs.keygo.app.user.command.UpdatePlatformUserProfileCommand;
 import io.cmartinezs.keygo.app.user.result.ForgotPasswordResult;
 import io.cmartinezs.keygo.app.user.result.RecoverPasswordResult;
 import io.cmartinezs.keygo.app.user.result.ResetPasswordResult;
+import io.cmartinezs.keygo.app.user.result.UserProfileResult;
 import io.cmartinezs.keygo.app.user.usecase.ForgotPlatformPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RecoverPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetPlatformPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdatePlatformUserProfileUseCase;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,8 +32,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +51,12 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>POST /oauth2/revoke — revocar token (RFC 7009)</li>
  * </ul>
  *
+ * <p>Endpoints que requieren Bearer token:
+ * <ul>
+ *   <li>GET  /account/profile — consultar perfil propio del platform user</li>
+ *   <li>PATCH /account/profile — actualizar perfil propio del platform user</li>
+ * </ul>
+ *
  * <p>Estos endpoints son exclusivos de keygo-UI y están protegidos por CORS.
  *
  * @author cmartinezs
@@ -47,23 +65,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/platform")
 @Tag(name = "Platform Account",
-    description = "Platform account self-service endpoints — forgot/recover/reset password and token revocation")
+    description = "Platform account self-service endpoints — profile management, "
+        + "forgot/recover/reset password and token revocation")
 public class PlatformAccountController {
 
   private final ForgotPlatformPasswordUseCase forgotPasswordUseCase;
   private final RecoverPlatformPasswordUseCase recoverPasswordUseCase;
   private final ResetPlatformPasswordUseCase resetPasswordUseCase;
   private final RevokeTokenUseCase revokeTokenUseCase;
+  private final GetPlatformUserProfileUseCase getPlatformUserProfileUseCase;
+  private final UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase;
 
   public PlatformAccountController(
       ForgotPlatformPasswordUseCase forgotPasswordUseCase,
       RecoverPlatformPasswordUseCase recoverPasswordUseCase,
       ResetPlatformPasswordUseCase resetPasswordUseCase,
-      RevokeTokenUseCase revokeTokenUseCase) {
+      RevokeTokenUseCase revokeTokenUseCase,
+      GetPlatformUserProfileUseCase getPlatformUserProfileUseCase,
+      UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase) {
     this.forgotPasswordUseCase = forgotPasswordUseCase;
     this.recoverPasswordUseCase = recoverPasswordUseCase;
     this.resetPasswordUseCase = resetPasswordUseCase;
     this.revokeTokenUseCase = revokeTokenUseCase;
+    this.getPlatformUserProfileUseCase = getPlatformUserProfileUseCase;
+    this.updatePlatformUserProfileUseCase = updatePlatformUserProfileUseCase;
   }
 
   // ─── POST /account/forgot-password ──────────────────────────────────────────
@@ -178,5 +203,119 @@ public class PlatformAccountController {
         BaseResponse.<Void>builder()
             .success(ResponseHelper.message(ResponseCode.TOKEN_REVOKED))
             .build());
+  }
+
+  // ─── GET /account/profile ─────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/platform/account/profile
+   *
+   * <p>Retorna el perfil completo del usuario de plataforma autenticado.
+   *
+   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
+   * @return perfil completo del platform user
+   */
+  @GetMapping("/account/profile")
+  @Operation(
+      summary = "Get own platform profile",
+      description = "Returns the complete profile of the authenticated platform user. "
+          + "Requires Authorization: Bearer <access_token>.")
+  @ApiResponse(responseCode = "200",
+      description = "Profile retrieved successfully (code: USER_PROFILE_RETRIEVED)")
+  @ApiResponse(responseCode = "401",
+      description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404",
+      description = "Platform user not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserProfileData>> getProfile(
+      @Parameter(description = "Bearer access token") @RequestHeader(value = "Authorization", required = false)
+      String authorization) {
+
+    String bearerToken = extractBearerToken(authorization);
+
+    UserProfileResult result = getPlatformUserProfileUseCase.execute(
+        new GetPlatformUserProfileCommand(bearerToken));
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserProfileData>builder()
+            .data(toData(result))
+            .success(ResponseHelper.message(ResponseCode.USER_PROFILE_RETRIEVED))
+            .build());
+  }
+
+  // ─── PATCH /account/profile ───────────────────────────────────────────────
+
+  /**
+   * PATCH /api/v1/platform/account/profile
+   *
+   * <p>Actualiza parcialmente el perfil del usuario de plataforma autenticado.
+   * Solo se actualizan los campos enviados (no-nulos) — semántica PATCH.
+   *
+   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
+   * @param request       campos de perfil a actualizar (todos opcionales)
+   * @return perfil actualizado del platform user
+   */
+  @PatchMapping("/account/profile")
+  @Operation(
+      summary = "Update own platform profile",
+      description = "Partially updates the profile of the authenticated platform user. "
+          + "Only non-null fields are updated (PATCH semantics). "
+          + "Requires Authorization: Bearer <access_token>.")
+  @ApiResponse(responseCode = "200",
+      description = "Profile updated successfully (code: USER_PROFILE_UPDATED)")
+  @ApiResponse(responseCode = "401",
+      description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404",
+      description = "Platform user not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserProfileData>> updateProfile(
+      @Parameter(description = "Bearer access token") @RequestHeader(value = "Authorization", required = false)
+      String authorization,
+      @Valid @RequestBody UpdateUserProfileRequest request) {
+
+    String bearerToken = extractBearerToken(authorization);
+
+    UserProfileResult result = updatePlatformUserProfileUseCase.execute(
+        new UpdatePlatformUserProfileCommand(
+            bearerToken,
+            request.firstName(), request.lastName(),
+            request.phoneNumber(), request.locale(), request.zoneinfo(),
+            request.profilePictureUrl()));
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserProfileData>builder()
+            .data(toData(result))
+            .success(ResponseHelper.message(ResponseCode.USER_PROFILE_UPDATED))
+            .build());
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────
+
+  private String extractBearerToken(String authorization) {
+    if (authorization == null || !authorization.startsWith("Bearer ")) {
+      throw new UnauthorizedException(
+          "Missing or invalid Authorization header. Expected: Bearer <access_token>");
+    }
+    return authorization.substring("Bearer ".length()).trim();
+  }
+
+  private UserProfileData toData(UserProfileResult result) {
+    return UserProfileData.builder()
+        .id(result.id())
+        .tenantId(result.tenantId())
+        .username(result.username())
+        .email(result.email())
+        .firstName(result.firstName())
+        .lastName(result.lastName())
+        .status(result.status())
+        .phoneNumber(result.phoneNumber())
+        .locale(result.locale())
+        .zoneinfo(result.zoneinfo())
+        .profilePictureUrl(result.profilePictureUrl())
+        .birthdate(result.birthdate())
+        .website(result.website())
+        .build();
   }
 }

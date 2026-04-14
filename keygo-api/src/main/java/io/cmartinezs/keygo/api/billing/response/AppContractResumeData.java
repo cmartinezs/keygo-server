@@ -51,7 +51,7 @@ public record AppContractResumeData(
     boolean codeExpired = result.verificationCodeExpired();
     return new AppContractResumeData(
         c.getId(),
-        c.getClientAppId(),
+        c.getClientAppId().orElse(null),
         c.getSelectedPlanVersionId(),
         c.getBillingPeriod(),
         c.getStatus().name(),

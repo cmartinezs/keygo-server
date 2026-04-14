@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
+import io.cmartinezs.keygo.domain.membership.model.PlatformRoleCode;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
@@ -24,7 +25,7 @@ import io.cmartinezs.keygo.domain.user.model.Username;
  */
 public class CreatePlatformUserUseCase {
 
-  private static final String DEFAULT_ROLE_CODE = "keygo_user";
+  private static final PlatformRoleCode DEFAULT_ROLE = PlatformRoleCode.KEYGO_USER;
 
   private final PlatformUserRepositoryPort platformUserRepositoryPort;
   private final CredentialEncoderPort credentialEncoderPort;
@@ -73,7 +74,7 @@ public class CreatePlatformUserUseCase {
 
     PlatformUser saved = platformUserRepositoryPort.save(user);
 
-    platformUserRoleRepositoryPort.assign(saved.getId().value(), DEFAULT_ROLE_CODE);
+    platformUserRoleRepositoryPort.assign(saved.getId().value(), DEFAULT_ROLE.code());
 
     return saved;
   }

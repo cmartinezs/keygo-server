@@ -42,7 +42,7 @@ public class PaymentTransactionEntity {
   private ContractorEntity contractor;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")
   private ClientAppEntity clientApp;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -53,7 +53,7 @@ public class PaymentTransactionEntity {
   @JoinColumn(name = "subscription_id")
   private AppSubscriptionEntity subscription;
 
-  @Column(nullable = false, length = 50)
+  @Column(nullable = false, length = 20)
   @Builder.Default
   private String provider = "MOCK";
 

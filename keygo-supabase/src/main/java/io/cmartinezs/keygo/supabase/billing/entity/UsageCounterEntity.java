@@ -35,7 +35,7 @@ public class UsageCounterEntity {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")
   private ClientAppEntity clientApp;
 
   /** Contractor who owns the counter. Replaces polymorphic subscriber_tenant_id/user_id. */

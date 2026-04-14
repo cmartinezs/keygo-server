@@ -141,12 +141,12 @@ At the end of every task, before closing the conversation:
 
 - **No Spring in `keygo-domain`** — zero framework dependencies.
 - **No backward module dependencies** — never import from a downstream module.
-- **Nullable domain fields → `Optional<T>`** — never expose raw nulls from domain.
+- **Optional for every nullable field** — any field that can be absent must be declared as `Optional<T>` (not raw `T`) and initialized with `Optional.ofNullable(...)`. This applies in all layers: domain, app, response DTOs, and adapters. Callers must use `.orElse(null)` or `.ifPresent(...)` at the boundary where a raw value is required (e.g., JPA mapping, HTTP response serialization).
 - **New JPA entities: do not set `id`** — let JPA generate it.
 - **Jackson 3** uses `tools.jackson.databind.*` (not `com.fasterxml`).
 - **JPA entities**: use `@Getter @Setter @Builder`; never `@Data`.
 - **JSONB columns**: `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`.
-- **Flyway migrations**: `V<N>__<description>.sql` in `keygo-supabase/src/main/resources/db/migration/`. Current: V1–V33; next is V34.
+- **Flyway migrations**: `V<N>__<description>.sql` in `keygo-supabase/src/main/resources/db/migration/`. Current: V1–V23; next is V24.
 - **Diagrams**: Mermaid first, PlantUML if Mermaid is insufficient, ASCII only as last resort.
 - **Documentation**: all new docs go under `doc/`.
 

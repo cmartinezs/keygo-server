@@ -37,15 +37,14 @@ public class AppContractEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "client_app_id")
   private ClientAppEntity clientApp;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "app_plan_version_id", nullable = false)
   private AppPlanVersionEntity selectedPlanVersion;
 
-  /** NULL until payment approval provisions the contractor account. */
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "contractor_id")
   private ContractorEntity contractor;

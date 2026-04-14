@@ -10,7 +10,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 Ver [TEMPLATE.md](TEMPLATE.md) para la plantilla completa, reglas de correlativo (`T-NNN` /
 `F-NNN`) y convenciones de nombre de archivo.
 
-El próximo correlativo disponible es **T-148** (y **F-043** para features de largo plazo).
+El próximo correlativo disponible es **T-154** (y **F-043** para features de largo plazo).
 
 ## Estructura de carpetas por estado
 
@@ -64,7 +64,6 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-095](registered/T-095-billing-option-default-validation.md) | Validar `isDefault=true` en `CreateAppPlanCommand` |
 | [T-096](registered/T-096-billing-request-validation.md) | `@NotNull @Valid` en `CreateAppPlanRequest.billingOptions` |
 | [T-126](registered/T-126-platform-user-status-endpoints.md) | Endpoints admin `suspend`/`activate`/`require-reset-password` en `PlatformUser` |
-| [T-128](registered/T-128-username-collision.md) | Resolver colisión de username generado en contratos |
 | [T-129](registered/T-129-domain-services-generation.md) | Consolidar 5 factories de generación en `keygo-domain` |
 | [T-131](registered/T-131-pii-inventory.md) | Inventario formal de PII por entidad y superficie de exposición |
 | [T-132](registered/T-132-doc-filenames-english.md) | Migrar nombres de archivos y carpetas de `doc/` a inglés |
@@ -78,6 +77,10 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-140](registered/T-140-aggregate-status-queries.md) | Preferir queries agregadas por estado (`GROUP BY`) en vez de consultas repetidas |
 | [T-141](registered/T-141-platform-user-public-profile.md) | Endpoint para exponer perfil público de `platform_user` consumible por UI |
 | [T-144](registered/T-144-review-json-snake-case-contracts.md) | Revisar request/response JSON para detectar contratos que no estén en `snake_case` |
+| [T-148](registered/T-148-jpa-entity-ddl-audit.md) | Auditoría sistemática de entidades JPA vs DDL Flyway: `@JoinColumn`/`@Column` names, `nullable`, `optional` |
+| [T-149](registered/T-149-docker-native-image.md) | Imagen Docker optimizada con compilación nativa GraalVM (multi-stage, distroless, arranque < 500 ms) |
+| [T-151](registered/T-151-deployment-cicd-strategy.md) | Estrategia de despliegue (develop/test/prod), decisión cloud/PaaS y pipeline CI/CD completo |
+| [T-152](registered/T-152-prod-safe-application-config.md) | Externalizar config unsafe (`mock-payment`, `method-logging`, actuator) y crear perfiles `develop`/`test`/`prod` |
 | [T-013](registered/T-013-testcontainers-supabase.md) | Testcontainers para adapters de `keygo-supabase` |
 | [T-025](registered/T-025-testcontainers-tenant-flow.md) | Testcontainers: flujo completo de tenant |
 | [T-031](registered/T-031-ci-markdown-links.md) | CI: verificación automática de links Markdown |
@@ -140,6 +143,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-009](planned/T-009-domain-entities.md) | Entidades puras en `keygo-domain` — pendiente `Membership` |
 | [T-010](planned/T-010-infra-ports.md) | Puertos en `keygo-infra` — evaluar si hay pendientes |
 | [T-120](planned/T-120-i18n-catalog.md) | Catálogo i18n: archivos creados; completar cobertura de locales |
+| [T-150](planned/T-150-platform-user-username-removal.md) | Eliminar `username` de `PlatformUser`; login siempre por email, renombrar `emailOrUsername` → `email` |
 
 ## Pendiente integración UI 🧩
 
@@ -147,6 +151,12 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 |---|---|
 | [T-130](pending-ui/T-130-check-email.md) | `POST /platform/account/check-email` — valida email antes del ToS |
 | [T-145](pending-ui/T-145-platform-billing-catalog-empty.md) | Corrección que alinea Flyway y seeds para `GET /platform/billing/catalog` |
+
+## Archivada ⬛
+
+| Archivo | Motivo |
+|---|---|
+| [T-128](archived/T-128-username-collision.md) | Absorbida por T-150 — la eliminación de `username` resuelve la causa raíz |
 
 ## Completada ✅
 
@@ -156,3 +166,4 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-143](completed/T-143-platform-user-roles-read-endpoint.md) | Endpoint `GET /platform/users/{userId}/platform-roles` completado con metadata de asignación, scope y contractor resumido para la UI. | 2026-04-13 |
 | [T-146](completed/T-146-platform-roles-catalog-endpoint.md) | `GET /platform/roles` — catálogo de roles de plataforma disponibles para asignación desde UI. | 2026-04-13 |
 | [T-147](completed/T-147-platform-plan-entitlements-update.md) | Migración V21 con matriz completa de entitlements de planes de plataforma (73 filas): corrección de `period_type` en V20 + 61 nuevas métricas incluyendo FLEX tiers y ENTERPRISE exclusivos. | 2026-04-14 |
+| [T-153](completed/T-153-platform-account-profile.md) | `GET` / `PATCH /api/v1/platform/account/profile` — endpoints de perfil self-service para platform users, operando directamente sobre PlatformUserRepositoryPort. | 2026-04-14 |

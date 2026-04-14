@@ -82,7 +82,7 @@ public final class BillingPersistenceMapper {
     String[] contactName = resolveContactName(e);
     return AppContract.builder()
         .id(e.getId())
-        .clientAppId(e.getClientApp().getId())
+        .clientAppId(e.getClientApp() != null ? e.getClientApp().getId() : null)
         .selectedPlanVersionId(e.getSelectedPlanVersion().getId())
         .billingPeriod(e.getBillingPeriod())
         .status(e.getStatus())

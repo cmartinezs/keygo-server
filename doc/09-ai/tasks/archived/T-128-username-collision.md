@@ -1,6 +1,6 @@
 # T-128 — Colisión de username generado en contratos
 
-**Estado:** 🔲 PENDING
+**Estado:** ⬛ Archivada — absorbida por [T-150](../planned/T-150-platform-user-username-removal.md)
 **Horizonte:** corto plazo
 **Módulos afectados:** `keygo-app`, `keygo-domain`
 

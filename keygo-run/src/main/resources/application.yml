@@ -52,6 +52,7 @@ keygo:
     platform-authorize-path-prefix: "/api/v1/platform/oauth2/authorize"
     platform-direct-login-path-prefix: "/api/v1/platform/account/direct-login"
     platform-forgot-password-path-prefix: "/api/v1/platform/account/forgot-password"
+    platform-check-email-path-prefix: "/api/v1/platform/account/check-email"
     platform-recover-password-path-prefix: "/api/v1/platform/account/recover-password"
     platform-reset-password-path-prefix: "/api/v1/platform/account/reset-password"
   tracing:

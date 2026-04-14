@@ -1,9 +1,9 @@
 # Migraciones Flyway — KeyGo Server
 
-> Última actualización: 2026-04-13  
-> Baseline vigente: **V1–V21**  
+> Última actualización: 2026-04-14  
+> Baseline vigente: **V1–V24**  
 > Baseline anterior archivado en: `keygo-supabase/src/main/resources/db/backup_20260409_v33/`  
-> Próxima migración disponible: **V22**
+> Próxima migración disponible: **V25**
 
 ## Estrategia
 
@@ -50,6 +50,9 @@ V{n}__{descripcion}.sql
 | V19 | `V19__app_contract_onboarding_snapshot.sql` | Billing | snapshot persistido de contacto y empresa del onboarding dentro de `app_contracts` |
 | V20 | `V20__platform_plan_catalog.sql` | Billing | habilita `app_plans.client_app_id = NULL` para catálogo de plataforma y siembra planes públicos de KeyGo |
 | V21 | `V21__platform_plan_entitlements_full.sql` | Billing | completa la matriz de entitlements de los 6 planes de plataforma: corrige `period_type` de las 12 filas de V20 e inserta las 61 métricas restantes hasta alcanzar las 73 filas totales (FREE=9, PERSONAL=9, TEAM=9, BUSINESS=9, FLEX=25, ENTERPRISE=12) |
+| V22 | `V22__app_contracts_client_app_nullable.sql` | Billing | hace nullable `app_contracts.client_app_id` para soportar contratos de plataforma sin app específica (NULL = plataforma, NOT NULL = app) |
+| V23 | `V23__app_subscriptions_client_app_nullable.sql` | Billing | hace nullable `app_subscriptions.client_app_id` para alinear con V22: subscripciones de plataforma sin app específica |
+| V24 | `V24__billing_operations_client_app_nullable.sql` | Billing | hace nullable `client_app_id` en `invoices`, `payment_transactions` y `usage_counters` para alinear con V22/V23: operaciones de plataforma sin app específica |
 
 ## Decisiones clave del remake
 

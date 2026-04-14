@@ -11,8 +11,8 @@ import jakarta.validation.constraints.NotNull;
  * The target client app is identified directly via {@code clientAppId} in the body.
  */
 public record CreateAppContractRequest(
-    // Target client app (billing model v2: no tenantSlug/clientId path params needed)
-    @NotBlank(message = "client_app_id is required") String clientAppId,
+    // Target client app (optional for platform-level contracts; app-level contracts supply this)
+    String clientAppId,
     @NotBlank(message = "plan_version_id is required") String planVersionId,
     @NotNull(message = "billing_period is required") BillingPeriod billingPeriod,
     @NotBlank(message = "contractor_email is required")

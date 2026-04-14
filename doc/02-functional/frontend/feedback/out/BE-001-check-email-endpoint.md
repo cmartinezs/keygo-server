@@ -1,7 +1,7 @@
 # BE-001 — Nuevo endpoint para validar existencia de email
 
 **Fecha:** 2026-04-12
-**Estado:** 🔴 Abierto
+**Estado:** 🟢 Confirmado
 **Plan:** T-130
 
 ## Cambio
@@ -51,4 +51,10 @@ El campo `data` es siempre `null`. El resultado se comunica solo por HTTP status
 
 ## Confirmación
 
-_Pendiente — UI debe confirmar integración._
+La UI ya consume `POST /api/v1/platform/account/check-email` en `src/features/auth/register/NewContractPage.tsx`, al salir del paso **Your details / Tus datos** del wizard de contratación:
+
+- `200 PLATFORM_USER_EMAIL_FOUND` → mantiene el wizard en **Your details / Tus datos** y muestra un mensaje para ingresar otro correo
+- `404 PLATFORM_USER_EMAIL_NOT_FOUND` → continúa al paso de términos
+- `401 AUTHENTICATION_REQUIRED` → rehace `platformAuthorize()` y reintenta el check en el mismo submit
+
+También se agregó el wrapper `platformCheckEmail()` en `src/features/auth/api.ts`, mensajes i18n y pruebas del contrato en `src/features/auth/api.test.ts`.

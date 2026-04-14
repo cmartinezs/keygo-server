@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -19,8 +20,8 @@ import java.util.UUID;
 public class AppContract {
 
   private final UUID id;
-  /** NULL = platform contract, NOT NULL = app contract. */
-  private final UUID clientAppId;
+  /** Empty = platform contract, present = app contract. */
+  private final Optional<UUID> clientAppId;
   private final UUID selectedPlanVersionId;
   private final String billingPeriod;
   private ContractStatus status;
@@ -72,7 +73,7 @@ public class AppContract {
     if (expiresAt == null) throw new IllegalArgumentException("expiresAt cannot be null");
 
     this.id = id;
-    this.clientAppId = clientAppId;
+    this.clientAppId = Optional.ofNullable(clientAppId);
     this.selectedPlanVersionId = selectedPlanVersionId;
     this.billingPeriod = billingPeriod;
     this.status = status;

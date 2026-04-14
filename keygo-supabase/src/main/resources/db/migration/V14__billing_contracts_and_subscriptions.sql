@@ -5,8 +5,8 @@
 
 CREATE TABLE app_contracts (
     id                            UUID           NOT NULL DEFAULT gen_random_uuid(),
-    contractor_id                 UUID           NOT NULL,
-    client_app_id                 UUID           NOT NULL,
+    contractor_id                 UUID,
+    client_app_id                 UUID,
     app_plan_version_id           UUID           NOT NULL,
     created_by_platform_user_id   UUID,
     billing_period                VARCHAR(20)    NOT NULL,

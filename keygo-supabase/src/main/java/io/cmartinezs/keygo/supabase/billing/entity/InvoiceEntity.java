@@ -39,7 +39,7 @@ public class InvoiceEntity {
   private ContractorEntity contractor;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "client_app_id", nullable = false)
+  @JoinColumn(name = "client_app_id")
   private ClientAppEntity clientApp;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -68,7 +68,7 @@ public class InvoiceEntity {
 
   @Column(nullable = false, length = 3)
   @Builder.Default
-  private String currency = "MXN";
+  private String currency = "USD";
 
   @Column(nullable = false, precision = 12, scale = 2)
   private BigDecimal subtotal;

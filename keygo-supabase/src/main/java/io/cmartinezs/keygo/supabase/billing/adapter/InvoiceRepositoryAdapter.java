@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.supabase.billing.adapter;
 
 import io.cmartinezs.keygo.app.billing.invoice.port.InvoiceRepositoryPort;
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionNotFoundException;
 import io.cmartinezs.keygo.domain.billing.invoice.model.Invoice;
 import io.cmartinezs.keygo.supabase.billing.entity.InvoiceEntity;
 import io.cmartinezs.keygo.supabase.billing.mapper.BillingPersistenceMapper;
@@ -30,7 +31,11 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
 
   @Override
   public Invoice save(Invoice invoice) {
-    var subscription = subscriptionRepo.getReferenceById(invoice.getSubscriptionId());
+    // Must use findById() to eagerly load lazy relationships within the session,
+    // not getReferenceById() which returns a proxy. Accessing lazy fields outside
+    // the session causes LazyInitializationException.
+    var subscription = subscriptionRepo.findById(invoice.getSubscriptionId())
+        .orElseThrow(() -> new SubscriptionNotFoundException("id", invoice.getSubscriptionId().toString()));
     InvoiceEntity entity = InvoiceEntity.builder()
         .id(invoice.getId())
         .subscription(subscription)

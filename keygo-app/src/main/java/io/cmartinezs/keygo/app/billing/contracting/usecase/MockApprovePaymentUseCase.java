@@ -10,10 +10,12 @@ import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
+import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
 import io.cmartinezs.keygo.domain.billing.contractor.model.Contractor;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorStatus;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorType;
 import io.cmartinezs.keygo.domain.billing.contractor.model.ContractorUserRole;
+import io.cmartinezs.keygo.domain.membership.model.PlatformRoleCode;
 import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
@@ -91,50 +93,82 @@ public class MockApprovePaymentUseCase {
     }
 
     OffsetDateTime now = OffsetDateTime.now();
-    PlatformUser platformUser = platformUserRepo.findByEmail(EmailAddress.of(currentContract.getContractorEmail()))
-        .orElseGet(() -> provisionPlatformUser(currentContract));
-    UUID platformUserId = platformUser.getId().value();
 
-    if (!platformUserRoleRepo.hasRole(platformUserId, "keygo_user")) {
-      platformUserRoleRepo.assign(platformUserId, "keygo_user");
+    // (a) Resolver/crear usuario — rawPassword queda en el coordinador para enviarlo al final
+    String rawPassword = null;
+    PlatformUser platformUser;
+    var optUser = platformUserRepo.findByEmail(EmailAddress.of(currentContract.getContractorEmail()));
+    if (optUser.isEmpty()) {
+      rawPassword = generateTemporaryPassword();
+      platformUser = createPlatformUser(currentContract, credentialEncoder.encode(rawPassword));
+    } else {
+      platformUser = optUser.get();
     }
-    if (!platformUserRoleRepo.hasRole(platformUserId, "keygo_tenant_admin")) {
-      platformUserRoleRepo.assign(platformUserId, "keygo_tenant_admin");
+
+    // (b) Asignar roles de plataforma
+    assignPlatformRoles(platformUser.getId().value());
+
+    // (c) Resolver/crear contractor
+    Contractor contractor = resolveOrCreateContractor(currentContract, platformUser.getId().value());
+
+    // (d) Asegurar membresía OWNER
+    ensureOwnerMembership(contractor.getId(), platformUser.getId().value());
+
+    // (e) Vincular contractor al contrato y marcar pago aprobado
+    applyPaymentApproval(currentContract, contractor.getId(), now);
+
+    // (f) Persistir contrato
+    var contract = contractRepo.save(currentContract);
+
+    // Email enviado al final: solo si se creó un usuario nuevo y todo lo anterior tuvo éxito
+    if (rawPassword != null) {
+      sendWelcomeEmail(currentContract, rawPassword);
     }
 
-    Contractor contractor = contractorRepo.findByPlatformUserId(platformUserId)
-        .orElseGet(() -> contractorRepo.save(Contractor.builder()
-            .primaryContactPlatformUserId(platformUserId)
-            .type(resolveContractorType(currentContract))
-            .displayName(resolveContractorDisplayName(currentContract))
-            .legalName(normalizeBlank(currentContract.getCompanyName()))
-            .taxId(normalizeBlank(currentContract.getCompanyTaxId()))
-            .billingEmail(currentContract.getContractorEmail())
-            .status(ContractorStatus.PENDING)
-            .build()));
-    ensureOwnerMembership(contractor.getId(), platformUserId);
-
-    var contract = currentContract;
-    contract.linkContractor(contractor.getId(), now);
-    contract.markPaymentApproved(now);
-    contract = contractRepo.save(contract);
     return new AppContractResult(contract, null);
   }
 
-  private PlatformUser provisionPlatformUser(io.cmartinezs.keygo.domain.billing.contracting.model.AppContract contract) {
-    String rawPassword = generateTemporaryPassword();
-    String hashedPwd = credentialEncoder.encode(rawPassword);
-
-    PlatformUser saved = platformUserRepo.save(
+  private PlatformUser createPlatformUser(AppContract contract, String hashedPassword) {
+    return platformUserRepo.save(
         PlatformUser.builder()
             .username(Username.of(contract.generateUsername()))
             .email(EmailAddress.of(contract.getContractorEmail()))
-            .passwordHash(PasswordHash.of(hashedPwd))
+            .passwordHash(PasswordHash.of(hashedPassword))
             .status(UserStatus.RESET_PASSWORD)
             .firstName(contract.getContractorFirstName())
             .lastName(contract.getContractorLastName())
             .build());
+  }
 
+  private void assignPlatformRoles(UUID platformUserId) {
+    if (!platformUserRoleRepo.hasRole(platformUserId, PlatformRoleCode.KEYGO_ACCOUNT_ADMIN.code())) {
+      platformUserRoleRepo.assign(platformUserId, PlatformRoleCode.KEYGO_ACCOUNT_ADMIN.code());
+    }
+    if (!platformUserRoleRepo.hasRole(platformUserId, PlatformRoleCode.KEYGO_USER.code())) {
+      platformUserRoleRepo.assign(platformUserId, PlatformRoleCode.KEYGO_USER.code());
+    }
+  }
+
+  private Contractor resolveOrCreateContractor(AppContract contract, UUID platformUserId) {
+    return contractorRepo.findByPlatformUserId(platformUserId)
+        .orElseGet(() -> contractorRepo.save(Contractor.builder()
+            .primaryContactPlatformUserId(platformUserId)
+            .type(resolveContractorType(contract))
+            .displayName(resolveContractorDisplayName(contract))
+            .legalName(normalizeBlank(contract.getCompanyName()))
+            .taxId(normalizeBlank(contract.getCompanyTaxId()))
+            .billingEmail(contract.getContractorEmail())
+            .status(ContractorStatus.PENDING)
+            .build()));
+  }
+
+  private void applyPaymentApproval(AppContract contract,
+      UUID contractorId, OffsetDateTime now) {
+    contract.linkContractor(contractorId, now);
+    contract.markPaymentApproved(now);
+  }
+
+  private void sendWelcomeEmail(AppContract contract, String rawPassword) {
     emailNotification.sendEmail(
         EmailNotificationPort.TYPE_TEMPORARY_PASSWORD,
         contract.getContractorEmail(),
@@ -143,8 +177,6 @@ public class MockApprovePaymentUseCase {
             "userFirstName", contract.getContractorFirstName() != null ? contract.getContractorFirstName() : "",
             "userLastName", contract.getContractorLastName() != null ? contract.getContractorLastName() : "",
             "temporaryPassword", rawPassword));
-
-    return saved;
   }
 
   String generateTemporaryPassword() {

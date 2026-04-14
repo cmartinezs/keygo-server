@@ -37,10 +37,10 @@ public class PaymentMethodEntity {
   @JoinColumn(name = "contractor_id", nullable = false)
   private ContractorEntity contractor;
 
-  @Column(nullable = false, length = 50)
+  @Column(nullable = false, length = 20)
   private String provider;
 
-  @Column(name = "method_type", nullable = false, length = 20)
+  @Column(name = "method_type", nullable = false, length = 30)
   private String methodType;
 
   @Column(name = "external_reference", nullable = false, length = 255)
@@ -61,7 +61,7 @@ public class PaymentMethodEntity {
   @Transient
   private String paypalEmail;
 
-  @Column(name = "display_label", length = 100)
+  @Column(name = "display_label", nullable = false, length = 255)
   private String displayLabel;
 
   @Column(name = "is_default", nullable = false)

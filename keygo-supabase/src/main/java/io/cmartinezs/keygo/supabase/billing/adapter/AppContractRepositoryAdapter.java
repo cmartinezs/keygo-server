@@ -69,7 +69,7 @@ public class AppContractRepositoryAdapter implements AppContractRepositoryPort {
         .paymentVerifiedAt(c.getPaymentVerifiedAt())
         .expiresAt(c.getExpiresAt());
 
-    builder.clientApp(clientAppRepo.getReferenceById(c.getClientAppId()));
+    c.getClientAppId().ifPresent(id -> builder.clientApp(clientAppRepo.getReferenceById(id)));
     if (c.getContractorId() != null) {
       builder.contractor(contractorRepo.getReferenceById(c.getContractorId()));
     }

@@ -12,6 +12,18 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added / Añadido — Platform Account Profile Endpoints (2026-04-14)
+- **EN:** `keygo-app`: `GetPlatformUserProfileCommand`, `UpdatePlatformUserProfileCommand`; use cases `GetPlatformUserProfileUseCase`, `UpdatePlatformUserProfileUseCase` for self-service platform user profile management
+- **ES:** `keygo-app`: `GetPlatformUserProfileCommand`, `UpdatePlatformUserProfileCommand`; casos de uso `GetPlatformUserProfileUseCase`, `UpdatePlatformUserProfileUseCase` para gestión self-service de perfil de usuarios de plataforma
+- **EN:** `keygo-api`: endpoints `GET /api/v1/platform/account/profile`, `PATCH /api/v1/platform/account/profile` in `PlatformAccountController` — reuses existing `UserProfileData` and `UserProfileResult`
+- **ES:** `keygo-api`: endpoints `GET /api/v1/platform/account/profile`, `PATCH /api/v1/platform/account/profile` en `PlatformAccountController` — reutiliza `UserProfileData` y `UserProfileResult`
+- **EN:** `keygo-run`: 2 new `@Bean` factories in `ApplicationConfig` for dependency injection (T-153 resolution)
+- **ES:** `keygo-run`: 2 nuevos factories `@Bean` en `ApplicationConfig` para inyección de dependencias (resolución de T-153)
+- **EN:** Documentation: Task registered in workflow as completed (T-153); feedback entry BE-007 for UI integration
+- **ES:** Documentación: Tarea registrada en workflow como completada (T-153); entrada de feedback BE-007 para integración UI
+- **EN:** Reuses existing response codes: `USER_PROFILE_RETRIEVED`, `USER_PROFILE_UPDATED`; platform users return `tenantId`, `birthdate`, `website` as `null`
+- **ES:** Reutiliza códigos de respuesta existentes: `USER_PROFILE_RETRIEVED`, `USER_PROFILE_UPDATED`; usuarios de plataforma retornan `tenantId`, `birthdate`, `website` como `null`
+
 ### Added / Añadido — Fase 6: Firma de tokens y metadata OIDC (2026-03-22)
 - **EN:** `keygo-domain`: `SigningKey`, `SigningKeyId`, `SigningKeyStatus`, `SigningKeyAlgorithm`, `NoActiveSigningKeyException`
 - **ES:** `keygo-domain`: `SigningKey`, `SigningKeyId`, `SigningKeyStatus`, `SigningKeyAlgorithm`, `NoActiveSigningKeyException`

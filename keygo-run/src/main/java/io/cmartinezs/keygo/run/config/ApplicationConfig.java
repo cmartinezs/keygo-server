@@ -129,9 +129,11 @@ import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ForgotPlatformPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RecoverPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdatePlatformUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
@@ -1187,6 +1189,24 @@ public class ApplicationConfig {
     return new RotatePlatformRefreshTokenUseCase(
         refreshTokenRepository, sessionRepository, platformUserRoleRepository,
         issueTokensUseCase, clock, issuerBaseUrl);
+  }
+
+  @Bean
+  public GetPlatformUserProfileUseCase getPlatformUserProfileUseCase(
+      SigningKeyRepositoryPort signingKeyRepository,
+      AccessTokenVerifierPort accessTokenVerifier,
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new GetPlatformUserProfileUseCase(
+        signingKeyRepository, accessTokenVerifier, platformUserRepository);
+  }
+
+  @Bean
+  public UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase(
+      SigningKeyRepositoryPort signingKeyRepository,
+      AccessTokenVerifierPort accessTokenVerifier,
+      PlatformUserRepositoryPort platformUserRepository) {
+    return new UpdatePlatformUserProfileUseCase(
+        signingKeyRepository, accessTokenVerifier, platformUserRepository);
   }
 
   // ─── Platform Config Port ───────────────────────────────────────────────

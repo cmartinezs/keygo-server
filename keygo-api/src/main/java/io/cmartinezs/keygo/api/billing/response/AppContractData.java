@@ -29,7 +29,7 @@ public record AppContractData(
   public static AppContractData from(AppContract c) {
     return new AppContractData(
         c.getId(),
-        c.getClientAppId(),
+        c.getClientAppId().orElse(null),
         c.getSelectedPlanVersionId(),
         c.getBillingPeriod(),
         c.getStatus().name(),
