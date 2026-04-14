@@ -103,8 +103,10 @@ Always create a documented plan covering: problem/requirement, proposed solution
 
 **When `/plan` is invoked, persist the plan before closing plan mode — without waiting for explicit instruction** (plans may be implemented in a future conversation):
 
-1. Create `doc/09-ai/tasks/T-NNN-<slug>.md` with: requirement, response contract or component design, ordered steps with `PENDING`/`APPLIED` status, and a verification guide.
-2. Register the new entry in `doc/09-ai/tasks/README.md`.
+1. Create `doc/09-ai/tasks/registered/T-NNN-<slug>.md` with: requirement, response contract or component design, ordered steps with `PENDING`/`APPLIED` status, and a verification guide.
+2. Register the new entry in `doc/09-ai/tasks/README.md` under the `registered/` section.
+
+> **Task folder rule:** each task file lives in the subfolder that matches its current state (`registered/`, `planned/`, `in-development/`, `completed/`, etc. — full mapping in `workflow.md`). Move the file and update the README link whenever the state changes.
 
 ### 3. RFC for large changes
 
@@ -116,7 +118,7 @@ If the change affects multiple modules, public contracts, data model, or archite
 
 ### 5. Record detected future ideas
 
-As a feature is implemented, it may naturally enable other future features. If such an opportunity is detected, **briefly register it** by creating `doc/09-ai/tasks/T-NNN-<slug>.md` with: correlative ID (`T-NNN` / `F-NNN`), 1–2 line description as the requirement, and status `🔲 PENDING`. Add the entry to `doc/09-ai/tasks/README.md`. Do not develop the full analysis at that point — it stays pending until explicitly picked up.
+As a feature is implemented, it may naturally enable other future features. If such an opportunity is detected, **briefly register it** by creating `doc/09-ai/tasks/registered/T-NNN-<slug>.md` with: correlative ID (`T-NNN` / `F-NNN`), 1–2 line description as the requirement, and status `🔲 PENDING`. Add the entry to `doc/09-ai/tasks/README.md`. Do not develop the full analysis at that point — it stays pending until explicitly picked up.
 
 ## Task Closure and Context Compression
 
@@ -129,7 +131,7 @@ At the end of every task, before closing the conversation:
 |---|---|
 | Reusable learning or pattern | `lessons-learned.md` |
 | Doc/code inconsistency | `inconsistencies/INC-NNN-<slug>.md` + entry in `inconsistencies/README.md` |
-| Detected future proposal | `tasks/T-NNN-<slug>.md` + entry in `tasks/README.md` |
+| Detected future proposal | `tasks/registered/T-NNN-<slug>.md` + entry in `tasks/README.md` |
 | Agent rule change | `agents.md` + `agents-change-log.md` |
 | Effective architectural decision | ADR in `04-decisions/adr/` |
 
