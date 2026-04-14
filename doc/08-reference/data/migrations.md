@@ -1,9 +1,9 @@
 # Migraciones Flyway — KeyGo Server
 
 > Última actualización: 2026-04-13  
-> Baseline vigente: **V1–V20**  
+> Baseline vigente: **V1–V21**  
 > Baseline anterior archivado en: `keygo-supabase/src/main/resources/db/backup_20260409_v33/`  
-> Próxima migración disponible: **V21**
+> Próxima migración disponible: **V22**
 
 ## Estrategia
 
@@ -49,6 +49,7 @@ V{n}__{descripcion}.sql
 | V18 | `V18__contract_email_verifications.sql` | Billing | `contract_email_verifications` y flexibilización de `app_contracts.contractor_id` para onboarding previo a provisión |
 | V19 | `V19__app_contract_onboarding_snapshot.sql` | Billing | snapshot persistido de contacto y empresa del onboarding dentro de `app_contracts` |
 | V20 | `V20__platform_plan_catalog.sql` | Billing | habilita `app_plans.client_app_id = NULL` para catálogo de plataforma y siembra planes públicos de KeyGo |
+| V21 | `V21__platform_plan_entitlements_full.sql` | Billing | completa la matriz de entitlements de los 6 planes de plataforma: corrige `period_type` de las 12 filas de V20 e inserta las 61 métricas restantes hasta alcanzar las 73 filas totales (FREE=9, PERSONAL=9, TEAM=9, BUSINESS=9, FLEX=25, ENTERPRISE=12) |
 
 ## Decisiones clave del remake
 

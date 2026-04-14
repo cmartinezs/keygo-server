@@ -6,7 +6,12 @@
       "Bash(xargs grep:*)",
       "Bash(sed -i 's|`lessons-learned\\\\.md`|`lessons-learned/<categoría>.md`|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/agent-operations.md\")",
       "Bash(sed -i 's|\\\\[lessons-learned\\\\.md\\\\]\\(lessons-learned\\\\.md\\)|[lessons-learned/]\\(lessons-learned/README.md\\)|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/ai-context.md\")",
-      "Bash(sed -i 's|\\\\[lessons-learned\\\\.md\\\\]\\(lessons-learned\\\\.md\\)|[lessons-learned/]\\(lessons-learned/README.md\\)|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/README.md\")"
+      "Bash(sed -i 's|\\\\[lessons-learned\\\\.md\\\\]\\(lessons-learned\\\\.md\\)|[lessons-learned/]\\(lessons-learned/README.md\\)|g' \"C:/Users/cmartinezs/IdeaProjects/keygo-server/doc/09-ai/README.md\")",
+      "Bash(mkdir -p registered planned in-analysis in-rfc approved in-development blocked in-review pending-ui change-control completed archived)",
+      "Bash(mv T-009-domain-entities.md T-010-infra-ports.md T-120-i18n-catalog.md planned/)",
+      "Bash(mv T-130-check-email.md T-145-platform-billing-catalog-empty.md pending-ui/)",
+      "Bash(mv T-142-platform-users-list-endpoint.md T-143-platform-user-roles-read-endpoint.md T-146-platform-roles-catalog-endpoint.md T-147-platform-plan-entitlements-update.md completed/)",
+      "Bash(mv T-*.md F-*.md registered/)"
     ]
   }
 }

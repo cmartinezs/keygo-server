@@ -97,6 +97,36 @@ flowchart TD
 
 ---
 
+## Regla transversal — carpeta por estado
+
+Cada archivo de tarea (`T-NNN` / `F-NNN`) debe residir en la carpeta que corresponde
+a su estado actual dentro de `doc/09-ai/tasks/`. Al cambiar de estado, el archivo se
+mueve a la carpeta del nuevo estado **en el mismo commit o conversación** en que se
+actualiza el campo `Estado` del archivo.
+
+| Estado | Carpeta |
+|---|---|
+| ⬜ Registrada | `registered/` |
+| 🔍 En análisis | `in-analysis/` |
+| 📋 Planificada | `planned/` |
+| 📄 En RFC | `in-rfc/` |
+| 🟢 Aprobada | `approved/` |
+| 🔵 En desarrollo | `in-development/` |
+| 🚫 Bloqueada | `blocked/` |
+| 🔄 En revisión | `in-review/` |
+| 🧩 Pendiente integración UI | `pending-ui/` |
+| 🛂 Control de cambio | `change-control/` |
+| ✅ Completada | `completed/` |
+| ⬛ Archivada | `archived/` |
+
+Reglas complementarias:
+
+- Los links en `tasks/README.md` deben actualizarse al mover el archivo.
+- `README.md`, `TEMPLATE.md` y carpetas de estado permanecen en la raíz de `tasks/`.
+- Las carpetas vacías no se eliminan; se crean cuando se necesitan.
+
+---
+
 ## Criterios de transición
 
 > **Quién activa** — 👤 usuario | 🤖 agente | 👤🤖 cualquiera.

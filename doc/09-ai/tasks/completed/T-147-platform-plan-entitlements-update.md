@@ -1,6 +1,6 @@
 # T-147 — Actualizar entitlements de planes de plataforma
 
-**Estado:** ⬜ Registrada
+**Estado:** ✅ Completada
 **Módulos afectados:** `keygo-supabase`, docs
 
 ---
@@ -37,7 +37,7 @@ Archivo de referencia: `keygo-supabase/src/main/resources/db/backup_20260409_v33
 
 ## Convenciones de nombres para el contexto platform
 
-| Nombre en V17 (keygo-ui) | Nombre en V35 (platform) | Razón |
+| Nombre en V17 (keygo-ui) | Nombre en V21 (platform) | Razón |
 |---|---|---|
 | `MAX_TENANT_USERS` | `MAX_USERS` | V20 ya usó `MAX_USERS`; mantener consistencia |
 | `MAX_CLIENT_APPS` | `MAX_CLIENT_APPS` | Mismo nombre; los contractors registran client_apps |
@@ -245,12 +245,12 @@ Antes de crear la migración, completar una revisión de producto que responda:
 |---|---|---|---|
 | 1 | Revisar balance de valor entre planes (ver sección anterior) y ajustar valores si corresponde | — | PENDING |
 | 2 | Confirmar con producto el valor de `MAX_TENANTS` para TEAM y BUSINESS en contexto platform | — | PENDING |
-| 3 | Crear `V35__platform_plan_entitlements_full.sql` con `INSERT ... ON CONFLICT DO UPDATE` para las 73 filas (y corrección de `period_type` de los 12 registros existentes en V20) | `keygo-supabase/src/main/resources/db/migration/V35__platform_plan_entitlements_full.sql` | PENDING |
-| 4 | Actualizar `doc/08-reference/data/migrations.md` con `V35` | `doc/08-reference/data/migrations.md` | PENDING |
-| 5 | Actualizar `doc/08-reference/data/data-model.md` con los nuevos `metric_code` de platform plans | `doc/08-reference/data/data-model.md` | PENDING |
+| 3 | Crear `V21__platform_plan_entitlements_full.sql` con `INSERT ... ON CONFLICT DO UPDATE` para las 73 filas (y corrección de `period_type` de los 12 registros existentes en V20) | `keygo-supabase/src/main/resources/db/migration/V21__platform_plan_entitlements_full.sql` | APPLIED |
+| 4 | Actualizar `doc/08-reference/data/migrations.md` con `V21` | `doc/08-reference/data/migrations.md` | APPLIED |
+| 5 | Actualizar `doc/08-reference/data/data-model.md` con los nuevos `metric_code` de platform plans | `doc/08-reference/data/data-model.md` | APPLIED |
 
 > **Nota sobre conflicto con V20:** Los entitlements de `MAX_TENANTS` y `MAX_USERS` ya
-> existen con `period_type = 'MONTH'`. La migración V35 debe corregirlos a `period_type = 'NONE'`
+> existen con `period_type = 'MONTH'`. La migración V21 debe corregirlos a `period_type = 'NONE'`
 > (consistente con V17) usando `ON CONFLICT (app_plan_version_id, metric_code) DO UPDATE`.
 
 ## Guía de verificación
@@ -280,7 +280,7 @@ ORDER BY ap.sort_order, ape.metric_code;
 | Artefacto relacionado | Tipo de relación | Descripción |
 |---|---|---|
 | `V17__seed_billing_plans.sql` (backup) | fuente de verdad | Backup con la matriz completa de entitlements original para keygo-ui |
-| `V20__platform_plan_catalog.sql` | complementaria | V20 sembró planes y versiones; V35 completa los entitlements incompletos |
-| RFC-009 (V34) | complementaria | RFC-009 usa V34 para `audit_events`; esta tarea usa V35 para entitlements — sin conflicto |
-| `doc/08-reference/data/migrations.md` | doc a actualizar | Registrar V35 |
+| `V20__platform_plan_catalog.sql` | complementaria | V20 sembró planes y versiones; V21 completa los entitlements incompletos |
+| RFC-009 (V34) | complementaria | RFC-009 usa V34 para `audit_events`; esta tarea usa V21 para entitlements — sin conflicto |
+| `doc/08-reference/data/migrations.md` | doc a actualizar | Registrar V21 |
 | `doc/08-reference/data/data-model.md` | doc a actualizar | Documentar nuevos `metric_code` para platform plans |
