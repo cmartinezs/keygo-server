@@ -12,7 +12,12 @@
       "Bash(mv T-130-check-email.md T-145-platform-billing-catalog-empty.md pending-ui/)",
       "Bash(mv T-142-platform-users-list-endpoint.md T-143-platform-user-roles-read-endpoint.md T-146-platform-roles-catalog-endpoint.md T-147-platform-plan-entitlements-update.md completed/)",
       "Bash(mv T-*.md F-*.md registered/)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(./mvnw clean *)",
+      "Bash(xargs ls *)",
+      "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -q)",
+      "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -Djacoco.skip=true -q)",
+      "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -Djacoco.skip=true)"
     ]
   }
 }
