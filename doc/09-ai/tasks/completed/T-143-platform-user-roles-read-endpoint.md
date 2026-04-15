@@ -18,7 +18,7 @@ de modelo o base de datos.
 
 ## Relaciones
 
-- **derivada de:** `doc/02-functional/frontend/feedback/in/UI-002-missing-platform-user-roles-endpoint.md`
+- **derivada de:** `doc/02-functional/frontend/feedback/UI-002-platform-user-roles-endpoint.md`
 
 ## Solución propuesta
 

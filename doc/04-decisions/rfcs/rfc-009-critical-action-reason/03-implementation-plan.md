@@ -111,7 +111,7 @@ Cerrar el RFC con cobertura y documentación alineada.
 | F1 | Tests de use cases: `reason` en blanco con `PLATFORM_USER` lanza error; `UI_AUTOMATION` sin `reason` es válido; evento se persiste con `parentEventId` correcto | `keygo-app/.../test/` | PENDING |
 | F2 | Tests de controller: sin `reason` → `400`; con `reason` válido → `200`; `UI_AUTOMATION` sin `reason` → `200` | `keygo-api/.../test/` | PENDING |
 | F3 | Actualizar `frontend-developer-guide.md`: nuevo campo `reason`, headers `X-Audit-*` y distinción de flujo directo vs. consecuente | `doc/02-functional/frontend/frontend-developer-guide.md` | PENDING |
-| F4 | Crear feedback out `BE-NNN-critical-action-reason.md`; actualizar `out/README.md` | `doc/02-functional/frontend/feedback/out/` | PENDING |
+| F4 | Crear feedback out `BE-NNN-critical-action-reason.md`; actualizar `feedback/README.md` | `doc/02-functional/frontend/feedback/` | PENDING |
 | F5 | Actualizar `entity-relationships.md` por la auto-FK `parent_event_id` en `audit_events` | `doc/08-reference/data/entity-relationships.md` | PENDING |
 
 ## Orden sugerido

@@ -20,7 +20,7 @@ capa Java y el baseline Flyway activo:
 
 ## Relaciones
 
-- **derivada de:** `doc/02-functional/frontend/feedback/in/UI-003-platform-billing-catalog-empty.md`
+- **derivada de:** `doc/02-functional/frontend/feedback/UI-003-platform-billing-catalog-empty.md`
 
 ## Solución aplicada
 

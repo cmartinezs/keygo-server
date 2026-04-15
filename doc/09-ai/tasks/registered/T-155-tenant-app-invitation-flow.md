@@ -387,7 +387,7 @@ CREATE TABLE app_membership_invitations (
 | 8 | Crear controller: `TenantAppInvitationController` con todos los endpoints | `keygo-api/membership/controller/` | PENDING |
 | 9 | Registrar endpoints públicos en `SecurityConfig` | `keygo-run/.../SecurityConfig.java` | PENDING |
 | 10 | Crear email template de invitación en `EmailNotificationPort` | `keygo-infra/notification/` | PENDING |
-| 11 | Crear feedback out `BE-009` en `doc/02-functional/frontend/feedback/out/` | `BE-009-tenant-app-invitation-flow.md` | APPLIED |
+| 11 | Crear feedback out `BE-009` en `doc/02-functional/frontend/feedback/` | `BE-009-tenant-app-invitation-flow.md` | APPLIED |
 | 12 | Actualizar Postman con flujo completo de invitación | Colección Postman | PENDING |
 | 13 | Actualizar docs: `data-model.md`, `entity-relationships.md`, `migrations.md` | `doc/08-reference/data/` | PENDING |
 

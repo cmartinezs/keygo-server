@@ -247,8 +247,8 @@ Razón: <!-- por qué este orden y no otro. -->
 ## Feedback de salida a UI (si aplica)
 
 <!-- Si el RFC introduce o modifica endpoints consumibles por UI, crear:
-     doc/02-functional/frontend/feedback/out/BE-NNN-<slug>.md
-     y actualizar su README.md. -->
+     doc/02-functional/frontend/feedback/BE-NNN-<slug>.md
+     y actualizar feedback/README.md. -->
 
 - [ ] `BE-NNN-<slug>.md` pendiente de crear al implementar la fase correspondiente.
 

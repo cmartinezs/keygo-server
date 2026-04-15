@@ -17,7 +17,7 @@ por lo que había drift entre contrato documentado y comportamiento real del bac
 
 ## Relaciones
 
-- **derivada de:** `doc/02-functional/frontend/feedback/in/UI-001-missing-platform-users-list-endpoint.md`
+- **derivada de:** `doc/02-functional/frontend/feedback/UI-001-platform-users-list-endpoint.md`
 
 ## Solución aplicada
 

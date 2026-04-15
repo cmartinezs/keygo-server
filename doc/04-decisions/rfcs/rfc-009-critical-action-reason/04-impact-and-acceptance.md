@@ -46,17 +46,17 @@ que no pertenecen al catálogo de acciones críticas.
 - [ ] `doc/08-reference/data/data-model.md` — columnas `reason` y `parent_event_id` en `audit_events`
 - [ ] `doc/08-reference/data/entity-relationships.md` — auto-FK `parent_event_id → audit_events.id`
 - [ ] `doc/02-functional/frontend/frontend-developer-guide.md` — campo `reason`, headers `X-Audit-*`, distinción directo vs. consecuente
-- [ ] `doc/02-functional/frontend/feedback/out/BE-NNN-critical-action-reason.md` — notificar a UI
+- [ ] `doc/02-functional/frontend/feedback/BE-NNN-critical-action-reason.md` — notificar a UI
 
 ## Feedback de salida a UI
 
 Al completar la Fase E, crear:
 
-- [ ] `BE-NNN-critical-action-reason.md` en `doc/02-functional/frontend/feedback/out/` con:
+- [ ] `BE-NNN-critical-action-reason.md` en `doc/02-functional/frontend/feedback/` con:
   - Lista de endpoints que requieren `reason` en el body.
   - Descripción de los headers `X-Audit-Actor-Type` y `X-Audit-Parent-Event-Id`.
   - Ejemplo de flujo directo + consecuente con `parentEventId` propagado.
-- [ ] Actualizar índice `doc/02-functional/frontend/feedback/out/README.md`.
+- [ ] Actualizar índice `doc/02-functional/frontend/feedback/README.md`.
 
 ## Criterios de aceptación
 

@@ -251,7 +251,7 @@ Opciones:
 | 1 | Decidir política de Membership automática (A/B/C/D) | — | PENDING |
 | 2 | Si opción A/B/D: extender `VerifyEmailUseCase` para invocar `CreateMembershipUseCase` | `keygo-app/.../usecase/VerifyEmailUseCase.java` | PENDING |
 | 3 | Si opción D: agregar `registrationPolicy` a `ClientApp` domain + migración | `keygo-domain/clientapp/model/ClientApp.java` | PENDING |
-| 4 | Crear feedback out `BE-008` en `doc/02-functional/frontend/feedback/out/` | `BE-008-tenant-app-self-registration.md` | APPLIED |
+| 4 | Crear feedback out `BE-008` en `doc/02-functional/frontend/feedback/` | `BE-008-tenant-app-self-registration.md` | APPLIED |
 | 5 | Actualizar Postman con los tres endpoints de este flujo | Colección Postman tenant flows | PENDING |
 
 ## Guía de verificación

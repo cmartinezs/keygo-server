@@ -121,7 +121,7 @@ curl -X POST "http://localhost:8080/keygo-server/api/v1/platform/account/check-e
   `PlatformAuthControllerTest` y `BootstrapAdminKeyFilterTest`, además de agregar test unitario
   para el nuevo use case.
 - **Drift documental detectado:** `doc/06-quality/security-guidelines.md` y
-  `doc/02-functional/frontend/feedback/out/BE-001-check-email-endpoint.md` ya describen este
+  `doc/02-functional/frontend/feedback/BE-001-check-email-endpoint.md` ya describen este
   endpoint como esperado, aunque todavía no existe en código.
 - **Ajuste al plan documental:** la referencia previa a
   `doc/02-functional/frontend/frontend-developer-guide.md` está obsoleta; la documentación viva

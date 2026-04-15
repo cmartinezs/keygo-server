@@ -76,7 +76,7 @@ Authorization: Bearer <platform-token>  (KEYGO_ADMIN o KEYGO_ACCOUNT_ADMIN)
 6. `APPLIED` — Asegurar `@PreAuthorize` con `KEYGO_ADMIN` o `KEYGO_ACCOUNT_ADMIN`.
 7. `APPLIED` — Agregar OpenAPI (`@Operation`, `@ApiResponse`) y actualizar Postman.
 8. `APPLIED` — Actualizar `doc/02-functional/frontend/08-endpoints-admin.md`.
-9. `APPLIED` — Crear `doc/02-functional/frontend/feedback/out/BE-006-platform-roles-catalog-endpoint.md` notificando a UI la disponibilidad del endpoint y actualizar el índice en `doc/02-functional/frontend/feedback/out/README.md`.
+9. `APPLIED` — Crear `doc/02-functional/frontend/feedback/BE-006-platform-roles-catalog-endpoint.md` notificando a UI la disponibilidad del endpoint y actualizar el índice en `doc/02-functional/frontend/feedback/README.md`.
 
 ## Notas de análisis
 

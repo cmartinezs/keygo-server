@@ -85,7 +85,7 @@ Todos los archivos de tarea viven en `doc/09-ai/tasks/`.
 | 1 | <!-- descripción --> | <!-- ruta --> | PENDING |
 
 <!-- Regla: si el endpoint es consumible por UI, el último paso SIEMPRE debe ser:
-     "Crear feedback out BE-NNN en doc/02-functional/frontend/feedback/out/ y actualizar su README.md" -->
+     "Crear feedback out BE-NNN en doc/02-functional/frontend/feedback/ y actualizar feedback/README.md" -->
 
 ## Guía de verificación
 
