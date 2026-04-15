@@ -10,7 +10,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 Ver [TEMPLATE.md](TEMPLATE.md) para la plantilla completa, reglas de correlativo (`T-NNN` /
 `F-NNN`) y convenciones de nombre de archivo.
 
-El próximo correlativo disponible es **T-154** (y **F-043** para features de largo plazo).
+El próximo correlativo disponible es **T-156** (y **F-043** para features de largo plazo).
 
 ## Estructura de carpetas por estado
 
@@ -81,6 +81,8 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-149](registered/T-149-docker-native-image.md) | Imagen Docker optimizada con compilación nativa GraalVM (multi-stage, distroless, arranque < 500 ms) |
 | [T-151](registered/T-151-deployment-cicd-strategy.md) | Estrategia de despliegue (develop/test/prod), decisión cloud/PaaS y pipeline CI/CD completo |
 | [T-152](registered/T-152-prod-safe-application-config.md) | Externalizar config unsafe (`mock-payment`, `method-logging`, actuator) y crear perfiles `develop`/`test`/`prod` |
+| [T-154](registered/T-154-tenant-app-open-registration-flow.md) | Flujo de self-registro abierto a app de tenant — secuencia de endpoints, datos y feedback out BE-008 para UI |
+| [T-155](registered/T-155-tenant-app-invitation-flow.md) | Flujo de invitación admin a app de tenant — nuevos endpoints, migración V24 y feedback out BE-009 para UI |
 | [T-013](registered/T-013-testcontainers-supabase.md) | Testcontainers para adapters de `keygo-supabase` |
 | [T-025](registered/T-025-testcontainers-tenant-flow.md) | Testcontainers: flujo completo de tenant |
 | [T-031](registered/T-031-ci-markdown-links.md) | CI: verificación automática de links Markdown |
