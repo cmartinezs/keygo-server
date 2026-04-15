@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.platform.controller;
 
-import io.cmartinezs.keygo.api.error.UnauthorizedException;
 import io.cmartinezs.keygo.api.platform.request.PlatformRevokeTokenRequest;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
@@ -24,19 +23,19 @@ import io.cmartinezs.keygo.app.user.usecase.RecoverPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdatePlatformUserProfileUseCase;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -212,7 +211,6 @@ public class PlatformAccountController {
    *
    * <p>Retorna el perfil completo del usuario de plataforma autenticado.
    *
-   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
    * @return perfil completo del platform user
    */
   @GetMapping("/account/profile")
@@ -228,14 +226,10 @@ public class PlatformAccountController {
   @ApiResponse(responseCode = "404",
       description = "Platform user not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<UserProfileData>> getProfile(
-      @Parameter(description = "Bearer access token") @RequestHeader(value = "Authorization", required = false)
-      String authorization) {
-
-    String bearerToken = extractBearerToken(authorization);
+  public ResponseEntity<BaseResponse<UserProfileData>> getProfile() {
 
     UserProfileResult result = getPlatformUserProfileUseCase.execute(
-        new GetPlatformUserProfileCommand(bearerToken));
+        new GetPlatformUserProfileCommand(extractUserId()));
 
     return ResponseEntity.status(HttpStatus.OK).body(
         BaseResponse.<UserProfileData>builder()
@@ -252,8 +246,7 @@ public class PlatformAccountController {
    * <p>Actualiza parcialmente el perfil del usuario de plataforma autenticado.
    * Solo se actualizan los campos enviados (no-nulos) — semántica PATCH.
    *
-   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
-   * @param request       campos de perfil a actualizar (todos opcionales)
+   * @param request campos de perfil a actualizar (todos opcionales)
    * @return perfil actualizado del platform user
    */
   @PatchMapping("/account/profile")
@@ -271,15 +264,11 @@ public class PlatformAccountController {
       description = "Platform user not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserProfileData>> updateProfile(
-      @Parameter(description = "Bearer access token") @RequestHeader(value = "Authorization", required = false)
-      String authorization,
       @Valid @RequestBody UpdateUserProfileRequest request) {
-
-    String bearerToken = extractBearerToken(authorization);
 
     UserProfileResult result = updatePlatformUserProfileUseCase.execute(
         new UpdatePlatformUserProfileCommand(
-            bearerToken,
+            extractUserId(),
             request.firstName(), request.lastName(),
             request.phoneNumber(), request.locale(), request.zoneinfo(),
             request.profilePictureUrl()));
@@ -293,12 +282,10 @@ public class PlatformAccountController {
 
   // ─── Private helpers ──────────────────────────────────────────────────────
 
-  private String extractBearerToken(String authorization) {
-    if (authorization == null || !authorization.startsWith("Bearer ")) {
-      throw new UnauthorizedException(
-          "Missing or invalid Authorization header. Expected: Bearer <access_token>");
-    }
-    return authorization.substring("Bearer ".length()).trim();
+  @SuppressWarnings("unchecked")
+  private String extractUserId() {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    return (String) ((Map<String, Object>) auth.getPrincipal()).get("sub");
   }
 
   private UserProfileData toData(UserProfileResult result) {

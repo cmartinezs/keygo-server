@@ -804,24 +804,16 @@ public class ApplicationConfig {
 
   @Bean
   public GetUserProfileUseCase getUserProfileUseCase(
-      SigningKeyRepositoryPort signingKeyRepositoryPort,
-      AccessTokenVerifierPort accessTokenVerifierPort,
       UserRepositoryPort userRepositoryPort,
       TenantRepositoryPort tenantRepositoryPort) {
-    return new GetUserProfileUseCase(
-        signingKeyRepositoryPort, accessTokenVerifierPort,
-        userRepositoryPort, tenantRepositoryPort);
+    return new GetUserProfileUseCase(userRepositoryPort, tenantRepositoryPort);
   }
 
   @Bean
   public UpdateUserProfileUseCase updateUserProfileUseCase(
-      SigningKeyRepositoryPort signingKeyRepositoryPort,
-      AccessTokenVerifierPort accessTokenVerifierPort,
       UserRepositoryPort userRepositoryPort,
       TenantRepositoryPort tenantRepositoryPort) {
-    return new UpdateUserProfileUseCase(
-        signingKeyRepositoryPort, accessTokenVerifierPort,
-        userRepositoryPort, tenantRepositoryPort);
+    return new UpdateUserProfileUseCase(userRepositoryPort, tenantRepositoryPort);
   }
 
   // ─── Fase 8: Client Credentials grant ────────────────────────────────────
@@ -1193,20 +1185,14 @@ public class ApplicationConfig {
 
   @Bean
   public GetPlatformUserProfileUseCase getPlatformUserProfileUseCase(
-      SigningKeyRepositoryPort signingKeyRepository,
-      AccessTokenVerifierPort accessTokenVerifier,
       PlatformUserRepositoryPort platformUserRepository) {
-    return new GetPlatformUserProfileUseCase(
-        signingKeyRepository, accessTokenVerifier, platformUserRepository);
+    return new GetPlatformUserProfileUseCase(platformUserRepository);
   }
 
   @Bean
   public UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase(
-      SigningKeyRepositoryPort signingKeyRepository,
-      AccessTokenVerifierPort accessTokenVerifier,
       PlatformUserRepositoryPort platformUserRepository) {
-    return new UpdatePlatformUserProfileUseCase(
-        signingKeyRepository, accessTokenVerifier, platformUserRepository);
+    return new UpdatePlatformUserProfileUseCase(platformUserRepository);
   }
 
   // ─── Platform Config Port ───────────────────────────────────────────────

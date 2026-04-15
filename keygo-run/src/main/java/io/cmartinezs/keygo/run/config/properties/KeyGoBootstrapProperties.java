@@ -84,10 +84,6 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de reenvío de verificación que es público. */
   private String resendVerificationPathSuffix;
 
-  /* Account profile path suffix that is public (validated via Bearer token).
-   * Sufijo de ruta de perfil de cuenta que es público (validado vía Bearer token). */
-  private String accountProfilePathSuffix;
-
   /* OAuth2 authorize path suffix that is public (browser navigates here to start the flow).
    * Sufijo de ruta authorize que es público (el navegador navega aquí para iniciar el flujo). */
   private String authorizePathSuffix;

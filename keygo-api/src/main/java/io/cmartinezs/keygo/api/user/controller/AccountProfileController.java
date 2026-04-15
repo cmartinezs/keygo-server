@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.api.user.controller;
 
-import io.cmartinezs.keygo.api.error.UnauthorizedException;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
@@ -18,8 +17,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -31,16 +32,15 @@ import org.springframework.web.bind.annotation.*;
  *   <li>PATCH /api/v1/tenants/{tenantSlug}/account/profile — actualizar propio perfil</li>
  * </ul>
  *
- * <p>Ambos endpoints requieren {@code Authorization: Bearer <access_token>}.
- * No requieren {@code X-KEYGO-ADMIN} — son endpoints de usuario final, no de administración.
- * El filtro {@code BootstrapAdminKeyFilter} los declara públicos vía sufijo {@code /account/profile}.
+ * <p>Ambos endpoints requieren {@code Authorization: Bearer <access_token>}, verificado
+ * por {@code BootstrapAdminKeyFilter}. El {@code sub} (userId) se extrae del SecurityContext.
  *
  * @author cmartinezs
  * @version 1.0
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantSlug}/account/profile")
-@Tag(name = "Account Profile", description = "Self-service profile management — requires Bearer token (no X-KEYGO-ADMIN)")
+@Tag(name = "Account Profile", description = "Self-service profile management — requires Bearer token")
 public class AccountProfileController {
 
   private final GetUserProfileUseCase getUserProfileUseCase;
@@ -58,8 +58,7 @@ public class AccountProfileController {
    *
    * <p>Retorna el perfil completo del usuario autenticado (todos los campos OIDC extendidos).
    *
-   * @param tenantSlug    slug del tenant
-   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
+   * @param tenantSlug slug del tenant
    * @return perfil completo del usuario
    */
   @GetMapping
@@ -73,13 +72,10 @@ public class AccountProfileController {
   @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserProfileData>> getProfile(
-      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
-      @RequestHeader(value = "Authorization", required = false) String authorization) {
-
-    String bearerToken = extractBearerToken(authorization);
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug) {
 
     UserProfileResult result = getUserProfileUseCase.execute(
-        new GetUserProfileCommand(tenantSlug, bearerToken));
+        new GetUserProfileCommand(tenantSlug, extractUserId()));
 
     return ResponseEntity.status(HttpStatus.OK).body(
         BaseResponse.<UserProfileData>builder()
@@ -94,9 +90,8 @@ public class AccountProfileController {
    * <p>Actualiza parcialmente el perfil del usuario autenticado.
    * Solo se actualizan los campos enviados (no-nulos) — semántica PATCH.
    *
-   * @param tenantSlug    slug del tenant
-   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
-   * @param request       campos de perfil a actualizar (todos opcionales)
+   * @param tenantSlug slug del tenant
+   * @param request    campos de perfil a actualizar (todos opcionales)
    * @return perfil actualizado del usuario
    */
   @PatchMapping
@@ -112,14 +107,11 @@ public class AccountProfileController {
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   public ResponseEntity<BaseResponse<UserProfileData>> updateProfile(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
-      @RequestHeader(value = "Authorization", required = false) String authorization,
       @Valid @RequestBody UpdateUserProfileRequest request) {
-
-    String bearerToken = extractBearerToken(authorization);
 
     UserProfileResult result = updateUserProfileUseCase.execute(
         new UpdateUserProfileCommand(
-            tenantSlug, bearerToken,
+            tenantSlug, extractUserId(),
             request.firstName(), request.lastName(),
             request.phoneNumber(), request.locale(), request.zoneinfo(),
             request.profilePictureUrl(), request.birthdate(), request.website()));
@@ -133,12 +125,10 @@ public class AccountProfileController {
 
   // ─── Private helpers ──────────────────────────────────────────────────────
 
-  private String extractBearerToken(String authorization) {
-    if (authorization == null || !authorization.startsWith("Bearer ")) {
-      throw new UnauthorizedException(
-          "Missing or invalid Authorization header. Expected: Bearer <access_token>");
-    }
-    return authorization.substring("Bearer ".length()).trim();
+  @SuppressWarnings("unchecked")
+  private String extractUserId() {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    return (String) ((Map<String, Object>) auth.getPrincipal()).get("sub");
   }
 
   private UserProfileData toData(UserProfileResult result) {

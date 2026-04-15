@@ -39,7 +39,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * <ul>
  *   <li>/actuator/**, /service/info**, /swagger-ui**, /v3/api-docs**, /.well-known</li>
  *   <li>Suffixes: /userinfo, /oauth2/revoke, /register, /verify-email, /resend-verification,
- *       /account/profile, /oauth2/authorize, /account/login, /oauth2/token</li>
+ *       /oauth2/authorize, /account/login, /oauth2/token</li>
  * </ul>
  */
 @Slf4j
@@ -152,7 +152,6 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasSuffix(path, bootstrapProperties.getRegisterPathSuffix())
         || hasSuffix(path, bootstrapProperties.getVerifyEmailPathSuffix())
         || hasSuffix(path, bootstrapProperties.getResendVerificationPathSuffix())
-        || hasSuffix(path, bootstrapProperties.getAccountProfilePathSuffix())
         || hasSuffix(path, bootstrapProperties.getAuthorizePathSuffix())
         || hasSuffix(path, bootstrapProperties.getLoginPathSuffix())
         || hasSuffix(path, bootstrapProperties.getTokenPathSuffix())

@@ -4,11 +4,12 @@ package io.cmartinezs.keygo.app.user.command;
  * Comando para actualizar el perfil del usuario autenticado (self-service).
  *
  * <p>Utilizado por el endpoint {@code PATCH /api/v1/tenants/{slug}/account/profile}.
- * El Bearer token se verifica para extraer el {@code sub} (UUID del usuario).
+ * El {@code sub} (UUID del usuario) es extraído del SecurityContext por el controller
+ * antes de construir este comando — el filtro ya verificó el token.
  * Solo se actualizan los campos no-nulos — null significa "no cambiar".
  *
  * @param tenantSlug        slug del tenant
- * @param bearerToken       access_token JWT extraído del header Authorization
+ * @param userId            UUID del usuario autenticado (claim {@code sub} del JWT)
  * @param firstName         nuevo nombre (null = no cambiar)
  * @param lastName          nuevo apellido (null = no cambiar)
  * @param phoneNumber       OIDC phone_number (null = no cambiar)
@@ -22,7 +23,7 @@ package io.cmartinezs.keygo.app.user.command;
  */
 public record UpdateUserProfileCommand(
     String tenantSlug,
-    String bearerToken,
+    String userId,
     String firstName,
     String lastName,
     String phoneNumber,
@@ -31,4 +32,3 @@ public record UpdateUserProfileCommand(
     String profilePictureUrl,
     String birthdate,
     String website) {}
-

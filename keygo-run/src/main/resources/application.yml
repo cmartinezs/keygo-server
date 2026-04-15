@@ -32,7 +32,6 @@ keygo:
     register-path-suffix: "/register"
     verify-email-path-suffix: "/verify-email"
     resend-verification-path-suffix: "/resend-verification"
-    account-profile-path-suffix: "/account/profile"
     authorize-path-suffix: "/oauth2/authorize"
     login-path-suffix: "/account/login"
     token-path-suffix: "/oauth2/token"
