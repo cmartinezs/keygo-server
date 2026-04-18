@@ -3,12 +3,18 @@ package io.cmartinezs.keygo.supabase.tenant.adapter;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
+import io.cmartinezs.keygo.domain.clientapp.model.RegistrationPolicy;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
+import io.cmartinezs.keygo.supabase.clientapp.entity.ClientAppEntity;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import io.cmartinezs.keygo.supabase.tenant.mapper.TenantPersistenceMapper;
 import io.cmartinezs.keygo.supabase.tenant.repository.TenantJpaRepository;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -18,6 +24,7 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Adapter implementing TenantRepositoryPort using Spring Data JPA.
@@ -45,6 +52,11 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
   @Override
   public Optional<Tenant> findBySlug(TenantSlug slug) {
     return jpaRepository.findBySlug(slug.value()).map(mapper::toDomain);
+  }
+
+  @Override
+  public Optional<Tenant> findById(TenantId id) {
+    return jpaRepository.findById(id.value()).map(mapper::toDomain);
   }
 
   @Override
@@ -81,6 +93,20 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
             cb.lower(root.get("name")),
             "%" + filter.getNameLike().toLowerCase() + "%"
         ));
+      }
+
+      if (filter.isOnlyWithPublicRegistration()) {
+        Subquery<UUID> sub = query.subquery(UUID.class);
+        var appRoot = sub.from(ClientAppEntity.class);
+        sub.select(appRoot.get("id"));
+        sub.where(
+            cb.equal(appRoot.get("tenant"), root),
+            cb.equal(appRoot.get("type"), ClientType.PUBLIC),
+            cb.equal(appRoot.get("status"), ClientAppStatus.ACTIVE),
+            appRoot.get("registrationPolicy").in(
+                List.of(RegistrationPolicy.OPEN_AUTO_ACTIVE, RegistrationPolicy.OPEN_AUTO_PENDING))
+        );
+        predicates.add(cb.exists(sub));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));

@@ -27,15 +27,13 @@ import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListPlatformUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendPlatformUserUseCase;
-import io.cmartinezs.keygo.domain.membership.model.PlatformRoleId;
-import io.cmartinezs.keygo.domain.membership.model.PlatformUserRole;
-import io.cmartinezs.keygo.domain.membership.model.PlatformUserRoleId;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -264,14 +262,9 @@ class PlatformUserControllerTest {
   @DisplayName("POST /platform/users/{userId}/platform-roles should return 200")
   void shouldAssignPlatformRoleAndReturn200() {
     // Given
-    AssignPlatformRoleRequest request = new AssignPlatformRoleRequest("keygo_admin");
-    PlatformUserRole role = PlatformUserRole.builder()
-        .id(PlatformUserRoleId.of(UUID.randomUUID()))
-        .userId(UserId.of(USER_ID))
-        .platformRoleId(PlatformRoleId.of(UUID.randomUUID()))
-        .build();
+    AssignPlatformRoleRequest request = new AssignPlatformRoleRequest(List.of("keygo_admin"));
     when(assignPlatformRoleUseCase.execute(any(AssignPlatformRoleCommand.class)))
-        .thenReturn(role);
+        .thenReturn(List.of());
 
     // When
     ResponseEntity<BaseResponse<Void>> response =

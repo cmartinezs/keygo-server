@@ -30,6 +30,7 @@ keygo:
     userinfo-path-suffix: "/userinfo"
     revocation-path-suffix: "/oauth2/revoke"
     register-path-suffix: "/register"
+    registration-path-suffix: "/registration"
     verify-email-path-suffix: "/verify-email"
     resend-verification-path-suffix: "/resend-verification"
     authorize-path-suffix: "/oauth2/authorize"
@@ -54,6 +55,8 @@ keygo:
     platform-check-email-path-prefix: "/api/v1/platform/account/check-email"
     platform-recover-password-path-prefix: "/api/v1/platform/account/recover-password"
     platform-reset-password-path-prefix: "/api/v1/platform/account/reset-password"
+    # Public discovery endpoints (no Bearer required — self-registration flow)
+    public-discovery-path-suffix: "/public"
   tracing:
     # Habilita el log DEBUG de input/output por método (KeyGoTracingAspect).
     # Requiere que el nivel DEBUG esté activo para io.cmartinezs.keygo en logback-spring.xml.
@@ -77,7 +80,8 @@ keygo:
       verify-email:
         route: "/verify-email"
         query-params:
-          - email
+          - registration_id
+          - client_id
       reset-password:
         route: "/reset-password"
         query-params:

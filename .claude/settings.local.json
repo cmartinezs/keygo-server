@@ -17,7 +17,11 @@
       "Bash(xargs ls *)",
       "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -q)",
       "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -Djacoco.skip=true -q)",
-      "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -Djacoco.skip=true)"
+      "Bash(./mvnw -pl keygo-app test -Dtest=UserProfileUseCaseTest -Djacoco.skip=true)",
+      "Bash(./mvnw test *)",
+      "Bash(python3 *)",
+      "Bash(./mvnw install *)",
+      "Bash(./mvnw compile *)"
     ]
   }
 }

@@ -31,10 +31,20 @@ public class TenantFilter extends PageFilter {
    */
   private final String nameLike;
 
-  private TenantFilter(TenantStatus status, String nameLike, int page, int size, String sortBy, String sortOrder) {
+  /**
+   * When true, only tenants that have at least one PUBLIC+ACTIVE app with
+   * registration_policy IN (OPEN_AUTO_ACTIVE, OPEN_AUTO_PENDING) are returned.
+   * Used by the public discovery endpoint to avoid showing tenants where
+   * self-registration would lead to a dead end.
+   */
+  private final boolean onlyWithPublicRegistration;
+
+  private TenantFilter(TenantStatus status, String nameLike, boolean onlyWithPublicRegistration,
+                       int page, int size, String sortBy, String sortOrder) {
     super(page, size, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
     this.status = status;
     this.nameLike = (nameLike != null && nameLike.isBlank()) ? null : nameLike;
+    this.onlyWithPublicRegistration = onlyWithPublicRegistration;
   }
 
   /**
@@ -49,7 +59,24 @@ public class TenantFilter extends PageFilter {
    * @return a new TenantFilter
    */
   public static TenantFilter of(TenantStatus status, String nameLike, int page, int size, String sortBy, String sortOrder) {
-    return new TenantFilter(status, nameLike, page, size, sortBy, sortOrder);
+    return new TenantFilter(status, nameLike, false, page, size, sortBy, sortOrder);
+  }
+
+  /**
+   * Create a TenantFilter for public discovery: only tenants with at least one
+   * self-registerable app (PUBLIC + ACTIVE + policy OPEN_AUTO_ACTIVE or OPEN_AUTO_PENDING).
+   *
+   * @param status   optional status filter
+   * @param nameLike optional partial name filter (case-insensitive)
+   * @param page     zero-based page index (must be &ge; 0)
+   * @param size     page size (1–200)
+   * @param sortBy   sortable field name or null
+   * @param sortOrder "ASC" or "DESC"
+   * @return a new TenantFilter with onlyWithPublicRegistration = true
+   */
+  public static TenantFilter forPublicDiscovery(TenantStatus status, String nameLike,
+                                                int page, int size, String sortBy, String sortOrder) {
+    return new TenantFilter(status, nameLike, true, page, size, sortBy, sortOrder);
   }
 
   /**
@@ -64,10 +91,10 @@ public class TenantFilter extends PageFilter {
    */
   @Deprecated(forRemoval = false)
   public static TenantFilter of(TenantStatus status, String nameLike, int page, int size) {
-    return new TenantFilter(status, nameLike, page, size, null, null);
+    return new TenantFilter(status, nameLike, false, page, size, null, null);
   }
 
-    /** Returns true if a status filter is active. */
+  /** Returns true if a status filter is active. */
   public boolean hasStatus() {
     return status != null;
   }

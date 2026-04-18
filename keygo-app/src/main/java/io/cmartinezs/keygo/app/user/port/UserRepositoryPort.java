@@ -37,6 +37,14 @@ public interface UserRepositoryPort {
   Optional<User> findByIdAndTenantId(UserId userId, TenantId tenantId);
 
   /**
+   * Find a user by its UUID (without tenant scope, for platform-level lookups).
+   * <p>Busca un usuario por su UUID (sin scope de tenant, para búsquedas a nivel plataforma).
+   * @param userId the user identifier
+   * @return an Optional containing the user if found
+   */
+  Optional<User> findById(UserId userId);
+
+  /**
    * Find a user by email within a tenant.
    * <p>Busca un usuario por email dentro de un tenant.
    * @param tenantId the tenant scope
@@ -80,6 +88,15 @@ public interface UserRepositoryPort {
    * @return true if a user with that username exists in the tenant
    */
   boolean existsByTenantIdAndUsername(TenantId tenantId, Username username);
+
+  /**
+   * Find all usernames that start with the given prefix within a tenant.
+   * <p>Busca todos los usernames que empiezan con el prefijo dado dentro de un tenant.
+   * @param tenantId the tenant scope
+   * @param prefix  the username prefix to search for
+   * @return list of usernames matching the prefix (may be empty)
+   */
+  List<Username> findUsernamesByPrefix(TenantId tenantId, String prefix);
 
   /**
    * Find all users belonging to a tenant.

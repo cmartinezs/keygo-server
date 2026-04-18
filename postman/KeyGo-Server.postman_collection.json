@@ -3525,6 +3525,143 @@
       ]
     },
     {
+      "name": "Public Discovery",
+      "item": [
+        {
+          "name": "GET List Public Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/public?page=0&size=50",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "public"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Zero-based page number"
+                },
+                {
+                  "key": "size",
+                  "value": "50",
+                  "description": "Page size (1-200)"
+                },
+                {
+                  "key": "name_like",
+                  "value": "",
+                  "description": "Partial match on tenant name (case-insensitive)",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "name",
+                  "description": "Sort field: name | status | createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "order",
+                  "value": "ASC",
+                  "description": "Sort order: ASC | DESC",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns active tenants available for self-registration. No authentication required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"BaseResponse success TENANT_LIST_RETRIEVED\", () => {",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.success).to.exist;",
+                  "  pm.expect(r.success.code).to.eql(\"TENANT_LIST_RETRIEVED\");",
+                  "  pm.expect(r.data.content).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET List Public Apps for Tenant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/tenants/{{tenantSlug}}/apps/public?page=0&size=50",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "{{tenantSlug}}",
+                "apps",
+                "public"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Zero-based page number"
+                },
+                {
+                  "key": "size",
+                  "value": "50",
+                  "description": "Page size (1-200)"
+                },
+                {
+                  "key": "sort",
+                  "value": "name",
+                  "description": "Sort field: name | status | createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "order",
+                  "value": "ASC",
+                  "description": "Sort order: ASC | DESC",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns PUBLIC-type active apps of the given tenant that allow open self-registration (registration_policy != INVITE_ONLY). No authentication required. Returns 404 if tenant is not found or not active."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"BaseResponse success CLIENT_APP_LIST_RETRIEVED\", () => {",
+                  "  const r = pm.response.json();",
+                  "  pm.expect(r.success).to.exist;",
+                  "  pm.expect(r.success.code).to.eql(\"CLIENT_APP_LIST_RETRIEVED\");",
+                  "  pm.expect(r.data.content).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Registration",
       "item": [
         {

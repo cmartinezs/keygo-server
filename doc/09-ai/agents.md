@@ -45,6 +45,7 @@ flowchart TD
 - Los atributos JSON de request body y response body deben escribirse en `snake_case`, no `camelCase`.
 - Entidades JPA: `@Getter @Setter @Builder`, nunca `@Data`.
 - Columnas JSONB: `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "jsonb")`.
+- **Identificadores primarios en parámetros:** controllers y orchestradores **nunca** reciben nombres, códigos u otras referencias como parámetros para relacionar entidades. El controller obtiene el `id` primario (UUID/Long/UserId/etc) consultando el puerto correspondiente **antes** de pasar al use case/orquestador. Esto mantiene la separación entre presentación y aplicación clara.
 - `context-path` activo: `/keygo-server`.
 - Seguridad admin vigente: `Authorization: Bearer <jwt>`.
 - Diagramas: Mermaid primero, PlantUML si Mermaid no aplica, ASCII solo como último recurso.

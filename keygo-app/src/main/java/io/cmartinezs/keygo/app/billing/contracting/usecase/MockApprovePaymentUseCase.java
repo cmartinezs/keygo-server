@@ -7,7 +7,8 @@ import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorUserRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
@@ -25,6 +26,7 @@ import io.cmartinezs.keygo.domain.user.model.Username;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -40,9 +42,14 @@ public class MockApprovePaymentUseCase {
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*";
   private static final int PASSWORD_LENGTH = 14;
 
+  private static final List<String> CONTRACTOR_ROLES = List.of(
+      PlatformRoleCode.KEYGO_ACCOUNT_ADMIN.code(),
+      PlatformRoleCode.KEYGO_USER.code()
+  );
+
   private final AppContractRepositoryPort contractRepo;
   private final PlatformUserRepositoryPort platformUserRepo;
-  private final PlatformUserRoleRepositoryPort platformUserRoleRepo;
+  private final AssignPlatformRoleUseCase assignPlatformRoleUseCase;
   private final ContractorRepositoryPort contractorRepo;
   private final ContractorUserRepositoryPort contractorUserRepo;
   private final CredentialEncoderPort credentialEncoder;
@@ -53,7 +60,7 @@ public class MockApprovePaymentUseCase {
   public MockApprovePaymentUseCase(
       AppContractRepositoryPort contractRepo,
       PlatformUserRepositoryPort platformUserRepo,
-      PlatformUserRoleRepositoryPort platformUserRoleRepo,
+      AssignPlatformRoleUseCase assignPlatformRoleUseCase,
       ContractorRepositoryPort contractorRepo,
       ContractorUserRepositoryPort contractorUserRepo,
       CredentialEncoderPort credentialEncoder,
@@ -61,7 +68,7 @@ public class MockApprovePaymentUseCase {
       boolean mockPaymentEnabled) {
     this.contractRepo = contractRepo;
     this.platformUserRepo = platformUserRepo;
-    this.platformUserRoleRepo = platformUserRoleRepo;
+    this.assignPlatformRoleUseCase = assignPlatformRoleUseCase;
     this.contractorRepo = contractorRepo;
     this.contractorUserRepo = contractorUserRepo;
     this.credentialEncoder = credentialEncoder;
@@ -106,7 +113,8 @@ public class MockApprovePaymentUseCase {
     }
 
     // (b) Asignar roles de plataforma
-    assignPlatformRoles(platformUser.getId().value());
+    assignPlatformRoleUseCase.execute(
+        new AssignPlatformRoleCommand(platformUser.getId().value(), CONTRACTOR_ROLES));
 
     // (c) Resolver/crear contractor
     Contractor contractor = resolveOrCreateContractor(currentContract, platformUser.getId().value());
@@ -138,15 +146,6 @@ public class MockApprovePaymentUseCase {
             .firstName(contract.getContractorFirstName())
             .lastName(contract.getContractorLastName())
             .build());
-  }
-
-  private void assignPlatformRoles(UUID platformUserId) {
-    if (!platformUserRoleRepo.hasRole(platformUserId, PlatformRoleCode.KEYGO_ACCOUNT_ADMIN.code())) {
-      platformUserRoleRepo.assign(platformUserId, PlatformRoleCode.KEYGO_ACCOUNT_ADMIN.code());
-    }
-    if (!platformUserRoleRepo.hasRole(platformUserId, PlatformRoleCode.KEYGO_USER.code())) {
-      platformUserRoleRepo.assign(platformUserId, PlatformRoleCode.KEYGO_USER.code());
-    }
   }
 
   private Contractor resolveOrCreateContractor(AppContract contract, UUID platformUserId) {

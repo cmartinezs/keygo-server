@@ -14,6 +14,7 @@ import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredExceptio
 import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
+import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.VerificationCode;
 import io.cmartinezs.keygo.domain.user.model.VerificationPurpose;
 import io.cmartinezs.keygo.domain.user.model.User;
@@ -66,24 +67,36 @@ public class VerifyEmailUseCase {
     clientAppRepositoryPort.findByClientIdAndTenantId(ClientId.of(command.clientId()), tenant.getId())
         .orElseThrow(() -> new ClientAppNotFoundException(command.clientId()));
 
-    // 2. Find user by email
-    EmailAddress email = EmailAddress.of(command.email());
-    User user = userRepositoryPort.findByTenantIdAndEmail(tenant.getId(), email)
-        .orElseThrow(() -> new UserNotFoundException("email", command.email()));
+    // 2. Find user by email OR registrationId
+    User user;
+    String lookupValue;
+
+    if (command.registrationId() != null && !command.registrationId().isBlank()) {
+      user = userRepositoryPort.findByIdAndTenantId(UserId.of(command.registrationId()), tenant.getId())
+          .orElseThrow(() -> new UserNotFoundException("id", command.registrationId()));
+      lookupValue = command.registrationId();
+    } else if (command.email() != null && !command.email().isBlank()) {
+      EmailAddress email = EmailAddress.of(command.email());
+      user = userRepositoryPort.findByTenantIdAndEmail(tenant.getId(), email)
+          .orElseThrow(() -> new UserNotFoundException("email", command.email()));
+      lookupValue = command.email();
+    } else {
+      throw new IllegalArgumentException("Either email or registrationId is required");
+    }
 
     // 3. Retrieve latest verification
     VerificationCode verification = verificationCodeRepositoryPort
         .findByUserIdAndPurpose(user.getId(), VerificationPurpose.EMAIL_VERIFICATION)
-        .orElseThrow(() -> new VerificationCodeInvalidException(VerificationPurpose.EMAIL_VERIFICATION, command.email()));
+        .orElseThrow(() -> new VerificationCodeInvalidException(VerificationPurpose.EMAIL_VERIFICATION, lookupValue));
 
     // 4. Check expiry first (expiry takes priority over wrong code)
     if (verification.isExpired()) {
-      throw new VerificationCodeExpiredException(VerificationPurpose.EMAIL_VERIFICATION, command.email());
+      throw new VerificationCodeExpiredException(VerificationPurpose.EMAIL_VERIFICATION, lookupValue);
     }
 
     // 5. Check if already used or code mismatch
     if (verification.isUsed() || !verification.getCode().equals(command.code())) {
-      throw new VerificationCodeInvalidException(VerificationPurpose.EMAIL_VERIFICATION, command.email());
+      throw new VerificationCodeInvalidException(VerificationPurpose.EMAIL_VERIFICATION, lookupValue);
     }
 
     // 6. Mark used and activate user

@@ -5,12 +5,13 @@ import io.cmartinezs.keygo.app.membership.exception.PlatformRoleNotFoundExceptio
 import io.cmartinezs.keygo.app.membership.port.PlatformRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
 import io.cmartinezs.keygo.domain.membership.model.PlatformUserRole;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Use case: assign a platform role to a user.
- * <p>Caso de uso: asignar un rol de plataforma a un usuario.
- * Validates that the role exists before assigning it.
- * Idempotent: if already assigned, existing assignment is returned.
+ * Use case: assign one or more platform roles to a user.
+ * <p>Caso de uso: asignar uno o más roles de plataforma a un usuario.
+ * Validates that every role exists before assigning any. Idempotent: already-assigned roles are skipped.
  * @author cmartinezs
  * @version 1.0
  */
@@ -27,22 +28,23 @@ public class AssignPlatformRoleUseCase {
   }
 
   /**
-   * Assign the specified platform role to the given user.
-   * @param command assignment input (tenantUserId + roleCode)
-   * @return the created or existing PlatformUserRole assignment
+   * Assign all specified platform roles to the given user.
+   * @param command assignment input (platformUserId + roleCodes)
+   * @return list of newly created PlatformUserRole assignments (already-assigned roles are skipped)
    */
-  public PlatformUserRole execute(AssignPlatformRoleCommand command) {
-    if (!platformRoleRepositoryPort.existsByCode(command.roleCode())) {
-      throw new PlatformRoleNotFoundException(command.roleCode());
+  public List<PlatformUserRole> execute(AssignPlatformRoleCommand command) {
+    for (String roleCode : command.roleCodes()) {
+      if (!platformRoleRepositoryPort.existsByCode(roleCode)) {
+        throw new PlatformRoleNotFoundException(roleCode);
+      }
     }
 
-    if (platformUserRoleRepositoryPort.hasRole(command.tenantUserId(), command.roleCode())) {
-      return platformUserRoleRepositoryPort.findByPlatformUserId(command.tenantUserId()).stream()
-          .filter(r -> r.getPlatformRoleId() != null)
-          .findFirst()
-          .orElseThrow(() -> new PlatformRoleNotFoundException(command.roleCode()));
+    List<PlatformUserRole> assigned = new ArrayList<>();
+    for (String roleCode : command.roleCodes()) {
+      if (!platformUserRoleRepositoryPort.hasRole(command.platformUserId(), roleCode)) {
+        assigned.add(platformUserRoleRepositoryPort.assign(command.platformUserId(), roleCode));
+      }
     }
-
-    return platformUserRoleRepositoryPort.assign(command.tenantUserId(), command.roleCode());
+    return assigned;
   }
 }

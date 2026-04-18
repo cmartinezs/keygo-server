@@ -122,6 +122,16 @@ public class ClientAppRepositoryAdapter implements ClientAppRepositoryPort {
         ));
       }
 
+      // Filter by type (PUBLIC / CONFIDENTIAL)
+      if (filter.hasType()) {
+        predicates.add(cb.equal(root.get("type"), filter.getType()));
+      }
+
+      // Exclude apps whose registration policy is in the exclusion set (e.g., INVITE_ONLY, OPEN_NO_MEMBERSHIP)
+      if (filter.hasExcludeRegistrationPolicies()) {
+        predicates.add(root.get("registrationPolicy").in(filter.getExcludeRegistrationPolicies()).not());
+      }
+
       return cb.and(predicates.toArray(new Predicate[0]));
     };
   }

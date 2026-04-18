@@ -129,6 +129,7 @@ import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SendPlatformPasswordResetCodeUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ForgotPlatformPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetPlatformRegistrationInfoUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetPlatformUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RecoverPlatformPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetPlatformPasswordUseCase;
@@ -139,6 +140,7 @@ import io.cmartinezs.keygo.app.user.usecase.UpdateUserProfileUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
+import io.cmartinezs.keygo.app.user.orchestrator.SelfRegistrationOrchestrator;
 import io.cmartinezs.keygo.infra.adapter.notification.EmailNotificationAdapter;
 import io.cmartinezs.keygo.infra.auth.jwks.JwkSetBuilder;
 import io.cmartinezs.keygo.infra.auth.jwt.RsaJwtTokenSigner;
@@ -370,6 +372,26 @@ public class ApplicationConfig {
     return new VerifyEmailUseCase(
         tenantRepositoryPort, clientAppRepositoryPort,
         userRepositoryPort, verificationCodeRepositoryPort);
+  }
+
+  @Bean
+  public GetPlatformRegistrationInfoUseCase getPlatformRegistrationInfoUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      UserRepositoryPort userRepositoryPort) {
+    return new GetPlatformRegistrationInfoUseCase(
+        tenantRepositoryPort,
+        clientAppRepositoryPort,
+        userRepositoryPort);
+  }
+
+  @Bean
+  public SelfRegistrationOrchestrator selfRegistrationOrchestrator(
+      VerifyEmailUseCase verifyEmailUseCase,
+      CreateMembershipUseCase createMembershipUseCase,
+      ClientAppRepositoryPort clientAppRepositoryPort) {
+    return new SelfRegistrationOrchestrator(
+        verifyEmailUseCase, createMembershipUseCase, clientAppRepositoryPort);
   }
 
   @Bean
@@ -909,7 +931,7 @@ public class ApplicationConfig {
   public MockApprovePaymentUseCase mockApprovePaymentUseCase(
       AppContractRepositoryPort contractRepo,
       PlatformUserRepositoryPort platformUserRepositoryPort,
-      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort,
+      AssignPlatformRoleUseCase assignPlatformRoleUseCase,
       ContractorRepositoryPort contractorRepositoryPort,
       ContractorUserRepositoryPort contractorUserRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
@@ -918,7 +940,7 @@ public class ApplicationConfig {
     return new MockApprovePaymentUseCase(
         contractRepo,
         platformUserRepositoryPort,
-        platformUserRoleRepositoryPort,
+        assignPlatformRoleUseCase,
         contractorRepositoryPort,
         contractorUserRepositoryPort,
         credentialEncoderPort,
@@ -1079,9 +1101,9 @@ public class ApplicationConfig {
   public CreatePlatformUserUseCase createPlatformUserUseCase(
       PlatformUserRepositoryPort platformUserRepository,
       CredentialEncoderPort credentialEncoder,
-      PlatformUserRoleRepositoryPort platformUserRoleRepository) {
+      AssignPlatformRoleUseCase assignPlatformRoleUseCase) {
     return new CreatePlatformUserUseCase(
-        platformUserRepository, credentialEncoder, platformUserRoleRepository);
+        platformUserRepository, credentialEncoder, assignPlatformRoleUseCase);
   }
 
   @Bean

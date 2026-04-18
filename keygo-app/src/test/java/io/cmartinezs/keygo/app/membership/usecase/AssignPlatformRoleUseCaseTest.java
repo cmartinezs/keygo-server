@@ -10,9 +10,9 @@ import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
 import io.cmartinezs.keygo.app.membership.exception.PlatformRoleNotFoundException;
 import io.cmartinezs.keygo.app.membership.port.PlatformRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
+import io.cmartinezs.keygo.domain.membership.model.PlatformRoleId;
 import io.cmartinezs.keygo.domain.membership.model.PlatformUserRole;
 import io.cmartinezs.keygo.domain.membership.model.PlatformUserRoleId;
-import io.cmartinezs.keygo.domain.membership.model.PlatformRoleId;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +36,7 @@ class AssignPlatformRoleUseCaseTest {
   @Test
   void execute_whenRoleNotFound_throwsPlatformRoleNotFoundException() {
     // Given
-    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, ROLE_CODE);
+    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, List.of(ROLE_CODE));
     when(platformRoleRepositoryPort.existsByCode(ROLE_CODE)).thenReturn(false);
 
     // When / Then
@@ -48,31 +48,25 @@ class AssignPlatformRoleUseCaseTest {
   }
 
   @Test
-  void execute_whenAlreadyAssigned_returnsExisting() {
+  void execute_whenAlreadyAssigned_returnsEmptyList() {
     // Given
-    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, ROLE_CODE);
-    PlatformUserRole existing = PlatformUserRole.builder()
-        .id(PlatformUserRoleId.generate())
-        .userId(UserId.generate())
-        .platformRoleId(PlatformRoleId.generate())
-        .build();
+    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, List.of(ROLE_CODE));
 
     when(platformRoleRepositoryPort.existsByCode(ROLE_CODE)).thenReturn(true);
     when(platformUserRoleRepositoryPort.hasRole(USER_ID, ROLE_CODE)).thenReturn(true);
-    when(platformUserRoleRepositoryPort.findByPlatformUserId(USER_ID)).thenReturn(List.of(existing));
 
     // When
-    PlatformUserRole result = useCase.execute(command);
+    List<PlatformUserRole> result = useCase.execute(command);
 
     // Then
-    assertThat(result).isEqualTo(existing);
+    assertThat(result).isEmpty();
     verify(platformUserRoleRepositoryPort, never()).assign(USER_ID, ROLE_CODE);
   }
 
   @Test
-  void execute_whenNotAssigned_assignsRole() {
+  void execute_whenNotAssigned_assignsRoleAndReturnsIt() {
     // Given
-    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, ROLE_CODE);
+    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, List.of(ROLE_CODE));
     PlatformUserRole created = PlatformUserRole.builder()
         .id(PlatformUserRoleId.generate())
         .userId(UserId.generate())
@@ -84,10 +78,36 @@ class AssignPlatformRoleUseCaseTest {
     when(platformUserRoleRepositoryPort.assign(USER_ID, ROLE_CODE)).thenReturn(created);
 
     // When
-    PlatformUserRole result = useCase.execute(command);
+    List<PlatformUserRole> result = useCase.execute(command);
 
     // Then
-    assertThat(result).isEqualTo(created);
+    assertThat(result).containsExactly(created);
     verify(platformUserRoleRepositoryPort).assign(USER_ID, ROLE_CODE);
+  }
+
+  @Test
+  void execute_withMultipleRoles_assignsOnlyMissingOnes() {
+    // Given
+    String roleCode2 = "keygo_user";
+    AssignPlatformRoleCommand command = new AssignPlatformRoleCommand(USER_ID, List.of(ROLE_CODE, roleCode2));
+    PlatformUserRole created = PlatformUserRole.builder()
+        .id(PlatformUserRoleId.generate())
+        .userId(UserId.generate())
+        .platformRoleId(PlatformRoleId.generate())
+        .build();
+
+    when(platformRoleRepositoryPort.existsByCode(ROLE_CODE)).thenReturn(true);
+    when(platformRoleRepositoryPort.existsByCode(roleCode2)).thenReturn(true);
+    when(platformUserRoleRepositoryPort.hasRole(USER_ID, ROLE_CODE)).thenReturn(true);
+    when(platformUserRoleRepositoryPort.hasRole(USER_ID, roleCode2)).thenReturn(false);
+    when(platformUserRoleRepositoryPort.assign(USER_ID, roleCode2)).thenReturn(created);
+
+    // When
+    List<PlatformUserRole> result = useCase.execute(command);
+
+    // Then
+    assertThat(result).containsExactly(created);
+    verify(platformUserRoleRepositoryPort, never()).assign(USER_ID, ROLE_CODE);
+    verify(platformUserRoleRepositoryPort).assign(USER_ID, roleCode2);
   }
 }

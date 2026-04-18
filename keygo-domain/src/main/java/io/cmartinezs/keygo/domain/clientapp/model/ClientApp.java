@@ -30,6 +30,7 @@ public class ClientApp {
   private Set<RedirectUri> redirectUris;
   private AccessPolicy accessPolicy;
   private ClientAppStatus status;
+  private RegistrationPolicy registrationPolicy;
 
   @Builder
   private ClientApp(
@@ -42,7 +43,8 @@ public class ClientApp {
       String hashedSecret,
       Set<RedirectUri> redirectUris,
       AccessPolicy accessPolicy,
-      ClientAppStatus status) {
+      ClientAppStatus status,
+      RegistrationPolicy registrationPolicy) {
     if (tenantId == null) throw new IllegalArgumentException("ClientApp tenantId cannot be null");
     if (clientId == null) throw new IllegalArgumentException("ClientApp clientId cannot be null");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("ClientApp name cannot be null or blank");
@@ -63,6 +65,7 @@ public class ClientApp {
     this.redirectUris = redirectUris == null ? Set.of() : Set.copyOf(redirectUris);
     this.accessPolicy = accessPolicy;
     this.status = status;
+    this.registrationPolicy = registrationPolicy == null ? RegistrationPolicy.OPEN_NO_MEMBERSHIP : registrationPolicy;
   }
 
   // ─── Domain behaviour ─────────────────────────────────────────────────────

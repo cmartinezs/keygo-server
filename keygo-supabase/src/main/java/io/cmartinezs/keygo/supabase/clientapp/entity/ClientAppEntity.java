@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.supabase.clientapp.entity;
 
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
+import io.cmartinezs.keygo.domain.clientapp.model.RegistrationPolicy;
 import io.cmartinezs.keygo.supabase.tenant.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -73,6 +74,11 @@ public class ClientAppEntity {
   @Column(name = "is_internal", nullable = false)
   @Builder.Default
   private boolean internal = false;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "registration_policy", nullable = false, length = 50)
+  @Builder.Default
+  private RegistrationPolicy registrationPolicy = RegistrationPolicy.OPEN_NO_MEMBERSHIP;
 
   @OneToMany(
       mappedBy = "clientApp",

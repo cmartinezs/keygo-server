@@ -2,6 +2,7 @@ package io.cmartinezs.keygo.app.platform.usecase;
 
 import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
 import io.cmartinezs.keygo.app.auth.port.ClockPort;
+import io.cmartinezs.keygo.app.platform.exception.PlatformUserWithoutRolesException;
 import io.cmartinezs.keygo.app.auth.port.RefreshTokenRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.SessionRepositoryPort;
 import io.cmartinezs.keygo.app.auth.result.IssueTokensResult;
@@ -79,6 +80,9 @@ public class IssuePlatformTokensUseCase {
 
     // 1. Obtener roles de plataforma
     List<String> roleCodes = platformUserRoleRepository.findRoleCodesByPlatformUserId(userId);
+    if (roleCodes.isEmpty()) {
+      throw new PlatformUserWithoutRolesException(userId);
+    }
 
     // 2. Emitir access_token + id_token (tenantId=null → clave global)
     String sub = userId.toString();

@@ -15,6 +15,7 @@ Punto de entrada para equipos de UI/frontend que consumen la API de KeyGo Server
 | [07-endpoints-billing.md](07-endpoints-billing.md) | Catálogo de planes, contratos, suscripciones, facturas (tenant y platform) |
 | [08-endpoints-admin.md](08-endpoints-admin.md) | Admin de plataforma: tenants, dashboard, stats, platform users, roles requeridos |
 | [09-testing.md](09-testing.md) | Patrones de test con MSW, Vitest y React Testing Library |
+| [10-endpoints-registration.md](10-endpoints-registration.md) | Discovery público (tenants/apps) y flujo de auto-registro: /register, /verify-email, /resend-verification |
 | [feedback/README.md](feedback/README.md) | Registro de comunicación activa: gaps reportados por UI y cambios de contrato notificados por backend |
 
 ## Qué cubre esta sección

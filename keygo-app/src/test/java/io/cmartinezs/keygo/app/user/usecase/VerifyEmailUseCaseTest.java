@@ -111,7 +111,7 @@ class VerifyEmailUseCaseTest {
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // When
-    User result = useCase.execute(new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, VALID_CODE));
+    User result = useCase.execute(new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, null, VALID_CODE));
 
     // Then
     assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
@@ -129,7 +129,7 @@ class VerifyEmailUseCaseTest {
         .thenReturn(Optional.of(expiredVerification));
 
     // When / Then
-      VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, VALID_CODE);
+      VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, null, VALID_CODE);
       assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(VerificationCodeExpiredException.class);
   }
@@ -144,7 +144,7 @@ class VerifyEmailUseCaseTest {
         .thenReturn(Optional.of(verification));
 
     // When / Then
-      VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, "999999");
+      VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, null, "999999");
       assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(VerificationCodeInvalidException.class);
   }
@@ -160,7 +160,7 @@ class VerifyEmailUseCaseTest {
         .thenReturn(Optional.of(verification));
 
     // When / Then
-      VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, VALID_CODE);
+      VerifyEmailCommand command = new VerifyEmailCommand(TENANT_SLUG, CLIENT_ID, EMAIL, null, VALID_CODE);
       assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(VerificationCodeInvalidException.class);
   }

@@ -1,29 +1,67 @@
 # T-154 — Flujo de self-registro abierto a app de tenant
 
-**Estado:** ⬜ Registrada
-**Módulos afectados:** `keygo-api`, `keygo-app`, `keygo-supabase`, docs, Postman
+**Estado:** 🧩 Pendiente integración UI
+**Módulos afectados:** `keygo-domain`, `keygo-app`, `keygo-api`, `keygo-supabase`, `keygo-run`, docs, Postman
 
 ---
 
 ## Problema / Requisito
 
-Definir el contrato completo del flujo de self-registro abierto de un usuario a una app de
-tenant, incluyendo: orden de endpoints, datos de request/response, códigos de respuesta, y
-el estado esperado en UI en cada paso.
+Completar el flujo de self-registro abierto de un usuario a una app de tenant:
+- Los tres endpoints HTTP ya existen y están documentados en OpenAPI.
+- **Gap pendiente:** al verificar el email, no se crea Membership automáticamente.
 
-El objetivo inmediato es que UI pueda construir las pantallas de registro sin ambigüedad.
-
-**Gap detectado:** El flujo de registro + verificación de email ya existe en backend. Sin
-embargo, al completarse la verificación, **no se crea automáticamente una `Membership`** del
-usuario a la app. Actualmente eso requiere una llamada admin autenticada separada. Esta tarea
-también debe resolver esa decisión de diseño.
+El objetivo inmediato es que UI pueda construir las pantallas de registro sin ambigüedad y
+que el backend cree la Membership según la política configurada en la app.
 
 ## Relaciones
 
 | Artefacto relacionado | Tipo de relación | Descripción |
 |---|---|---|
 | T-155 | complementaria | T-155 cubre el flujo de invitación por admin; este cubre el registro libre |
+| T-156 | habilitadora | T-156 documenta el patrón Orchestration Use Case que esta tarea introduce |
+| T-158 | bloqueante de integración UI | Sin los endpoints públicos de descubrimiento, la UI no puede construir la pantalla de selección tenant/app previa al registro |
 | BE-008 | derivada de | Feedback out generado a partir de esta tarea para consumo inmediato de UI |
+
+---
+
+## Decisiones de diseño
+
+### Membership automática — Opción D (APROBADA)
+
+`ClientApp` tendrá un campo `registrationPolicy` que controla el comportamiento
+post-verificación de email en el flujo de self-registro.
+
+| Valor | Comportamiento |
+|---|---|
+| `OPEN_AUTO_ACTIVE` | Membership creada con status `ACTIVE` al verificar email |
+| `OPEN_AUTO_PENDING` | Membership creada con status `PENDING`; admin la aprueba |
+| `OPEN_NO_MEMBERSHIP` | Sin membership automática (default conservador) |
+| `INVITE_ONLY` | Registro libre bloqueado; solo se accede por invitación |
+
+### Patrón de implementación — Orchestrator
+
+`VerifyEmailUseCase` se mantiene puro (solo verifica email y activa usuario).
+Se introduce `SelfRegistrationOrchestrator` como orquestador específico del flujo
+de registro abierto.
+
+**Convención de nombre:** sufijo `Orchestrator` para clases que coordinan múltiples use
+cases. Se diferencia de `UseCase` (operación atómica, un solo bounded context) en que
+puede cruzar contextos y no debe usarse como building block de otro orquestador.
+
+```
+RegistrationController
+        │
+        ▼
+SelfRegistrationOrchestrator        ← orquestador del flujo de registro
+    │                   │
+    ▼                   ▼
+VerifyEmailUseCase    CreateMembershipUseCase  (condicionado por registrationPolicy)
+```
+
+- SRP: cada use case hace exactamente una cosa.
+- OCP: futuros flujos post-verificación no modifican `VerifyEmailUseCase`.
+- El patrón queda documentado en T-156 como guía para flujos similares.
 
 ---
 
@@ -32,8 +70,7 @@ también debe resolver esa decisión de diseño.
 ### Contexto
 
 - Usuario anónimo accede a la app de un tenant (conoce `tenantSlug` y `clientId`).
-- La app tiene `registrationPolicy: OPEN` (cualquiera puede registrarse).
-- El backend ya expone los tres endpoints públicos de este flujo.
+- La app tiene `registrationPolicy` distinto de `INVITE_ONLY`.
 
 ### Diagrama de secuencia
 
@@ -46,11 +83,13 @@ Usuario          UI                    Backend
    │                   │                  │
    │── ingresa código ─►│                  │
    │                   │── POST /verify-email ──►│ activa User → ACTIVE
+   │                   │                        │  (crea Membership según policy)
    │                   │◄── 200 EMAIL_VERIFIED ──┤
    │◄── pantalla "¡listo! ahora inicia sesión" ──────────────────────────│
    │                   │                  │
-   │   (código expirado, camino alternativo)
-   │                   │── POST /resend-verification ──►│ reenvía código
+   │   (código expirado — camino alternativo)
+   │                   │── POST /resend-verification ──►│ reenvía código vigente
+   │                   │                               │ o genera uno nuevo si expiró
    │                   │◄── 200 EMAIL_VERIFICATION_RESENT ──┤
 ```
 
@@ -65,12 +104,6 @@ POST /api/v1/tenants/{tenantSlug}/apps/{clientId}/register
 Authorization: ninguna (endpoint público)
 Content-Type: application/json
 ```
-
-**Path params:**
-| Param | Tipo | Descripción |
-|---|---|---|
-| `tenantSlug` | string | Identificador único del tenant (ej. `acme`) |
-| `clientId` | string | OAuth2 `client_id` de la app (ej. `acme-web`) |
 
 **Request body:**
 ```json
@@ -87,7 +120,7 @@ Content-Type: application/json
 |---|---|---|---|
 | `username` | string | Sí | Único por tenant |
 | `email` | string | Sí | Formato email; único por tenant |
-| `password` | string | Sí | Mínimo 8 caracteres; no puede ser contraseña temporal |
+| `password` | string | Sí | Mínimo 8 caracteres |
 | `first_name` | string | No | — |
 | `last_name` | string | No | — |
 
@@ -107,7 +140,7 @@ Content-Type: application/json
 **Respuestas de error:**
 | HTTP | `code` | Cuándo ocurre |
 |---|---|---|
-| 400 | `INVALID_INPUT` | Validación de campos fallida (email inválido, contraseña < 8 chars, etc.) |
+| 400 | `INVALID_INPUT` | Validación de campos fallida |
 | 404 | `RESOURCE_NOT_FOUND` | `tenantSlug` o `clientId` no existen |
 | 409 | `DUPLICATE_RESOURCE` | `email` o `username` ya existe en el tenant |
 | 422 | `TENANT_SUSPENDED` | El tenant está suspendido |
@@ -134,11 +167,6 @@ Content-Type: application/json
   "code": "847291"
 }
 ```
-
-| Campo | Tipo | Requerido | Validación |
-|---|---|---|---|
-| `email` | string | Sí | El mismo email usado en el registro |
-| `code` | string | Sí | Exactamente 6 dígitos recibidos por email |
 
 **Response exitosa — 200 OK:**
 ```json
@@ -186,15 +214,19 @@ Content-Type: application/json
 }
 ```
 
-| Campo | Tipo | Requerido |
-|---|---|---|
-| `email` | string | Sí |
+**Política de reenvío (alineada con implementación actual):**
+- Si el código anterior **sigue vigente** → se reenvía el mismo código (el usuario quizás
+  no recibió el email anterior).
+- Si el código **expiró o no existe** → se genera uno nuevo y se envía.
+- No se bloquea el reenvío mientras el código esté activo; se reenvía siempre.
 
 **Response exitosa — 200 OK:**
 ```json
 {
   "code": "EMAIL_VERIFICATION_RESENT",
-  "data": null
+  "data": {
+    "notification_email": "j***@example.com"
+  }
 }
 ```
 
@@ -204,31 +236,10 @@ Content-Type: application/json
 | 400 | `INVALID_INPUT` | Email vacío o formato incorrecto |
 | 404 | `RESOURCE_NOT_FOUND` | Usuario no encontrado |
 | 409 | `EMAIL_ALREADY_VERIFIED` | Usuario ya activo |
-| 422 | `VERIFICATION_CODE_STILL_VALID` | El código anterior aún no ha expirado (debe esperar) |
 
 **Estado UI al recibir 200:**
-- Mostrar mensaje: "Código reenviado a [email enmascarado]."
+- Mostrar mensaje: "Código reenviado a [notification_email]."
 - Reiniciar countdown de 30 minutos.
-
-**Estado UI al recibir 422 `VERIFICATION_CODE_STILL_VALID`:**
-- Mostrar: "Tu código anterior sigue vigente. Revisa tu bandeja de entrada."
-- Deshabilitar el botón de reenvío hasta que expire.
-
----
-
-## Decisión de diseño pendiente: Membership automática
-
-Al completar `verify-email` (usuario activo), actualmente **no se crea Membership**.
-Opciones:
-
-| Opción | Comportamiento | Pros | Contras |
-|---|---|---|---|
-| **A — Auto ACTIVE** | Membership se crea automáticamente con status `ACTIVE` al verificar email | Sin fricción | Admin no tiene control de aprobación |
-| **B — Auto PENDING** | Membership se crea con status `PENDING`; admin la aprueba manualmente | Control granular | Usuario registrado no puede usar la app hasta aprobación |
-| **C — Sin auto-membership** | Mantener separado; admin crea Membership explícitamente | Máxima flexibilidad | Flujo más largo para el usuario |
-| **D — Policy por app** | `ClientApp.registrationPolicy` controla si es auto-ACTIVE, auto-PENDING o sin auto | Flexible | Mayor complejidad de implementación |
-
-**Acción requerida antes de activar esta tarea:** decidir opción A/B/C/D.
 
 ---
 
@@ -236,7 +247,7 @@ Opciones:
 
 | # | Pantalla | Trigger | Datos disponibles |
 |---|---|---|---|
-| 1 | **Formulario de registro** | Usuario navega a `/register` o equivalente | `tenantSlug`, `clientId` (del contexto de la app) |
+| 1 | **Formulario de registro** | Usuario navega a `/register` | `tenantSlug`, `clientId` |
 | 2 | **"Revisa tu email"** | 201 de `/register` | `notification_email` (enmascarado), countdown 30 min |
 | 3 | **Ingresar código** | El usuario abre el email y vuelve a la app | `email` (precompletado), campo de 6 dígitos |
 | 4 | **Código expirado** | 422 `EMAIL_VERIFICATION_EXPIRED` | Botón "Reenviar código" |
@@ -248,23 +259,40 @@ Opciones:
 
 | # | Acción | Archivo | Estado |
 |---|---|---|---|
-| 1 | Decidir política de Membership automática (A/B/C/D) | — | PENDING |
-| 2 | Si opción A/B/D: extender `VerifyEmailUseCase` para invocar `CreateMembershipUseCase` | `keygo-app/.../usecase/VerifyEmailUseCase.java` | PENDING |
-| 3 | Si opción D: agregar `registrationPolicy` a `ClientApp` domain + migración | `keygo-domain/clientapp/model/ClientApp.java` | PENDING |
-| 4 | Crear feedback out `BE-008` en `doc/02-functional/frontend/feedback/` | `BE-008-tenant-app-self-registration.md` | APPLIED |
-| 5 | Actualizar Postman con los tres endpoints de este flujo | Colección Postman tenant flows | PENDING |
+| 1 | Decidir política de Membership automática (A/B/C/D) | — | ✅ APPLIED (Opción D) |
+| 2 | Agregar enum `RegistrationPolicy` al dominio | `keygo-domain/.../clientapp/model/RegistrationPolicy.java` | ✅ APPLIED |
+| 3 | Agregar campo `registrationPolicy` a `ClientApp` | `keygo-domain/.../clientapp/model/ClientApp.java` | ✅ APPLIED |
+| 4 | Flyway V25: columna `registration_policy` en `client_apps` | `keygo-supabase/.../V25__add_registration_policy_to_client_apps.sql` | ✅ APPLIED |
+| 5 | Actualizar `ClientAppEntity` + `ClientAppRepositoryAdapter` | `keygo-supabase/.../ClientAppEntity.java` + Mapper | ✅ APPLIED |
+| 6 | Crear `SelfRegistrationOrchestrator` | `keygo-app/.../user/orchestrator/SelfRegistrationOrchestrator.java` | ✅ APPLIED |
+| 7 | Actualizar `RegistrationController`: inyectar orquestador en lugar de `VerifyEmailUseCase` | `keygo-api/.../registration/controller/RegistrationController.java` | ✅ APPLIED |
+| 8 | Actualizar `ApplicationConfig` / wiring del nuevo use case | `keygo-run/.../config/ApplicationConfig.java` | ✅ APPLIED |
+| 9 | Crear feedback out `BE-008` en `doc/02-functional/frontend/feedback/` | `BE-008-tenant-app-self-registration.md` | ✅ APPLIED |
+| 10 | Actualizar Postman con los tres endpoints | Colección Postman tenant flows | ✅ VERIFIED (ya existen) |
+
+> **Nota de migración:** T-155 reclamaba V24 para `app_membership_invitations`.
+> Al ejecutarse T-154 primero, **T-155 debe usar V25**. Actualizar T-155 al planificarlo.
+
+---
 
 ## Guía de verificación
 
 ```bash
 # Compilación sin errores
-./mvnw clean package -DskipTests -pl keygo-api,keygo-app
+./mvnw clean package -DskipTests -pl keygo-domain,keygo-app,keygo-api,keygo-supabase
 
 # Test del flujo de registro
 ./mvnw test -Dtest=RegistrationControllerTest -pl keygo-api
 
-# Test del use case de verificación
+# Test del orquestador
+./mvnw test -Dtest=SelfRegistrationOrchestratorTest -pl keygo-app
+
+# Test del use case base (no debe cambiar)
 ./mvnw test -Dtest=VerifyEmailUseCaseTest -pl keygo-app
+
+# Verificar migración Flyway en perfil local
+./mvnw spring-boot:run -pl keygo-run -Dspring-boot.run.profiles=local
+# Confirmar columna registration_policy en H2 console
 ```
 
 ---
@@ -272,3 +300,6 @@ Opciones:
 ## Historial de transiciones
 
 - 2026-04-14 → ⬜ Registrada
+- 2026-04-15 → 📋 Planificada (Opción D aprobada; patrón Orchestration Use Case definido)
+- 2026-04-15 → ✅ Backend completado (Todos los pasos implementados; compilación exitosa)
+- 2026-04-15 → 🧩 Pendiente integración UI (T-158 bloqueante: endpoints públicos de descubrimiento requeridos para UX completa)

@@ -1,7 +1,8 @@
 package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.domain.membership.model.PlatformRoleCode;
@@ -13,6 +14,7 @@ import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
+import java.util.List;
 
 /**
  * Use case: create a new global platform user.
@@ -25,19 +27,19 @@ import io.cmartinezs.keygo.domain.user.model.Username;
  */
 public class CreatePlatformUserUseCase {
 
-  private static final PlatformRoleCode DEFAULT_ROLE = PlatformRoleCode.KEYGO_USER;
+  private static final List<String> DEFAULT_ROLES = List.of(PlatformRoleCode.KEYGO_USER.code());
 
   private final PlatformUserRepositoryPort platformUserRepositoryPort;
   private final CredentialEncoderPort credentialEncoderPort;
-  private final PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort;
+  private final AssignPlatformRoleUseCase assignPlatformRoleUseCase;
 
   public CreatePlatformUserUseCase(
       PlatformUserRepositoryPort platformUserRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
-      PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort) {
+      AssignPlatformRoleUseCase assignPlatformRoleUseCase) {
     this.platformUserRepositoryPort = platformUserRepositoryPort;
     this.credentialEncoderPort = credentialEncoderPort;
-    this.platformUserRoleRepositoryPort = platformUserRoleRepositoryPort;
+    this.assignPlatformRoleUseCase = assignPlatformRoleUseCase;
   }
 
   /**
@@ -74,7 +76,7 @@ public class CreatePlatformUserUseCase {
 
     PlatformUser saved = platformUserRepositoryPort.save(user);
 
-    platformUserRoleRepositoryPort.assign(saved.getId().value(), DEFAULT_ROLE.code());
+    assignPlatformRoleUseCase.execute(new AssignPlatformRoleCommand(saved.getId().value(), DEFAULT_ROLES));
 
     return saved;
   }

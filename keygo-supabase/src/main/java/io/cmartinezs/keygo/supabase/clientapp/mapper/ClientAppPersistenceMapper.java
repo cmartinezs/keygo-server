@@ -38,7 +38,8 @@ public class ClientAppPersistenceMapper {
         .description(clientApp.getDescription())
         .type(clientApp.getType())
         .hashedSecret(clientApp.getHashedSecret())
-        .status(clientApp.getStatus());
+        .status(clientApp.getStatus())
+        .registrationPolicy(clientApp.getRegistrationPolicy());
     if (clientApp.getId() != null) {
       builder.id(clientApp.getId().value());
     }
@@ -109,6 +110,7 @@ public class ClientAppPersistenceMapper {
         .redirectUris(redirectUris)
         .accessPolicy(accessPolicy)
         .status(entity.getStatus())
+        .registrationPolicy(entity.getRegistrationPolicy())
         .build();
   }
 }

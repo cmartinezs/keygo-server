@@ -39,7 +39,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * <ul>
  *   <li>/actuator/**, /service/info**, /swagger-ui**, /v3/api-docs**, /.well-known</li>
  *   <li>Suffixes: /userinfo, /oauth2/revoke, /register, /verify-email, /resend-verification,
- *       /oauth2/authorize, /account/login, /oauth2/token</li>
+ *       /oauth2/authorize, /account/login, /oauth2/token, /public (discovery endpoints)</li>
  * </ul>
  */
 @Slf4j
@@ -150,6 +150,7 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     return hasSuffix(path, bootstrapProperties.getUserInfoPathSuffix())
         || hasSuffix(path, bootstrapProperties.getRevocationPathSuffix())
         || hasSuffix(path, bootstrapProperties.getRegisterPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getRegistrationPathSuffix())
         || hasSuffix(path, bootstrapProperties.getVerifyEmailPathSuffix())
         || hasSuffix(path, bootstrapProperties.getResendVerificationPathSuffix())
         || hasSuffix(path, bootstrapProperties.getAuthorizePathSuffix())
@@ -163,7 +164,8 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
         || hasSuffix(path, bootstrapProperties.getAccountAccessPathSuffix())
         || hasSuffix(path, bootstrapProperties.getAccountResetPasswordPathSuffix())
         || hasSuffix(path, bootstrapProperties.getAccountForgotPasswordPathSuffix())
-        || hasSuffix(path, bootstrapProperties.getAccountRecoverPasswordPathSuffix());
+        || hasSuffix(path, bootstrapProperties.getAccountRecoverPasswordPathSuffix())
+        || hasSuffix(path, bootstrapProperties.getPublicDiscoveryPathSuffix());
   }
   private static boolean hasPrefix(String path, String prefix) {
     return prefix != null && path.startsWith(prefix);

@@ -2,6 +2,11 @@ package io.cmartinezs.keygo.app.clientapp.filter;
 
 import io.cmartinezs.keygo.app.shared.PageFilter;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
+import io.cmartinezs.keygo.domain.clientapp.model.RegistrationPolicy;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
@@ -17,18 +22,25 @@ public class ClientAppFilter extends PageFilter {
       "name", "status", "createdAt"
   );
 
-  private final ClientAppStatus status;    // optional status filter
-  private final String nameLike;           // optional name substring
+  private final ClientAppStatus status;                                  // optional status filter
+  private final String nameLike;                                         // optional name substring
+  private final ClientType type;                                         // optional type filter
+  private final Set<RegistrationPolicy> excludeRegistrationPolicies;    // optional policies to exclude
 
-  private ClientAppFilter(ClientAppStatus status, String nameLike,
+  private ClientAppFilter(ClientAppStatus status, String nameLike, ClientType type,
+                          Set<RegistrationPolicy> excludeRegistrationPolicies,
                           int page, int size, String sortBy, String sortOrder) {
     super(page, size, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
     this.status = status;
     this.nameLike = (nameLike != null && nameLike.isBlank()) ? null : nameLike;
+    this.type = type;
+    this.excludeRegistrationPolicies = excludeRegistrationPolicies != null
+        ? Collections.unmodifiableSet(excludeRegistrationPolicies)
+        : Collections.emptySet();
   }
 
   /**
-   * Create a ClientAppFilter with all optional criteria.
+   * Create a ClientAppFilter with all optional criteria (no policy exclusion).
    *
    * @param status optional status filter (null = any status)
    * @param nameLike optional partial name match (case-insensitive)
@@ -40,7 +52,40 @@ public class ClientAppFilter extends PageFilter {
    */
   public static ClientAppFilter of(ClientAppStatus status, String nameLike,
                                    int page, int size, String sortBy, String sortOrder) {
-    return new ClientAppFilter(status, nameLike, page, size, sortBy, sortOrder);
+    return new ClientAppFilter(status, nameLike, null, null, page, size, sortBy, sortOrder);
+  }
+
+  /**
+   * Create a ClientAppFilter with type and registration-policy exclusion criteria.
+   * Used by public discovery endpoints that must restrict to PUBLIC apps and exclude non-self-service policies.
+   *
+   * @param status optional status filter (null = any status)
+   * @param nameLike optional partial name match (case-insensitive)
+   * @param type optional type filter (null = any type)
+   * @param excludeRegistrationPolicies policies to exclude (null or empty = no exclusion)
+   * @param page zero-based page number
+   * @param size page size (1–200)
+   * @param sortBy sortable field name or null
+   * @param sortOrder "ASC" or "DESC"
+   * @return a new ClientAppFilter
+   */
+  public static ClientAppFilter of(ClientAppStatus status, String nameLike,
+                                   ClientType type, Set<RegistrationPolicy> excludeRegistrationPolicies,
+                                   int page, int size, String sortBy, String sortOrder) {
+    return new ClientAppFilter(status, nameLike, type, excludeRegistrationPolicies,
+        page, size, sortBy, sortOrder);
+  }
+
+  /**
+   * Convenience factory for excluding a vararg of policies.
+   */
+  public static ClientAppFilter of(ClientAppStatus status, String nameLike,
+                                   ClientType type, RegistrationPolicy[] excludePolicies,
+                                   int page, int size, String sortBy, String sortOrder) {
+    Set<RegistrationPolicy> set = (excludePolicies != null && excludePolicies.length > 0)
+        ? EnumSet.copyOf(Arrays.asList(excludePolicies))
+        : null;
+    return new ClientAppFilter(status, nameLike, type, set, page, size, sortBy, sortOrder);
   }
 
   public ClientAppStatus getStatus() {
@@ -51,11 +96,27 @@ public class ClientAppFilter extends PageFilter {
     return nameLike;
   }
 
+  public ClientType getType() {
+    return type;
+  }
+
+  public Set<RegistrationPolicy> getExcludeRegistrationPolicies() {
+    return excludeRegistrationPolicies;
+  }
+
   public boolean hasStatus() {
     return status != null;
   }
 
   public boolean hasNameLike() {
     return nameLike != null;
+  }
+
+  public boolean hasType() {
+    return type != null;
+  }
+
+  public boolean hasExcludeRegistrationPolicies() {
+    return !excludeRegistrationPolicies.isEmpty();
   }
 }

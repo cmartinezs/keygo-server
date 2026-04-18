@@ -76,6 +76,10 @@ public class KeyGoBootstrapProperties {
    * Sufijo de ruta de auto-registro que es público. */
   private String registerPathSuffix;
 
+  /* Get registration info path suffix that is public.
+   * Sufijo de ruta de obtener info de registro que es público. */
+  private String registrationPathSuffix;
+
   /* Email verification path suffix that is public.
    * Sufijo de ruta de verificación de email que es público. */
   private String verifyEmailPathSuffix;
@@ -160,5 +164,13 @@ public class KeyGoBootstrapProperties {
 
   /** Platform reset-password path prefix that is public (self-service password reset with temporary password). */
   private String platformResetPasswordPathPrefix;
+
+  // ─── Public discovery paths (unauthenticated tenant/app listing) ──────────
+
+  /**
+   * Path suffix that marks a route as a public discovery endpoint (no Bearer required).
+   * Covers: GET /api/v1/tenants/public and GET /api/v1/tenants/{slug}/apps/public.
+   */
+  private String publicDiscoveryPathSuffix;
 
 }

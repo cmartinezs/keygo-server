@@ -16,7 +16,6 @@ import jakarta.validation.constraints.Size;
  * @version 1.0
  */
 public record RegisterRequest(
-    @NotBlank(message = "Username is required")
     String username,
 
     @NotBlank(message = "Email is required")

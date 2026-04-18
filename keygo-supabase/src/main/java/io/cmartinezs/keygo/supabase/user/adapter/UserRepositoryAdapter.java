@@ -59,7 +59,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .orElseGet(TenantUserEntity::new)
             : new TenantUserEntity();
 
-    PlatformUserEntity platformUser = resolvePlatformUser(entity, user);
+    PlatformUserEntity platformUser = platformUserJpaRepository.save(resolvePlatformUser(entity, user));
 
     entity.setTenant(tenantJpaRepository.getReferenceById(user.getTenantId().value()));
     entity.setPlatformUser(platformUser);
@@ -77,6 +77,12 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Override
   public Optional<User> findByIdAndTenantId(UserId userId, TenantId tenantId) {
     return tenantUserJpaRepository.findByIdAndTenantId(userId.value(), tenantId.value())
+        .map(mapper::toDomain);
+  }
+
+  @Override
+  public Optional<User> findById(UserId userId) {
+    return tenantUserJpaRepository.findById(userId.value())
         .map(mapper::toDomain);
   }
 
@@ -105,6 +111,15 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Override
   public boolean existsByTenantIdAndUsername(TenantId tenantId, Username username) {
     return tenantUserJpaRepository.existsByTenantIdAndLocalUsername(tenantId.value(), username.value());
+  }
+
+  @Override
+  public List<Username> findUsernamesByPrefix(TenantId tenantId, String prefix) {
+    return tenantUserJpaRepository
+        .findUsernamesByPrefix(tenantId.value(), prefix.toLowerCase())
+        .stream()
+        .map(Username::of)
+        .toList();
   }
 
   @Override

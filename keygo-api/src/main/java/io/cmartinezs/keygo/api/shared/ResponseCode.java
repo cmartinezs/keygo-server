@@ -70,6 +70,7 @@ public enum ResponseCode {
   // User Operations
   USER_CREATED("USER_CREATED", "User created successfully"),
   USER_REGISTERED("USER_REGISTERED", "User registered successfully. Verification email sent."),
+  REGISTRATION_INFO("REGISTRATION_INFO", "Registration info retrieved successfully"),
   EMAIL_VERIFICATION_SENT("EMAIL_VERIFICATION_SENT", "Email verification code sent successfully"),
   EMAIL_VERIFIED("EMAIL_VERIFIED", "Email verified successfully. User is now active."),
   EMAIL_VERIFICATION_EXPIRED("EMAIL_VERIFICATION_EXPIRED", "Email verification code has expired. Please request a new one."),
@@ -162,6 +163,7 @@ public enum ResponseCode {
 
   // Auth errors
   UNSUPPORTED_PKCE_METHOD("UNSUPPORTED_PKCE_METHOD", "The requested PKCE method is not supported"),
+  PLATFORM_USER_WITHOUT_ROLES("PLATFORM_USER_WITHOUT_ROLES", "Platform user has no roles assigned and cannot obtain a token"),
 
   // Client App errors
   CLIENT_APP_INACTIVE("CLIENT_APP_INACTIVE", "Client application is not active"),

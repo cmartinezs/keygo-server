@@ -3,6 +3,7 @@ package io.cmartinezs.keygo.app.tenant.port;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.tenant.filter.TenantFilter;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 
 import java.util.Optional;
@@ -30,6 +31,14 @@ public interface TenantRepositoryPort {
    * @return an Optional containing the tenant if found, empty otherwise
    */
   Optional<Tenant> findBySlug(TenantSlug slug);
+
+  /**
+   * Find a tenant by its ID.
+   * <p>Busca un tenant por su ID.
+   * @param id the tenant ID
+   * @return an Optional containing the tenant if found
+   */
+  Optional<Tenant> findById(TenantId id);
 
   /**
    * Check whether a tenant with the given slug already exists.

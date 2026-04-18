@@ -1,16 +1,17 @@
 package io.cmartinezs.keygo.api.platform.request;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import java.util.List;
 
 /**
- * Request DTO for assigning a platform role to a user.
- * <p>DTO de solicitud para asignar un rol de plataforma a un usuario.
+ * Request DTO for assigning one or more platform roles to a user.
+ * <p>DTO de solicitud para asignar uno o más roles de plataforma a un usuario.
  *
  * @author cmartinezs
  * @version 1.0
  */
 public record AssignPlatformRoleRequest(
 
-    @NotBlank(message = "Role code is required")
-    String roleCode
+    @NotEmpty(message = "At least one role code is required")
+    List<String> roleCodes
 ) {}

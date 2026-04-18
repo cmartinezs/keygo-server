@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
 import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
+import io.cmartinezs.keygo.app.platform.exception.PlatformUserWithoutRolesException;
 import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
 import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
@@ -37,6 +38,7 @@ import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
 import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.SelfRegistrationNotAllowedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAuthenticationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
@@ -283,6 +285,16 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles SelfRegistrationNotAllowedException - returns 403 Forbidden.
+   * Lanzada cuando el registro propio se intenta en una app con política INVITE_ONLY.
+   */
+  @ExceptionHandler(SelfRegistrationNotAllowedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSelfRegistrationNotAllowedException(SelfRegistrationNotAllowedException ex) {
+    log.warn("Self-registration not allowed: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
    * Handles ClientAppAlreadySuspendedException - returns 409 Conflict.
    * Lanzada cuando se intenta suspender una app cliente que ya está suspendida.
    */
@@ -370,6 +382,16 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleMembershipPendingException(MembershipPendingException ex) {
     log.error("Membership pending: {}", ex.getMessage());
     return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles PlatformUserWithoutRolesException - returns 403 Forbidden.
+   * Lanzada cuando el usuario de plataforma autenticado no tiene roles asignados.
+   */
+  @ExceptionHandler(PlatformUserWithoutRolesException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePlatformUserWithoutRolesException(PlatformUserWithoutRolesException ex) {
+    log.warn("Platform user without roles: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.PLATFORM_USER_WITHOUT_ROLES, ex);
   }
 
   /**

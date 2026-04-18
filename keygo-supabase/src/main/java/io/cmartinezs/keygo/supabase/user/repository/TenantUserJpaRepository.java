@@ -76,6 +76,15 @@ public interface TenantUserJpaRepository extends JpaRepository<TenantUserEntity,
   boolean existsByTenantIdAndLocalUsername(UUID tenantId, String localUsername);
 
   /**
+   * Find all usernames that start with the given prefix within a tenant.
+   * <p>Busca todos los usernames que empiezan con el prefijo dado dentro de un tenant.
+   */
+  @Query(
+      "SELECT tu.localUsername FROM TenantUserEntity tu "
+          + "WHERE tu.tenant.id = :tenantId AND tu.localUsername LIKE :prefix || '%'")
+  List<String> findUsernamesByPrefix(@Param("tenantId") UUID tenantId, @Param("prefix") String prefix);
+
+  /**
    * Find all users belonging to a tenant.
    * <p>Busca todos los usuarios de un tenant.
    */

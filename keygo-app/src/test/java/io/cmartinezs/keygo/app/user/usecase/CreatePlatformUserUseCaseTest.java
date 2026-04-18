@@ -3,19 +3,17 @@ package io.cmartinezs.keygo.app.user.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
-import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.user.command.CreatePlatformUserCommand;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
-import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.PlatformUser;
 import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
@@ -37,7 +35,7 @@ class CreatePlatformUserUseCaseTest {
 
   @Mock private PlatformUserRepositoryPort platformUserRepositoryPort;
   @Mock private CredentialEncoderPort credentialEncoderPort;
-  @Mock private PlatformUserRoleRepositoryPort platformUserRoleRepositoryPort;
+  @Mock private AssignPlatformRoleUseCase assignPlatformRoleUseCase;
 
   @InjectMocks private CreatePlatformUserUseCase useCase;
 
@@ -77,7 +75,7 @@ class CreatePlatformUserUseCaseTest {
 
     verify(credentialEncoderPort).encode(RAW_PASSWORD);
     verify(platformUserRepositoryPort).save(any(PlatformUser.class));
-    verify(platformUserRoleRepositoryPort).assign(any(UUID.class), eq("keygo_user"));
+    verify(assignPlatformRoleUseCase).execute(any(AssignPlatformRoleCommand.class));
   }
 
   @Test
@@ -95,7 +93,7 @@ class CreatePlatformUserUseCaseTest {
         .hasMessageContaining(EMAIL);
 
     verify(platformUserRepositoryPort, never()).save(any());
-    verify(platformUserRoleRepositoryPort, never()).assign(any(), anyString());
+    verify(assignPlatformRoleUseCase, never()).execute(any());
   }
 
   @Test
@@ -114,6 +112,6 @@ class CreatePlatformUserUseCaseTest {
         .hasMessageContaining(USERNAME);
 
     verify(platformUserRepositoryPort, never()).save(any());
-    verify(platformUserRoleRepositoryPort, never()).assign(any(), anyString());
+    verify(assignPlatformRoleUseCase, never()).execute(any());
   }
 }

@@ -10,7 +10,7 @@ Cada archivo es una tarea independiente. Ciclo de vida definido en [workflow.md]
 Ver [TEMPLATE.md](TEMPLATE.md) para la plantilla completa, reglas de correlativo (`T-NNN` /
 `F-NNN`) y convenciones de nombre de archivo.
 
-El próximo correlativo disponible es **T-156** (y **F-043** para features de largo plazo).
+El próximo correlativo disponible es **T-163** (y **F-043** para features de largo plazo).
 
 ## Estructura de carpetas por estado
 
@@ -81,8 +81,13 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-149](registered/T-149-docker-native-image.md) | Imagen Docker optimizada con compilación nativa GraalVM (multi-stage, distroless, arranque < 500 ms) |
 | [T-151](registered/T-151-deployment-cicd-strategy.md) | Estrategia de despliegue (develop/test/prod), decisión cloud/PaaS y pipeline CI/CD completo |
 | [T-152](registered/T-152-prod-safe-application-config.md) | Externalizar config unsafe (`mock-payment`, `method-logging`, actuator) y crear perfiles `develop`/`test`/`prod` |
-| [T-154](registered/T-154-tenant-app-open-registration-flow.md) | Flujo de self-registro abierto a app de tenant — secuencia de endpoints, datos y feedback out BE-008 para UI |
-| [T-155](registered/T-155-tenant-app-invitation-flow.md) | Flujo de invitación admin a app de tenant — nuevos endpoints, migración V24 y feedback out BE-009 para UI |
+| [T-156](registered/T-156-app-layer-orchestration-pattern.md) | Documentar patrón Orchestration Use Case introducido en T-154 como guía para flujos futuros |
+| [T-157](registered/T-157-controller-primary-identifier-audit.md) | Auditar y corregir uso de identificadores primarios en controllers — cumplir regla: no pasar referencias indirectas a use cases |
+| [T-155](registered/T-155-tenant-app-invitation-flow.md) | Flujo de invitación admin a app de tenant — nuevos endpoints, migración V25 y feedback out BE-009 para UI |
+| [T-159](registered/T-159-request-attack-surface-hardening.md) | Hardening de superficie de ataque HTTP: rate limit, brute force, enumeración, payload limits, headers de seguridad |
+| [T-160](registered/T-160-springboot-startup-optimization.md) | Revisión y optimización de arranque de Spring Boot: lazy init, HikariCP, Flyway, JVM flags de desarrollo |
+| [T-161](registered/T-161-jacoco-java21-compatibility.md) | Actualizar `jacoco-maven-plugin` a ≥ 0.8.11 para eliminar warning `Unsupported class file major version 69` con Java 21 |
+| [T-162](registered/T-162-app-role-default-self-registration.md) | Rol por defecto de app en self-registration: `is_default` en `app_roles` + asignación automática en `SelfRegistrationOrchestrator` |
 | [T-013](registered/T-013-testcontainers-supabase.md) | Testcontainers para adapters de `keygo-supabase` |
 | [T-025](registered/T-025-testcontainers-tenant-flow.md) | Testcontainers: flujo completo de tenant |
 | [T-031](registered/T-031-ci-markdown-links.md) | CI: verificación automática de links Markdown |
@@ -153,6 +158,8 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 |---|---|
 | [T-130](pending-ui/T-130-check-email.md) | `POST /platform/account/check-email` — valida email antes del ToS |
 | [T-145](pending-ui/T-145-platform-billing-catalog-empty.md) | Corrección que alinea Flyway y seeds para `GET /platform/billing/catalog` |
+| [T-154](pending-ui/T-154-tenant-app-open-registration-flow.md) | Flujo de self-registro abierto: backend completado; bloqueado en UI por T-158 (endpoints públicos de descubrimiento) |
+| [T-158](pending-ui/T-158-public-discovery-endpoints.md) | `GET /tenants/public` y `GET /tenants/{slug}/apps/public` — backend completo, 11 tests; pendiente consumo por UI |
 
 ## Archivada ⬛
 

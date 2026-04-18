@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.api.registration.request.RegisterRequest;
 import io.cmartinezs.keygo.api.registration.request.ResendVerificationRequest;
 import io.cmartinezs.keygo.api.registration.request.VerifyEmailRequest;
 import io.cmartinezs.keygo.api.registration.response.RegistrationData;
+import io.cmartinezs.keygo.api.registration.response.RegistrationInfoData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
@@ -11,9 +12,9 @@ import io.cmartinezs.keygo.api.shared.response.NotificationSentData;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.command.ResendVerificationCommand;
 import io.cmartinezs.keygo.app.user.command.VerifyEmailCommand;
+import io.cmartinezs.keygo.app.user.orchestrator.SelfRegistrationOrchestrator;
 import io.cmartinezs.keygo.app.user.usecase.RegisterTenantUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResendVerificationEmailUseCase;
-import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
 import io.cmartinezs.keygo.domain.shared.util.EmailMasker;
 import io.cmartinezs.keygo.domain.user.model.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,15 +47,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class RegistrationController {
 
   private final RegisterTenantUserUseCase registerTenantUserUseCase;
-  private final VerifyEmailUseCase verifyEmailUseCase;
+  private final SelfRegistrationOrchestrator selfRegistrationOrchestrator;
   private final ResendVerificationEmailUseCase resendVerificationEmailUseCase;
 
   public RegistrationController(
       RegisterTenantUserUseCase registerTenantUserUseCase,
-      VerifyEmailUseCase verifyEmailUseCase,
+      SelfRegistrationOrchestrator selfRegistrationOrchestrator,
       ResendVerificationEmailUseCase resendVerificationEmailUseCase) {
     this.registerTenantUserUseCase = registerTenantUserUseCase;
-    this.verifyEmailUseCase = verifyEmailUseCase;
+    this.selfRegistrationOrchestrator = selfRegistrationOrchestrator;
     this.resendVerificationEmailUseCase = resendVerificationEmailUseCase;
   }
 
@@ -71,6 +73,8 @@ public class RegistrationController {
   @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "Tenant or client app not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "App does not allow self-registration — INVITE_ONLY policy (code: BUSINESS_RULE_VIOLATION)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "409", description = "Email or username already exists in this tenant (code: DUPLICATE_RESOURCE)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
@@ -108,7 +112,8 @@ public class RegistrationController {
   @Operation(
       summary = "Verify email address",
       description = "Validates the 6-digit code received by email. If valid, the user is "
-                    + "activated (status → ACTIVE). If expired, a new code must be requested.")
+                    + "activated (status → ACTIVE) and automatic membership is created based on "
+                    + "the app's registration policy. If expired, a new code must be requested.")
   @ApiResponse(responseCode = "200", description = "Email verified — user is now active (code: EMAIL_VERIFIED)")
   @ApiResponse(responseCode = "400", description = "Invalid or already-used verification code (code: INVALID_INPUT)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
@@ -121,10 +126,7 @@ public class RegistrationController {
       @Parameter(description = "Client app ID") @PathVariable String clientId,
       @Valid @RequestBody VerifyEmailRequest request) {
 
-    VerifyEmailCommand command = new VerifyEmailCommand(
-        tenantSlug, clientId, request.email(), request.code());
-
-    verifyEmailUseCase.execute(command);
+    selfRegistrationOrchestrator.execute(tenantSlug, clientId, request.email(), request.registration_id(), request.code());
 
     BaseResponse<Void> response = BaseResponse.<Void>builder()
         .success(ResponseHelper.message(ResponseCode.EMAIL_VERIFIED))

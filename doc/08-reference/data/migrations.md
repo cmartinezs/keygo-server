@@ -1,9 +1,9 @@
 # Migraciones Flyway — KeyGo Server
 
-> Última actualización: 2026-04-14  
+> Última actualización: 2026-04-18  
 > Baseline vigente: **V1–V24**  
 > Baseline anterior archivado en: `keygo-supabase/src/main/resources/db/backup_20260409_v33/`  
-> Próxima migración disponible: **V25**
+> Próxima migración disponible: **V30**
 
 ## Estrategia
 
@@ -53,6 +53,11 @@ V{n}__{descripcion}.sql
 | V22 | `V22__app_contracts_client_app_nullable.sql` | Billing | hace nullable `app_contracts.client_app_id` para soportar contratos de plataforma sin app específica (NULL = plataforma, NOT NULL = app) |
 | V23 | `V23__app_subscriptions_client_app_nullable.sql` | Billing | hace nullable `app_subscriptions.client_app_id` para alinear con V22: subscripciones de plataforma sin app específica |
 | V24 | `V24__billing_operations_client_app_nullable.sql` | Billing | hace nullable `client_app_id` en `invoices`, `payment_transactions` y `usage_counters` para alinear con V22/V23: operaciones de plataforma sin app específica |
+| V25 | `V25__seed_platform_plan_catalog.sql` | Seed | seed del catálogo de planes de plataforma |
+| V26 | `V26__seed_platform_contracts_and_subscriptions.sql` | Seed | seed de contratos y suscripciones de plataforma |
+| V27 | `V27__seed_contractors_tenants_apps_contracts.sql` | Seed | seed de contractors, tenants adicionales, apps y contratos |
+| V28 | `V28__seed_restricted_tenant_no_self_registration.sql` | Seed | seed de tenant restringido sin auto-registro |
+| V29 | `V29__backfill_platform_user_roles_keygo_user.sql` | Fix | asigna `KEYGO_USER` (scope GLOBAL) a todos los `platform_users` sin ningún rol de plataforma asignado |
 
 ## Decisiones clave del remake
 

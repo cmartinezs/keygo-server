@@ -336,7 +336,7 @@ public class PlatformUserController {
       @Valid @RequestBody AssignPlatformRoleRequest request) {
 
     assignPlatformRoleUseCase.execute(
-        new AssignPlatformRoleCommand(userId, request.roleCode()));
+        new AssignPlatformRoleCommand(userId, request.roleCodes()));
 
     BaseResponse<Void> response = BaseResponse.<Void>builder()
         .success(ResponseHelper.message(ResponseCode.PLATFORM_ROLE_ASSIGNED))

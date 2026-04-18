@@ -12,7 +12,8 @@ import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
 import io.cmartinezs.keygo.app.billing.contractor.port.ContractorUserRepositoryPort;
-import io.cmartinezs.keygo.app.membership.port.PlatformUserRoleRepositoryPort;
+import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
@@ -28,6 +29,7 @@ import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import io.cmartinezs.keygo.domain.user.model.Username;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,7 +44,7 @@ class MockApprovePaymentUseCaseTest {
 
   @Mock AppContractRepositoryPort contractRepo;
   @Mock PlatformUserRepositoryPort platformUserRepo;
-  @Mock PlatformUserRoleRepositoryPort platformUserRoleRepo;
+  @Mock AssignPlatformRoleUseCase assignPlatformRoleUseCase;
   @Mock ContractorRepositoryPort contractorRepo;
   @Mock ContractorUserRepositoryPort contractorUserRepo;
   @Mock CredentialEncoderPort credentialEncoder;
@@ -55,7 +57,7 @@ class MockApprovePaymentUseCaseTest {
     useCase = new MockApprovePaymentUseCase(
         contractRepo,
         platformUserRepo,
-        platformUserRoleRepo,
+        assignPlatformRoleUseCase,
         contractorRepo,
         contractorUserRepo,
         credentialEncoder,
@@ -101,8 +103,7 @@ class MockApprovePaymentUseCaseTest {
           .lastName(input.getLastName())
           .build();
     });
-    when(platformUserRoleRepo.hasRole(platformUserId, "keygo_user")).thenReturn(false);
-    when(platformUserRoleRepo.hasRole(platformUserId, "keygo_tenant_admin")).thenReturn(false);
+    when(assignPlatformRoleUseCase.execute(any(AssignPlatformRoleCommand.class))).thenReturn(List.of());
     when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.empty());
     when(contractorUserRepo.hasRole(contractorId, platformUserId, ContractorUserRole.OWNER)).thenReturn(false);
     when(contractorRepo.save(any())).thenReturn(Contractor.builder()
@@ -120,8 +121,7 @@ class MockApprovePaymentUseCaseTest {
     assertThat(result.contract().getStatus()).isEqualTo(ContractStatus.READY_TO_ACTIVATE);
     assertThat(result.contract().getContractorId()).isEqualTo(contractorId);
     verify(platformUserRepo).save(any());
-    verify(platformUserRoleRepo).assign(platformUserId, "keygo_user");
-    verify(platformUserRoleRepo).assign(platformUserId, "keygo_tenant_admin");
+    verify(assignPlatformRoleUseCase).execute(any(AssignPlatformRoleCommand.class));
     verify(contractorUserRepo).assign(contractorId, platformUserId, ContractorUserRole.OWNER);
     verify(emailNotification).sendEmail(
         eq(EmailNotificationPort.TYPE_TEMPORARY_PASSWORD), anyString(), anyString(), any(Map.class));
@@ -144,8 +144,7 @@ class MockApprovePaymentUseCaseTest {
     when(contractRepo.findById(contract.getId())).thenReturn(Optional.of(contract));
     when(platformUserRepo.findByEmail(EmailAddress.of(contract.getContractorEmail())))
         .thenReturn(Optional.of(existingUser));
-    when(platformUserRoleRepo.hasRole(platformUserId, "keygo_user")).thenReturn(true);
-    when(platformUserRoleRepo.hasRole(platformUserId, "keygo_tenant_admin")).thenReturn(true);
+    when(assignPlatformRoleUseCase.execute(any(AssignPlatformRoleCommand.class))).thenReturn(List.of());
     when(contractorUserRepo.hasRole(contractorId, platformUserId, ContractorUserRole.OWNER)).thenReturn(true);
     when(contractorRepo.findByPlatformUserId(platformUserId)).thenReturn(Optional.of(Contractor.builder()
         .id(contractorId)
@@ -163,7 +162,6 @@ class MockApprovePaymentUseCaseTest {
     assertThat(result.contract().getContractorId()).isEqualTo(contractorId);
     verify(platformUserRepo, never()).save(any());
     verify(emailNotification, never()).sendEmail(anyString(), anyString(), anyString(), any());
-    verify(platformUserRoleRepo, never()).assign(any(), anyString());
     verify(contractorUserRepo, never()).assign(any(), any(), any());
   }
 }
