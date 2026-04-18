@@ -3,7 +3,7 @@
 > Última actualización: 2026-04-18  
 > Baseline vigente: **V1–V24**  
 > Baseline anterior archivado en: `keygo-supabase/src/main/resources/db/backup_20260409_v33/`  
-> Próxima migración disponible: **V30**
+> Próxima migración disponible: **V31**
 
 ## Estrategia
 
@@ -58,6 +58,7 @@ V{n}__{descripcion}.sql
 | V27 | `V27__seed_contractors_tenants_apps_contracts.sql` | Seed | seed de contractors, tenants adicionales, apps y contratos |
 | V28 | `V28__seed_restricted_tenant_no_self_registration.sql` | Seed | seed de tenant restringido sin auto-registro |
 | V29 | `V29__backfill_platform_user_roles_keygo_user.sql` | Fix | asigna `KEYGO_USER` (scope GLOBAL) a todos los `platform_users` sin ningún rol de plataforma asignado |
+| V30 | `V30__app_roles_is_default.sql` | RBAC | agrega `is_default BOOLEAN` a `app_roles` con unique parcial por app; promueve el primer rol existente como default por retrocompatibilidad |
 
 ## Decisiones clave del remake
 

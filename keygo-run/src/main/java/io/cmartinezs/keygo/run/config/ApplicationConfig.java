@@ -389,9 +389,10 @@ public class ApplicationConfig {
   public SelfRegistrationOrchestrator selfRegistrationOrchestrator(
       VerifyEmailUseCase verifyEmailUseCase,
       CreateMembershipUseCase createMembershipUseCase,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort) {
     return new SelfRegistrationOrchestrator(
-        verifyEmailUseCase, createMembershipUseCase, clientAppRepositoryPort);
+        verifyEmailUseCase, createMembershipUseCase, clientAppRepositoryPort, appRoleRepositoryPort);
   }
 
   @Bean

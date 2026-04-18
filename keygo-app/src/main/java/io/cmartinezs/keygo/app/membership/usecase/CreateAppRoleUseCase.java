@@ -60,11 +60,19 @@ public class CreateAppRoleUseCase {
       throw new DuplicateAppRoleException(command.code(), command.clientAppId());
     }
 
+    boolean isFirstRole = appRoleRepositoryPort.countByClientAppId(command.clientAppId()) == 0;
+    boolean assignDefault = isFirstRole || command.isDefault();
+
+    if (!isFirstRole && command.isDefault()) {
+      appRoleRepositoryPort.clearDefaultByClientApp(command.clientAppId());
+    }
+
     AppRole role = AppRole.builder()
         .clientAppId(ClientAppId.of(command.clientAppId()))
         .code(roleCode)
         .displayName(command.displayName())
         .description(command.description())
+        .isDefault(assignDefault)
         .build();
 
     return appRoleRepositoryPort.save(role);

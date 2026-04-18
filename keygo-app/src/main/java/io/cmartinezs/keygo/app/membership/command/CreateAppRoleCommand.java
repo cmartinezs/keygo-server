@@ -14,7 +14,8 @@ public record CreateAppRoleCommand(
     UUID clientAppId,
     String code,
     String displayName,
-    String description
+    String description,
+    boolean isDefault
 ) {
 
   public CreateAppRoleCommand {

@@ -20,9 +20,10 @@ public class AppRole {
   private final RoleCode code;
   private String displayName;
   private String description;
+  private boolean isDefault;
 
   @Builder
-  private AppRole(AppRoleId id, ClientAppId clientAppId, RoleCode code, String displayName, String description) {
+  private AppRole(AppRoleId id, ClientAppId clientAppId, RoleCode code, String displayName, String description, boolean isDefault) {
     if (clientAppId == null) throw new IllegalArgumentException("AppRole clientAppId cannot be null");
     if (code == null) throw new IllegalArgumentException("AppRole code cannot be null");
 
@@ -31,6 +32,7 @@ public class AppRole {
     this.code = code;
     this.displayName = displayName;
     this.description = description;
+    this.isDefault = isDefault;
   }
 
   /* Domain behaviour */

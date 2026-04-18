@@ -87,7 +87,6 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-159](registered/T-159-request-attack-surface-hardening.md) | Hardening de superficie de ataque HTTP: rate limit, brute force, enumeración, payload limits, headers de seguridad |
 | [T-160](registered/T-160-springboot-startup-optimization.md) | Revisión y optimización de arranque de Spring Boot: lazy init, HikariCP, Flyway, JVM flags de desarrollo |
 | [T-161](registered/T-161-jacoco-java21-compatibility.md) | Actualizar `jacoco-maven-plugin` a ≥ 0.8.11 para eliminar warning `Unsupported class file major version 69` con Java 21 |
-| [T-162](registered/T-162-app-role-default-self-registration.md) | Rol por defecto de app en self-registration: `is_default` en `app_roles` + asignación automática en `SelfRegistrationOrchestrator` |
 | [T-013](registered/T-013-testcontainers-supabase.md) | Testcontainers para adapters de `keygo-supabase` |
 | [T-025](registered/T-025-testcontainers-tenant-flow.md) | Testcontainers: flujo completo de tenant |
 | [T-031](registered/T-031-ci-markdown-links.md) | CI: verificación automática de links Markdown |
@@ -176,3 +175,4 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-146](completed/T-146-platform-roles-catalog-endpoint.md) | `GET /platform/roles` — catálogo de roles de plataforma disponibles para asignación desde UI. | 2026-04-13 |
 | [T-147](completed/T-147-platform-plan-entitlements-update.md) | Migración V21 con matriz completa de entitlements de planes de plataforma (73 filas): corrección de `period_type` en V20 + 61 nuevas métricas incluyendo FLEX tiers y ENTERPRISE exclusivos. | 2026-04-14 |
 | [T-153](completed/T-153-platform-account-profile.md) | `GET` / `PATCH /api/v1/platform/account/profile` — endpoints de perfil self-service para platform users, operando directamente sobre PlatformUserRepositoryPort. | 2026-04-14 |
+| [T-162](completed/T-162-app-role-default-self-registration.md) | Rol por defecto de app en self-registration: diseño documentado, decisión registrada (`is_default` en `app_roles` + asignación automática en `SelfRegistrationOrchestrator`). | 2026-04-18 |

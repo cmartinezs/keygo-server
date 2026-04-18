@@ -6,7 +6,11 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Spring Data JPA repository for AppRoleEntity.
@@ -34,5 +38,26 @@ public interface AppRoleJpaRepository extends JpaRepository<AppRoleEntity, UUID>
    * <p>Verifica si un rol existe.
    */
   boolean existsByClientAppIdAndCode(UUID clientAppId, String code);
+
+  /**
+   * Count roles for a client app.
+   * <p>Cuenta roles de una app de cliente.
+   */
+  int countByClientAppId(UUID clientAppId);
+
+  /**
+   * Find the default role for a client app.
+   * <p>Encuentra el rol por defecto de una app de cliente.
+   */
+  Optional<AppRoleEntity> findByClientAppIdAndIsDefaultTrue(UUID clientAppId);
+
+  /**
+   * Clear the default flag on all roles of a client app.
+   * <p>Limpia is_default en todos los roles de una app de cliente.
+   */
+  @Modifying
+  @Transactional
+  @Query("UPDATE AppRoleEntity r SET r.isDefault = false WHERE r.clientAppId = :clientAppId AND r.isDefault = true")
+  void clearDefaultByClientAppId(@Param("clientAppId") UUID clientAppId);
 }
 

@@ -58,6 +58,9 @@ public class AppRoleEntity {
   @Column(columnDefinition = "TEXT")
   private String description;
 
+  @Column(name = "is_default", nullable = false)
+  private boolean isDefault;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;

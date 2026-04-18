@@ -85,7 +85,8 @@ public class TenantAppRoleController {
         clientAppId,
         request.code(),
         request.displayName(),
-        request.description());
+        request.description(),
+        request.isDefault());
 
     AppRole role = createAppRoleUseCase.execute(command);
 
@@ -95,6 +96,7 @@ public class TenantAppRoleController {
         .code(role.getCode().value())
         .displayName(role.getDisplayName())
         .description(role.getDescription())
+        .isDefault(role.isDefault())
         .build();
 
     BaseResponse<AppRoleData> response = BaseResponse.<AppRoleData>builder()
@@ -140,6 +142,7 @@ public class TenantAppRoleController {
             .code(r.getCode().value())
             .displayName(r.getDisplayName())
             .description(r.getDescription())
+            .isDefault(r.isDefault())
             .build())
         .toList();
 

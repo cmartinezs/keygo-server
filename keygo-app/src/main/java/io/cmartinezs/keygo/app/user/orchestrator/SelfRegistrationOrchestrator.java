@@ -2,15 +2,18 @@ package io.cmartinezs.keygo.app.user.orchestrator;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.membership.command.CreateMembershipCommand;
+import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.user.command.VerifyEmailCommand;
 import io.cmartinezs.keygo.app.user.usecase.VerifyEmailUseCase;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.clientapp.model.RegistrationPolicy;
+import io.cmartinezs.keygo.domain.membership.model.AppRole;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.user.model.User;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -35,14 +38,17 @@ public class SelfRegistrationOrchestrator {
   private final VerifyEmailUseCase verifyEmailUseCase;
   private final CreateMembershipUseCase createMembershipUseCase;
   private final ClientAppRepositoryPort clientAppRepositoryPort;
+  private final AppRoleRepositoryPort appRoleRepositoryPort;
 
   public SelfRegistrationOrchestrator(
       VerifyEmailUseCase verifyEmailUseCase,
       CreateMembershipUseCase createMembershipUseCase,
-      ClientAppRepositoryPort clientAppRepositoryPort) {
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      AppRoleRepositoryPort appRoleRepositoryPort) {
     this.verifyEmailUseCase = verifyEmailUseCase;
     this.createMembershipUseCase = createMembershipUseCase;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
+    this.appRoleRepositoryPort = appRoleRepositoryPort;
   }
 
   /**
@@ -110,12 +116,15 @@ public class SelfRegistrationOrchestrator {
       User user,
       ClientApp clientApp,
       RegistrationPolicy policy) {
+    Optional<AppRole> defaultRole = appRoleRepositoryPort.findDefaultByClientApp(clientApp.getId().value());
+    Set<String> roleCodes = defaultRole.map(r -> Set.of(r.getCode().value())).orElse(Set.of());
+
     CreateMembershipCommand cmd =
         new CreateMembershipCommand(
             tenantSlug,
             user.getId().value(),
             clientApp.getId().value(),
-            Set.of() /* no roles assigned in self-registration; user gets default app role */);
+            roleCodes);
 
     createMembershipUseCase.execute(cmd);
   }

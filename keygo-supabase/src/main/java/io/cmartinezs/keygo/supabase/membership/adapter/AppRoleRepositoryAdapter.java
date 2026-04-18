@@ -63,12 +63,29 @@ public class AppRoleRepositoryAdapter implements AppRoleRepositoryPort {
   }
 
   @Override
+  public int countByClientAppId(UUID clientAppId) {
+    return jpaRepository.countByClientAppId(clientAppId);
+  }
+
+  @Override
+  public Optional<AppRole> findDefaultByClientApp(UUID clientAppId) {
+    return jpaRepository.findByClientAppIdAndIsDefaultTrue(clientAppId)
+        .map(MembershipPersistenceMapper::toDomain);
+  }
+
+  @Override
+  public void clearDefaultByClientApp(UUID clientAppId) {
+    jpaRepository.clearDefaultByClientAppId(clientAppId);
+  }
+
+  @Override
   public AppRole save(AppRole role) {
     AppRoleEntity entity = new AppRoleEntity();
     entity.setId(role.getId().value());
     entity.setCode(role.getCode().value());
     entity.setDisplayName(role.getDisplayName());
     entity.setDescription(role.getDescription());
+    entity.setDefault(role.isDefault());
 
     // Set FK reference (non-managed entity, only ID)
     ClientAppEntity appRef = new ClientAppEntity();
@@ -86,6 +103,7 @@ public class AppRoleRepositoryAdapter implements AppRoleRepositoryPort {
 
     entity.setDisplayName(role.getDisplayName());
     entity.setDescription(role.getDescription());
+    entity.setDefault(role.isDefault());
     AppRoleEntity updated = jpaRepository.save(entity);
     return MembershipPersistenceMapper.toDomain(updated);
   }

@@ -17,6 +17,7 @@ public record AppRoleData(
     String code,
     String displayName,
     String description,
+    boolean isDefault,
     OffsetDateTime createdAt
 ) {
 

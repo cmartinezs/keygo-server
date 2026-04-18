@@ -77,6 +77,30 @@ public interface AppRoleRepositoryPort {
   void deleteById(AppRoleId roleId);
 
   /**
+   * Count roles defined for a client app.
+   * <p>Cuenta los roles definidos para una app de cliente.
+   * @param clientAppId the client app ID
+   * @return number of roles
+   */
+  int countByClientAppId(UUID clientAppId);
+
+  /**
+   * Find the default role for a client app, if any.
+   * <p>Encuentra el rol por defecto de una app de cliente, si existe.
+   * @param clientAppId the client app ID
+   * @return the default role, or empty if none is set
+   */
+  Optional<AppRole> findDefaultByClientApp(UUID clientAppId);
+
+  /**
+   * Clear the default flag on all roles of a client app.
+   * <p>Limpia el flag is_default en todos los roles de una app de cliente.
+   * Used before promoting a new default to maintain the at-most-one invariant.
+   * @param clientAppId the client app ID
+   */
+  void clearDefaultByClientApp(UUID clientAppId);
+
+  /**
    * Find all app roles with pagination, filtering, and sorting.
    * <p>Busca roles de app con paginación, filtrado y ordenamiento.
    * @param clientAppId the client app scope

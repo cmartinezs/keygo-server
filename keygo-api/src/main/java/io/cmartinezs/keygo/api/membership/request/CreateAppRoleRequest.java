@@ -12,6 +12,7 @@ public record CreateAppRoleRequest(
     @NotBlank(message = "code is required")
     String code,
     String displayName,
-    String description
+    String description,
+    boolean isDefault
 ) {}
 

@@ -65,6 +65,7 @@ public class MembershipPersistenceMapper {
         .code(RoleCode.of(entity.getCode()))
         .displayName(entity.getDisplayName())
         .description(entity.getDescription())
+        .isDefault(entity.isDefault())
         .build();
   }
 
