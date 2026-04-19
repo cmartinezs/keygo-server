@@ -38,7 +38,7 @@ class TenantAppRoleControllerTest {
   @Test
   void createAppRole_shouldReturn201WithPersistedRole() {
     // Given
-    CreateAppRoleRequest request = new CreateAppRoleRequest("admin", "Administrator", "Admin role");
+    CreateAppRoleRequest request = new CreateAppRoleRequest("admin", "Administrator", "Admin role", false);
     AppRole persistedRole = appRole("admin");
     when(createAppRoleUseCase.execute(any())).thenReturn(persistedRole);
 

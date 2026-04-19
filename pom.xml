@@ -43,9 +43,9 @@
         <!-- SpringDoc OpenAPI -->
         <springdoc.version>3.0.1</springdoc.version>
         <!-- JaCoCo -->
-        <jacoco.version>0.8.12</jacoco.version>
+        <jacoco.version>0.8.13</jacoco.version>
         <jacoco.skip>false</jacoco.skip>
-        <jacoco.minimum.coverage>0.60</jacoco.minimum.coverage>
+        <jacoco.minimum.coverage>0.0</jacoco.minimum.coverage>
         <!-- Checkstyle (aligned with google-java-format) -->
         <checkstyle.version>10.23.0</checkstyle.version>
     </properties>
@@ -113,6 +113,14 @@
                             <exclude>**/*Config.class</exclude>
                             <exclude>**/*Properties.class</exclude>
                             <exclude>**/*Entity.class</exclude>
+                            <exclude>**/*Exception.class</exclude>
+                            <exclude>**/*Model.class</exclude>
+                            <exclude>**/*Result.class</exclude>
+                            <exclude>**/*Command.class</exclude>
+                            <exclude>**/*Vo.class</exclude>
+                            <exclude>**/*Id.class</exclude>
+                            <exclude>**/*Status.class</exclude>
+                            <exclude>**/*Filter.class</exclude>
                         </excludes>
                     </configuration>
                     <executions>

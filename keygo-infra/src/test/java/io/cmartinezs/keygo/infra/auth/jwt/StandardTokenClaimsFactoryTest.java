@@ -1,132 +1,161 @@
 package io.cmartinezs.keygo.infra.auth.jwt;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.*;
 
 class StandardTokenClaimsFactoryTest {
 
   private final StandardTokenClaimsFactory factory = new StandardTokenClaimsFactory();
 
   @Test
-  void givenValidInputs_whenBuildAccessTokenClaims_thenContainsRequiredClaims() {
-    // Given
-    Instant now = Instant.now();
-    Instant exp = now.plusSeconds(3600);
+  void buildAccessTokenClaims_withRoles_shouldIncludeRolesClaim() {
+    Map<String, Object> claims = factory.buildAccessTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "openid profile",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        List.of("ROLE_ADMIN", "ROLE_USER")
+    );
 
-    // When
-    Map<String, Object> claims =
-        factory.buildAccessTokenClaims(
-            "http://issuer", "user-1", "client-1", "openid profile", "jti-abc", now, exp, null);
-
-    // Then
-    assertThat(claims)
-        .containsKey("iss")
-        .containsKey("sub")
-        .containsKey("aud")
-        .containsKey("scope")
-        .containsKey("jti")
-        .containsKey("iat")
-        .containsKey("exp")
-        .containsEntry("scope", "openid profile")
-        .doesNotContainKey("roles");
+    assertEquals("http://localhost", claims.get("iss"));
+    assertEquals("user-1", claims.get("sub"));
+    assertEquals("client-1", claims.get("aud"));
+    assertEquals("openid profile", claims.get("scope"));
+    assertEquals("jti-1", claims.get("jti"));
+    assertNotNull(claims.get("iat"));
+    assertNotNull(claims.get("exp"));
+    assertEquals(List.of("ROLE_ADMIN", "ROLE_USER"), claims.get("roles"));
   }
 
   @Test
-  void givenRoles_whenBuildAccessTokenClaims_thenRolesClaimPresent() {
-    // Given
-    Instant now = Instant.now();
-    Instant exp = now.plusSeconds(3600);
+  void buildAccessTokenClaims_withoutRoles_shouldNotIncludeRolesClaim() {
+    Map<String, Object> claims = factory.buildAccessTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "openid",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        null
+    );
 
-    // When
-    Map<String, Object> claims =
-        factory.buildAccessTokenClaims(
-            "http://issuer", "user-1", "client-1", "openid", "jti-xyz", now, exp,
-            List.of("ADMIN", "USER"));
-
-    // Then
-    assertThat(claims).containsKey("roles");
-    @SuppressWarnings("unchecked")
-    List<String> roles = (List<String>) claims.get("roles");
-    assertThat(roles).containsExactly("ADMIN", "USER");
+    assertNull(claims.get("roles"));
   }
 
   @Test
-  void givenEmptyRoles_whenBuildAccessTokenClaims_thenRolesClaimAbsent() {
-    // Given / When
-    Map<String, Object> claims =
-        factory.buildAccessTokenClaims(
-            "http://issuer", "user-1", "client-1", "openid", "jti-xyz",
-            Instant.now(), Instant.now().plusSeconds(3600), List.of());
+  void buildAccessTokenClaims_withEmptyRoles_shouldNotIncludeRolesClaim() {
+    Map<String, Object> claims = factory.buildAccessTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "openid",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        List.of()
+    );
 
-    // Then
-    assertThat(claims).doesNotContainKey("roles");
+    assertNull(claims.get("roles"));
   }
 
   @Test
-  void givenAccessToken_whenBuildIdTokenClaims_thenAtHashIsPresent() {
-    // Given
-    Instant now = Instant.now();
-    Instant exp = now.plusSeconds(3600);
+  void buildIdTokenClaims_withAllOptionalFields_shouldIncludeAll() {
+    Map<String, Object> claims = factory.buildIdTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        "nonce-value",
+        "user@test.com",
+        "User Name",
+        "access-token-value",
+        List.of("ROLE_ADMIN")
+    );
 
-    // When
-    Map<String, Object> claims =
-        factory.buildIdTokenClaims(
-            "http://issuer", "user-1", "client-1", "jti-id",
-            now, exp, null, "user@example.com", "John Doe", "access.token.value", null);
-
-    // Then
-    assertThat(claims).containsKey("at_hash");
-    assertThat(claims.get("at_hash")).isNotNull().isInstanceOf(String.class);
-    assertThat((String) claims.get("at_hash")).isNotBlank();
-    assertThat(claims).doesNotContainKey("roles");
+    assertEquals("http://localhost", claims.get("iss"));
+    assertEquals("user-1", claims.get("sub"));
+    assertEquals("client-1", claims.get("aud"));
+    assertEquals("jti-1", claims.get("jti"));
+    assertNotNull(claims.get("iat"));
+    assertNotNull(claims.get("exp"));
+    assertNotNull(claims.get("at_hash"));
+    assertEquals("nonce-value", claims.get("nonce"));
+    assertEquals("user@test.com", claims.get("email"));
+    assertEquals("User Name", claims.get("name"));
+    assertEquals(List.of("ROLE_ADMIN"), claims.get("roles"));
   }
 
   @Test
-  void givenRolesInIdToken_whenBuildIdTokenClaims_thenRolesPresent() {
-    // Given
-    Instant now = Instant.now();
+  void buildIdTokenClaims_withoutOptionalFields_shouldExcludeThem() {
+    Map<String, Object> claims = factory.buildIdTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        null,
+        null,
+        null,
+        "access-token",
+        null
+    );
 
-    // When
-    Map<String, Object> claims =
-        factory.buildIdTokenClaims(
-            "http://issuer", "user-1", "client-1", "jti-id",
-            now, now.plusSeconds(3600), null, "u@e.com", "User",
-            "access.token", List.of("EDITOR"));
-
-    // Then
-    @SuppressWarnings("unchecked")
-    List<String> roles = (List<String>) claims.get("roles");
-    assertThat(roles).containsExactly("EDITOR");
+    assertNull(claims.get("nonce"));
+    assertNull(claims.get("email"));
+    assertNull(claims.get("name"));
+    assertNull(claims.get("roles"));
+    assertNotNull(claims.get("at_hash"));
   }
 
   @Test
-  void givenNonce_whenBuildIdTokenClaims_thenNonceIncluded() {
-    // Given
-    Instant now = Instant.now();
+  void buildIdTokenClaims_withBlankOptionalFields_shouldExcludeThem() {
+    Map<String, Object> claims = factory.buildIdTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        "  ",
+        "  ",
+        "  ",
+        "access-token",
+        List.of()
+    );
 
-    // When
-    Map<String, Object> claims =
-        factory.buildIdTokenClaims(
-            "http://issuer", "user-1", "client-1", "jti-id",
-            now, now.plusSeconds(3600), "my-nonce", null, null, "token", null);
-
-    // Then
-    assertThat(claims).containsEntry("nonce", "my-nonce");
+    assertNull(claims.get("nonce"));
+    assertNull(claims.get("email"));
+    assertNull(claims.get("name"));
+    assertNull(claims.get("roles"));
   }
 
   @Test
-  void givenNullNonce_whenBuildIdTokenClaims_thenNonceAbsent() {
-    // Given / When
-    Map<String, Object> claims =
-        factory.buildIdTokenClaims(
-            "http://issuer", "user-1", "client-1", "jti-id",
-            Instant.now(), Instant.now().plusSeconds(3600),
-            null, null, null, "token", null);
+  void buildIdTokenClaims_withNullAccessToken_shouldNotComputeAtHash() {
+    Map<String, Object> claims = factory.buildIdTokenClaims(
+        "http://localhost",
+        "user-1",
+        "client-1",
+        "jti-1",
+        Instant.now(),
+        Instant.now().plusSeconds(3600),
+        null,
+        "email@test.com",
+        "Name",
+        null,
+        null
+    );
 
-    // Then
-    assertThat(claims).doesNotContainKey("nonce");
+    assertNull(claims.get("at_hash"));
   }
 }

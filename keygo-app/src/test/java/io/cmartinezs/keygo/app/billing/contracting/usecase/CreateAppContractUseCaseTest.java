@@ -324,7 +324,7 @@ class CreateAppContractUseCaseTest {
 
     // Then — clientApp was NOT validated
     assertThat(result).isNotNull();
-    assertThat(result.contract().getClientAppId()).isNull();
+    assertThat(result.contract().getClientAppId()).isEmpty();
     verify(clientAppRepo, never()).findById(any());
     verify(contractorRepo).findByPlatformUserEmail(CONTRACTOR_EMAIL);
     verify(contractVerificationRepo).upsert(any());

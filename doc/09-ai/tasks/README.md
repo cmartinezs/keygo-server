@@ -86,6 +86,7 @@ en [workflow.md](../workflow.md#relaciones-entre-tareas).
 | [T-155](registered/T-155-tenant-app-invitation-flow.md) | Flujo de invitación admin a app de tenant — nuevos endpoints, migración V25 y feedback out BE-009 para UI |
 | [T-159](registered/T-159-request-attack-surface-hardening.md) | Hardening de superficie de ataque HTTP: rate limit, brute force, enumeración, payload limits, headers de seguridad |
 | [T-160](registered/T-160-springboot-startup-optimization.md) | Revisión y optimización de arranque de Spring Boot: lazy init, HikariCP, Flyway, JVM flags de desarrollo |
+| [T-200](registered/T-200-jacoco-90-coverage.md) | Mejorar coverage JaCoCo de 60% a 90% — corregir tests fallidos y expandir coverage |
 | [T-161](registered/T-161-jacoco-java21-compatibility.md) | Actualizar `jacoco-maven-plugin` a ≥ 0.8.11 para eliminar warning `Unsupported class file major version 69` con Java 21 |
 | [T-013](registered/T-013-testcontainers-supabase.md) | Testcontainers para adapters de `keygo-supabase` |
 | [T-025](registered/T-025-testcontainers-tenant-flow.md) | Testcontainers: flujo completo de tenant |

@@ -114,31 +114,15 @@ class IssuePlatformTokensUseCaseTest {
   }
 
   @Test
-  void givenUserWithNoRoles_whenExecute_thenReturnsTokensWithEmptyRoles() {
+  void givenUserWithoutRoles_whenExecute_thenThrowsException() {
     // Given
-    when(clock.now()).thenReturn(now);
     when(platformUserRoleRepository.findRoleCodesByPlatformUserId(userId))
         .thenReturn(List.of());
-    when(issueTokensUseCase.execute(
-        isNull(), anyString(), anyString(), eq("keygo-platform"),
-        eq("openid profile platform"), isNull(),
-        anyString(), anyString(), isNull(), eq(List.of())))
-        .thenReturn(new IssueTokensResult(
-            "access.jwt", "id.jwt", "Bearer", 3600L,
-            "openid profile platform", null, "signing-key-2"));
-    when(sessionRepository.save(any(Session.class)))
-        .thenAnswer(inv -> inv.getArgument(0));
-    when(refreshTokenRepository.save(any(RefreshToken.class)))
-        .thenAnswer(inv -> inv.getArgument(0));
 
-    // When
-    IssuePlatformTokensResult result = useCase.execute(
-        platformUser, "http://localhost/api/v1/platform", "curl/8.0", "10.0.0.1");
-
-    // Then
-    assertThat(result.accessToken()).isEqualTo("access.jwt");
-    assertThat(result.tokenType()).isEqualTo("Bearer");
-    verify(platformUserRoleRepository).findRoleCodesByPlatformUserId(userId);
+    // When / Then
+    assertThatThrownBy(() -> useCase.execute(
+        platformUser, "http://localhost/api/v1/platform", "curl/8.0", "10.0.0.1"))
+        .isInstanceOf(io.cmartinezs.keygo.app.platform.exception.PlatformUserWithoutRolesException.class);
   }
 
   @Test
@@ -154,12 +138,12 @@ class IssuePlatformTokensUseCaseTest {
 
     when(clock.now()).thenReturn(now);
     when(platformUserRoleRepository.findRoleCodesByPlatformUserId(userId))
-        .thenReturn(List.of());
+        .thenReturn(List.of("keygo_user"));
     when(issueTokensUseCase.execute(
         isNull(), anyString(), anyString(), eq("keygo-platform"),
         eq("openid profile platform"), isNull(),
         eq("anon@keygo.local"), isNull(),
-        isNull(), anyList()))
+        isNull(), eq(List.of("keygo_user"))))
         .thenReturn(new IssueTokensResult(
             "access.jwt", "id.jwt", "Bearer", 3600L,
             "openid profile platform", null, "key-3"));

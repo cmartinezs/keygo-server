@@ -23,6 +23,7 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
 import io.cmartinezs.keygo.domain.user.model.User;
+import io.cmartinezs.keygo.domain.user.model.UserId;
 import io.cmartinezs.keygo.domain.user.model.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -102,7 +103,20 @@ class RegisterTenantUserUseCaseTest {
     when(credentialEncoderPort.encode(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
 
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-    when(userRepositoryPort.save(userCaptor.capture())).thenAnswer(inv -> inv.getArgument(0));
+    when(userRepositoryPort.save(userCaptor.capture())).thenAnswer(inv -> {
+      User saved = inv.getArgument(0);
+      // Simular que JPA asigna ID al guardar
+      return User.builder()
+          .id(UserId.generate())
+          .tenantId(saved.getTenantId())
+          .username(saved.getUsername())
+          .email(saved.getEmail())
+          .passwordHash(saved.getPasswordHash())
+          .firstName(saved.getFirstName())
+          .lastName(saved.getLastName())
+          .status(saved.getStatus())
+          .build();
+    });
     when(verificationCodeRepositoryPort.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
 
     RegisterTenantUserCommand command = new RegisterTenantUserCommand(

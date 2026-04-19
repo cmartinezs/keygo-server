@@ -88,7 +88,7 @@ class RecoverPasswordUseCaseTest {
     // Given
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(validToken));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.of(activeUser));
     when(credentialEncoderPort.encode(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -181,7 +181,7 @@ class RecoverPasswordUseCaseTest {
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(tokenRepositoryPort.findByCodeAndPurpose(RAW_TOKEN, VerificationPurpose.PASSWORD_RECOVERY)).thenReturn(Optional.of(validToken));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(activeUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.of(activeUser));
     when(credentialEncoderPort.encode(VALID_NEW_PASSWORD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

@@ -91,7 +91,7 @@ class ResetPasswordUseCaseTest {
   void resetPassword_succeeds_andActivatesUser() {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(activeCode()));
-    when(userRepositoryPort.findByIdAndTenantId(eq(userId), any())).thenReturn(Optional.of(resetPasswordUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), eq(userId))).thenReturn(Optional.of(resetPasswordUser));
     when(credentialEncoderPort.matches("tempPass123!", TEMP_HASH)).thenReturn(true);
     when(credentialEncoderPort.encode(VALID_NEW_PWD)).thenReturn(NEW_HASH);
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -114,7 +114,7 @@ class ResetPasswordUseCaseTest {
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.empty());
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(PasswordResetRequestNotFoundException.class);
-    verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
+    verify(userRepositoryPort, never()).findByTenantIdAndPlatformUserId(any(), any());
   }
   @Test
   void resetPassword_throwsWhenRequestIdIsNotValidUUID() {
@@ -134,7 +134,7 @@ class ResetPasswordUseCaseTest {
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(usedCode));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(VerificationCodeInvalidException.class);
-    verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
+    verify(userRepositoryPort, never()).findByTenantIdAndPlatformUserId(any(), any());
     verify(userRepositoryPort, never()).save(any());
   }
   @Test
@@ -147,7 +147,7 @@ class ResetPasswordUseCaseTest {
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(expiredCode));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(VerificationCodeExpiredException.class);
-    verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
+    verify(userRepositoryPort, never()).findByTenantIdAndPlatformUserId(any(), any());
     verify(userRepositoryPort, never()).save(any());
   }
   @Test
@@ -159,14 +159,14 @@ class ResetPasswordUseCaseTest {
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(wrongCode));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(VerificationCodeInvalidException.class);
-    verify(userRepositoryPort, never()).findByIdAndTenantId(any(), any());
+    verify(userRepositoryPort, never()).findByTenantIdAndPlatformUserId(any(), any());
     verify(userRepositoryPort, never()).save(any());
   }
   @Test
   void resetPassword_throwsWhenUserDoesNotBelongToTenant() {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(activeCode()));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.empty());
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.empty());
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(UserNotFoundException.class);
     verify(userRepositoryPort, never()).save(any());
@@ -176,7 +176,7 @@ class ResetPasswordUseCaseTest {
     resetPasswordUser.activate();
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(activeCode()));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(UserNotInResetPasswordStatusException.class);
     verify(credentialEncoderPort, never()).matches(any(), any());
@@ -186,7 +186,7 @@ class ResetPasswordUseCaseTest {
   void resetPassword_throwsWhenTemporaryPasswordIncorrect() {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(activeCode()));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     when(credentialEncoderPort.matches("tempPass123!", TEMP_HASH)).thenReturn(false);
     assertThatThrownBy(() -> useCase.execute(validCommand()))
         .isInstanceOf(IncorrectCurrentPasswordException.class);
@@ -196,7 +196,7 @@ class ResetPasswordUseCaseTest {
   void resetPassword_throwsWhenPasswordsDoNotMatch() {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(activeCode()));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     when(credentialEncoderPort.matches("tempPass123!", TEMP_HASH)).thenReturn(true);
     var command = new ResetPasswordCommand(
         TENANT_SLUG, requestId.toString(), "tempPass123!", VALID_NEW_PWD, "DifferentPassword@1!", VALID_CODE);
@@ -208,7 +208,7 @@ class ResetPasswordUseCaseTest {
   void resetPassword_throwsWhenNewPasswordViolatesPolicy() {
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(activeTenant));
     when(codeRepositoryPort.findById(requestId)).thenReturn(Optional.of(activeCode()));
-    when(userRepositoryPort.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
+    when(userRepositoryPort.findByTenantIdAndPlatformUserId(any(), any())).thenReturn(Optional.of(resetPasswordUser));
     when(credentialEncoderPort.matches("tempPass123!", TEMP_HASH)).thenReturn(true);
     var command = new ResetPasswordCommand(
         TENANT_SLUG, requestId.toString(), "tempPass123!", "weak", "weak", VALID_CODE);

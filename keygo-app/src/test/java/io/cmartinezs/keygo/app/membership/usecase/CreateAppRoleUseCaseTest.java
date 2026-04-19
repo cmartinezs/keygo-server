@@ -55,7 +55,7 @@ class CreateAppRoleUseCaseTest {
     // Given
     Tenant tenant = activeTenant();
     CreateAppRoleCommand command = new CreateAppRoleCommand(
-        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", "Admin role");
+        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", "Admin role", false);
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
     when(clientAppRepositoryPort.findAllByTenantId(tenant.getId())).thenReturn(List.of(clientApp(tenant)));
@@ -77,7 +77,7 @@ class CreateAppRoleUseCaseTest {
     // Given
     Tenant tenant = activeTenant();
     CreateAppRoleCommand command = new CreateAppRoleCommand(
-        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null);
+        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null, false);
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
     when(clientAppRepositoryPort.findAllByTenantId(tenant.getId())).thenReturn(List.of(clientApp(tenant)));
@@ -96,7 +96,7 @@ class CreateAppRoleUseCaseTest {
     // Given
     Tenant tenant = activeTenant();
     CreateAppRoleCommand command = new CreateAppRoleCommand(
-        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null);
+        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null, false);
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
     when(clientAppRepositoryPort.findAllByTenantId(tenant.getId())).thenReturn(List.of());
@@ -111,7 +111,7 @@ class CreateAppRoleUseCaseTest {
   void execute_tenantNotFound_shouldThrow() {
     // Given
     CreateAppRoleCommand command = new CreateAppRoleCommand(
-        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null);
+        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null, false);
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.empty());
 
     // When / Then
@@ -131,7 +131,7 @@ class CreateAppRoleUseCaseTest {
         .build();
 
     CreateAppRoleCommand command = new CreateAppRoleCommand(
-        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null);
+        TENANT_SLUG, CLIENT_APP_ID, "admin", "Administrator", null, false);
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(suspended));
 
