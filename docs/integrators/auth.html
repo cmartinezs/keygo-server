@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OAuth2 Authentication — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const AUTHENTICATION_FLOW = `
+sequenceDiagram
+  autonumber
+  actor User
+  participant Client as Browser / Client
+  participant Authorize as GET /oauth2/authorize
+  participant Login as POST /account/login
+  participant Token as POST /oauth2/token
+  participant Store as Session Store
+  participant Jwks as GET /.well-known/jwks.json
+
+  User->>Client: Start hosted login
+  Client->>Authorize: authorize request + PKCE challenge
+  Authorize-->>Client: login context
+  Client->>Login: credentials + auth context
+  Login->>Store: create platform_session + authorization_code
+  Login-->>Client: redirect with authorization_code
+  Client->>Token: code + code_verifier
+  Token->>Store: create oauth_session + rotating refresh_token
+  Token-->>Client: access_token + refresh_token
+  Client->>Jwks: fetch signing keys
+  Jwks-->>Client: JWKS for signature validation
+`;
+
+function AuthPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        contractTitle: 'Protocol contract by scope',
+        axis: 'Axis',
+        platform: 'Platform',
+        tenant: 'Tenant',
+        lifecycleTitle: 'Credential lifecycle',
+        directTitle: 'Direct login / trusted clients',
+        directCallout: 'For CLI and trusted backends, KeyGo also supports direct login without authorization_code or id_token issuance.',
+        directEndpoint: 'Endpoint',
+        directReturns: 'Returns',
+        directNo: 'Does not return',
+        directUse: 'Typical use',
+        authFlowTitle: 'Authentication flow',
+        authFlowCallout: 'This is the hosted PKCE path: browser login establishes a platform session first, then issues tenant/app OAuth artifacts during the code exchange.',
+      }
+    : {
+        contractTitle: 'Contrato de protocolo por scope',
+        axis: 'Eje',
+        platform: 'Platform',
+        tenant: 'Tenant',
+        lifecycleTitle: 'Ciclo de vida de credenciales',
+        directTitle: 'Direct login / clientes confiables',
+        directCallout: 'Para CLI y backends confiables, KeyGo también soporta login directo sin emitir authorization_code ni id_token.',
+        directEndpoint: 'Endpoint',
+        directReturns: 'Retorna',
+        directNo: 'No retorna',
+        directUse: 'Uso típico',
+        authFlowTitle: 'Flujo de autenticación',
+        authFlowCallout: 'Este es el camino hosted PKCE: el login del navegador establece primero una platform session y luego emite artefactos OAuth tenant/app durante el code exchange.',
+      };
+  const contract = [
+    ['Endpoint base', '/api/v1/platform/oauth2/...', '/api/v1/tenants/{slug}/oauth2/...'],
+    ['Issuer', 'https://keygo.local/api/v1/platform', 'https://keygo.local/api/v1/tenants/{slug}'],
+    ['Audience', 'keygo-platform · keygo-console', 'keygo-console · tenant client apps'],
+    ['Key claims', 'sub · email · roles[]', 'sub · tenant_slug · tenant_id · roles[]'],
+    [
+      'Typical use',
+      lang === 'en'
+        ? 'Global administration, support, cross-tenant operations'
+        : 'Administración global, soporte y operaciones cross-tenant',
+      lang === 'en'
+        ? 'Tenant console, hosted login, application access'
+        : 'Consola del tenant, hosted login y acceso a aplicaciones',
+    ],
+  ];
+  const lifecycle = [
+    {
+      name: 'authorization_code',
+      desc: lang === 'en'
+        ? 'Single-use bridge between hosted login and token issuance. Stores redirect_uri, scopes and PKCE challenge.'
+        : 'Puente de un solo uso entre hosted login y emisión de tokens. Guarda redirect_uri, scopes y desafío PKCE.',
+    },
+    {
+      name: 'oauth_session',
+      desc: lang === 'en'
+        ? 'Tenant/app-scoped session derived from the platform session. Binds identity, tenant, app and granted scopes.'
+        : 'Sesión acotada a tenant/app derivada de la sesión de plataforma. Vincula identidad, tenant, app y scopes concedidos.',
+    },
+    {
+      name: 'refresh_token',
+      desc: lang === 'en'
+        ? 'Persisted only as SHA-256 hash, TTL 30 days, rotated on every use and linked through replaced_by_id.'
+        : 'Se persiste solo como hash SHA-256, TTL 30 días, rota en cada uso y se encadena mediante replaced_by_id.',
+    },
+    {
+      name: 'replay detection',
+      desc: lang === 'en'
+        ? 'If a USED refresh token is presented again, the whole token family is revoked and the user must re-authenticate.'
+        : 'Si se presenta nuevamente un refresh token ya USED, se revoca toda la familia de tokens y el usuario debe autenticarse otra vez.',
+    },
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="auth" size={13} color="var(--green)" />{t('auth.eyebrow')}</div>
+        <h1 className="page-title">{t('auth.title')}</h1>
+        <p className="page-desc">{t('auth.desc')}</p>
+      </div>
+      <div className="section">
+        <h2>{t('auth.h2.levels')}</h2>
+        <div className="two-col">
+          <div className="card" style={{ borderTop: '3px solid var(--blue)' }}>
+            <div style={{ fontFamily:'var(--font-mono)',fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--blue)',marginBottom:10 }}>{t('auth.level1.title')}</div>
+            <code style={{ display:'block',marginBottom:8,fontSize:11 }}>/api/v1/platform/oauth2/...</code>
+            <div className="card-desc">{t('auth.level1.desc')}</div>
+          </div>
+          <div className="card" style={{ borderTop: '3px solid var(--green)' }}>
+            <div style={{ fontFamily:'var(--font-mono)',fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--green)',marginBottom:10 }}>{t('auth.level2.title')}</div>
+            <code style={{ display:'block',marginBottom:8,fontSize:11 }}>/api/v1/tenants/{'{slug}'}/oauth2/...</code>
+            <div className="card-desc">{t('auth.level2.desc')}</div>
+          </div>
+        </div>
+
+        <h2>{copy.contractTitle}</h2>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{copy.axis}</th>
+              <th>{copy.platform}</th>
+              <th>{copy.tenant}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contract.map(([axis, platform, tenant]) => (
+              <tr key={axis}>
+                <td className="bc-name">{axis}</td>
+                <td>{platform}</td>
+                <td>{tenant}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.authFlowTitle}</h2>
+        <KG_Callout type="info">{copy.authFlowCallout}</KG_Callout>
+        <KG_MermaidDiagram id="authentication-flow" definition={AUTHENTICATION_FLOW} />
+
+        <h2>{t('auth.h2.jwt')}</h2>
+        <KG_CodeBlock id="jwt_tenant" />
+
+        <h2>{t('auth.h2.jwks')}</h2>
+        <p>{t('auth.jwks.desc')}</p>
+        <div className="endpoint-list">
+          <div className="endpoint-row">
+            <KG_HttpMethodBadge method="GET" />
+            <KG_PathDisplay path="/api/v1/platform/oauth2/.well-known/jwks.json" />
+            <span className="endpoint-desc">{t('auth.jwks.platform')}</span>
+          </div>
+          <div className="endpoint-row">
+            <KG_HttpMethodBadge method="GET" />
+            <KG_PathDisplay path="/api/v1/tenants/{slug}/oauth2/.well-known/jwks.json" />
+            <span className="endpoint-desc">{t('auth.jwks.tenant')}</span>
+          </div>
+        </div>
+
+        <h2>{copy.lifecycleTitle}</h2>
+        <div className="module-stack">
+          {lifecycle.map((item) => (
+            <div key={item.name} className="module-row infra">
+              <div className="module-name">{item.name}</div>
+              <div className="module-desc">{item.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{t('auth.h2.rtr')}</h2>
+        <KG_Callout type="warn">{t('auth.rtr.warn')}</KG_Callout>
+        <KG_CodeBlock id="refresh_token" />
+
+        <h2>{copy.directTitle}</h2>
+        <KG_Callout type="info">{copy.directCallout}</KG_Callout>
+        <div className="kv-grid">
+          <div className="kv-key">{copy.directEndpoint}</div>
+          <div className="kv-val"><code>POST /api/v1/tenants/{'{slug}'}/account/direct-login</code></div>
+          <div className="kv-key">{copy.directReturns}</div>
+          <div className="kv-val"><code>access_token + refresh_token</code></div>
+          <div className="kv-key">{copy.directNo}</div>
+          <div className="kv-val"><code>authorization_code · id_token</code></div>
+          <div className="kv-key">{copy.directUse}</div>
+          <div className="kv-val"><code>CLI · backend services · legacy password grant migration</code></div>
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'auth', content: AuthPage });
+</script>
+</body></html>

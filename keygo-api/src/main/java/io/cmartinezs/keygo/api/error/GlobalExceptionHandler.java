@@ -1,0 +1,969 @@
+package io.cmartinezs.keygo.api.error;
+
+import io.cmartinezs.keygo.api.shared.ResponseCode;
+import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.auth.exception.HashingUnavailableException;
+import io.cmartinezs.keygo.app.auth.exception.UnsupportedPkceMethodException;
+import io.cmartinezs.keygo.app.platform.exception.PlatformUserWithoutRolesException;
+import io.cmartinezs.keygo.app.billing.catalog.exception.DuplicatePlanCodeException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractInvalidStateException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractorEmailAlreadyExistsException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ProviderAppNotFoundException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractStateViolationException;
+import io.cmartinezs.keygo.domain.billing.contracting.exception.ContractVerificationCodeInvalidException;
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionInvalidStateException;
+import io.cmartinezs.keygo.app.billing.subscription.exception.SubscriptionNotFoundException;
+import io.cmartinezs.keygo.app.clientapp.exception.ClientAppInactiveException;
+import io.cmartinezs.keygo.app.membership.exception.AppRoleNotFoundException;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateAppRoleException;
+import io.cmartinezs.keygo.app.membership.exception.DuplicateMembershipException;
+import io.cmartinezs.keygo.app.membership.exception.InvalidCommandFieldException;
+import io.cmartinezs.keygo.app.shared.exception.PortException;
+import io.cmartinezs.keygo.app.shared.exception.UseCaseException;
+import io.cmartinezs.keygo.app.tenant.exception.DuplicateTenantException;
+import io.cmartinezs.keygo.app.tenant.exception.InvalidPaginationParamException;
+import io.cmartinezs.keygo.app.user.exception.IncorrectCurrentPasswordException;
+import io.cmartinezs.keygo.app.user.exception.PasswordMismatchException;
+import io.cmartinezs.keygo.app.user.exception.UserNotInResetPasswordStatusException;
+import io.cmartinezs.keygo.domain.auth.exception.AuthorizationCodeExpiredException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidAuthorizationCodeException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidPkceVerificationException;
+import io.cmartinezs.keygo.domain.auth.exception.InvalidRefreshTokenException;
+import io.cmartinezs.keygo.domain.auth.exception.NoActiveSigningKeyException;
+import io.cmartinezs.keygo.domain.auth.exception.RefreshTokenExpiredException;
+import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
+import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.SelfRegistrationNotAllowedException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
+import io.cmartinezs.keygo.domain.clientapp.exception.ClientAuthenticationException;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidRedirectUriException;
+import io.cmartinezs.keygo.domain.clientapp.exception.UnsupportedGrantTypeException;
+import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadyActiveException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
+import io.cmartinezs.keygo.domain.membership.exception.MembershipPendingException;
+import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyCycleException;
+import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyDepthExceededException;
+import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
+import io.cmartinezs.keygo.domain.tenant.exception.TenantSuspendedException;
+import io.cmartinezs.keygo.domain.user.exception.DuplicateUserException;
+import io.cmartinezs.keygo.domain.user.exception.InvalidCredentialsException;
+import io.cmartinezs.keygo.domain.user.exception.InvalidPasswordException;
+import io.cmartinezs.keygo.domain.user.exception.PasswordResetRequestNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.PlatformUserSuspendedException;
+import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
+import io.cmartinezs.keygo.domain.user.exception.UserPasswordResetRequiredException;
+import io.cmartinezs.keygo.domain.user.exception.UserPendingVerificationException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeAlreadyUsedException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeExpiredException;
+import io.cmartinezs.keygo.domain.user.exception.VerificationCodeInvalidException;
+import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
+import jakarta.validation.ConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+/**
+ * Global exception handler for all controllers.
+ * Manejador global de excepciones para todos los controladores.
+ *
+ * <p>Handles exceptions uniformly across the application and returns standardized responses.
+ * Maneja excepciones uniformemente en toda la aplicación y retorna respuestas estandarizadas.
+ *
+ * @author cmartinezs
+ * @version 1.0
+ */
+@Slf4j
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalExceptionHandler {
+
+  private final Environment environment;
+  private final ApiErrorDataFactory apiErrorDataFactory;
+  /**
+   * Handles UnauthorizedException - returns 401 Unauthorized.
+   * Maneja UnauthorizedException - retorna 401 Unauthorized.
+   *
+   * @param ex the exception / la excepción
+   * @return ResponseEntity with error details / ResponseEntity con detalles del error
+   */
+  @ExceptionHandler(UnauthorizedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUnauthorizedException(UnauthorizedException ex) {
+    log.error("Unauthorized access attempt: {}", ex.getMessage());
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
+  }
+
+  /**
+   * Handles NoResourceFoundException - returns 404 Not Found.
+   * Maneja NoResourceFoundException - retorna 404 Not Found.
+   *
+   * @param ex the exception / la excepción
+   * @return ResponseEntity with error details / ResponseEntity con detalles del error
+   */
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleNoResourceFoundException(NoResourceFoundException ex) {
+    log.error("Resource not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles IllegalArgumentException - returns 400 Bad Request.
+   * Maneja IllegalArgumentException - retorna 400 Bad Request.
+   *
+   * @param ex the exception / la excepción
+   * @return ResponseEntity with error details / ResponseEntity con detalles del error
+   */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleIllegalArgumentException(IllegalArgumentException ex) {
+    log.error("Invalid argument: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles @Valid validation errors on request bodies - returns 400 Bad Request.
+   * Extracts per-field validation messages from BindingResult.
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleValidationException(MethodArgumentNotValidException ex) {
+    log.error("Validation failed: {}", ex.getMessage());
+    boolean techDetails = includeTechnicalDetails();
+    List<FieldValidationError> fieldErrors = new ArrayList<>();
+
+    ex.getBindingResult().getFieldErrors().forEach(fe ->
+        fieldErrors.add(FieldValidationError.builder()
+            .field(toSnakeCase(fe.getField()))
+            .message(fe.getDefaultMessage())
+            .rejectedValue(techDetails ? fe.getRejectedValue() : null)
+            .build())
+    );
+
+    ex.getBindingResult().getGlobalErrors().forEach(ge ->
+        fieldErrors.add(FieldValidationError.builder()
+            .field(toSnakeCase(ge.getObjectName()))
+            .message(ge.getDefaultMessage())
+            .build())
+    );
+
+    ErrorData errorData = apiErrorDataFactory.fromValidationErrors(
+        ResponseCode.INVALID_INPUT, fieldErrors, techDetails);
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(BaseResponse.<ErrorData>builder()
+            .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+            .data(errorData)
+            .build());
+  }
+
+  /**
+   * Handles @Validated constraint violations on method parameters (query params, path vars, headers).
+   * Returns 400 Bad Request with per-parameter violation details.
+   */
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleConstraintViolationException(ConstraintViolationException ex) {
+    log.error("Constraint violation: {}", ex.getMessage());
+    boolean techDetails = includeTechnicalDetails();
+    List<FieldValidationError> fieldErrors = new ArrayList<>();
+
+    ex.getConstraintViolations().forEach(cv -> {
+      String path = cv.getPropertyPath().toString();
+      // Strip method name prefix: "methodName.paramName" → "paramName"
+      String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+      fieldErrors.add(FieldValidationError.builder()
+          .field(toSnakeCase(field))
+          .message(cv.getMessage())
+          .rejectedValue(techDetails ? cv.getInvalidValue() : null)
+          .build());
+    });
+
+    ErrorData errorData = apiErrorDataFactory.fromValidationErrors(
+        ResponseCode.INVALID_INPUT, fieldErrors, techDetails);
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(BaseResponse.<ErrorData>builder()
+            .failure(ResponseHelper.message(ResponseCode.INVALID_INPUT))
+            .data(errorData)
+            .build());
+  }
+
+  /**
+   * Handles missing request parameters - returns 400 Bad Request.
+   */
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMissingServletRequestParameterException(
+      MissingServletRequestParameterException ex) {
+    log.error("Missing request parameter: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles malformed JSON payloads - returns 400 Bad Request.
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleHttpMessageNotReadableException(
+      HttpMessageNotReadableException ex) {
+    log.error("Malformed request payload: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles TenantNotFoundException - returns 404 Not Found.
+   * Maneja TenantNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(TenantNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleTenantNotFoundException(TenantNotFoundException ex) {
+    log.error("Tenant not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles TenantSuspendedException - returns 403 Forbidden.
+   * Maneja TenantSuspendedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(TenantSuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleTenantSuspendedException(TenantSuspendedException ex) {
+    log.error("Tenant suspended: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles ClientAuthenticationException - returns 401 Unauthorized.
+   * Lanzada cuando el client_secret es incorrecto o el cliente es PUBLIC en un grant M2M.
+   */
+  @ExceptionHandler(ClientAuthenticationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAuthenticationException(ClientAuthenticationException ex) {
+    log.error("Client authentication failed: {}", ex.getMessage());
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
+  }
+
+  /**
+   * Handles ClientAppNotFoundException - returns 404 Not Found.
+   * Maneja ClientAppNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(ClientAppNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppNotFoundException(ClientAppNotFoundException ex) {
+    log.error("Client app not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles InvalidRedirectUriException - returns 400 Bad Request.
+   * Maneja InvalidRedirectUriException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidRedirectUriException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidRedirectUriException(InvalidRedirectUriException ex) {
+    log.error("Invalid redirect URI: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles UnsupportedGrantTypeException - returns 400 Bad Request.
+   * Maneja UnsupportedGrantTypeException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(UnsupportedGrantTypeException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUnsupportedGrantTypeException(UnsupportedGrantTypeException ex) {
+    log.error("Unsupported grant type: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles SelfRegistrationNotAllowedException - returns 403 Forbidden.
+   * Lanzada cuando el registro propio se intenta en una app con política INVITE_ONLY.
+   */
+  @ExceptionHandler(SelfRegistrationNotAllowedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSelfRegistrationNotAllowedException(SelfRegistrationNotAllowedException ex) {
+    log.warn("Self-registration not allowed: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles ClientAppAlreadySuspendedException - returns 409 Conflict.
+   * Lanzada cuando se intenta suspender una app cliente que ya está suspendida.
+   */
+  @ExceptionHandler(ClientAppAlreadySuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppAlreadySuspendedException(ClientAppAlreadySuspendedException ex) {
+    log.warn("Client app already suspended: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles ClientAppSecretRotationException - returns 400 Bad Request.
+   * Lanzada cuando se intenta rotar el secret de una app pública.
+   */
+  @ExceptionHandler(ClientAppSecretRotationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppSecretRotationException(ClientAppSecretRotationException ex) {
+    log.error("Client app secret rotation not allowed: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles UserNotFoundException - returns 404 Not Found.
+   * Maneja UserNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(UserNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserNotFoundException(UserNotFoundException ex) {
+    log.error("User not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles UserSuspendedException - returns 403 Forbidden.
+   * Maneja UserSuspendedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(UserSuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserSuspendedException(UserSuspendedException ex) {
+    log.error("User suspended: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles DuplicateUserException - returns 409 Conflict.
+   * Maneja DuplicateUserException - retorna 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateUserException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateUserException(DuplicateUserException ex) {
+    log.error("Duplicate user: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles InvalidCredentialsException - returns 401 Unauthorized.
+   * Maneja InvalidCredentialsException - retorna 401 Unauthorized.
+   */
+  @ExceptionHandler(InvalidCredentialsException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+    log.error("Invalid credentials: {}", ex.getMessage());
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
+  }
+
+  /**
+   * Handles MembershipNotFoundException - returns 404 Not Found.
+   * Maneja MembershipNotFoundException - retorna 404 Not Found.
+   */
+  @ExceptionHandler(MembershipNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipNotFoundException(MembershipNotFoundException ex) {
+    log.error("Membership not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles MembershipInactiveException - returns 403 Forbidden.
+   * Maneja MembershipInactiveException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(MembershipInactiveException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipInactiveException(MembershipInactiveException ex) {
+    log.error("Membership inactive: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles MembershipPendingException - returns 403 Forbidden.
+   * Maneja MembershipPendingException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(MembershipPendingException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipPendingException(MembershipPendingException ex) {
+    log.error("Membership pending: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles PlatformUserWithoutRolesException - returns 403 Forbidden.
+   * Lanzada cuando el usuario de plataforma autenticado no tiene roles asignados.
+   */
+  @ExceptionHandler(PlatformUserWithoutRolesException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePlatformUserWithoutRolesException(PlatformUserWithoutRolesException ex) {
+    log.warn("Platform user without roles: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.PLATFORM_USER_WITHOUT_ROLES, ex);
+  }
+
+  /**
+   * Handles PlatformUserSuspendedException - returns 403 Forbidden.
+   * Maneja PlatformUserSuspendedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(PlatformUserSuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePlatformUserSuspendedException(PlatformUserSuspendedException ex) {
+    log.error("Platform user suspended: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles InvalidRoleAssignmentException - returns 400 Bad Request.
+   * Maneja InvalidRoleAssignmentException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidRoleAssignmentException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidRoleAssignmentException(InvalidRoleAssignmentException ex) {
+    log.error("Invalid role assignment: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles MembershipAlreadySuspendedException - returns 409 Conflict.
+   * Lanzada cuando se intenta suspender una membresía que ya está suspendida.
+   */
+  @ExceptionHandler(MembershipAlreadySuspendedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipAlreadySuspendedException(MembershipAlreadySuspendedException ex) {
+    log.warn("Membership already suspended: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles MembershipAlreadyActiveException - returns 409 Conflict.
+   * Lanzada cuando se intenta aprobar una membresía que ya está activa.
+   */
+  @ExceptionHandler(MembershipAlreadyActiveException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleMembershipAlreadyActiveException(MembershipAlreadyActiveException ex) {
+    log.warn("Membership already active: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles RoleHierarchyCycleException - returns 400 Bad Request.
+   * Lanzada cuando se intenta crear un ciclo en la jerarquía de roles.
+   */
+  @ExceptionHandler(RoleHierarchyCycleException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleRoleHierarchyCycleException(RoleHierarchyCycleException ex) {
+    log.error("Role hierarchy cycle detected: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles RoleHierarchyDepthExceededException - returns 400 Bad Request.
+   * Lanzada cuando la jerarquía de roles excede la profundidad máxima permitida.
+   */
+  @ExceptionHandler(RoleHierarchyDepthExceededException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleRoleHierarchyDepthExceededException(RoleHierarchyDepthExceededException ex) {
+    log.error("Role hierarchy depth exceeded: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles AppRoleNotFoundException - returns 404 Not Found.
+   * Lanzada cuando no se encuentra un rol de aplicación requerido.
+   */
+  @ExceptionHandler(AppRoleNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleAppRoleNotFoundException(AppRoleNotFoundException ex) {
+    log.error("App role not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles InvalidAuthorizationCodeException - returns 400 Bad Request.
+   * Maneja InvalidAuthorizationCodeException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidAuthorizationCodeException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidAuthorizationCodeException(InvalidAuthorizationCodeException ex) {
+    log.error("Invalid authorization code: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles AuthorizationCodeExpiredException - returns 400 Bad Request.
+   * Maneja AuthorizationCodeExpiredException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(AuthorizationCodeExpiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleAuthorizationCodeExpiredException(AuthorizationCodeExpiredException ex) {
+    log.error("Authorization code expired: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles InvalidPkceVerificationException - returns 400 Bad Request.
+   * Maneja InvalidPkceVerificationException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidPkceVerificationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPkceVerificationException(InvalidPkceVerificationException ex) {
+    log.error("PKCE verification failed: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles ScopeNotGrantedException - returns 403 Forbidden.
+   * Maneja ScopeNotGrantedException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(ScopeNotGrantedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleScopeNotGrantedException(ScopeNotGrantedException ex) {
+    log.error("Scope not granted: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.INSUFFICIENT_PERMISSIONS, ex);
+  }
+
+  /**
+   * Handles NoActiveSigningKeyException - returns 503 Service Unavailable.
+   * El servidor no puede emitir tokens porque no hay clave de firma activa.
+   */
+  @ExceptionHandler(NoActiveSigningKeyException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleNoActiveSigningKeyException(NoActiveSigningKeyException ex) {
+    log.error("No active signing key: {}", ex.getMessage());
+    return error(HttpStatus.SERVICE_UNAVAILABLE, ResponseCode.OPERATION_FAILED, ex);
+  }
+
+  /**
+   * Handles InvalidRefreshTokenException - returns 401 Unauthorized.
+   */
+  @ExceptionHandler(InvalidRefreshTokenException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex) {
+    log.error("Invalid refresh token: {}", ex.getMessage());
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
+  }
+
+  /**
+   * Handles RefreshTokenExpiredException - returns 401 Unauthorized.
+   */
+  @ExceptionHandler(RefreshTokenExpiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleRefreshTokenExpiredException(RefreshTokenExpiredException ex) {
+    log.error("Refresh token expired: {}", ex.getMessage());
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.AUTHENTICATION_REQUIRED, ex);
+  }
+
+  /**
+   * Handles SessionInvalidStateException - returns 422 Unprocessable Entity.
+   * Lanzada cuando se intenta operar sobre una sesión en un estado inválido.
+   */
+  @ExceptionHandler(SessionInvalidStateException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSessionInvalidStateException(SessionInvalidStateException ex) {
+    log.error("Session invalid state: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles UserPendingVerificationException - returns 403 Forbidden.
+   * The user exists but has not verified their email yet.
+   * Maneja UserPendingVerificationException - retorna 403 Forbidden.
+   */
+  @ExceptionHandler(UserPendingVerificationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserPendingVerificationException(
+      UserPendingVerificationException ex) {
+    log.warn("Login attempt by unverified user: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.EMAIL_NOT_VERIFIED, ex);
+  }
+
+  /**
+   * Handles VerificationCodeExpiredException - returns 422 Unprocessable Entity.
+   * The verification code has expired; user must request a new one.
+   * Maneja VerificationCodeExpiredException - retorna 422.
+   */
+  @ExceptionHandler(VerificationCodeExpiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleVerificationCodeExpiredException(
+      VerificationCodeExpiredException ex) {
+    log.warn("Expired verification code used: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.EMAIL_VERIFICATION_EXPIRED, ex);
+  }
+
+  /**
+   * Handles VerificationCodeInvalidException - returns 400 Bad Request.
+   * The code is wrong or does not exist.
+   * Maneja VerificationCodeInvalidException - retorna 400.
+   */
+  @ExceptionHandler(VerificationCodeInvalidException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleVerificationCodeInvalidException(
+      VerificationCodeInvalidException ex) {
+    log.warn("Invalid verification code: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles VerificationCodeAlreadyUsedException - returns 422 Unprocessable Entity.
+   * The code has already been consumed.
+   * Maneja VerificationCodeAlreadyUsedException - retorna 422.
+   */
+  @ExceptionHandler(VerificationCodeAlreadyUsedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleVerificationCodeAlreadyUsedException(
+      VerificationCodeAlreadyUsedException ex) {
+    log.warn("Verification code already used: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles AccessDeniedException (including AuthorizationDeniedException from @PreAuthorize).
+   * Returns 403 Forbidden with a structured BaseResponse.
+   * <p>Maneja AccessDeniedException (incluye AuthorizationDeniedException de @PreAuthorize).
+   * Retorna 403 Forbidden con un BaseResponse estructurado.
+   */
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleAccessDeniedException(AccessDeniedException ex) {
+    log.warn("Access denied: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.INSUFFICIENT_PERMISSIONS, ex);
+  }
+
+  /**
+   * Handles ContractNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(ContractNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractNotFoundException(ContractNotFoundException ex) {
+    log.error("Contract not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.CONTRACT_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles ProviderAppNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(ProviderAppNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleProviderAppNotFoundException(ProviderAppNotFoundException ex) {
+    log.error("Provider app not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.PROVIDER_APP_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles ContractInvalidStateException - returns 422 Unprocessable Entity.
+   */
+  @ExceptionHandler(ContractInvalidStateException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractInvalidStateException(ContractInvalidStateException ex) {
+    log.error("Contract invalid state: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.CONTRACT_INVALID_STATE, ex);
+  }
+
+  /**
+   * Handles ContractStateViolationException - returns 422 Unprocessable Entity.
+   * Lanzada cuando una operación en un contrato viola las reglas de transición de estado.
+   */
+  @ExceptionHandler(ContractStateViolationException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractStateViolationException(ContractStateViolationException ex) {
+    log.error("Contract state violation: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles ContractVerificationCodeInvalidException - returns 400 Bad Request.
+   * Lanzada cuando el código de verificación de un contrato es inválido o ha expirado.
+   */
+  @ExceptionHandler(ContractVerificationCodeInvalidException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractVerificationCodeInvalidException(
+      ContractVerificationCodeInvalidException ex) {
+    log.warn("Contract verification code invalid: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles PlanVersionNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(PlanVersionNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePlanVersionNotFoundException(PlanVersionNotFoundException ex) {
+    log.error("Plan version not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.PLAN_VERSION_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles DuplicatePlanCodeException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicatePlanCodeException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicatePlanCodeException(DuplicatePlanCodeException ex) {
+    log.error("Duplicate plan code: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles ContractorEmailAlreadyExistsException - returns 409 Conflict.
+   * Lanzada cuando se intenta crear un contrato con un email que ya está registrado como contractor.
+   */
+  @ExceptionHandler(ContractorEmailAlreadyExistsException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleContractorEmailAlreadyExistsException(
+      ContractorEmailAlreadyExistsException ex) {
+    log.error("Contractor email already exists: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.CONTRACTOR_EMAIL_ALREADY_EXISTS, ex);
+  }
+
+  /**
+   * Handles SubscriptionNotFoundException - returns 404 Not Found.
+   */
+  @ExceptionHandler(SubscriptionNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSubscriptionNotFoundException(SubscriptionNotFoundException ex) {
+    log.error("Subscription not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.SUBSCRIPTION_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles SubscriptionInvalidStateException - returns 422 Unprocessable Entity.
+   */
+  @ExceptionHandler(SubscriptionInvalidStateException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSubscriptionInvalidStateException(SubscriptionInvalidStateException ex) {
+    log.error("Subscription invalid state: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.SUBSCRIPTION_INVALID_STATE, ex);
+  }
+
+  /**
+   * Handles UnsupportedPkceMethodException - returns 400 Bad Request.
+   */
+  @ExceptionHandler(UnsupportedPkceMethodException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUnsupportedPkceMethodException(UnsupportedPkceMethodException ex) {
+    log.error("Unsupported PKCE method: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.UNSUPPORTED_PKCE_METHOD, ex);
+  }
+
+  /**
+   * Handles HashingUnavailableException - returns 503 Service Unavailable.
+   */
+  @ExceptionHandler(HashingUnavailableException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleHashingUnavailableException(HashingUnavailableException ex) {
+    log.error("Hashing unavailable: {}", ex.getMessage(), ex);
+    return error(HttpStatus.SERVICE_UNAVAILABLE, ResponseCode.EXTERNAL_SERVICE_ERROR, ex);
+  }
+
+  /**
+   * Handles DuplicateAppRoleException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateAppRoleException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateAppRoleException(DuplicateAppRoleException ex) {
+    log.error("Duplicate app role: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles DuplicateMembershipException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateMembershipException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateMembershipException(DuplicateMembershipException ex) {
+    log.error("Duplicate membership: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_RESOURCE, ex);
+  }
+
+  /**
+   * Handles IncorrectCurrentPasswordException - returns 403 Forbidden.
+   * Lanzada cuando el usuario proporciona una contraseña actual incorrecta al hacer self-service
+   * de cambio de contraseña.
+   */
+  @ExceptionHandler(IncorrectCurrentPasswordException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleIncorrectCurrentPasswordException(
+      IncorrectCurrentPasswordException ex) {
+    log.warn("Incorrect current password attempt: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles UserNotInResetPasswordStatusException - returns 403 Forbidden.
+   * Lanzada cuando se intenta restablecer la contraseña de un usuario que no está en
+   * estado RESET_PASSWORD.
+   */
+  @ExceptionHandler(UserNotInResetPasswordStatusException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserNotInResetPasswordStatusException(
+      UserNotInResetPasswordStatusException ex) {
+    log.warn("Reset password rejected — user not in RESET_PASSWORD status: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  // ─── Unified verification code handlers (above) replace the old per-type handlers ───
+  // PasswordRecoveryTokenExpiredException → VerificationCodeExpiredException
+  // PasswordRecoveryTokenAlreadyUsedException → VerificationCodeAlreadyUsedException
+  // InvalidPasswordResetCodeException → VerificationCodeInvalidException
+  // PasswordResetCodeExpiredException → VerificationCodeExpiredException
+
+  /**
+   * Handles UserPasswordResetRequiredException - returns 401 Unauthorized.
+   * Lanzada cuando un usuario con status=RESET_PASSWORD intenta autenticarse.
+   * El cliente debe redirigir al flujo de reset de contraseña.
+   * NOTA: el controlador de login la captura antes y envía el email, pero se mantiene
+   * este handler como fallback para otros contextos donde pueda propagarse.
+   */
+  @ExceptionHandler(UserPasswordResetRequiredException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUserPasswordResetRequiredException(
+      UserPasswordResetRequiredException ex) {
+    log.warn("Login blocked — password reset required: {}", ex.getMessage());
+    return error(HttpStatus.UNAUTHORIZED, ResponseCode.RESET_PASSWORD_REQUIRED, ex);
+  }
+
+  /**
+   * Handles PasswordResetRequestNotFoundException - returns 404 Not Found.
+   * Lanzada cuando el requestId de reset de contraseña no corresponde a ninguna solicitud.
+   */
+  @ExceptionHandler(PasswordResetRequestNotFoundException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordResetRequestNotFoundException(
+      PasswordResetRequestNotFoundException ex) {
+    log.warn("Password reset request not found: {}", ex.getMessage());
+    return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  // InvalidPasswordResetCodeException → handled by VerificationCodeInvalidException above
+
+  // PasswordResetCodeExpiredException → handled by VerificationCodeExpiredException above
+
+  /**
+   * Handles SecurityException - returns 403 Forbidden.
+   * Lanzada cuando un usuario intenta operar sobre un recurso que no le pertenece
+   * (p.ej. revocar una sesión de otro usuario).
+   */
+  @ExceptionHandler(SecurityException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleSecurityException(SecurityException ex) {
+    log.warn("Security violation: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.BUSINESS_RULE_VIOLATION, ex);
+  }
+
+  /**
+   * Handles InvalidCommandFieldException - returns 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidCommandFieldException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidCommandFieldException(InvalidCommandFieldException ex) {
+    log.error("Invalid command field: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles ClientAppInactiveException - returns 422 Unprocessable Entity.
+   */
+  @ExceptionHandler(ClientAppInactiveException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleClientAppInactiveException(ClientAppInactiveException ex) {
+    log.error("Client app inactive: {}", ex.getMessage());
+    return error(HttpStatus.UNPROCESSABLE_CONTENT, ResponseCode.CLIENT_APP_INACTIVE, ex);
+  }
+
+  /**
+   * Handles DuplicateTenantException - returns 409 Conflict.
+   */
+  @ExceptionHandler(DuplicateTenantException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDuplicateTenantException(DuplicateTenantException ex) {
+    log.error("Duplicate tenant: {}", ex.getMessage());
+    return error(HttpStatus.CONFLICT, ResponseCode.DUPLICATE_TENANT, ex);
+  }
+
+  /**
+   * Handles InvalidPaginationParamException - returns 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidPaginationParamException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPaginationParamException(InvalidPaginationParamException ex) {
+    log.error("Invalid pagination param: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles InvalidPasswordException - returns 400 Bad Request.
+   * Lanzada cuando una contraseña viola la política de seguridad.
+   */
+  @ExceptionHandler(InvalidPasswordException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidPasswordException(InvalidPasswordException ex) {
+    log.warn("Invalid password: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Handles PasswordMismatchException - returns 400 Bad Request.
+   * Lanzada cuando dos contraseñas que deberían coincidir no lo hacen.
+   */
+  @ExceptionHandler(PasswordMismatchException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePasswordMismatchException(PasswordMismatchException ex) {
+    log.warn("Password mismatch: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.INVALID_INPUT, ex);
+  }
+
+  /**
+   * Catch-all for UseCaseException not handled by a specific handler - returns 500.
+   */
+  @ExceptionHandler(UseCaseException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleUseCaseException(UseCaseException ex) {
+    log.error("Use case error: {}", ex.getMessage(), ex);
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
+  }
+
+  /**
+   * Handles PortException (outbound port failure) - returns 503 Service Unavailable.
+   */
+  @ExceptionHandler(PortException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handlePortException(PortException ex) {
+    log.error("Port error: {}", ex.getMessage(), ex);
+    return error(HttpStatus.SERVICE_UNAVAILABLE, ResponseCode.EXTERNAL_SERVICE_ERROR, ex);
+  }
+
+  /**
+   * Handles generic exceptions - returns 500 Internal Server Error.
+   * Maneja excepciones genéricas - retorna 500 Internal Server Error.
+   *
+   * @param ex the exception / la excepción
+   * @return ResponseEntity with error details / ResponseEntity con detalles del error
+   */
+  /**
+   * Handles database/persistence exceptions — returns 500 without exposing SQL details.
+   * Intercepta DataAccessException y subclases (DataIntegrityViolationException, etc.).
+   * Nunca expone el mensaje original al cliente (contiene SQL y nombres de tablas).
+   */
+  @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleDataAccessException(
+      org.springframework.dao.DataAccessException ex) {
+    log.error("Database error: {}", ex.getMessage(), ex);
+    BaseResponse<ErrorData> response = BaseResponse.<ErrorData>builder()
+        .failure(ResponseHelper.message(ResponseCode.DATABASE_ERROR))
+        .data(apiErrorDataFactory.fromDetail(
+            ResponseCode.DATABASE_ERROR,
+            null,
+            null,
+            false))
+        .build();
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+  }
+
+  /**
+   * Handles lazy initialization failures - returns 500 for persistence/session boundary bugs.
+   */
+  ResponseEntity<BaseResponse<ErrorData>> handleLazyInitializationException(Throwable ex) {
+    log.error("Lazy initialization error: {}", ex.getMessage(), ex);
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleGenericException(Exception ex) {
+    if (isLazyInitializationException(ex)) {
+      return handleLazyInitializationException(ex);
+    }
+    log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.OPERATION_FAILED, ex);
+  }
+
+  private ResponseEntity<BaseResponse<ErrorData>> error(
+      HttpStatus status,
+      ResponseCode responseCode,
+      Throwable throwable) {
+    BaseResponse<ErrorData> response = BaseResponse.<ErrorData>builder()
+        .failure(ResponseHelper.message(responseCode))
+        .data(apiErrorDataFactory.fromException(responseCode, throwable, includeTechnicalDetails()))
+        .build();
+
+    return ResponseEntity.status(status).body(response);
+  }
+
+  private boolean includeTechnicalDetails() {
+    return environment.acceptsProfiles(Profiles.of("local", "dev"));
+  }
+
+  private boolean isLazyInitializationException(Throwable throwable) {
+    Throwable current = throwable;
+    while (current != null) {
+      String className = current.getClass().getName();
+      if ("org.hibernate.LazyInitializationException".equals(className)
+          || "LazyInitializationException".equals(current.getClass().getSimpleName())) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
+  }
+
+  /**
+   * Converts camelCase to snake_case.
+   * Examples: firstName → first_name, clientAppId → client_app_id, email → email
+   *
+   * @param camelCase the string in camelCase
+   * @return the string converted to snake_case
+   */
+  private String toSnakeCase(String camelCase) {
+    if (camelCase == null || camelCase.isEmpty()) {
+      return camelCase;
+    }
+    return camelCase
+        .replaceAll("([a-z])([A-Z])", "$1_$2")
+        .toLowerCase();
+  }
+}
+

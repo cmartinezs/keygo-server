@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const DATA_MODEL_HUB_ER = `
+erDiagram
+    platform_users ||--o{ tenant_users : joins
+    tenants ||--o{ tenant_users : contains
+    tenants ||--o{ client_apps : owns
+    tenant_users ||--o{ app_memberships : accesses
+    client_apps ||--o{ app_memberships : grants
+    platform_users ||--o{ platform_sessions : opens
+    platform_sessions ||--o{ oauth_sessions : originates
+    oauth_sessions }o--|| client_apps : targets
+    oauth_sessions }o--|| tenant_users : resolves
+    contractors ||--o{ tenants : owns
+    contractors ||--o{ app_contracts : signs
+    app_billing_accounts ||--o{ app_contracts : signs
+    app_contracts ||--o{ app_subscriptions : originates
+    audit_events ||--o{ audit_entity_links : links
+`;
+function DataModelPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'For Extenders',
+        title: 'Data model by bounded context',
+        desc: 'Use this page as the entry point to the persistence model. Instead of one long sheet, KeyGo now exposes subpages per bounded context so each storage boundary can be inspected in isolation.',
+        callout: 'The hub explains the shared rules; each subpage focuses on one context: identity, platform RBAC, organization, client applications, access control, billing, and audit.',
+        h2Baseline: 'Reference baseline',
+        baseline: [
+          ['Authority', 'Flyway migrations in keygo-supabase remain the physical source of truth.'],
+          ['Documentation line', 'The reference schema documents a V1 → V33+ line grouped by context and evolution phase.'],
+          ['Navigation strategy', 'This web layer stays curated: short context pages with cross-links instead of a monolithic ERD dump.'],
+        ],
+        h2Contexts: 'Context index',
+        contexts: [
+          ['../extenders/data-model-identity.html', 'Identity', 'platform_users, platform_sessions, oauth_sessions, codes, refresh tokens and signing keys.'],
+          ['../extenders/data-model-platform-rbac.html', 'Platform RBAC', 'platform_roles, hierarchy and scoped role assignments over contractor or tenant boundaries.'],
+          ['../extenders/data-model-organization.html', 'Organization', 'tenants, tenant_users, tenant roles and tenant billing profiles.'],
+          ['../extenders/data-model-client-applications.html', 'Client Applications', 'client_apps plus redirect URIs, allowed grants and allowed scopes.'],
+          ['../extenders/data-model-access-control.html', 'Access Control', 'app_roles, app memberships and role assignment integrity per client app.'],
+          ['../extenders/data-model-billing.html', 'Billing', 'contractors, plans, contracts, subscriptions, invoices, payments and usage counters.'],
+          ['../extenders/data-model-audit.html', 'Audit', 'append-only audit events, heavy payloads, tags and linked entities.'],
+        ],
+        h2Rules: 'Shared rules',
+        h2Mer: 'Cross-context ER view',
+        rules: [
+          'Cross-context relations use technical IDs only; public identifiers such as slug or client_id are resolved before persistence.',
+          'Identity is global, tenant participation is local to Organization, and app access is local to Access Control.',
+          'OAuth artifacts carry already-resolved tenant/app/user references and enforce integrity with composite foreign keys.',
+          'Role catalogs are independent at platform, tenant and app levels; inheritance never crosses those boundaries.',
+        ],
+        h2ContextRefs: 'Important cross-context references',
+        contextRefs: [
+          ['Identity → Organization', 'platform_users.id is referenced by tenant_users; the organization model never copies global credentials.'],
+          ['Organization → Client Apps', 'client_apps belongs to one tenant and downstream access-control tables stay tenant-app scoped.'],
+          ['Identity/OAuth → Client Apps', 'oauth_sessions, authorization_codes and refresh_tokens persist client_app_id (technical FK), not the public client_id.'],
+          ['Client Apps → Access Control', 'registration_policy, app_roles and app_memberships determine how a tenant member reaches a specific app.'],
+          ['Organization → Billing', 'tenants.contractor_id anchors a tenant to its commercial owner without leaking billing internals into identity or auth flows.'],
+          ['All contexts → Audit', 'Audit stores technical references back to impacted entities, but never becomes an upstream transactional dependency.'],
+        ],
+        h2Reading: 'Suggested reading order',
+        reading: [
+          ['Identity → Organization → Client Applications', 'Start with global identity, then tenant participation, then how apps are registered under a tenant.'],
+          ['Access Control after apps', 'App roles and memberships only make sense once client_apps and tenant_users are clear.'],
+          ['Billing after participation models', 'Billing anchors reuse contractor, tenant_user and client_app references heavily.'],
+          ['Audit last', 'Audit is append-only and cross-cutting, so it is easiest to read after the operational contexts are familiar.'],
+        ],
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Para Extensores',
+        title: 'Modelo de datos por bounded context',
+        desc: 'Usa esta página como puerta de entrada al modelo de persistencia. En vez de una sola hoja larga, KeyGo ahora expone subpáginas por bounded context para inspeccionar cada boundary de almacenamiento por separado.',
+        callout: 'El hub explica las reglas compartidas; cada subpágina se enfoca en un contexto: identity, platform RBAC, organization, client applications, access control, billing y audit.',
+        h2Baseline: 'Baseline de referencia',
+        baseline: [
+          ['Autoridad', 'Las migraciones Flyway en keygo-supabase siguen siendo la fuente de verdad física.'],
+          ['Línea documental', 'El schema de referencia documenta una línea V1 → V33+ agrupada por contexto y por fase de evolución.'],
+          ['Estrategia de navegación', 'Esta capa web se mantiene curada: páginas cortas por contexto con cross-links, no un dump monolítico del ERD.'],
+        ],
+        h2Contexts: 'Índice por contexto',
+        contexts: [
+          ['../extenders/data-model-identity.html', 'Identity', 'platform_users, platform_sessions, oauth_sessions, codes, refresh tokens y signing keys.'],
+          ['../extenders/data-model-platform-rbac.html', 'Platform RBAC', 'platform_roles, jerarquía y asignaciones de rol con scope sobre contractor o tenant.'],
+          ['../extenders/data-model-organization.html', 'Organization', 'tenants, tenant_users, tenant roles y tenant billing profiles.'],
+          ['../extenders/data-model-client-applications.html', 'Client Applications', 'client_apps más redirect URIs, grants permitidos y scopes autorizados.'],
+          ['../extenders/data-model-access-control.html', 'Access Control', 'app_roles, app memberships e integridad de asignaciones por client app.'],
+          ['../extenders/data-model-billing.html', 'Billing', 'contractors, planes, contratos, suscripciones, facturas, pagos y usage counters.'],
+          ['../extenders/data-model-audit.html', 'Audit', 'audit events append-only, payloads pesados, tags y entidades vinculadas.'],
+        ],
+        h2Rules: 'Reglas compartidas',
+        h2Mer: 'Vista ER cross-context',
+        rules: [
+          'Las relaciones entre contextos usan solo IDs técnicos; identificadores públicos como slug o client_id se resuelven antes de persistir.',
+          'La identidad es global, la participación en tenant es local a Organization y el acceso a apps es local a Access Control.',
+          'Los artefactos OAuth cargan referencias tenant/app/user ya resueltas y protegen integridad con foreign keys compuestas.',
+          'Los catálogos de roles son independientes en plataforma, tenant y app; la herencia nunca cruza esas fronteras.',
+        ],
+        h2ContextRefs: 'Referencias cross-context importantes',
+        contextRefs: [
+          ['Identity → Organization', 'platform_users.id es referenciado por tenant_users; el modelo organizacional nunca copia credenciales globales.'],
+          ['Organization → Client Apps', 'client_apps pertenece a un solo tenant y las tablas de access control permanecen acotadas por tenant-app.'],
+          ['Identity/OAuth → Client Apps', 'oauth_sessions, authorization_codes y refresh_tokens persisten client_app_id (FK técnica), no el client_id público.'],
+          ['Client Apps → Access Control', 'registration_policy, app_roles y app_memberships determinan cómo un miembro del tenant llega a una app específica.'],
+          ['Organization → Billing', 'tenants.contractor_id ancla un tenant a su dueño comercial sin filtrar internals de billing hacia identidad o auth.'],
+          ['Todos los contextos → Audit', 'Audit guarda referencias técnicas hacia entidades impactadas, pero nunca se vuelve una dependencia transaccional upstream.'],
+        ],
+        h2Reading: 'Orden sugerido de lectura',
+        reading: [
+          ['Identity → Organization → Client Applications', 'Parte por identidad global, luego participación en tenant y después cómo se registran apps bajo un tenant.'],
+          ['Access Control después de apps', 'Los roles y memberships de app solo se entienden bien cuando client_apps y tenant_users ya están claros.'],
+          ['Billing después de participación', 'Billing reutiliza intensamente referencias a contractor, tenant_user y client_app.'],
+          ['Audit al final', 'Audit es append-only y transversal, así que se entiende mejor después de leer los contextos operativos.'],
+        ],
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../extenders/modules.html', lang === 'en' ? 'Java modules' : 'Módulos Java'],
+    ['../extenders/contexts.html', lang === 'en' ? 'Bounded contexts' : 'Bounded contexts'],
+    ['../extenders/validation.html', lang === 'en' ? 'Validation strategy' : 'Estrategia de validación'],
+    ['../integrators/session-model.html', lang === 'en' ? 'Integrator session model' : 'Modelo de sesión para integradores'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="datamodel" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Baseline}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Aspect' : 'Aspecto'}</th><th>{lang === 'en' ? 'Current reference' : 'Referencia actual'}</th></tr></thead>
+          <tbody>
+            {copy.baseline.map(([aspect, rule]) => <tr key={aspect}><td className="bc-name">{aspect}</td><td>{rule}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Contexts}</h2>
+        <div className="topic-grid">
+          {copy.contexts.map(([href, name, why]) => (
+            <a key={href} className="card" href={href}>
+              <div className="card-title">{name}</div>
+              <div className="card-desc">{why}</div>
+            </a>
+          ))}
+        </div>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="datamodel-hub-er" definition={DATA_MODEL_HUB_ER} />
+
+        <h2>{copy.h2Rules}</h2>
+        <ul className="dense-list">
+          {copy.rules.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Relation' : 'Relación'}</th><th>{lang === 'en' ? 'Constraint' : 'Restricción'}</th></tr></thead>
+          <tbody>
+            {copy.contextRefs.map(([relation, rule]) => <tr key={relation}><td className="bc-name">{relation}</td><td>{rule}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Reading}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Sequence' : 'Secuencia'}</th><th>{lang === 'en' ? 'Reason' : 'Motivo'}</th></tr></thead>
+          <tbody>
+            {copy.reading.map(([step, why]) => <tr key={step}><td className="bc-name">{step}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodel', content: DataModelPage });
+</script>
+</body></html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Audit — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const AUDIT_ER = `
+erDiagram
+    audit_events {
+        string id
+        string occurred_at
+        string actor_type
+        string actor_platform_user_id
+        string tenant_id
+        string event_type
+        string event_outcome
+        string severity
+    }
+    audit_event_payloads {
+        string audit_event_id
+        string before_state
+        string after_state
+        string diff_payload
+    }
+    audit_event_tags {
+        string audit_event_id
+        string tag
+    }
+    audit_entity_links {
+        string id
+        string audit_event_id
+        string linked_entity_type
+        string linked_entity_id
+        string relation_type
+    }
+
+    audit_events ||--o| audit_event_payloads : payload
+    audit_events ||--o{ audit_event_tags : tags
+    audit_events ||--o{ audit_entity_links : links
+`;
+function DataModelAuditPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Audit',
+        title: 'Audit storage boundary',
+        desc: 'Audit is append-only and cross-cutting. It stores what happened, where it happened, who acted, and what entities were affected, without becoming an upstream transactional dependency.',
+        callout: 'Audit is a pure receiver. It persists immutable events and their heavy payloads, but it does not own business state transitions in other contexts.',
+        h2Entities: 'Core entities',
+        h2Mer: 'ER diagram',
+        entities: [
+          ['audit_events', 'Main immutable record', 'Chronology, actor, context, outcome, severity, trace IDs and summary live here.'],
+          ['audit_event_payloads', 'Heavy structured payloads', 'Before/after state, diff and request/response bodies are stored separately for query efficiency.'],
+          ['audit_event_tags', 'Search tags', 'Cross-cutting labels for filtering and exploration.'],
+          ['audit_entity_links', 'Impacted entity references', 'Lets one event point at several affected entities and relation roles.'],
+        ],
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'Audit is append-only: records are not updated or deleted after persistence.',
+          'Heavy payloads are split out of audit_events so search and timeline queries remain efficient.',
+          'Entity links use technical identifiers only and can point to entities from any bounded context.',
+          'Audit captures trace_id, correlation_id and related runtime metadata, but it does not become the source of truth for business state.',
+        ],
+        h2Relations: 'Mental model',
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Audit',
+        title: 'Boundary de almacenamiento Audit',
+        desc: 'Audit es append-only y transversal. Guarda qué ocurrió, dónde ocurrió, quién actuó y qué entidades fueron afectadas, sin convertirse en una dependencia transaccional upstream.',
+        callout: 'Audit es un receptor puro. Persiste eventos inmutables y sus payloads pesados, pero no posee transiciones de estado de negocio en otros contextos.',
+        h2Entities: 'Entidades núcleo',
+        h2Mer: 'Diagrama ER',
+        entities: [
+          ['audit_events', 'Registro principal inmutable', 'Aquí viven cronología, actor, contexto, outcome, severidad, trace IDs y resumen.'],
+          ['audit_event_payloads', 'Payloads estructurados pesados', 'Before/after state, diff y request/response bodies se guardan separados por eficiencia de consulta.'],
+          ['audit_event_tags', 'Etiquetas de búsqueda', 'Labels transversales para filtrado y exploración.'],
+          ['audit_entity_links', 'Referencias a entidades impactadas', 'Permite que un evento apunte a varias entidades afectadas y a su tipo de relación.'],
+        ],
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'Audit es append-only: los registros no se actualizan ni eliminan después de persistir.',
+          'Los payloads pesados se separan de audit_events para que las consultas de búsqueda y timeline sigan siendo eficientes.',
+          'Los entity links usan solo identificadores técnicos y pueden apuntar a entidades de cualquier bounded context.',
+          'Audit captura trace_id, correlation_id y metadata runtime relacionada, pero no se transforma en la fuente de verdad del estado de negocio.',
+        ],
+        h2Relations: 'Modelo mental',
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../extenders/security.html', lang === 'en' ? 'Security model' : 'Modelo de seguridad'],
+    ['../integrators/errors.html', lang === 'en' ? 'Error contract' : 'Contrato de errores'],
+    ['../extenders/data-model.html', lang === 'en' ? 'Data model hub' : 'Hub del modelo de datos'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="book" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Entities}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.entities.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="audit-er" definition={AUDIT_ER} />
+
+        <h2>{copy.h2Relations}</h2>
+        <div className="diagram-block">
+{`audit_events
+  ├─ audit_event_payloads
+  ├─ audit_event_tags
+  └─ audit_entity_links
+
+other bounded contexts
+  └─ referenced only through technical IDs + relation_type`}
+        </div>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelaudit', content: DataModelAuditPage });
+</script>
+</body></html>

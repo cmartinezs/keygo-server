@@ -1,211 +1,48 @@
 # keygo-server
 
-[English](#english) | [Español](#español)
+Backend IAM multi-tenant para autenticación, autorización y gestión de identidades sobre Java 21 + Spring Boot 4.x.
 
----
+> Fuente de verdad documental: [`doc/README.md`](doc/README.md)
 
-## English
+## Estado actual
 
-User authentication service as an open source alternative for companies wishing to outsource identity management. Allows companies and third parties to register their applications/services and manage their own users, passwords and access centrally.
+- Monorepo Maven multi-módulo con arquitectura hexagonal.
+- Seguridad vigente con `Authorization: Bearer <jwt>` para rutas protegidas.
+- Prioridades de dominio: multi-tenant, cuenta única por tenant, memberships por app, roles y permisos, OAuth2/OIDC y consola admin.
 
-**Key Features:**
-- 🔐 Centralized authentication management for multiple enterprise applications
-- 🏢 Registration and administration of enterprise services/apps
-- 👥 User management per application
-- 🔑 Password and application access control
-- 🆓 Open source alternative to proprietary authentication services
+## Estructura principal
 
-### Project Status
-
-🚧 **Initial development** - Project just started with base configuration.
-
----
-
-## Español
-
-Servicio de autenticación de usuarios como alternativa open source para empresas que deseen tercerizar la gestión de identidad. Permite a empresas y terceros registrar sus aplicaciones/servicios y administrar sus propios usuarios, contraseñas y accesos de forma centralizada.
-
-**Características principales:**
-- 🔐 Gestión centralizada de autenticación para múltiples aplicaciones empresariales
-- 🏢 Registro y administración de servicios/apps empresariales
-- 👥 Gestión de usuarios por aplicación
-- 🔑 Control de contraseñas y accesos a aplicaciones
-- 🆓 Alternativa open source a servicios de autenticación propietarios
-
-### Estado del Proyecto
-
-🚧 **En desarrollo inicial** - Proyecto recién iniciado con configuración base.
-
----
-
-## Requirements / Requisitos
-
-**English:**
-- Java 25
-
-> The project includes Maven Wrapper (`.mvn`), so Maven installation is not required.
-> 
-> **Note**: If the `./mvnw` command doesn't work, give it execution permissions:
-> ```bash
-> chmod +x mvnw
-> ```
-
-**Español:**
-- Java 25
-
-> El proyecto incluye Maven Wrapper (`.mvn`), por lo que no es necesario tener Maven instalado.
-> 
-> **Nota**: Si el comando `./mvnw` no funciona, dale permisos de ejecución:
-> ```bash
-> chmod +x mvnw
-> ```
-
----
-
-## Project Structure / Estructura del Proyecto
-
-**English:** Multi-module project with hexagonal architecture
-
-**Español:** Proyecto multi-módulo con arquitectura hexagonal
-
-```
+```text
 keygo-server/
-├── keygo-common/     # Shared utilities / Utilidades compartidas
-├── keygo-domain/     # Business logic and domain entities / Lógica de negocio y entidades del dominio
-├── keygo-app/        # Use cases and application services / Casos de uso y servicios de aplicación
-├── keygo-infra/      # Infrastructure implementations / Implementaciones de infraestructura
-├── keygo-api/        # REST Controllers and API / Controladores y API REST
-├── keygo-run/        # Execution and startup configuration / Configuración de ejecución y arranque
-├── keygo-bom/        # Bill of Materials - dependency management / Gestión de dependencias
-└── pom.xml           # Parent POM / POM padre del proyecto
+|-- keygo-domain
+|-- keygo-app
+|-- keygo-infra
+|-- keygo-api
+|-- keygo-supabase
+|-- keygo-run
+|-- keygo-bom
+`-- doc
 ```
 
----
+## Documentación clave
 
-## Build
+- Índice maestro: [`doc/README.md`](doc/README.md)
+- Arquitectura: [`doc/03-architecture/architecture.md`](doc/03-architecture/architecture.md)
+- Roadmap: [`doc/05-delivery/roadmap.md`](doc/05-delivery/roadmap.md)
+- Operación y entornos: [`doc/07-operations/README.md`](doc/07-operations/README.md)
+- Referencia API y datos: [`doc/08-reference/README.md`](doc/08-reference/README.md)
+- Guías de agentes: [`doc/09-ai/README.md`](doc/09-ai/README.md)
 
-**English:** Compile the entire project
+## URLs locales
 
-**Español:** Compilar el proyecto completo
+- Base URL: `http://localhost:8080/keygo-server`
+- Swagger UI: `http://localhost:8080/keygo-server/swagger-ui/index.html`
+- OpenAPI: `http://localhost:8080/keygo-server/v3/api-docs`
+- Health: `http://localhost:8080/keygo-server/actuator/health`
 
-```bash
-./mvnw clean install
-```
+## Contribución y seguridad
 
-**English:** Compile without running tests
-
-**Español:** Compilar sin ejecutar tests
-
-```bash
-./mvnw clean install -DskipTests
-```
-
----
-
-## Run / Ejecutar
-
-```bash
-java -jar keygo-run/target/keygo-run-*.jar
-```
-
-### Using Docker / Usando Docker
-
-**English:** Run with Docker Compose (recommended)
-
-**Español:** Ejecutar con Docker Compose (recomendado)
-
-```bash
-docker-compose up -d
-```
-
-**English:** Or build and run with Docker
-
-**Español:** O construir y ejecutar con Docker
-
-```bash
-docker build -t keygo-server:1.0-SNAPSHOT .
-docker run -d -p 8080:8080 --name keygo-server keygo-server:1.0-SNAPSHOT
-```
-
-**See full Docker documentation / Ver documentación completa de Docker:** [docs/DOCKER.md](docs/DOCKER.md)
-
----
-
-## Tests / Pruebas
-
-**English:** Run all tests
-
-**Español:** Ejecutar todas las pruebas
-
-```bash
-./mvnw test
-```
-
-**English:** Run tests for a specific module
-
-**Español:** Ejecutar tests de un módulo específico
-
-```bash
-./mvnw test -pl keygo-domain
-```
-
----
-
-## Contributing / Contribuir
-
-**English:** Read our [contribution guide](CONTRIBUTING.md) to learn about the development process.
-
-**Español:** Lee nuestra [guía de contribución](CONTRIBUTING.md) para conocer el proceso de desarrollo.
-
-1. **English:** Create a branch from `master` / **Español:** Crear una rama desde `master`
-2. **English:** Make changes and descriptive commits following [Conventional Commits](https://www.conventionalcommits.org/) / **Español:** Realizar cambios y commits descriptivos siguiendo [Conventional Commits](https://www.conventionalcommits.org/)
-3. **English:** Open Pull Request with clear description / **Español:** Abrir Pull Request con descripción clara
-
-**Additional documentation / Documentación adicional:**
-- 📋 [CHANGELOG.md](CHANGELOG.md) - Change history / Historia de cambios
-- 🔒 [SECURITY.md](SECURITY.md) - Security policy / Política de seguridad
-- 🤝 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Code of conduct / Código de conducta
-
----
-
-## License / Licencia
-
-**English:**
-
-This project is licensed under **GNU Affero General Public License v3.0 (AGPL-3.0)** with additional commercial terms.
-
-### License Summary:
-
-- ✅ **Allowed:** Clone, modify, distribute and publish modified versions
-- ✅ **Open source:** Any modification must maintain the same license
-- ✅ **Attribution:** Original authorship must be maintained
-- ⚠️ **Commercial use:** Requires revenue-sharing agreement with original author
-
-For more details, see the [LICENSE](LICENSE) file.
-
-### Commercial Use
-
-If you wish to use this project for commercial purposes, please contact the author to negotiate revenue-sharing terms.
-
-**Español:**
-
-Este proyecto está licenciado bajo **GNU Affero General Public License v3.0 (AGPL-3.0)** con términos comerciales adicionales.
-
-### Resumen de la licencia:
-
-- ✅ **Permitido:** Clonar, modificar, distribuir y publicar versiones modificadas
-- ✅ **Código abierto:** Cualquier modificación debe mantener la misma licencia
-- ✅ **Atribución:** Se debe mantener la autoría original
-- ⚠️ **Uso comercial:** Requiere acuerdo de reparto de ganancias con el autor original
-
-Para más detalles, consulta el archivo [LICENSE](LICENSE).
-
-### Uso Comercial
-
-Si deseas usar este proyecto con fines comerciales, por favor contacta al autor para negociar términos de revenue-sharing.
-
----
-
-**Author / Autor:** Carlos Martínez ([@cmartinezs](https://github.com/cmartinezs))
-
-
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`CHANGELOG.md`](CHANGELOG.md)

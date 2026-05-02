@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!--
+  Fragment: header — encabezado del email con título y subtítulo.
+  El gradiente se controla vía la clase de tema en el contenedor padre.
+  Uso: <th:block th:replace="~{html/fragments/header :: header(${headerTitle}, ${headerSubtitle})}" />
+-->
+<body>
+<th:block th:fragment="header(title, subtitle)">
+<div class="email-header">
+    <h1 th:text="${title}">Título del email</h1>
+    <p th:text="${subtitle}">Subtítulo descriptivo</p>
+</div>
+</th:block>
+</body>
+</html>

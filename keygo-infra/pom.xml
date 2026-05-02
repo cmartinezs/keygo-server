@@ -14,11 +14,41 @@
     <name>KeyGo Infrastructure</name>
     <description>Infrastructure implementations (persistence, external APIs, etc.) / Implementaciones de infraestructura (persistencia, APIs externas, etc.)</description>
 
+    <properties>
+        <!-- JaCoCo activo: el módulo tiene implementaciones con cobertura propia -->
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.cmartinezs.keygo</groupId>
             <artifactId>keygo-app</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <!-- JWT signing: Spring Security OAuth2 JOSE (Nimbus JOSE+JWT via transitiva) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+        <!-- Email: Spring Boot Mail (JavaMailSender) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!-- Thymeleaf: Template engine for email -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <!-- Jakarta Validation: Bean Validation annotations -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+        <!-- Lombok for @UtilityClass -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <!-- Test dependencies -->
         <dependency>
@@ -31,5 +61,33 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

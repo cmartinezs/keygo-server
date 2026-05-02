@@ -1,0 +1,94 @@
+# =========================================================
+# Supabase Configuration Profile
+# Perfil de Configuración de Supabase
+# =========================================================
+# All values are loaded from environment variables
+# Todos los valores se cargan desde variables de entorno
+#
+# This file contains ONLY Supabase and Flyway configuration.
+# Other configurations (server, logging, etc.) are in keygo-run.
+#
+# Este archivo contiene SOLO configuración de Supabase y Flyway.
+# Otras configuraciones (server, logging, etc.) están en keygo-run.
+# =========================================================
+
+# Supabase Configuration
+supabase:
+  # Database connection
+  url: ${SUPABASE_URL}
+  user: ${SUPABASE_USER}
+  password: ${SUPABASE_PASSWORD}
+
+  # Supabase project configuration
+  project-id: ${SUPABASE_PROJECT_ID:local-dev}
+  api-url: ${SUPABASE_API_URL:http://localhost:54321}
+  rest-url: ${SUPABASE_REST_URL:${supabase.api-url}/rest/v1}
+  graphql-url: ${SUPABASE_GRAPHQL_URL:${supabase.api-url}/graphql/v1}
+  realtime-url: ${SUPABASE_REALTIME_URL:${supabase.api-url}/realtime/v1}
+  storage-url: ${SUPABASE_STORAGE_URL:${supabase.api-url}/storage/v1}
+
+  # Authentication keys
+  anon-key: ${SUPABASE_ANON_KEY:}
+  service-key: ${SUPABASE_SERVICE_KEY:}
+  jwt-secret: ${SUPABASE_JWT_SECRET:}
+
+  # Database details
+  db:
+    host: ${SUPABASE_DB_HOST:localhost}
+    port: ${SUPABASE_DB_PORT:5432}
+    name: ${SUPABASE_DB_NAME:keygo}
+    schema: ${SUPABASE_DB_SCHEMA:public}
+
+# Spring Data JPA Configuration
+spring:
+  datasource:
+    url: ${supabase.url}
+    username: ${supabase.user}
+    password: ${supabase.password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DATASOURCE_POOL_SIZE:10}
+      minimum-idle: ${DATASOURCE_MIN_IDLE:5}
+      connection-timeout: ${DATASOURCE_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DATASOURCE_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DATASOURCE_MAX_LIFETIME:1800000}
+      # ── Supabase Connection Pooler (Supavisor / PgBouncer) ─────────────────
+      # pool_mode se configura en el dashboard de Supabase, no aquí.
+      # Lo que varía en Spring Boot es el manejo de prepared statements:
+      #
+      #   Transaction mode (puerto 6543) → SUPABASE_PREPARE_THRESHOLD=0
+      #     El pooler no mantiene estado entre transacciones; los prepared
+      #     statements del servidor no son soportados. Equivale a agregar
+      #     "?pgbouncer=true" en la JDBC URL.
+      #
+      #   Session mode (puerto 5432)     → SUPABASE_PREPARE_THRESHOLD=5 (default JDBC)
+      #     La conexión persiste durante la sesión; prepared statements normales.
+      #
+      data-source-properties:
+        prepareThreshold: ${SUPABASE_PREPARE_THRESHOLD:0}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+#        dialect: org.hibernate.dialect.PostgreSQLDialect | PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+        show_sql: ${HIBERNATE_SHOW_SQL:false}
+        jdbc:
+          time_zone: UTC
+        default_schema: ${supabase.db.schema}
+    show-sql: false
+    open-in-view: false
+
+  # Flyway Migration Configuration
+  flyway:
+    enabled: true
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: ${FLYWAY_BASELINE_VERSION:1}
+    locations: classpath:db/migration
+    schemas: ${FLYWAY_SCHEMAS:public}
+    validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
+    clean-disabled: ${FLYWAY_CLEAN_DISABLED:true}
+    out-of-order: ${FLYWAY_OUT_OF_ORDER:false}
+

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Conventions — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function ApiConventionsPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'For Integrators',
+        title: 'API conventions',
+        desc: 'The HTTP API uses a single JSON style: BaseResponse<T> envelope, global snake_case serialization, trace propagation with X-Trace-ID, and native JSON only for OIDC/JWKS interoperability surfaces.',
+        callout: 'Runtime serialization is configured globally with SNAKE_CASE. DTOs with explicit @JsonProperty keep their protocol names, and OpenAPI mirrors the same contract.',
+        h2Problem: 'What this page solves',
+        problem: 'Use this page as the shortest contract summary before integrating clients, SDKs, interceptors, or observability hooks.',
+        h2Rules: 'Contract rules',
+        rules: [
+          ['Envelope', 'Most endpoints return BaseResponse<T> with date, success|failure and data.'],
+          ['JSON naming', 'Request and response bodies are serialized in snake_case globally.'],
+          ['Pagination', 'Paged endpoints place content and counters inside data, not in top-level metadata.'],
+          ['Tracing', 'Clients may send X-Trace-ID; the server always echoes the effective trace ID.'],
+          ['Native RFC/OIDC', 'Discovery and JWKS endpoints return raw JSON instead of BaseResponse<T>.'],
+        ],
+        h2Headers: 'Headers and expectations',
+        headers: [
+          ['Authorization', 'Protected routes', 'Bearer access token.'],
+          ['Content-Type', 'POST/PATCH JSON bodies', 'application/json'],
+          ['X-Trace-ID', 'Optional request + mandatory response echo', 'UUID used to correlate UI, API and logs.'],
+          ['Accept-Language', 'Optional', 'Error client_message is localized through MessageSource.'],
+        ],
+        h2Examples: 'Envelope examples',
+        h2Pagination: 'Pagination shape',
+        paginationNote: 'The actual paged contract comes from PagedData<T>: content, page, size, total_elements, total_pages and last.',
+        h2Token: 'Protocol DTOs',
+        tokenNote: 'Token responses still use the global envelope in tenant and platform auth flows, but the payload stays RFC-friendly through explicit fields such as access_token and expires_in.',
+        h2Raw: 'Raw JSON exceptions',
+        rawRows: [
+          ['/api/v1/tenants/{tenant_slug}/.well-known/openid-configuration', 'OIDC discovery document', 'Raw JSON'],
+          ['/api/v1/tenants/{tenant_slug}/.well-known/jwks.json', 'Tenant JWKS', 'Raw JSON'],
+          ['/api/v1/platform/.well-known/jwks.json', 'Platform JWKS', 'Raw JSON'],
+        ],
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Para Integradores',
+        title: 'Convenciones API',
+        desc: 'La API HTTP usa un solo estilo JSON: envelope BaseResponse<T>, serialización global snake_case, propagación de trazas con X-Trace-ID y JSON nativo solo en superficies OIDC/JWKS por interoperabilidad.',
+        callout: 'La serialización runtime se configura globalmente con SNAKE_CASE. Los DTOs con @JsonProperty explícito conservan sus nombres de protocolo y OpenAPI refleja el mismo contrato.',
+        h2Problem: 'Qué problema resuelve',
+        problem: 'Usa esta página como el resumen más corto del contrato antes de integrar clientes, SDKs, interceptores u observabilidad.',
+        h2Rules: 'Reglas del contrato',
+        rules: [
+          ['Envelope', 'La mayoría de los endpoints retornan BaseResponse<T> con date, success|failure y data.'],
+          ['JSON naming', 'Request y response body se serializan globalmente en snake_case.'],
+          ['Paginación', 'Los endpoints paginados ponen content y los contadores dentro de data, no en metadata top-level.'],
+          ['Tracing', 'El cliente puede enviar X-Trace-ID; el servidor siempre responde el trace ID efectivo.'],
+          ['RFC/OIDC nativo', 'Discovery y JWKS retornan JSON raw en lugar de BaseResponse<T>.'],
+        ],
+        h2Headers: 'Headers y expectativas',
+        headers: [
+          ['Authorization', 'Rutas protegidas', 'Bearer access token.'],
+          ['Content-Type', 'POST/PATCH con body JSON', 'application/json'],
+          ['X-Trace-ID', 'Request opcional + echo obligatorio en response', 'UUID para correlacionar UI, API y logs.'],
+          ['Accept-Language', 'Opcional', 'El client_message de error se localiza vía MessageSource.'],
+        ],
+        h2Examples: 'Ejemplos de envelope',
+        h2Pagination: 'Forma de paginación',
+        paginationNote: 'El contrato paginado real proviene de PagedData<T>: content, page, size, total_elements, total_pages y last.',
+        h2Token: 'DTOs de protocolo',
+        tokenNote: 'Las respuestas de tokens siguen usando el envelope global en los flujos tenant y platform, pero el payload mantiene nombres RFC-friendly como access_token y expires_in.',
+        h2Raw: 'Excepciones raw JSON',
+        rawRows: [
+          ['/api/v1/tenants/{tenant_slug}/.well-known/openid-configuration', 'Discovery document OIDC', 'JSON raw'],
+          ['/api/v1/tenants/{tenant_slug}/.well-known/jwks.json', 'JWKS por tenant', 'JSON raw'],
+          ['/api/v1/platform/.well-known/jwks.json', 'JWKS de plataforma', 'JSON raw'],
+        ],
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../integrators/endpoints.html', 'Endpoints API'],
+    ['../integrators/errors.html', lang === 'en' ? 'Errors & responses' : 'Errores y respuestas'],
+    ['../integrators/versioning.html', lang === 'en' ? 'Versioning' : 'Versionado'],
+    ['../integrators/session-model.html', lang === 'en' ? 'Session model' : 'Modelo de sesión'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="apiconventions" size={13} color="var(--green)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Problem}</h2>
+        <p>{copy.problem}</p>
+
+        <h2>{copy.h2Rules}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Surface' : 'Superficie'}</th><th>{lang === 'en' ? 'Rule' : 'Regla'}</th></tr></thead>
+          <tbody>
+            {copy.rules.map(([surface, rule]) => (
+              <tr key={surface}><td className="bc-name">{surface}</td><td>{rule}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Headers}</h2>
+        <table className="bc-table">
+          <thead><tr><th>Header</th><th>{lang === 'en' ? 'When' : 'Cuándo'}</th><th>{lang === 'en' ? 'Meaning' : 'Significado'}</th></tr></thead>
+          <tbody>
+            {copy.headers.map(([header, when, meaning]) => (
+              <tr key={header}><td className="bc-name">{header}</td><td>{when}</td><td>{meaning}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Examples}</h2>
+        <div className="two-col">
+          <div><h3>{lang === 'en' ? 'Successful business response' : 'Respuesta de negocio exitosa'}</h3><KG_CodeBlock id="response_ok" /></div>
+          <div><h3>{lang === 'en' ? 'Validation / error response' : 'Respuesta de validación / error'}</h3><KG_CodeBlock id="response_err" /></div>
+        </div>
+
+        <h2>{copy.h2Pagination}</h2>
+        <p className="mini-text">{copy.paginationNote}</p>
+        <KG_CodeBlock id="pagination" />
+
+        <h2>{copy.h2Token}</h2>
+        <p className="mini-text">{copy.tokenNote}</p>
+        <KG_CodeBlock id="token_response" />
+
+        <h2>{copy.h2Raw}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Endpoint' : 'Endpoint'}</th><th>{lang === 'en' ? 'Purpose' : 'Propósito'}</th><th>{lang === 'en' ? 'Response style' : 'Estilo de respuesta'}</th></tr></thead>
+          <tbody>
+            {copy.rawRows.map(([endpoint, purpose, style]) => (
+              <tr key={endpoint}><td className="bc-name">{endpoint}</td><td>{purpose}</td><td><code>{style}</code></td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'apiconventions', content: ApiConventionsPage });
+</script>
+</body></html>

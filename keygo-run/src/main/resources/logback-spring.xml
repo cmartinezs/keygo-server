@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback configuration — KeyGo Server
+  ══════════════════════════════════════════════════════════════════════════════
+
+  PERFILES
+  ────────
+  local / default (sin perfil)   → consola colorida estilo Spring Boot + campos MDC
+  desa / prod                    → consola mínima (WARN+) + JSON a archivo rotativo diario
+
+  CAMPOS MDC en cada línea de log
+  ──────────────────────────────
+  traceId    — UUID por petición  (RequestTracingFilter)
+  tenantSlug — tenant resuelto    (TenantResolutionFilter)
+  userId     — JWT sub            (BootstrapAdminKeyFilter)
+  method     — método HTTP
+  path       — servlet path (sin context-path)
+
+  ARCHIVO JSON (solo desa/prod)
+  ─────────────────────────────
+  Ruta:     ${LOG_PATH:-logs}/${APP_NAME}.log
+  Rotación: diaria · compresión gzip · 30 días de historia · cap total 2 GB
+  Uso:      subir el .log.gz al agregador (Kibana, CloudWatch, DataDog, etc.)
+  Override: LOG_PATH=/var/log/keygo (variable de entorno)
+            logging.file.path=/var/log/keygo (application.yml)
+-->
+<configuration>
+
+  <!--
+    Spring Boot 4.x: %clr ya no se auto-registra automáticamente al usar un logback-spring.xml
+    personalizado. Se incluye defaults.xml oficial que registra %clr, %wex, %wEx, %correlationId,
+    %esb y las propiedades estándar de Spring Boot (CONSOLE_LOG_PATTERN, etc.).
+    El atributo correcto en <conversionRule> es "class=" (no "converterClass=").
+    Ref: spring-boot-4.0.x/logging/logback/defaults.xml
+  -->
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <springProperty scope="context" name="APP_NAME"
+      source="keygo.info.name"      defaultValue="keygo-server"/>
+  <springProperty scope="context" name="LOG_PATH"
+      source="logging.file.path"    defaultValue="logs"/>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       PERFILES: local + default + cualquier otro que no sea desa/prod
+       Consola colorida, muy similar al formato por defecto de Spring Boot,
+       con los tres campos MDC insertados entre [thread] y el logger name.
+       ════════════════════════════════════════════════════════════════════ -->
+  <springProfile name="!(desa | prod)">
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <!--
+          Columnas (orden idéntico al default de Spring Boot):
+            %d{...}      — timestamp ISO local
+            %5p          — nivel (INFO, WARN, ERROR, DEBUG, TRACE)
+            ${PID}       — PID del proceso
+            -          — separador visual
+            [%15.15t]    — nombre del thread (truncado a 15 chars)
+            [traceId]    — MDC: trace ID de la petición (- si ausente)
+            [tenant]     — MDC: slug del tenant resuelto
+            [userId]     — MDC: sub del JWT autenticado
+            %-40.40logger— nombre del logger (truncado, con color)
+            : %m%n       — mensaje y salto de línea
+        -->
+        <pattern>%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([%X{traceId:--}]){blue} %clr([%X{tenantSlug:--}]){yellow} %clr([%X{userId:--}]){green} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n</pattern>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Código propio en DEBUG: REQ_IN / REQ_OUT, trazas de use-case, queries -->
+    <logger name="io.cmartinezs.keygo" level="DEBUG" additivity="false">
+      <appender-ref ref="CONSOLE"/>
+    </logger>
+
+  </springProfile>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       PERFILES: desa | prod
+       · Consola mínima (WARN+) — útil en contenedores para alertas rápidas
+       · Archivo JSON rotativo diario — para subir al sistema de análisis
+       ════════════════════════════════════════════════════════════════════ -->
+  <springProfile name="desa | prod">
+
+    <!-- ── Consola: solo WARN y ERROR ─────────────────────────────────── -->
+    <appender name="CONSOLE_WARN" class="ch.qos.logback.core.ConsoleAppender">
+      <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+        <level>WARN</level>
+      </filter>
+      <encoder>
+        <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%X{traceId:--}] %logger{36} - %msg%n</pattern>
+      </encoder>
+    </appender>
+
+    <!-- ── Archivo JSON rotativo diario ───────────────────────────────── -->
+    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <!-- Archivo activo -->
+      <file>${LOG_PATH}/${APP_NAME}.log</file>
+
+      <!-- Rotación diaria con compresión gzip -->
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <!-- Archivo rotado: keygo-server.2026-04-03.log.gz -->
+        <fileNamePattern>${LOG_PATH}/${APP_NAME}.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+        <!-- Conservar 30 días de historial -->
+        <maxHistory>30</maxHistory>
+        <!-- Cap total en disco: 2 GB -->
+        <totalSizeCap>2GB</totalSizeCap>
+      </rollingPolicy>
+
+      <!-- Encoder JSON: incluye TODOS los campos MDC automáticamente -->
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <!-- Campo estático para identificar la app en el agregador -->
+        <customFields>{"app":"${APP_NAME}"}</customFields>
+        <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+      </encoder>
+    </appender>
+
+    <!-- Root: INFO+ a consola-warn y a archivo JSON -->
+    <root level="INFO">
+      <appender-ref ref="CONSOLE_WARN"/>
+      <appender-ref ref="JSON_FILE"/>
+    </root>
+
+    <!-- Código propio: INFO en prod (DEBUG solo si se activa vía logging.level.*) -->
+    <logger name="io.cmartinezs.keygo" level="INFO" additivity="false">
+      <appender-ref ref="CONSOLE_WARN"/>
+      <appender-ref ref="JSON_FILE"/>
+    </logger>
+
+  </springProfile>
+
+</configuration>
+

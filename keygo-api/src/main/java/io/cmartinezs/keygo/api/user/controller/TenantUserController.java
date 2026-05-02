@@ -1,0 +1,371 @@
+package io.cmartinezs.keygo.api.user.controller;
+
+import io.cmartinezs.keygo.api.shared.ResponseCode;
+import io.cmartinezs.keygo.api.shared.ResponseHelper;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.api.shared.response.PagedData;
+import io.cmartinezs.keygo.api.user.request.CreateUserRequest;
+import io.cmartinezs.keygo.api.user.request.ResetPasswordRequest;
+import io.cmartinezs.keygo.api.user.request.UpdateUserRequest;
+import io.cmartinezs.keygo.api.user.request.ValidateCredentialsRequest;
+import io.cmartinezs.keygo.api.user.response.UserData;
+import io.cmartinezs.keygo.app.shared.PagedResult;
+import io.cmartinezs.keygo.app.user.command.CreateUserCommand;
+import io.cmartinezs.keygo.app.user.command.ResetUserPasswordCommand;
+import io.cmartinezs.keygo.app.user.command.UpdateUserCommand;
+import io.cmartinezs.keygo.app.user.filter.UserFilter;
+import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
+import io.cmartinezs.keygo.domain.user.model.User;
+import io.cmartinezs.keygo.domain.user.model.UserStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST controller for managing users within a tenant.
+ * <p>Controlador REST para gestión de usuarios dentro de un tenant.
+ * @author cmartinezs
+ * @version 1.0
+ */
+@RestController
+@RequestMapping("/api/v1/tenants/{tenantSlug}/users")
+@Tag(name = "Users", description = "User identity management per tenant — requires Bearer JWT")
+@SecurityRequirement(name = "BearerAuth")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+public class TenantUserController {
+
+  private final CreateUserUseCase createUserUseCase;
+  private final ListUsersUseCase listUsersUseCase;
+  private final GetUserUseCase getUserUseCase;
+  private final UpdateUserUseCase updateUserUseCase;
+  private final ResetUserPasswordUseCase resetUserPasswordUseCase;
+  private final ValidateUserCredentialsUseCase validateUserCredentialsUseCase;
+  private final SuspendUserUseCase suspendUserUseCase;
+  private final ActivateUserUseCase activateUserUseCase;
+
+  public TenantUserController(
+      CreateUserUseCase createUserUseCase,
+      ListUsersUseCase listUsersUseCase,
+      GetUserUseCase getUserUseCase,
+      UpdateUserUseCase updateUserUseCase,
+      ResetUserPasswordUseCase resetUserPasswordUseCase,
+      ValidateUserCredentialsUseCase validateUserCredentialsUseCase,
+      SuspendUserUseCase suspendUserUseCase,
+      ActivateUserUseCase activateUserUseCase) {
+    this.createUserUseCase = createUserUseCase;
+    this.listUsersUseCase = listUsersUseCase;
+    this.getUserUseCase = getUserUseCase;
+    this.updateUserUseCase = updateUserUseCase;
+    this.resetUserPasswordUseCase = resetUserPasswordUseCase;
+    this.validateUserCredentialsUseCase = validateUserCredentialsUseCase;
+    this.suspendUserUseCase = suspendUserUseCase;
+    this.activateUserUseCase = activateUserUseCase;
+  }
+
+  /**
+   * Create a new user within the given tenant.
+   * <p>Crea un nuevo usuario dentro del tenant dado.
+   */
+  @PostMapping
+  @Operation(
+      summary = "Create a user",
+      description = "Creates a new user account scoped to the specified tenant. "
+                    + "Username and email must be unique within the tenant.")
+  @ApiResponse(responseCode = "201", description = "User created successfully (code: USER_CREATED)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "409", description = "Email or username already exists in this tenant (code: DUPLICATE_RESOURCE)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> createUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Valid @RequestBody CreateUserRequest request) {
+
+    User user = createUserUseCase.execute(new CreateUserCommand(
+        tenantSlug,
+        request.username(),
+        request.email(),
+        request.password(),
+        request.firstName(),
+        request.lastName()));
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_CREATED))
+            .build());
+  }
+
+  /**
+   * List users of the given tenant with optional pagination, filtering, and sorting.
+   * <p>Lista usuarios del tenant dado con paginación, filtrado y ordenamiento opcionales.
+   */
+  @GetMapping
+  @Operation(
+      summary = "List users",
+      description = "Returns a paginated list of user accounts under the specified tenant. "
+                    + "Supports filtering by status and partial email/username match, plus sorting.")
+  @ApiResponse(responseCode = "200", description = "User list retrieved successfully (code: USER_LIST_RETRIEVED)")
+  @ApiResponse(responseCode = "400", description = "Invalid pagination parameters (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<PagedData<UserData>>> listUsers(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "Filter by user status (ACTIVE, SUSPENDED, PENDING, RESET_PASSWORD)")
+      @RequestParam(required = false) UserStatus status,
+      @Parameter(description = "Partial match on username (case-insensitive)")
+      @RequestParam(name = "username_like", required = false) String usernameLike,
+      @Parameter(description = "Partial match on email (case-insensitive)")
+      @RequestParam(name = "email_like", required = false) String emailLike,
+      @Parameter(description = "Zero-based page number", example = "0")
+      @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size (1–200)", example = "20")
+      @RequestParam(defaultValue = "20") int size,
+      @Parameter(description = "Sort field (username, email, status, createdAt)")
+      @RequestParam(required = false) String sort,
+      @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
+      @RequestParam(required = false) String order) {
+
+    UserFilter filter = UserFilter.of(status, usernameLike, emailLike, page, size, sort, order);
+    PagedResult<User> result = listUsersUseCase.execute(tenantSlug, filter);
+
+    List<UserData> content = result.getContent().stream()
+        .map(this::toData)
+        .toList();
+
+    PagedData<UserData> pagedData = PagedData.<UserData>builder()
+        .content(content)
+        .page(result.getPage())
+        .size(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .last(result.isLast())
+        .build();
+
+    BaseResponse<PagedData<UserData>> response = BaseResponse.<PagedData<UserData>>builder()
+        .data(pagedData)
+        .success(ResponseHelper.message(ResponseCode.USER_LIST_RETRIEVED))
+        .build();
+
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  /**
+   * Retrieve a specific user by its UUID.
+   * <p>Obtiene un usuario específico por su UUID.
+   */
+  @GetMapping("/{userId}")
+  @Operation(
+      summary = "Get a user",
+      description = "Retrieves details of a specific user by its UUID within the tenant.")
+  @ApiResponse(responseCode = "200", description = "User retrieved successfully (code: USER_RETRIEVED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> getUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
+
+    User user = getUserUseCase.execute(tenantSlug, userId);
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_RETRIEVED))
+            .build());
+  }
+
+  /**
+   * Update user profile information.
+   * <p>Actualiza la información de perfil del usuario.
+   */
+  @PutMapping("/{userId}")
+  @Operation(
+      summary = "Update a user",
+      description = "Updates the firstName and lastName of an existing user.")
+  @ApiResponse(responseCode = "200", description = "User updated successfully (code: USER_UPDATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> updateUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId,
+      @Valid @RequestBody UpdateUserRequest request) {
+
+    User user = updateUserUseCase.execute(new UpdateUserCommand(
+        tenantSlug, userId,
+        request.firstName(), request.lastName(),
+        request.phoneNumber(), request.locale(), request.zoneinfo(),
+        request.profilePictureUrl(), request.birthdate(), request.website()));
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_UPDATED))
+            .build());
+  }
+
+  /**
+   * Reset a user's password (admin-initiated).
+   * <p>Resetea la contraseña de un usuario (iniciado por el administrador).
+   */
+  @PostMapping("/{userId}/reset-password")
+  @Operation(
+      summary = "Reset user password",
+      description = "Administratively resets the password of a user within the tenant.")
+  @ApiResponse(responseCode = "200", description = "Password reset successfully (code: USER_PASSWORD_RESET)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> resetPassword(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId,
+      @Valid @RequestBody ResetPasswordRequest request) {
+
+    User user = resetUserPasswordUseCase.execute(
+        new ResetUserPasswordCommand(tenantSlug, userId, request.newPassword()));
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_PASSWORD_RESET))
+            .build());
+  }
+
+  /**
+   * Suspend a user account within the tenant.
+   * <p>Suspende una cuenta de usuario dentro del tenant.
+   */
+  @PutMapping("/{userId}/suspend")
+  @Operation(
+      summary = "Suspend user",
+      description = "Suspends an active user account within the tenant. "
+                    + "Requires user to be in ACTIVE status.")
+  @ApiResponse(responseCode = "200", description = "User suspended successfully (code: USER_SUSPENDED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "User is already suspended (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> suspendUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
+
+    User user = suspendUserUseCase.execute(tenantSlug, userId);
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_SUSPENDED))
+            .build());
+  }
+
+  /**
+   * Activate a previously suspended user account within the tenant.
+   * <p>Activa una cuenta de usuario previamente suspendida dentro del tenant.
+   */
+  @PutMapping("/{userId}/activate")
+  @Operation(
+      summary = "Activate user",
+      description = "Reactivates a previously suspended user account within the tenant.")
+  @ApiResponse(responseCode = "200", description = "User activated successfully (code: USER_ACTIVATED)")
+  @ApiResponse(responseCode = "401", description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> activateUser(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
+
+    User user = activateUserUseCase.execute(tenantSlug, userId);
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.USER_ACTIVATED))
+            .build());
+  }
+
+  /**
+   * Validate user credentials (email or username + password).
+   * <p>Valida las credenciales de un usuario (email o username + contraseña).
+   */
+  @PostMapping("/validate-credentials")
+  @Operation(
+      summary = "Validate credentials",
+      description = "Validates a user's credentials (email or username + password) within the tenant. "
+                    + "Returns user data on success.")
+  @ApiResponse(responseCode = "200", description = "Credentials valid (code: CREDENTIALS_VALID)")
+  @ApiResponse(responseCode = "400", description = "Request body validation failed (code: INVALID_INPUT). data.field_errors lists each invalid field.",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "401", description = "Invalid credentials or Bearer token missing (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "403", description = "User account is suspended (code: BUSINESS_RULE_VIOLATION)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<UserData>> validateCredentials(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Valid @RequestBody ValidateCredentialsRequest request) {
+
+    User user = validateUserCredentialsUseCase.execute(
+        tenantSlug, request.credential(), request.password());
+
+    return ResponseEntity.status(HttpStatus.OK).body(
+        BaseResponse.<UserData>builder()
+            .data(toData(user))
+            .success(ResponseHelper.message(ResponseCode.CREDENTIALS_VALID))
+            .build());
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────
+
+  private UserData toData(User user) {
+    return UserData.builder()
+        .id(user.getId().toString())
+        .tenantId(user.getTenantId().toString())
+        .username(user.getUsername().value())
+        .email(user.getEmail().value())
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .status(user.getStatus().name())
+        .phoneNumber(user.getPhoneNumber())
+        .locale(user.getLocale())
+        .zoneinfo(user.getZoneinfo())
+        .profilePictureUrl(user.getProfilePictureUrl())
+        .birthdate(user.getBirthdate())
+        .website(user.getWebsite())
+        .build();
+  }
+}
+

@@ -10,16 +10,16 @@ insert_final_newline = true
 charset = utf-8
 trim_trailing_whitespace = true
 
-# Java files
+# Java files (google-java-format standard: 2 spaces)
 [*.java]
 indent_style = space
-indent_size = 4
+indent_size = 2
 max_line_length = 120
 
-# XML files (POM, config)
+# XML files (POM, config) - align with google-java-format
 [*.xml]
 indent_style = space
-indent_size = 4
+indent_size = 2
 
 # YAML files
 [*.{yml,yaml}]
@@ -34,7 +34,7 @@ max_line_length = off
 # Properties files
 [*.properties]
 indent_style = space
-indent_size = 4
+indent_size = 2
 
 # JSON files
 [*.json]

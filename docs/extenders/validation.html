@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Validation — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function ValidationPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'For Extenders',
+        title: 'Validation strategy',
+        desc: 'Validation is intentionally layered: structural HTTP validation at the boundary, invariant validation inside the domain, and stateful or repository-backed validation inside use cases. GlobalExceptionHandler normalizes the final API error contract.',
+        callout: 'The goal is reusability: business rules must stay testable without Spring MVC, while HTTP-specific concerns remain at the API layer.',
+        h2Layers: 'Validation by layer',
+        layers: [
+          ['HTTP', 'Request DTOs, query params and path variables', '@Valid, @Validated, missing params, malformed JSON'],
+          ['Domain', 'Always-valid value objects and aggregate invariants', 'email format, password policy, lifecycle transitions'],
+          ['Use case', 'Rules that require repositories or current state', 'duplicate resources, inactive tenant, invalid membership state'],
+        ],
+        h2Matrix: 'What goes where',
+        matrix: [
+          ['Format / nullability', 'HTTP', '@NotBlank, @Email, @Size'],
+          ['Reusable invariant', 'Domain', 'Value Object constructor or helper'],
+          ['Uniqueness / precondition', 'Use case', 'Repository.existsBy(), current aggregate state'],
+          ['Cross-field or contextual dependency', 'Use case', 'Custom orchestration logic'],
+        ],
+        h2Mapping: 'Exception mapping',
+        mapping: [
+          ['MethodArgumentNotValidException', '400', 'INVALID_INPUT', 'data.field_errors in snake_case'],
+          ['ConstraintViolationException', '400', 'INVALID_INPUT', 'Query/path/header validation'],
+          ['TenantNotFoundException / ClientAppNotFoundException', '404', 'RESOURCE_NOT_FOUND', 'Business object not found'],
+          ['SelfRegistrationNotAllowedException / TenantSuspendedException', '403', 'BUSINESS_RULE_VIOLATION', 'Valid input, invalid state or policy'],
+          ['ClientAuthenticationException / UnauthorizedException', '401', 'AUTHENTICATION_REQUIRED', 'Credential or token failure'],
+        ],
+        h2Response: 'Error payload behavior',
+        payload: [
+          'trace_id is copied from MDC so the failing request can be correlated in logs.',
+          'client_message is localized through MessageSource and should be shown to end users when appropriate.',
+          'field_errors is only populated for validation failures and each field name is converted to snake_case.',
+          'detail, exception and rejected_value are suppressed outside dev/local-style profiles.',
+        ],
+        h2Checklist: 'New endpoint checklist',
+        checklist: [
+          'HTTP DTO validates structure only: required, size, basic format, nullability.',
+          'Domain keeps reusable invariants in value objects or helpers, not in controllers.',
+          'Use case checks repository-backed conditions such as uniqueness or aggregate state.',
+          'GlobalExceptionHandler mapping stays consistent with INVALID_INPUT, RESOURCE_NOT_FOUND or BUSINESS_RULE_VIOLATION.',
+        ],
+        h2Anti: 'Anti-patterns',
+        anti: [
+          'Putting business validation directly in controllers or request mappers.',
+          'Asking the domain layer to hit repositories just to validate uniqueness.',
+          'Hiding validation failures behind generic 500 responses.',
+        ],
+        h2Snippet: 'Reference snippet',
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Para Extensores',
+        title: 'Estrategia de validación',
+        desc: 'La validación está deliberadamente separada por capas: validación estructural HTTP en el borde, validación de invariantes dentro del dominio y validación con estado o repositorio dentro de los use cases. GlobalExceptionHandler normaliza el contrato final de error.',
+        callout: 'El objetivo es reutilización: las reglas de negocio deben seguir siendo testeables sin Spring MVC, mientras que las preocupaciones HTTP quedan en la capa API.',
+        h2Layers: 'Validación por capa',
+        layers: [
+          ['HTTP', 'Request DTOs, query params y path variables', '@Valid, @Validated, parámetros faltantes, JSON malformado'],
+          ['Domain', 'Value objects siempre válidos e invariantes de agregados', 'formato de email, política de contraseña, transiciones de ciclo de vida'],
+          ['Use case', 'Reglas que requieren repositorios o estado actual', 'recursos duplicados, tenant inactivo, estado inválido de membresía'],
+        ],
+        h2Matrix: 'Qué va dónde',
+        matrix: [
+          ['Formato / nulabilidad', 'HTTP', '@NotBlank, @Email, @Size'],
+          ['Invariante reutilizable', 'Domain', 'Constructor de Value Object o helper'],
+          ['Unicidad / precondición', 'Use case', 'Repository.existsBy(), estado actual del agregado'],
+          ['Dependencia contextual o entre campos', 'Use case', 'Lógica de orquestación personalizada'],
+        ],
+        h2Mapping: 'Mapping de excepciones',
+        mapping: [
+          ['MethodArgumentNotValidException', '400', 'INVALID_INPUT', 'data.field_errors en snake_case'],
+          ['ConstraintViolationException', '400', 'INVALID_INPUT', 'Validación de query/path/header'],
+          ['TenantNotFoundException / ClientAppNotFoundException', '404', 'RESOURCE_NOT_FOUND', 'Objeto de negocio no encontrado'],
+          ['SelfRegistrationNotAllowedException / TenantSuspendedException', '403', 'BUSINESS_RULE_VIOLATION', 'Input válido, pero estado o política inválida'],
+          ['ClientAuthenticationException / UnauthorizedException', '401', 'AUTHENTICATION_REQUIRED', 'Falla de credenciales o token'],
+        ],
+        h2Response: 'Comportamiento del payload de error',
+        payload: [
+          'trace_id se copia desde MDC para correlacionar el request fallido en logs.',
+          'client_message se localiza vía MessageSource y puede mostrarse al usuario final cuando corresponda.',
+          'field_errors solo se llena para fallas de validación y cada nombre de campo se convierte a snake_case.',
+          'detail, exception y rejected_value se omiten fuera de perfiles tipo dev/local.',
+        ],
+        h2Checklist: 'Checklist para endpoint nuevo',
+        checklist: [
+          'El DTO HTTP valida solo estructura: requerido, tamaño, formato básico y nulabilidad.',
+          'Domain mantiene invariantes reutilizables en value objects o helpers, no en controllers.',
+          'El use case revisa condiciones con repositorio como unicidad o estado del agregado.',
+          'El mapping en GlobalExceptionHandler se mantiene consistente con INVALID_INPUT, RESOURCE_NOT_FOUND o BUSINESS_RULE_VIOLATION.',
+        ],
+        h2Anti: 'Anti-patterns',
+        anti: [
+          'Poner validación de negocio directamente en controllers o request mappers.',
+          'Pedirle a Domain que consulte repositorios solo para validar unicidad.',
+          'Esconder fallas de validación detrás de respuestas 500 genéricas.',
+        ],
+        h2Snippet: 'Snippet de referencia',
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../integrators/errors.html', lang === 'en' ? 'Integrator error contract' : 'Contrato de errores para integradores'],
+    ['../extenders/patterns.html', lang === 'en' ? 'Domain patterns' : 'Patrones de dominio'],
+    ['../extenders/data-model.html', lang === 'en' ? 'Data model' : 'Modelo de datos'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="validation" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Layers}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Layer' : 'Capa'}</th><th>{lang === 'en' ? 'Responsibility' : 'Responsabilidad'}</th><th>{lang === 'en' ? 'Typical examples' : 'Ejemplos típicos'}</th></tr></thead>
+          <tbody>
+            {copy.layers.map(([layer, responsibility, examples]) => (
+              <tr key={layer}><td className="bc-name">{layer}</td><td>{responsibility}</td><td>{examples}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Matrix}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Validation kind' : 'Tipo de validación'}</th><th>{lang === 'en' ? 'Layer' : 'Capa'}</th><th>{lang === 'en' ? 'Mechanism' : 'Mecanismo'}</th></tr></thead>
+          <tbody>
+            {copy.matrix.map(([kind, layer, mechanism]) => (
+              <tr key={kind}><td className="bc-name">{kind}</td><td>{layer}</td><td>{mechanism}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mapping}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Exception family' : 'Familia de excepción'}</th><th>HTTP</th><th>ResponseCode</th><th>{lang === 'en' ? 'Notes' : 'Notas'}</th></tr></thead>
+          <tbody>
+            {copy.mapping.map(([family, http, code, notes]) => (
+              <tr key={family}><td className="bc-name">{family}</td><td><code>{http}</code></td><td><code>{code}</code></td><td>{notes}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Response}</h2>
+        <ul className="dense-list">
+          {copy.payload.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Checklist}</h2>
+        <ul className="dense-list">
+          {copy.checklist.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Anti}</h2>
+        <ul className="dense-list">
+          {copy.anti.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Snippet}</h2>
+        <KG_CodeBlock id="response_err" />
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'validation', content: ValidationPage });
+</script>
+</body></html>

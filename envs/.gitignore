@@ -1,0 +1,21 @@
+# =========================================================
+# Environment Files / Archivos de Ambiente
+# =========================================================
+# Ignore all environment files with sensitive data.
+# Only .env.example is tracked in git.
+#
+# Ignorar todos los archivos de ambiente con datos sensibles.
+# Solo .env.example se versiona en git.
+# =========================================================
+.env
+.env.local
+.env.h2
+.env.desa
+.env.prod
+.env-local
+.env-desa
+.env-prod
+.env.*
+!.env.example
+.env.backup.*
+

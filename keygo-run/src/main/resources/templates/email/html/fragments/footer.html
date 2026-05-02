@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!--
+  Fragment: footer — pie del email con copyright y links configurables.
+  Los links vienen de keygo.email.footer-links en application.yml.
+  Uso: <th:block th:replace="~{html/fragments/footer :: footer(${footerLinks}, ${copyrightHolder}, ${copyrightYear})}" />
+-->
+<body>
+<th:block th:fragment="footer(links, holder, year)">
+<div class="email-footer">
+    <p>&copy; <span th:text="${year}">2026</span> <span th:text="${holder}">KeyGo</span>. Todos los derechos reservados.</p>
+    <p>
+        <th:block th:each="link,iterStat : ${links}">
+            <span th:if="${!iterStat.first}"> &bull; </span>
+            <a th:href="${link.url}" th:text="${link.label}">Link</a>
+        </th:block>
+    </p>
+</div>
+</th:block>
+</body>
+</html>

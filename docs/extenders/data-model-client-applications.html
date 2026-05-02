@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Client Applications — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const CLIENT_APPS_ER = `
+erDiagram
+    client_apps {
+        uuid id PK
+        uuid tenant_id FK
+        varchar client_id
+        varchar name
+        varchar type
+        varchar status
+        varchar registration_policy
+    }
+    client_redirect_uris {
+        uuid id PK
+        uuid client_app_id FK
+        varchar uri
+    }
+    client_allowed_grants {
+        uuid id PK
+        uuid client_app_id FK
+        varchar grant_type
+    }
+    client_allowed_scopes {
+        uuid id PK
+        uuid client_app_id FK
+        varchar scope
+    }
+
+    client_apps ||--o{ client_redirect_uris : registers
+    client_apps ||--o{ client_allowed_grants : enables
+    client_apps ||--o{ client_allowed_scopes : authorizes
+`;
+function DataModelClientAppsPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Client Applications',
+        title: 'Client Applications storage boundary',
+        desc: 'This context stores how a tenant registers OAuth clients. It owns public protocol identifiers such as client_id, but relationships from other contexts still point to the technical client_apps.id key.',
+        callout: 'A common rule: client_id is public protocol surface, client_apps.id is the internal foreign-key anchor.',
+        h2Entities: 'Core entities',
+        h2Mer: 'ER diagram',
+        entities: [
+          ['client_apps', 'Registered OAuth client', 'Owns tenant linkage, public client_id, type, status and registration policy.'],
+          ['client_redirect_uris', 'Exact redirect allowlist', 'Redirect URIs are exact; no wildcard matching.'],
+          ['client_allowed_grants', 'Grant capability registry', 'Defines what OAuth flows a client may use.'],
+          ['client_allowed_scopes', 'Allowed scope registry', 'Defines the subset of scopes a client may request.'],
+        ],
+        h2Policies: 'Important application traits',
+        policies: [
+          ['type', 'PUBLIC or CONFIDENTIAL; only confidential apps hold a secret hash.'],
+          ['registration_policy', 'OPEN_AUTO_ACTIVE, OPEN_AUTO_PENDING, OPEN_NO_MEMBERSHIP or INVITE_ONLY.'],
+          ['is_internal', 'Marks technical/internal apps used by the platform itself.'],
+        ],
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'client_apps belongs to exactly one tenant and cannot migrate across tenants.',
+          'client_id is globally unique at protocol level; internal joins still use client_apps.id.',
+          'Redirect URIs must match exactly; wildcards are not part of the model.',
+          'Grant and scope registries keep app capabilities explicit instead of inferred from code paths.',
+        ],
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Client Applications',
+        title: 'Boundary de almacenamiento Client Applications',
+        desc: 'Este contexto almacena cómo un tenant registra clientes OAuth. Posee identificadores públicos de protocolo como client_id, pero las relaciones desde otros contextos siguen apuntando a la clave técnica client_apps.id.',
+        callout: 'Regla común: client_id es superficie pública de protocolo, client_apps.id es el ancla interna de foreign keys.',
+        h2Entities: 'Entidades núcleo',
+        h2Mer: 'Diagrama ER',
+        entities: [
+          ['client_apps', 'Cliente OAuth registrado', 'Posee vínculo con tenant, client_id público, tipo, estado y registration policy.'],
+          ['client_redirect_uris', 'Allowlist exacta de redirects', 'Las redirect URIs son exactas; no hay wildcard matching.'],
+          ['client_allowed_grants', 'Registro de capacidades de grant', 'Define qué OAuth flows puede usar un cliente.'],
+          ['client_allowed_scopes', 'Registro de scopes autorizados', 'Define el subconjunto de scopes que un cliente puede solicitar.'],
+        ],
+        h2Policies: 'Rasgos importantes de aplicación',
+        policies: [
+          ['type', 'PUBLIC o CONFIDENTIAL; solo las confidential almacenan secret hash.'],
+          ['registration_policy', 'OPEN_AUTO_ACTIVE, OPEN_AUTO_PENDING, OPEN_NO_MEMBERSHIP o INVITE_ONLY.'],
+          ['is_internal', 'Marca apps técnicas/internas usadas por la propia plataforma.'],
+        ],
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'client_apps pertenece a exactamente un tenant y no puede migrar entre tenants.',
+          'client_id es globalmente único a nivel de protocolo; los joins internos siguen usando client_apps.id.',
+          'Las redirect URIs deben coincidir exactamente; los wildcards no forman parte del modelo.',
+          'Los registros de grants y scopes hacen explícitas las capacidades de la app en vez de inferirlas desde code paths.',
+        ],
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../integrators/endpoints.html', lang === 'en' ? 'Integrator endpoints' : 'Endpoints para integradores'],
+    ['../extenders/data-model-access-control.html', 'Access Control'],
+    ['../extenders/data-model-organization.html', 'Organization'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="globe" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Entities}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.entities.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="client-apps-er" definition={CLIENT_APPS_ER} />
+
+        <h2>{copy.h2Policies}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Attribute' : 'Atributo'}</th><th>{lang === 'en' ? 'Meaning' : 'Significado'}</th></tr></thead>
+          <tbody>
+            {copy.policies.map(([attr, meaning]) => <tr key={attr}><td className="bc-name">{attr}</td><td>{meaning}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelclientapps', content: DataModelClientAppsPage });
+</script>
+</body></html>

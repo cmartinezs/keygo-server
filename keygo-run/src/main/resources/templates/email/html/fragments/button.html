@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!--
+  Fragment: button — botón de acción principal (CTA).
+  Parámetros:
+    - url: URL del enlace
+    - text: texto del botón
+    - hint: texto opcional encima del botón (puede ser null)
+  Uso: <th:block th:replace="~{html/fragments/button :: button(${resetPasswordLink}, 'Ir al formulario', 'O accede directamente:')}" />
+-->
+<body>
+<th:block th:fragment="button(url, text, hint)">
+<div class="cta-container">
+    <p th:if="${hint}" class="cta-text" th:text="${hint}">Texto auxiliar</p>
+    <a th:href="${url}" class="btn-primary" th:text="${text}">Acción</a>
+</div>
+</th:block>
+</body>
+</html>

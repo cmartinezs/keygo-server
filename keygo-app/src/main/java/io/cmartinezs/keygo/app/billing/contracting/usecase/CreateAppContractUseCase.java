@@ -1,0 +1,120 @@
+package io.cmartinezs.keygo.app.billing.contracting.usecase;
+
+import io.cmartinezs.keygo.app.billing.catalog.port.AppPlanVersionRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.command.CreateAppContractCommand;
+import io.cmartinezs.keygo.app.billing.contracting.exception.ContractorEmailAlreadyExistsException;
+import io.cmartinezs.keygo.app.billing.contracting.port.ContractEmailVerificationRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.exception.PlanVersionNotFoundException;
+import io.cmartinezs.keygo.app.billing.contracting.port.AppContractRepositoryPort;
+import io.cmartinezs.keygo.app.billing.contracting.result.AppContractResult;
+import io.cmartinezs.keygo.app.billing.contractor.port.ContractorRepositoryPort;
+import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
+import io.cmartinezs.keygo.domain.billing.contracting.model.AppContract;
+import io.cmartinezs.keygo.domain.billing.contracting.model.ContractEmailVerification;
+import io.cmartinezs.keygo.domain.billing.contracting.model.ContractStatus;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
+
+import java.security.SecureRandom;
+import java.time.OffsetDateTime;
+import java.util.Map;
+
+/**
+ * Use case: create a new app contract (beginning of the contracting flow) — billing model v2.
+ * Generates a verification code and sends it to the contractor's email.
+ * No B2B/B2C branch distinction here; that was removed in model v2.
+ *
+ * @author cmartinezs
+ * @version 1.0
+ */
+public class CreateAppContractUseCase {
+
+  private static final SecureRandom RANDOM = new SecureRandom();
+
+  private final AppContractRepositoryPort contractRepo;
+  private final ContractEmailVerificationRepositoryPort contractVerificationRepo;
+  private final AppPlanVersionRepositoryPort versionRepo;
+  private final ClientAppRepositoryPort clientAppRepo;
+  private final ContractorRepositoryPort contractorRepo;
+  private final EmailNotificationPort emailNotification;
+  private final int contractExpiryHours;
+  private final int verificationCodeExpiryMinutes;
+
+  public CreateAppContractUseCase(
+      AppContractRepositoryPort contractRepo,
+      ContractEmailVerificationRepositoryPort contractVerificationRepo,
+      AppPlanVersionRepositoryPort versionRepo,
+      ClientAppRepositoryPort clientAppRepo,
+      ContractorRepositoryPort contractorRepo,
+      EmailNotificationPort emailNotification,
+      int contractExpiryHours,
+      int verificationCodeExpiryMinutes) {
+    this.contractRepo = contractRepo;
+    this.contractVerificationRepo = contractVerificationRepo;
+    this.versionRepo = versionRepo;
+    this.clientAppRepo = clientAppRepo;
+    this.contractorRepo = contractorRepo;
+    this.emailNotification = emailNotification;
+    this.contractExpiryHours = contractExpiryHours;
+    this.verificationCodeExpiryMinutes = verificationCodeExpiryMinutes;
+  }
+
+  public AppContractResult execute(CreateAppContractCommand cmd) {
+    versionRepo.findById(cmd.planVersionId())
+        .orElseThrow(() -> new PlanVersionNotFoundException(cmd.planVersionId()));
+
+    // Validate clientAppId exists only for app-level contracts
+    if (cmd.clientAppId() != null) {
+      clientAppRepo.findById(ClientAppId.of(cmd.clientAppId()))
+          .orElseThrow(() -> new IllegalArgumentException("Client app not found: " + cmd.clientAppId()));
+    }
+
+    // Check if email already registered as contractor (platform-level, email is globally unique)
+    contractorRepo.findByPlatformUserEmail(cmd.contractorEmail())
+        .ifPresent(existingContractor -> {
+          throw new ContractorEmailAlreadyExistsException(cmd.contractorEmail());
+        });
+
+    OffsetDateTime now = OffsetDateTime.now();
+    String verificationCode = String.format("%06d", RANDOM.nextInt(1_000_000));
+    OffsetDateTime verificationExpiresAt = now.plusMinutes(verificationCodeExpiryMinutes);
+
+    AppContract contract = AppContract.builder()
+        .clientAppId(cmd.clientAppId())
+        .selectedPlanVersionId(cmd.planVersionId())
+        .billingPeriod(cmd.billingPeriod() != null ? cmd.billingPeriod().name() : "MONTHLY")
+        .status(ContractStatus.PENDING_EMAIL_VERIFICATION)
+        .contractorEmail(cmd.contractorEmail())
+        .contractorFirstName(cmd.contractorFirstName())
+        .contractorLastName(cmd.contractorLastName())
+        .companyName(cmd.companyName())
+        .companyTaxId(cmd.companyTaxId())
+        .companyAddress(cmd.companyAddress())
+        .expiresAt(now.plusHours(contractExpiryHours))
+        .createdAt(now)
+        .updatedAt(now)
+        .build();
+
+    contract = contractRepo.save(contract);
+    contractVerificationRepo.upsert(
+        ContractEmailVerification.builder()
+            .contractId(contract.getId())
+            .code(verificationCode)
+            .expiresAt(verificationExpiresAt)
+            .build());
+
+    String recipientName = contract.getContractorFirstName() + " " + contract.getContractorLastName();
+    emailNotification.sendEmail(
+        EmailNotificationPort.TYPE_CONTRACT_VERIFICATION,
+        contract.getContractorEmail(), recipientName,
+        Map.of("userUsername", contract.generateUsername(),
+            "userFirstName", contract.getContractorFirstName() != null ? contract.getContractorFirstName() : "",
+            "userLastName", contract.getContractorLastName() != null ? contract.getContractorLastName() : "",
+            "verificationCode", verificationCode,
+            "contract_id", contract.getId().toString(),
+            "resume", "1",
+            "expiresInMinutes", verificationCodeExpiryMinutes));
+
+    return new AppContractResult(contract, null);
+  }
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Java Modules — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function ModulesPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        mappingTitle: 'Bounded contexts → modules',
+        context: 'Context',
+        roots: 'Primary roots / tables',
+        modules: 'Modules involved',
+      }
+    : {
+        mappingTitle: 'Bounded contexts → módulos',
+        context: 'Contexto',
+        roots: 'Raíces / tablas principales',
+        modules: 'Módulos involucrados',
+      };
+  const mods = [
+    { name:'keygo-domain',   type:'core',  dk:'mod.domain' },
+    { name:'keygo-app',      type:'core',  dk:'mod.app' },
+    { name:'keygo-api',      type:'infra', dk:'mod.api' },
+    { name:'keygo-infra',    type:'infra', dk:'mod.infra' },
+    { name:'keygo-supabase', type:'infra', dk:'mod.supabase' },
+    { name:'keygo-run',      type:'infra', dk:'mod.run' },
+    { name:'keygo-bom',      type:'infra', dk:'mod.bom' },
+    { name:'keygo-common',   type:'infra', dk:'mod.common' },
+  ];
+  const mapping = [
+    ['Identity', 'platform_users · platform_sessions · oauth_sessions', 'keygo-domain → keygo-app → keygo-api → keygo-supabase'],
+    ['Access Control', 'tenant_roles · app_roles · memberships', 'keygo-domain → keygo-app → keygo-api → keygo-supabase'],
+    ['Organization', 'tenants · tenant_users', 'keygo-domain → keygo-app → keygo-api → keygo-supabase'],
+    ['Client Applications', 'client_apps · redirect_uris · allowed_scopes', 'keygo-domain → keygo-app → keygo-api → keygo-supabase'],
+    ['Billing', 'contractors · app_contracts · app_subscriptions', 'keygo-domain → keygo-app → keygo-api → keygo-supabase'],
+    ['Audit', 'audit_events append-only ledger', 'keygo-domain → keygo-app → keygo-supabase'],
+    ['Platform', 'platform_roles · global dashboards · support ops', 'keygo-app → keygo-api → keygo-run'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="modules" size={13} color="var(--green)" />{t('mod.eyebrow')}</div>
+        <h1 className="page-title">{t('mod.title')}</h1>
+        <p className="page-desc">{t('mod.desc')}</p>
+      </div>
+      <div className="section">
+        <div className="module-stack">
+          {mods.map(m => (
+            <div key={m.name} className={'module-row ' + m.type}>
+              <div className="module-name">{m.name}</div>
+              <div className="module-desc">{t(m.dk)}</div>
+            </div>
+          ))}
+        </div>
+        <h2>{copy.mappingTitle}</h2>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{copy.context}</th>
+              <th>{copy.roots}</th>
+              <th>{copy.modules}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mapping.map(([context, roots, modules]) => (
+              <tr key={context}>
+                <td className="bc-name">{context}</td>
+                <td>{roots}</td>
+                <td>{modules}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h2>{t('mod.h2.struct')}</h2>
+        <KG_CodeBlock id="feature_structure" />
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'modules', content: ModulesPage });
+</script>
+</body></html>

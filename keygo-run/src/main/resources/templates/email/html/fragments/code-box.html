@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!--
+  Fragment: code-box — muestra un código o contraseña en formato monoespaciado.
+  Parámetros:
+    - code: valor a mostrar (ej: "123456", "TempPass1!")
+    - infoText: texto descriptivo debajo del código
+    - variant: clase CSS adicional (ej: "variant-password" para contraseñas)
+  Uso: <th:block th:replace="~{html/fragments/code-box :: codeBox(${verificationCode}, 'Copia este código', '')}" />
+-->
+<body>
+<th:block th:fragment="codeBox(code, infoText, variant)">
+<div class="code-container" th:classappend="${variant}">
+    <div class="code-box" th:text="${code}">000000</div>
+    <div class="code-info" th:text="${infoText}">Información del código</div>
+</div>
+</th:block>
+</body>
+</html>

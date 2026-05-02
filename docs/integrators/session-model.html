@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Session Model — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const HOSTED_PKCE_FLOW = `
+sequenceDiagram
+  autonumber
+  actor User
+  participant Browser
+  participant Auth as GET /oauth2/authorize
+  participant Login as POST /account/login
+  participant Token as POST /oauth2/token
+  participant Store as Session Store
+
+  User->>Browser: Start login
+  Browser->>Auth: authorize request + PKCE challenge
+  Auth-->>Browser: login screen / auth context
+  Browser->>Login: credentials + auth context
+  Login->>Store: create platform_session + authorization_code
+  Login-->>Browser: redirect with authorization_code
+  Browser->>Token: code + code_verifier
+  Token->>Store: create oauth_session + refresh_token
+  Token-->>Browser: access_token + refresh_token
+`;
+
+const DIRECT_LOGIN_FLOW = `
+sequenceDiagram
+  autonumber
+  actor Client
+  participant Direct as POST /account/direct-login
+  participant Store as Session Store
+
+  Client->>Direct: credentials + tenant/app context
+  Direct->>Store: validate identity and persist oauth_session
+  Store-->>Direct: session context ready
+  Direct-->>Client: access_token + refresh_token
+  Note over Client,Direct: No authorization_code bridge and no id_token issuance
+`;
+
+const REFRESH_ROTATION_FLOW = `
+sequenceDiagram
+  autonumber
+  actor Client
+  participant Token as POST /oauth2/token (refresh_token)
+  participant Store as Refresh Token Family
+
+  Client->>Token: refresh_token
+  Token->>Store: load token_hash and oauth_session
+  alt valid active refresh
+    Token->>Store: mark current token USED
+    Token->>Store: create new refresh_token linked by replaced_by_id
+    Token-->>Client: new access_token + new refresh_token
+  else replay or compromised token
+    Token->>Store: revoke token family
+    Token-->>Client: 400 INVALID_GRANT
+  end
+`;
+
+const REVOCATION_FLOW = `
+sequenceDiagram
+  autonumber
+  actor Client
+  participant Revoke as POST /oauth2/revoke or logout
+  participant Store as Session Store
+
+  Client->>Revoke: refresh_token or session identifier
+  Revoke->>Store: invalidate refresh capability
+  Revoke->>Store: terminate oauth_session / platform_session as needed
+  Store-->>Revoke: revocation persisted
+  Revoke-->>Client: success response
+  Note over Client,Revoke: Existing access_token expires naturally | next refresh must fail
+`;
+
+function SessionModelPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'For Integrators',
+        title: 'Session and token model',
+        desc: 'KeyGo persists account access and OAuth artifacts explicitly: a platform session anchors identity access, OAuth sessions bind tenant and client app context, and both authorization codes and refresh tokens are stored as hashes.',
+        callout: 'The persistence model is intentional: refresh rotation, tenant integrity and replay detection are backed by DB constraints, not only by controller logic.',
+        h2Levels: 'Two authentication levels',
+        levels: [
+          ['Platform auth', '/api/v1/platform/oauth2/...', 'Global identity access with no tenant_slug claim.'],
+          ['Tenant auth', '/api/v1/tenants/{tenant_slug}/oauth2/...', 'Organization-scoped access with tenant_slug, tenant_id and tenant roles in the token.'],
+        ],
+        h2Flow: 'Main flow',
+        steps: [
+          ['Platform session', 'Created when the account authenticates. Tracks user agent, IP, device, expiry and last activity.'],
+          ['OAuth session', 'Binds platform_user + tenant + client_app + scopes, and validates that all context keys match.'],
+          ['Authorization code', 'Single-use code stored only as code_hash plus redirect_uri and PKCE challenge metadata.'],
+          ['Refresh token', 'Stored as token_hash, linked to oauth_session and chained with replaced_by_id for rotation.'],
+        ],
+        h2Diagram: 'Artifact chain',
+        h2Artifacts: 'Reference tables',
+        artifacts: [
+          ['platform_sessions', 'Global account session', 'platform_user_id, expires_at, device and routing metadata'],
+          ['oauth_sessions', 'Tenant/app authorization context', 'platform_session_id, tenant_id, tenant_user_id, client_app_id, granted_scopes'],
+          ['authorization_codes', 'Single-use login continuation', 'code_hash, redirect_uri, code_challenge, used_at'],
+          ['refresh_tokens', 'Rotating long-lived credential', 'token_hash, oauth_session_id, replaced_by_id, used_at'],
+        ],
+        h2Security: 'Security properties',
+        security: [
+          'Authorization codes and refresh tokens are never stored in plain text; only hashes are persisted.',
+          'Composite foreign keys prevent cross-tenant or cross-app context leaks inside oauth_sessions and token artifacts.',
+          'refresh_tokens.replaced_by_id preserves the rotation chain needed for replay detection and incident response.',
+          'PKCE metadata lives with the authorization code so the token exchange can validate code_verifier against the original challenge.',
+        ],
+        h2Operations: 'Operational flows',
+        operations: [
+          ['hosted', 'Hosted PKCE login', 'GET /oauth2/authorize → POST /account/login → POST /oauth2/token', 'Creates platform_session, authorization_code, oauth_session and refresh_token.'],
+          ['direct', 'Direct login', 'Trusted client or CLI authenticates without browser choreography', 'Issues tokens directly, typically without the hosted authorization-code bridge.'],
+          ['refresh', 'Refresh rotation', 'Each refresh use invalidates the previous token and links it to the new one through replaced_by_id', 'Allows replay detection and full family revocation if compromise is detected.'],
+          ['revoke', 'Revocation / logout', 'RFC-style revoke endpoints invalidate refresh capability and eventually terminate session state', 'Access tokens expire naturally; refresh should fail after revocation.'],
+        ],
+        h2Discovery: 'Public discovery surfaces',
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Para Integradores',
+        title: 'Modelo de sesión y tokens',
+        desc: 'KeyGo persiste explícitamente el acceso de cuenta y los artefactos OAuth: una platform session ancla el acceso de identidad, las OAuth sessions vinculan el contexto de tenant y app cliente, y tanto authorization codes como refresh tokens se almacenan como hashes.',
+        callout: 'El modelo de persistencia es intencional: refresh rotation, integridad multi-tenant y replay detection están respaldados por constraints de BD, no solo por lógica de controller.',
+        h2Levels: 'Dos niveles de autenticación',
+        levels: [
+          ['Platform auth', '/api/v1/platform/oauth2/...', 'Acceso global de identidad sin claim tenant_slug.'],
+          ['Tenant auth', '/api/v1/tenants/{tenant_slug}/oauth2/...', 'Acceso acotado a organización con tenant_slug, tenant_id y roles de tenant dentro del token.'],
+        ],
+        h2Flow: 'Flujo principal',
+        steps: [
+          ['Platform session', 'Se crea cuando la cuenta se autentica. Guarda user agent, IP, dispositivo, expiración y última actividad.'],
+          ['OAuth session', 'Vincula platform_user + tenant + client_app + scopes y valida que todas las claves de contexto coincidan.'],
+          ['Authorization code', 'Código de un solo uso almacenado solo como code_hash junto a redirect_uri y metadata PKCE.'],
+          ['Refresh token', 'Se almacena como token_hash, ligado al oauth_session y encadenado con replaced_by_id para rotación.'],
+        ],
+        h2Diagram: 'Cadena de artefactos',
+        h2Artifacts: 'Tablas de referencia',
+        artifacts: [
+          ['platform_sessions', 'Sesión global de cuenta', 'platform_user_id, expires_at, metadata de dispositivo y routing'],
+          ['oauth_sessions', 'Contexto de autorización tenant/app', 'platform_session_id, tenant_id, tenant_user_id, client_app_id, granted_scopes'],
+          ['authorization_codes', 'Continuación de login de un solo uso', 'code_hash, redirect_uri, code_challenge, used_at'],
+          ['refresh_tokens', 'Credencial rotativa de larga vida', 'token_hash, oauth_session_id, replaced_by_id, used_at'],
+        ],
+        h2Security: 'Propiedades de seguridad',
+        security: [
+          'Los authorization codes y refresh tokens nunca se persisten en texto plano; solo se guardan hashes.',
+          'Las foreign keys compuestas impiden fugas de contexto entre tenants o apps dentro de oauth_sessions y los artefactos de token.',
+          'refresh_tokens.replaced_by_id conserva la cadena de rotación necesaria para replay detection y respuesta a incidentes.',
+          'La metadata PKCE vive junto al authorization code para validar code_verifier contra el challenge original en el token exchange.',
+        ],
+        h2Operations: 'Flujos operativos',
+        operations: [
+          ['hosted', 'Hosted PKCE login', 'GET /oauth2/authorize → POST /account/login → POST /oauth2/token', 'Crea platform_session, authorization_code, oauth_session y refresh_token.'],
+          ['direct', 'Direct login', 'Cliente confiable o CLI autentica sin coreografía de navegador', 'Emite tokens directamente, normalmente sin el puente hosted authorization-code.'],
+          ['refresh', 'Refresh rotation', 'Cada uso del refresh invalida el token previo y lo enlaza con el nuevo vía replaced_by_id', 'Permite replay detection y revocación completa de la familia si se detecta compromiso.'],
+          ['revoke', 'Revocación / logout', 'Los endpoints tipo RFC revoke invalidan la capacidad de refresh y eventualmente terminan el estado de sesión', 'Los access tokens expiran por tiempo; el refresh debe fallar tras la revocación.'],
+        ],
+        h2Discovery: 'Superficies públicas de discovery',
+        h2Links: 'Páginas relacionadas',
+      };
+  const operationDiagrams = {
+    hosted: HOSTED_PKCE_FLOW,
+    direct: DIRECT_LOGIN_FLOW,
+    refresh: REFRESH_ROTATION_FLOW,
+    revoke: REVOCATION_FLOW,
+  };
+  const links = [
+    ['../integrators/auth.html', lang === 'en' ? 'Auth flows' : 'Flujos auth'],
+    ['../integrators/api-conventions.html', lang === 'en' ? 'API conventions' : 'Convenciones API'],
+    ['../extenders/data-model.html', lang === 'en' ? 'Extender data model' : 'Modelo de datos para extensores'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="sessionmodel" size={13} color="var(--green)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Levels}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Level' : 'Nivel'}</th><th>{lang === 'en' ? 'Base path' : 'Base path'}</th><th>{lang === 'en' ? 'Purpose' : 'Propósito'}</th></tr></thead>
+          <tbody>
+            {copy.levels.map(([level, path, purpose]) => (
+              <tr key={level}><td className="bc-name">{level}</td><td><code>{path}</code></td><td>{purpose}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Flow}</h2>
+        <div className="flow-steps">
+          {copy.steps.map(([title, desc], i) => (
+            <div key={title} className="flow-step">
+              <div className="flow-num">{String(i + 1).padStart(2, '0')}</div>
+              <div className="flow-content">
+                <div className="flow-title">{title}</div>
+                <div className="flow-text">{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{copy.h2Diagram}</h2>
+        <div className="diagram-block">
+{`platform_sessions
+  └─ oauth_sessions
+       ├─ authorization_codes
+       │    └─ code_hash + redirect_uri + PKCE challenge
+       └─ refresh_tokens
+            └─ replaced_by_id → next refresh token in the rotation chain`}
+        </div>
+
+        <h2>{copy.h2Artifacts}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Table' : 'Tabla'}</th><th>{lang === 'en' ? 'Responsibility' : 'Responsabilidad'}</th><th>{lang === 'en' ? 'Key fields' : 'Campos clave'}</th></tr></thead>
+          <tbody>
+            {copy.artifacts.map(([table, responsibility, fields]) => (
+              <tr key={table}><td className="bc-name">{table}</td><td>{responsibility}</td><td><code>{fields}</code></td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Security}</h2>
+        <ul className="dense-list">
+          {copy.security.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Operations}</h2>
+        <div style={{ display:'grid', gap:24 }}>
+          {copy.operations.map(([id, flow, shape, effect]) => (
+            <div key={id} className="card">
+              <div style={{ fontFamily:'var(--font-mono)', fontSize:11, fontWeight:700, letterSpacing:1.2, textTransform:'uppercase', color:'var(--green)', marginBottom:8 }}>{flow}</div>
+              <div className="card-desc" style={{ marginBottom:6 }}><code>{shape}</code></div>
+              <div className="card-desc" style={{ marginBottom:16 }}>{effect}</div>
+              <KG_MermaidDiagram id={`session-flow-${id}`} definition={operationDiagrams[id]} />
+            </div>
+          ))}
+        </div>
+
+        <h2>{copy.h2Discovery}</h2>
+        <div className="doc-links">
+          <a className="doc-link" href="../integrators/auth.html">JWKS / OIDC</a>
+          <a className="doc-link" href="../integrators/endpoints.html">/oauth2/authorize · /oauth2/token · /.well-known/*</a>
+        </div>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'sessionmodel', content: SessionModelPage });
+</script>
+</body></html>

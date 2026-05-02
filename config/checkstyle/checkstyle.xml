@@ -1,0 +1,170 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Checkstyle configuration for KeyGo Server.
+  Aligned with google-java-format (2-space indentation, 100/120-char line length).
+  Reduced strictness for Lombok-based projects.
+-->
+
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="warning"/>
+  <property name="fileExtensions" value="java,properties,xml"/>
+
+  <!-- File length checks -->
+  <module name="FileLength">
+    <property name="max" value="2000"/>
+    <property name="severity" value="warning"/>
+  </module>
+
+  <!-- No tabs allowed -->
+  <module name="FileTabCharacter">
+    <property name="eachLine" value="true"/>
+  </module>
+
+  <!-- New line at end of file -->
+  <module name="NewlineAtEndOfFile"/>
+
+  <!-- Line length (120 characters to match .editorconfig) -->
+  <module name="LineLength">
+    <property name="max" value="120"/>
+    <property name="ignorePattern"
+      value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    <property name="severity" value="warning"/>
+  </module>
+
+  <!-- Regexp patterns -->
+  <module name="RegexpSingleline">
+    <property name="format" value="System\.out\.println"/>
+    <property name="message" value="System.out.println is not allowed. Use a logger instead."/>
+  </module>
+
+  <!-- TreeWalker checks -->
+  <module name="TreeWalker">
+    <!-- Imports -->
+    <module name="AvoidStarImport"/>
+    <module name="RedundantImport"/>
+    <module name="UnusedImports">
+      <property name="processJavadoc" value="false"/>
+    </module>
+
+    <!-- Indentation (google-java-format uses 2 spaces) -->
+    <module name="Indentation">
+      <property name="basicOffset" value="2"/>
+      <property name="braceAdjustment" value="0"/>
+      <property name="caseIndent" value="2"/>
+      <property name="throwsIndent" value="4"/>
+      <property name="lineWrappingIndentation" value="4"/>
+      <property name="arrayInitIndent" value="2"/>
+      <!-- Relaxed for Lombok builders and fluent APIs -->
+      <property name="forceStrictCondition" value="false"/>
+    </module>
+
+    <!-- Whitespace -->
+    <module name="GenericWhitespace"/>
+    <module name="NoWhitespaceBefore"/>
+    <module name="OperatorWrap">
+      <property name="option" value="NL"/>
+      <property name="tokens"
+        value="BAND,BOR,BSR,BXOR,DIV,EQUAL,GE,GT,LAND,LE,LITERAL_INSTANCEOF,LT,MINUS,MOD,NOT_EQUAL,PLUS,QUESTION,SL,SR,STAR,LOR"/>
+    </module>
+    <module name="WhitespaceAround">
+      <property name="allowEmptyConstructors" value="true"/>
+      <property name="allowEmptyLambdas" value="true"/>
+      <property name="allowEmptyMethods" value="true"/>
+    </module>
+    <module name="WhitespaceAfter">
+      <property name="tokens" value="COMMA,SEMI,TYPECAST,LITERAL_IF,LITERAL_ELSE,LITERAL_WHILE,LITERAL_DO,LITERAL_FOR,DO_WHILE"/>
+    </module>
+    <module name="NoWhitespaceAfter">
+      <property name="tokens" value="AT,INC,DEC,UNARY_MINUS,UNARY_PLUS,BNOT,LNOT,DOT,ARRAY_DECLARATOR,INDEX_OP"/>
+      <property name="allowLineBreaks" value="true"/>
+    </module>
+    <module name="EmptyLineSeparator">
+      <property name="allowNoEmptyLineBetweenFields" value="true"/>
+      <property name="allowMultipleEmptyLines" value="false"/>
+      <property name="allowMultipleEmptyLinesInsideClassMembers" value="false"/>
+    </module>
+
+    <!-- Naming conventions -->
+    <module name="ClassTypeParameterName">
+      <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
+    </module>
+    <module name="ConstantName">
+      <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+    </module>
+    <module name="LocalFinalVariableName"/>
+    <module name="LocalVariableName"/>
+    <module name="MemberName">
+      <property name="format" value="^[a-z][a-z0-9][a-zA-Z0-9]*$"/>
+    </module>
+    <module name="MethodName">
+      <property name="format" value="^[a-z][a-z0-9][a-zA-Z0-9]*$"/>
+    </module>
+    <module name="MethodTypeParameterName">
+      <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
+    </module>
+    <module name="PackageName">
+      <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+    </module>
+    <module name="ParameterName">
+      <property name="format" value="^[a-z]([a-z0-9][a-zA-Z0-9]*)?$"/>
+    </module>
+    <module name="StaticVariableName">
+      <property name="format" value="^[a-z][a-z0-9][a-zA-Z0-9]*$"/>
+    </module>
+    <module name="TypeName"/>
+
+    <!-- Size violations -->
+    <module name="MethodLength">
+      <property name="max" value="150"/>
+      <property name="countEmpty" value="false"/>
+      <property name="severity" value="warning"/>
+    </module>
+    <module name="ParameterNumber">
+      <property name="max" value="8"/>
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Modifiers -->
+    <module name="ModifierOrder"/>
+    <module name="RedundantModifier"/>
+
+    <!-- Blocks -->
+    <module name="AvoidNestedBlocks">
+      <property name="allowInSwitchCase" value="true"/>
+    </module>
+    <module name="EmptyBlock">
+      <property name="option" value="TEXT"/>
+    </module>
+    <module name="LeftCurly"/>
+    <module name="NeedBraces">
+      <property name="tokens"
+        value="LITERAL_DO,LITERAL_ELSE,LITERAL_FOR,LITERAL_IF,LITERAL_WHILE"/>
+    </module>
+    <module name="RightCurly"/>
+
+    <!-- Classes -->
+    <module name="OneTopLevelClass"/>
+
+    <!-- Miscellaneous -->
+    <module name="ArrayTypeStyle"/>
+    <module name="CommentsIndentation">
+      <property name="severity" value="warning"/>
+    </module>
+    <module name="MultipleVariableDeclarations"/>
+    <module name="NoArrayTrailingComma"/>
+
+    <!-- Code issues -->
+    <module name="EqualsHashCode"/>
+    <module name="IllegalInstantiation"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="StringLiteralEquality"/>
+
+  </module>
+
+</module>

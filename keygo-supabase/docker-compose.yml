@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Local Supabase for development
+  supabase-db:
+    image: postgres:15-alpine
+    container_name: keygo-supabase-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: keygo
+    ports:
+      - "5432:5432"
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data
+    networks:
+      - keygo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: keygo-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@keygo.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - keygo-network
+    depends_on:
+      - supabase-db
+
+volumes:
+  supabase-db-data:
+    driver: local
+
+networks:
+  keygo-network:
+    driver: bridge
+

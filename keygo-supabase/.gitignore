@@ -1,0 +1,47 @@
+# =========================================================
+# Environment Files / Archivos de Ambiente
+# =========================================================
+# The active .env lives at the PROJECT ROOT (not here).
+# Templates live at: envs/.env-{local,desa,prod}
+# Both are managed by: scripts/switch-env.sh
+#
+# El .env activo está en la RAÍZ DEL PROYECTO (no aquí).
+# Las plantillas están en: envs/.env-{local,desa,prod}
+# Ambos son gestionados por: scripts/switch-env.sh
+# =========================================================
+# Keep these ignores just in case accidental copies land here
+.env
+.env-local
+.env-desa
+.env-prod
+.env.*
+!.env.example
+.env.backup.*
+
+# Maven
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+

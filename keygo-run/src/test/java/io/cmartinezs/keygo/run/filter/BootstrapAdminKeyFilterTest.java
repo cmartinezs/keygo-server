@@ -1,0 +1,636 @@
+package io.cmartinezs.keygo.run.filter;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
+import io.cmartinezs.keygo.api.error.ApiClientRequestCause;
+import io.cmartinezs.keygo.api.error.ApiErrorDataFactory;
+import io.cmartinezs.keygo.api.error.ApiErrorOrigin;
+import io.cmartinezs.keygo.api.error.ErrorData;
+import io.cmartinezs.keygo.api.shared.MessageTranslator;
+import io.cmartinezs.keygo.api.shared.ResponseCode;
+import io.cmartinezs.keygo.api.shared.response.BaseResponse;
+import io.cmartinezs.keygo.app.auth.port.AccessTokenVerifierPort;
+import io.cmartinezs.keygo.app.auth.port.SigningKeyRepositoryPort;
+import io.cmartinezs.keygo.run.config.properties.KeyGoBootstrapProperties;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.StaticMessageSource;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.context.SecurityContextHolder;
+import tools.jackson.databind.json.JsonMapper;
+
+@ExtendWith(MockitoExtension.class)
+class BootstrapAdminKeyFilterTest {
+
+  @Mock private KeyGoBootstrapProperties bootstrapProperties;
+  @Mock private JsonMapper jsonMapper;
+  @Mock private FilterChain filterChain;
+  @Mock private AccessTokenVerifierPort accessTokenVerifier;
+  @Mock private SigningKeyRepositoryPort signingKeyRepository;
+
+  private ApiErrorDataFactory factory;
+  private BootstrapAdminKeyFilter filter;
+  private MockHttpServletRequest request;
+  private MockHttpServletResponse response;
+
+  @BeforeEach
+  void setUp() {
+    factory = new ApiErrorDataFactory(new MessageTranslator(new StaticMessageSource()));
+    filter =
+        new BootstrapAdminKeyFilter(
+            bootstrapProperties, jsonMapper, accessTokenVerifier, signingKeyRepository, factory);
+    request = new MockHttpServletRequest();
+    response = new MockHttpServletResponse();
+
+    lenient().when(bootstrapProperties.getApiPathPrefix()).thenReturn("/api/");
+    lenient().when(bootstrapProperties.getActuatorPathPrefix()).thenReturn("/actuator/");
+    lenient().when(bootstrapProperties.getServiceInfoPathPrefix()).thenReturn("/service/info");
+  }
+
+  // ─── Bootstrap disabled ────────────────────────────────────────────────────
+
+  @Test
+  void doFilterInternal_shouldAllowRequestWhenBootstrapDisabled()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
+    request.setServletPath("/api/v1/test");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldSetBypassAuthenticationWhenBootstrapDisabled()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
+    request.setServletPath("/api/v1/tenants");
+
+    // Capture the SecurityContext state during filter execution
+    var capturedAuth =
+        new java.util.concurrent.atomic.AtomicReference<
+            org.springframework.security.core.Authentication>();
+    doAnswer(
+            invocation -> {
+              capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
+              return null;
+            })
+        .when(filterChain)
+        .doFilter(request, response);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    org.springframework.security.core.Authentication auth = capturedAuth.get();
+    assertThat(auth).isNotNull();
+    assertThat(auth.isAuthenticated()).isTrue();
+    assertThat(auth.getAuthorities())
+        .extracting("authority")
+        .containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_ADMIN_TENANT", "ROLE_USER");
+  }
+
+  @Test
+  void doFilterInternal_shouldRespectConfiguredBypassRoles() throws ServletException, IOException {
+    // Given — only ADMIN configured (restricted bypass)
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN"));
+    request.setServletPath("/api/v1/tenants");
+
+    var capturedAuth =
+        new java.util.concurrent.atomic.AtomicReference<
+            org.springframework.security.core.Authentication>();
+    doAnswer(
+            invocation -> {
+              capturedAuth.set(SecurityContextHolder.getContext().getAuthentication());
+              return null;
+            })
+        .when(filterChain)
+        .doFilter(request, response);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    assertThat(capturedAuth.get().getAuthorities())
+        .extracting("authority")
+        .containsExactly("ROLE_ADMIN")
+        .doesNotContain("ROLE_ADMIN_TENANT", "ROLE_USER");
+  }
+
+  @Test
+  void doFilterInternal_shouldClearSecurityContextAfterBypassRequest()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(false);
+    when(bootstrapProperties.getBypassRoles()).thenReturn(List.of("ADMIN", "ADMIN_TENANT", "USER"));
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then — context must be cleared after the request
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+  }
+
+  // ─── Public paths ──────────────────────────────────────────────────────────
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"/actuator/health", "/actuator/metrics", "/service/info", "/service/info/details"})
+  void doFilterInternal_shouldAllowPublicPathsWithoutAuth(String publicPath)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setServletPath(publicPath);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/oauth2/authorize",
+        "/api/v1/tenants/keygo/account/login",
+        "/api/v1/tenants/keygo/oauth2/token"
+      })
+  void doFilterInternal_shouldAllowOAuth2FlowPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getAuthorizePathSuffix()).thenReturn("/oauth2/authorize");
+    lenient().when(bootstrapProperties.getLoginPathSuffix()).thenReturn("/account/login");
+    lenient().when(bootstrapProperties.getTokenPathSuffix()).thenReturn("/oauth2/token");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldAllowPlatformCheckEmailPathWithoutAuth()
+      throws ServletException, IOException {
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getPlatformCheckEmailPathPrefix())
+        .thenReturn("/api/v1/platform/account/check-email");
+    request.setServletPath("/api/v1/platform/account/check-email");
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Bearer JWT auth ───────────────────────────────────────────────────────
+
+  @Test
+  void doFilterInternal_shouldAllowApiPathWithValidBearerJwt()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", List.of("ADMIN")));
+
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldAllowApiPathWithAnyNonEmptyRoleClaim()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", List.of("USER")));
+
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWithNoRolesClaim()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList())).thenReturn(Map.of("sub", "user-uuid"));
+
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldAllowBearerRolesAsCsvString() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", "ADMIN,ADMIN_TENANT"));
+
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWhenVerifierNotAvailable()
+      throws ServletException, IOException {
+    // Given — no tokenVerifier/signingKeyRepository injected (non-supabase profile)
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    filter = new BootstrapAdminKeyFilter(bootstrapProperties, jsonMapper, factory);
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer some.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectBearerJwtWhenVerificationThrowsException()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenThrow(new RuntimeException("invalid signature"));
+
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer expired.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldRejectApiPathWhenAuthorizationHeaderMissing()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+    verify(jsonMapper).writeValue(any(Writer.class), any());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void doFilterInternal_shouldReturnFriendlyErrorDataWhenTechnicalModeDisabled()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    var responseCaptor = org.mockito.ArgumentCaptor.forClass(BaseResponse.class);
+    verify(jsonMapper).writeValue(any(Writer.class), responseCaptor.capture());
+
+    BaseResponse<ErrorData> payload = responseCaptor.getValue();
+    assertThat(payload.getFailure().getCode())
+        .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getData()).isNotNull();
+    assertThat(payload.getData().getCode())
+        .isEqualTo(ResponseCode.AUTHENTICATION_REQUIRED.getCode());
+    assertThat(payload.getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(payload.getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
+    assertThat(payload.getData().getClientMessage()).isNotBlank();
+    assertThat(payload.getData().getDetail()).isNull();
+    assertThat(payload.getData().getException()).isNull();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void doFilterInternal_shouldReturnTechnicalErrorDataWhenTechnicalModeEnabled()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    filter =
+        new BootstrapAdminKeyFilter(
+            bootstrapProperties,
+            jsonMapper,
+            factory,
+            accessTokenVerifier,
+            signingKeyRepository,
+            true);
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    var responseCaptor = org.mockito.ArgumentCaptor.forClass(BaseResponse.class);
+    verify(jsonMapper).writeValue(any(Writer.class), responseCaptor.capture());
+
+    BaseResponse<ErrorData> payload = responseCaptor.getValue();
+    assertThat(payload.getData()).isNotNull();
+    assertThat(payload.getData().getOrigin()).isEqualTo(ApiErrorOrigin.CLIENT_REQUEST);
+    assertThat(payload.getData().getClientRequestCause())
+        .isEqualTo(ApiClientRequestCause.CLIENT_TECHNICAL);
+    assertThat(payload.getData().getDetail()).contains("Missing or invalid bearer token");
+    assertThat(payload.getData().getException()).isEqualTo("BootstrapAdminKeyFilter");
+  }
+
+  // ─── Account self-service public paths ────────────────────────────────────
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/account/change-password",
+        "/api/v1/tenants/keygo/account/notification-preferences",
+        "/api/v1/tenants/keygo/account/access"
+      })
+  void doFilterInternal_shouldAllowAccountSelfServiceSuffixPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient()
+        .when(bootstrapProperties.getAccountChangePasswordPathSuffix())
+        .thenReturn("/account/change-password");
+    lenient()
+        .when(bootstrapProperties.getAccountNotificationPreferencesPathSuffix())
+        .thenReturn("/account/notification-preferences");
+    lenient().when(bootstrapProperties.getAccountAccessPathSuffix()).thenReturn("/account/access");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/account/sessions",
+        "/api/v1/tenants/keygo/account/sessions/550e8400-e29b-41d4-a716-446655440000"
+      })
+  void doFilterInternal_shouldAllowAccountSessionsPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient()
+        .when(bootstrapProperties.getAccountSessionsPathSuffix())
+        .thenReturn("/account/sessions");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Regression: password flow public paths (T-103) ───────────────────────
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/keygo/account/reset-password",
+        "/api/v1/tenants/keygo/account/forgot-password",
+        "/api/v1/tenants/keygo/account/recover-password"
+      })
+  void doFilterInternal_shouldAllowPasswordFlowPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient()
+        .when(bootstrapProperties.getAccountResetPasswordPathSuffix())
+        .thenReturn("/account/reset-password");
+    lenient()
+        .when(bootstrapProperties.getAccountForgotPasswordPathSuffix())
+        .thenReturn("/account/forgot-password");
+    lenient()
+        .when(bootstrapProperties.getAccountRecoverPasswordPathSuffix())
+        .thenReturn("/account/recover-password");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Regression: billing catalog and contracts public paths (T-082) ─────────
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/tenants/acme/apps/xyz/billing/catalog",
+        "/api/v1/tenants/acme/apps/xyz/billing/catalog/PERSONAL",
+        "/api/v1/platform/billing/catalog",
+        "/api/v1/platform/billing/catalog/FREE"
+      })
+  void doFilterInternal_shouldAllowBillingCatalogPathWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given — hasSegment: path must CONTAIN /billing/catalog
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient()
+        .when(bootstrapProperties.getBillingCatalogPathSuffix())
+        .thenReturn("/billing/catalog");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"/api/v1/billing/contracts", "/api/v1/billing/contracts/abc123/verify-email"})
+  void doFilterInternal_shouldAllowBillingContractsPathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient()
+        .when(bootstrapProperties.getBillingContractsPathSuffix())
+        .thenReturn("/billing/contracts");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Regression: OIDC userinfo and revocation endpoints (T-034) ────────────
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"/api/v1/tenants/keygo/oauth2/userinfo", "/api/v1/tenants/keygo/oauth2/revoke"})
+  void doFilterInternal_shouldAllowUserinfoAndRevokePathsWithoutAuth(String path)
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    lenient().when(bootstrapProperties.getUserInfoPathSuffix()).thenReturn("/userinfo");
+    lenient().when(bootstrapProperties.getRevocationPathSuffix()).thenReturn("/oauth2/revoke");
+    request.setServletPath(path);
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Non-API paths ─────────────────────────────────────────────────────────
+
+  @Test
+  void doFilterInternal_shouldAllowNonApiPathWithoutAuth() throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setServletPath("/other/path");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  // ─── Regression: context-path ──────────────────────────────────────────────
+
+  @Test
+  void doFilterInternal_shouldRejectApiPathWithContextPathInUri_whenBearerMissing()
+      throws ServletException, IOException {
+    // Given – simulates a request under context-path /keygo-server
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    request.setContextPath("/keygo-server");
+    request.setRequestURI("/keygo-server/api/v1/tenants");
+    request.setServletPath("/api/v1/tenants");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain, never()).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  void doFilterInternal_shouldAllowApiPathWithContextPathInUri_whenBearerValid()
+      throws ServletException, IOException {
+    // Given – simulates a request under context-path /keygo-server
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", List.of("ADMIN")));
+    request.setContextPath("/keygo-server");
+    request.setRequestURI("/keygo-server/api/v1/tenants");
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer valid.jwt.token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  void doFilterInternal_shouldPopulateSecurityContextAuthoritiesFromRoles()
+      throws ServletException, IOException {
+    // Given
+    when(bootstrapProperties.isEnabled()).thenReturn(true);
+    when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of());
+    when(accessTokenVerifier.verify(anyString(), anyList()))
+        .thenReturn(Map.of("sub", "user-uuid", "roles", List.of("ADMIN_TENANT")));
+    request.setServletPath("/api/v1/tenants");
+    request.addHeader("Authorization", "Bearer token");
+
+    // When
+    filter.doFilterInternal(request, response, filterChain);
+
+    // Then
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+  }
+}

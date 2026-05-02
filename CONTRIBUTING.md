@@ -31,6 +31,32 @@ git checkout -b fix/bug-name
 - Add tests for new features
 - Ensure all tests pass: `./mvnw test`
 - Build the project: `./mvnw clean install`
+- Run a specific module: `./mvnw -pl keygo-api test`
+
+#### 3.1 Run the app locally
+
+```bash
+./mvnw spring-boot:run -pl keygo-run
+```
+
+#### 3.2 Local DB (Supabase dev profile)
+
+Start PostgreSQL 15 + PgAdmin:
+
+```bash
+cd keygo-supabase
+./scripts/dev-start.sh
+```
+
+Then set env vars before running:
+
+```bash
+export SPRING_PROFILES_ACTIVE="supabase,local"
+export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
+export SUPABASE_USER="postgres"
+export SUPABASE_PASSWORD="postgres"
+export KEYGO_ADMIN_KEY="$(openssl rand -base64 32)"
+```
 
 #### 4. Commit
 
@@ -64,7 +90,7 @@ Then open a Pull Request on GitHub with:
 ### Code Standards
 
 #### Java
-- Use Java 25
+- Use Java 21
 - Follow standard Java naming conventions
 - Document public classes and methods with JavaDoc
 - Keep methods small and cohesive
@@ -72,10 +98,28 @@ Then open a Pull Request on GitHub with:
 #### Architecture
 - Respect hexagonal architecture
 - Maintain layer separation:
-  - `domain`: Pure business logic (no external dependencies)
-  - `app`: Use cases and application services
+  - `domain`: Pure business logic (no Spring, no internal dependencies)
+  - `app`: Use cases and ports (interfaces OUT)
   - `infra`: Persistence implementations, external APIs
-  - `api`: REST Controllers
+  - `api`: REST Controllers — always return `BaseResponse<T>`
+  - `supabase`: JPA/Flyway entities and repos
+  - `run`: Wiring, main, `application.yml`
+
+#### Security conventions
+- **Never** commit secrets, tokens, `.env` files or passwords.
+- `KEYGO_ADMIN_KEY` default `changeMe` is for local dev only — always use a strong key.
+- Actuator is currently exposed fully — restrict before production.
+- When modifying the bootstrap filter, validate behavior with `context-path=/keygo-server` active.
+
+### Pull Request Checklist
+
+Before opening a PR, verify:
+
+- [ ] Build passes: `./mvnw clean package`
+- [ ] All tests pass: `./mvnw test`
+- [ ] No secrets in the diff (keys, passwords, `.env`)
+- [ ] Documentation updated if APIs or configuration changed
+- [ ] PR description includes: what changed, how it was tested, risks/tradeoffs
   
 #### Tests
 - Write unit tests for domain logic
@@ -90,7 +134,7 @@ If you find a bug:
    - Clear problem description
    - Steps to reproduce
    - Expected vs actual behavior
-   - Java version and operating system
+   - Java versión and operating system
 
 ### Proposing Features
 
@@ -142,6 +186,32 @@ git checkout -b fix/nombre-bug
 - Añade tests para nuevas funcionalidades
 - Asegúrate de que todos los tests pasen: `./mvnw test`
 - Compila el proyecto: `./mvnw clean install`
+- Módulo específico: `./mvnw -pl keygo-api test`
+
+#### 3.1 Correr la app localmente
+
+```bash
+./mvnw spring-boot:run -pl keygo-run
+```
+
+#### 3.2 DB local (perfil supabase dev)
+
+Levantar PostgreSQL 15 + PgAdmin:
+
+```bash
+cd keygo-supabase
+./scripts/dev-start.sh
+```
+
+Luego configura las variables de entorno antes de correr:
+
+```bash
+export SPRING_PROFILES_ACTIVE="supabase,local"
+export SUPABASE_URL="jdbc:postgresql://localhost:5432/keygo"
+export SUPABASE_USER="postgres"
+export SUPABASE_PASSWORD="postgres"
+export KEYGO_ADMIN_KEY="$(openssl rand -base64 32)"
+```
 
 #### 4. Commit
 
@@ -175,7 +245,7 @@ Luego abre un Pull Request en GitHub con:
 ### Estándares de Código
 
 #### Java
-- Usar Java 25
+- Usar Java 21
 - Seguir convenciones de nombres estándar de Java
 - Documentar clases y métodos públicos con JavaDoc
 - Mantener métodos pequeños y cohesivos
@@ -183,10 +253,28 @@ Luego abre un Pull Request en GitHub con:
 #### Arquitectura
 - Respetar la arquitectura hexagonal
 - Mantener la separación de capas:
-  - `domain`: Lógica de negocio pura (sin dependencias externas)
-  - `app`: Casos de uso y servicios de aplicación
+  - `domain`: Lógica de negocio pura (sin Spring, sin dependencias internas)
+  - `app`: Casos de uso y puertos (interfaces OUT)
   - `infra`: Implementaciones de persistencia, APIs externas
-  - `api`: Controladores REST
+  - `api`: Controladores REST — siempre devolver `BaseResponse<T>`
+  - `supabase`: Entidades JPA/Flyway y repositorios
+  - `run`: Wiring, main, `application.yml`
+
+#### Convenciones de seguridad
+- **Nunca** commitear secretos, tokens, archivos `.env` ni contraseñas.
+- `KEYGO_ADMIN_KEY` default `changeMe` es solo para dev — usar clave fuerte en entornos reales.
+- Actuator está expuesto completo en config actual — restringir antes de producción.
+- Al modificar el filtro bootstrap, validar el comportamiento con `context-path=/keygo-server` activo.
+
+### Pull Request Checklist
+
+Antes de abrir un PR, verifica:
+
+- [ ] Build pasa: `./mvnw clean package`
+- [ ] Todos los tests pasan: `./mvnw test`
+- [ ] Sin secretos en el diff (keys, passwords, `.env`)
+- [ ] Documentación actualizada si cambiaron APIs o configuración
+- [ ] Descripción del PR incluye: qué cambió, cómo se probó, riesgos/tradeoffs
   
 #### Tests
 - Escribir tests unitarios para lógica de dominio

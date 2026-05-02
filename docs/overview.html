@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Overview — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="shared/i18n.js"></script>
+<script src="shared/nav.js"></script>
+<script src="shared/icons.js"></script>
+<script src="shared/code-data.js"></script>
+<script src="shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function OverviewPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const cards = [
+    { color:'var(--green)', icon:'zap',      tk:'overview.card1' },
+    { color:'var(--blue)',  icon:'layers',   tk:'overview.card2' },
+    { color:'var(--amber)', icon:'users',    tk:'overview.card3' },
+    { color:'var(--red)',   icon:'book',     tk:'overview.card4' },
+  ];
+  const stack = [
+    [t('overview.stack.lang'), 'Java 21',                                      'java'],
+    [t('overview.stack.fw'),   'Spring Boot 4.x',                               'spring'],
+    [t('overview.stack.db'),   'PostgreSQL · Spring Data JPA · Flyway',         'postgresql'],
+    [t('overview.stack.docs'), '/api/v1/openapi.yaml',                          'openapi'],
+    [t('overview.stack.base'), '/api/v1',                                       null],
+    [t('overview.stack.arch'), 'Hexagonal (Ports & Adapters) · DDD Táctico',   null],
+  ];
+  const mapCopy = lang === 'en'
+    ? {
+        problemTitle: 'Technical map',
+        problemDesc: 'Phase 1 adds the most cross-cutting surfaces: API conventions, versioning, session model, data model and validation strategy. The data-model section now also branches into context pages so extenders can inspect each persistence boundary separately.',
+        integratorTitle: 'Integrator path',
+        extenderTitle: 'Extender path',
+        pagesTitle: 'Recommended reading order',
+      }
+    : {
+        problemTitle: 'Mapa técnico',
+        problemDesc: 'La Fase 1 agrega las superficies más transversales: convenciones API, versionado, modelo de sesión, modelo de datos y estrategia de validación. La sección de modelo de datos ahora además se abre en páginas por contexto para revisar cada boundary por separado.',
+        integratorTitle: 'Ruta para integradores',
+        extenderTitle: 'Ruta para extensores',
+        pagesTitle: 'Orden sugerido de lectura',
+      };
+  const guides = [
+    {
+      title: mapCopy.integratorTitle,
+      color: 'var(--green)',
+      links: [
+        ['integrators/api-conventions.html', lang === 'en' ? 'API conventions' : 'Convenciones API'],
+        ['integrators/versioning.html', lang === 'en' ? 'Versioning' : 'Versionado'],
+        ['integrators/session-model.html', lang === 'en' ? 'Session model' : 'Modelo de sesión'],
+        ['integrators/endpoints.html', 'Endpoints API'],
+      ],
+    },
+    {
+      title: mapCopy.extenderTitle,
+      color: 'var(--blue)',
+        links: [
+          ['extenders/data-model.html', lang === 'en' ? 'Data model' : 'Modelo de datos'],
+          ['extenders/data-model-identity.html', lang === 'en' ? 'Identity model' : 'Modelo Identity'],
+          ['extenders/data-model-billing.html', lang === 'en' ? 'Billing model' : 'Modelo Billing'],
+          ['extenders/validation.html', lang === 'en' ? 'Validation strategy' : 'Estrategia de validación'],
+          ['extenders/architecture.html', lang === 'en' ? 'Architecture' : 'Arquitectura'],
+          ['extenders/patterns.html', lang === 'en' ? 'Domain patterns' : 'Patrones de dominio'],
+      ],
+    },
+  ];
+  const readingOrder = [
+    ['integrators/api-conventions.html', lang === 'en' ? 'API conventions' : 'Convenciones API', lang === 'en' ? 'Envelope, snake_case, headers and tracing.' : 'Envelope, snake_case, headers y tracing.'],
+    ['integrators/versioning.html', lang === 'en' ? 'Versioning' : 'Versionado', lang === 'en' ? 'How /api/v1 evolves without breaking clients.' : 'Cómo evoluciona /api/v1 sin romper clientes.'],
+    ['integrators/session-model.html', lang === 'en' ? 'Session model' : 'Modelo de sesión', lang === 'en' ? 'Platform sessions, OAuth sessions, codes and refresh rotation.' : 'Platform sessions, OAuth sessions, codes y refresh rotation.'],
+    ['extenders/data-model.html', lang === 'en' ? 'Data model' : 'Modelo de datos', lang === 'en' ? 'Hub page with cross-context rules and links to each bounded context.' : 'Página hub con reglas cross-context y enlaces a cada bounded context.'],
+    ['extenders/data-model-identity.html', lang === 'en' ? 'Identity model' : 'Modelo Identity', lang === 'en' ? 'Global identity, sessions, authorization codes, refresh tokens and signing keys.' : 'Identidad global, sesiones, authorization codes, refresh tokens y signing keys.'],
+    ['extenders/validation.html', lang === 'en' ? 'Validation strategy' : 'Estrategia de validación', lang === 'en' ? 'HTTP, domain and use case validation plus exception mapping.' : 'Validación HTTP, domain y use case más exception mapping.'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <KG_Icon name="key" size={13} color="var(--green)" />
+          {t('overview.eyebrow')}
+        </div>
+        <h1 className="page-title">{t('overview.subtitle')}</h1>
+        <p className="page-desc">{t('overview.desc')}</p>
+      </div>
+      <div className="section">
+        <div className="card-grid">
+          {cards.map(c => (
+            <div key={c.tk} className="card" style={{ borderLeft: '3px solid ' + c.color }}>
+              <div className="card-icon" style={{ color: c.color }}>
+                <KG_Icon name={c.icon} size={22} color={c.color} />
+              </div>
+              <div className="card-title">{t(c.tk + '.title')}</div>
+              <div className="card-desc">{t(c.tk + '.desc')}</div>
+            </div>
+          ))}
+        </div>
+        <div className="kv-grid">
+          {stack.map(([k, v, devicon]) => (
+            <React.Fragment key={k}>
+              <div className="kv-key">{k}</div>
+              <div className="kv-val" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                {devicon && window.KG_DEVICONS && window.KG_DEVICONS[devicon] &&
+                  <img src={window.KG_DEVICONS[devicon]} width={16} height={16} alt={devicon} style={{ flexShrink:0 }} />
+                }
+                <code>{v}</code>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+
+        <h2>{mapCopy.problemTitle}</h2>
+        <p>{mapCopy.problemDesc}</p>
+        <div className="topic-grid">
+          {guides.map((guide) => (
+            <div key={guide.title} className="card" style={{ borderLeft: '3px solid ' + guide.color }}>
+              <div className="card-title">{guide.title}</div>
+              <div className="doc-links" style={{ marginBottom: 0 }}>
+                {guide.links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{mapCopy.pagesTitle}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Page' : 'Página'}</th><th>{lang === 'en' ? 'Why start there' : 'Por qué partir ahí'}</th></tr></thead>
+          <tbody>
+            {readingOrder.map(([href, title, why]) => (
+              <tr key={href}>
+                <td className="bc-name"><a href={href} className="doc-link" style={{ padding: 0, border: 'none', background: 'transparent' }}>{title}</a></td>
+                <td>{why}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'overview', content: OverviewPage });
+</script>
+</body></html>

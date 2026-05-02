@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Security Model — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const AUTHORIZATION_FLOW = `
+flowchart TD
+  REQUEST["Incoming request"]
+  BOOT["Bootstrap filter"]
+  PUBLIC["Public endpoint<br/>skip auth"]
+  JWT["JWT validation<br/>signature + issuer + exp"]
+  UNAUTH["401 unauthorized"]
+  SCOPE["Tenant scope evaluator<br/>keygo_admin bypass or tenant_slug match"]
+  FORBIDDEN["403 forbidden"]
+  PRE["@PreAuthorize<br/>role / authority checks"]
+  HANDLER["Controller + use case"]
+
+  REQUEST --> BOOT
+  BOOT -->|public route| PUBLIC
+  PUBLIC --> HANDLER
+  BOOT -->|protected route| JWT
+  JWT -->|invalid token| UNAUTH
+  JWT -->|valid token| SCOPE
+  SCOPE -->|cross-tenant| FORBIDDEN
+  SCOPE -->|scope ok| PRE
+  PRE -->|missing authority| FORBIDDEN
+  PRE -->|authorized| HANDLER
+`;
+
+function SecurityPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+      ? {
+          publicTitle: 'Bootstrap filter: public routes',
+          scopeTitle: 'Tenant scope evaluation',
+          claimsTitle: 'JWT claims matrix',
+          decisionTitle: 'Public vs protected route decision',
+          pattern: 'Pattern',
+          purpose: 'Purpose',
+          scope: 'Scope',
+          authorizationFlowTitle: 'Authorization flow',
+          authorizationFlowCallout: 'Authentication and authorization are split: bootstrap decides whether the route is public, JWT validation authenticates, and tenant/role checks authorize.',
+        }
+      : {
+          publicTitle: 'Bootstrap filter: rutas públicas',
+          scopeTitle: 'Evaluación de tenant scope',
+          claimsTitle: 'Matriz de claims JWT',
+          decisionTitle: 'Decisión de ruta pública vs protegida',
+          pattern: 'Patrón',
+          purpose: 'Propósito',
+          scope: 'Scope',
+          authorizationFlowTitle: 'Flujo de autorización',
+          authorizationFlowCallout: 'Autenticación y autorización están separadas: bootstrap decide si la ruta es pública, la validación JWT autentica y los chequeos de tenant/rol autorizan.',
+        };
+  const levels = [
+    { level:'Platform', roles:['keygo_admin'],               dk:'sec.platform.desc' },
+    { level:'Tenant',   roles:['ADMIN_ORG','MEMBER','USER'], dk:'sec.tenant.desc' },
+    { level:'App',      roles:[t('sec.app.roles')],          dk:'sec.app.desc' },
+  ];
+  const obs = [
+    ['Logs',       'sec.obs.logs'],
+    ['Metrics',    'sec.obs.metrics'],
+    ['Liveness',   'sec.obs.live'],
+    ['Readiness',  'sec.obs.ready'],
+    ['Rate limits','sec.obs.rate'],
+  ];
+  const publicRoutes = [
+    ['/oauth2/authorize', lang === 'en' ? 'Start hosted OAuth2 login' : 'Iniciar hosted OAuth2 login', 'platform + tenant'],
+    ['/oauth2/token', lang === 'en' ? 'Code exchange and refresh rotation' : 'Canje de código y refresh rotation', 'platform + tenant'],
+    ['/.well-known/*', lang === 'en' ? 'OIDC discovery and JWKS validation' : 'OIDC discovery y validación JWKS', 'public discovery'],
+    ['/account/forgot-password', lang === 'en' ? 'Self-service recovery before authentication' : 'Recuperación self-service antes de autenticación', 'platform + tenant'],
+    ['/billing/catalog', lang === 'en' ? 'Public pricing/catalog access' : 'Acceso público a pricing/catálogo', 'tenant public surface'],
+  ];
+  const scopeFlow = [
+    {
+      title: '01 · keygo_admin bypass',
+      desc: lang === 'en'
+        ? 'Platform admins are authorized globally and do not require tenant_slug matching.'
+        : 'Los platform admins quedan autorizados globalmente y no requieren matching de tenant_slug.',
+    },
+    {
+      title: '02 · Extract tenant_slug',
+      desc: lang === 'en'
+        ? 'For tenant tokens, the evaluator reads tenant_slug from JWT claims, not from client-provided headers.'
+        : 'Para tokens tenant, el evaluador lee tenant_slug desde claims JWT, no desde headers provistos por el cliente.',
+    },
+    {
+      title: '03 · Match URL vs token',
+      desc: lang === 'en'
+        ? 'If /tenants/{slug}/... and JWT tenant_slug differ, the request is rejected as cross-tenant access.'
+        : 'Si /tenants/{slug}/... y tenant_slug del JWT difieren, el request se rechaza como acceso cross-tenant.',
+    },
+    {
+      title: '04 · Then evaluate role',
+      desc: lang === 'en'
+        ? 'Only after tenant scope matches does @PreAuthorize evaluate ADMIN_ORG, MANAGER or app-specific roles.'
+        : 'Solo después de que el tenant scope coincide, @PreAuthorize evalúa ADMIN_ORG, MANAGER o roles específicos de app.',
+    },
+  ];
+  const claimRows = [
+    ['sub', lang === 'en' ? 'Global identity UUID' : 'UUID global de identidad', lang === 'en' ? 'platform + tenant' : 'platform + tenant'],
+    ['tenant_slug', lang === 'en' ? 'Tenant session scope' : 'Scope de sesión tenant', lang === 'en' ? 'tenant only' : 'solo tenant'],
+    ['tenant_id', lang === 'en' ? 'Tenant technical identifier' : 'Identificador técnico del tenant', lang === 'en' ? 'tenant only' : 'solo tenant'],
+    ['roles', lang === 'en' ? 'Effective roles for the current context' : 'Roles efectivos para el contexto actual', lang === 'en' ? 'platform + tenant + app' : 'platform + tenant + app'],
+    ['aud', lang === 'en' ? 'Audience: platform, console or app' : 'Audiencia: plataforma, consola o app', lang === 'en' ? 'platform + tenant + app' : 'platform + tenant + app'],
+    ['jti', lang === 'en' ? 'Unique token identifier for revocation/audit' : 'Identificador único del token para revocación/auditoría', lang === 'en' ? 'platform + tenant' : 'platform + tenant'],
+  ];
+  const decisionRows = [
+    [lang === 'en' ? 'Part of authentication itself' : 'Parte de la autenticación misma', lang === 'en' ? 'Public' : 'Pública'],
+    [lang === 'en' ? 'OIDC/JWKS discovery' : 'Discovery OIDC/JWKS', lang === 'en' ? 'Public' : 'Pública'],
+    [lang === 'en' ? 'Self-service without existing session' : 'Autoservicio sin sesión previa', lang === 'en' ? 'Public' : 'Pública'],
+    [lang === 'en' ? 'Administrative or business decision endpoint' : 'Endpoint administrativo o con decisión de negocio', lang === 'en' ? 'Protected + @PreAuthorize' : 'Protegida + @PreAuthorize'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="security" size={13} color="var(--green)" />{t('sec.eyebrow')}</div>
+        <h1 className="page-title">{t('sec.title')}</h1>
+        <p className="page-desc">{t('sec.desc')}</p>
+      </div>
+      <div className="section">
+        <h2>{t('sec.h2.rbac')}</h2>
+        <div style={{ display:'flex', flexDirection:'column', gap:4, marginBottom:28 }}>
+          {levels.map(r => (
+            <div key={r.level} className="module-row">
+              <div className="module-name" style={{ flexDirection:'column', gap:8, alignItems:'flex-start', paddingTop:14, paddingBottom:14 }}>
+                <span style={{ color:'var(--text)' }}>{r.level}</span>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                  {r.roles.map(role => (
+                    <span key={role} style={{ fontFamily:'var(--font-mono)', fontSize:9, padding:'1px 5px', background:'var(--green-dim)', color:'var(--green)', borderRadius:2 }}>{role}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="module-desc">{t(r.dk)}</div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{t('sec.h2.annot')}</h2>
+        <KG_CodeBlock id="rbac_annotations" />
+
+        <h2>{copy.publicTitle}</h2>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{copy.pattern}</th>
+              <th>{copy.purpose}</th>
+              <th>{copy.scope}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {publicRoutes.map(([pattern, purpose, scope]) => (
+              <tr key={pattern}>
+                <td className="bc-name">{pattern}</td>
+                <td>{purpose}</td>
+                <td>{scope}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.authorizationFlowTitle}</h2>
+        <KG_Callout type="info">{copy.authorizationFlowCallout}</KG_Callout>
+        <KG_MermaidDiagram id="authorization-flow" definition={AUTHORIZATION_FLOW} />
+
+        <h2>{copy.claimsTitle}</h2>
+        <table className="bc-table">
+          <thead><tr><th>Claim</th><th>{lang === 'en' ? 'Meaning' : 'Significado'}</th><th>{lang === 'en' ? 'Applies to' : 'Aplica a'}</th></tr></thead>
+          <tbody>
+            {claimRows.map(([claim, meaning, applies]) => (
+              <tr key={claim}><td className="bc-name">{claim}</td><td>{meaning}</td><td>{applies}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.scopeTitle}</h2>
+        <div className="flow-steps">
+          {scopeFlow.map((step, i) => (
+            <div key={i} className="flow-step">
+              <div className="flow-num">{String(i+1).padStart(2,'0')}</div>
+              <div className="flow-content">
+                <div className="flow-title">{step.title}</div>
+                <div className="flow-text">{step.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{copy.decisionTitle}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Question' : 'Pregunta'}</th><th>{lang === 'en' ? 'Default result' : 'Resultado por defecto'}</th></tr></thead>
+          <tbody>
+            {decisionRows.map(([question, result]) => (
+              <tr key={question}><td>{question}</td><td className="bc-name">{result}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{t('sec.h2.obs')}</h2>
+        <div className="kv-grid">
+          {obs.map(([k, vk]) => (
+            <React.Fragment key={k}>
+              <div className="kv-key">{k}</div>
+              <div className="kv-val"><code>{t(vk)}</code></div>
+            </React.Fragment>
+          ))}
+        </div>
+
+        <KG_Callout type="warn">{t('sec.warn')}</KG_Callout>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'security', content: SecurityPage });
+</script>
+</body></html>

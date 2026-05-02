@@ -1,0 +1,43 @@
+package io.cmartinezs.keygo.api.shared.response;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.cmartinezs.keygo.api.error.ErrorData;
+import java.time.LocalDateTime;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
+
+/**
+ * This class represents a base response.
+ *
+ * <p>This class is extended by all the responses. It contains the date of the response, a success
+ * message, a failure message and a debug message. The debug message is only shown if the
+ * application is running in debug mode. The throwable is only shown if the application is running
+ * in debug mode. The debug message and the throwable are not shown in the production environment.
+ * The success message and the failure message are shown in the production environment.
+ */
+@Getter
+@SuperBuilder
+@RegisterReflectionForBinding
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class BaseResponse<T> {
+  @Builder.Default
+  private LocalDateTime date = LocalDateTime.now();
+  private MessageResponse success;
+  private MessageResponse failure;
+  private T data;
+  @Setter private MessageResponse debug;
+  @Setter private String throwable;
+
+  /**
+   * Schema reference for all error responses (4xx, 5xx) — do not instantiate in business logic.
+   * Extends {@code BaseResponse<ErrorData>} so Swagger correctly shows the {@code data} field
+   * with its full structure, including {@code field_errors} for validation failures.
+   */
+  public static final class ErrorResponse extends BaseResponse<ErrorData> {}
+}
+

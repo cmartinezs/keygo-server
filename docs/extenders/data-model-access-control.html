@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Access Control — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const ACCESS_CONTROL_ER = `
+erDiagram
+    app_roles {
+        string id
+        string tenant_id
+        string client_app_id
+        string code
+        boolean is_default
+    }
+    app_role_hierarchy {
+        string child_role_id
+        string parent_role_id
+        string client_app_id
+    }
+    app_memberships {
+        string id
+        string tenant_id
+        string tenant_user_id
+        string client_app_id
+        string app_billing_account_id
+        string status
+    }
+    app_membership_roles {
+        string membership_id
+        string client_app_id
+        string role_id
+    }
+
+    app_roles ||--o| app_role_hierarchy : child
+    app_roles ||--o{ app_role_hierarchy : parent
+    app_memberships ||--o{ app_membership_roles : assigns
+    app_roles ||--o{ app_membership_roles : role
+`;
+function DataModelAccessControlPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Access Control',
+        title: 'Access Control storage boundary',
+        desc: 'Access Control stores what a tenant member can do inside one client application. It is separate from Organization roles and from platform-level RBAC.',
+        callout: 'A tenant user can exist without app access. app_memberships is the explicit edge that grants entry to one client app.',
+        h2Entities: 'Core entities',
+        h2Mer: 'ER diagram',
+        entities: [
+          ['app_roles', 'Per-app role catalog', 'Role codes are unique inside one client app.'],
+          ['app_role_hierarchy', 'App role inheritance', 'Same-app tree with one parent per child and bounded depth.'],
+          ['app_memberships', 'Access edge into a client app', 'Connects tenant_user and client_app, optionally linked to app billing.'],
+          ['app_membership_roles', 'Role assignment edge', 'Assigns app_roles to one app_membership with app-scoped integrity.'],
+        ],
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'app_memberships lives inside one tenant and one client app at the same time.',
+          'A role assignment cannot cross client_app boundaries because app_membership_roles includes the app context explicitly.',
+          'Invitation and pending access states are modeled directly in app_memberships; there is no separate invitation table.',
+          'App-level roles do not replace tenant roles; they refine capability once the user is already inside the app context.',
+        ],
+        h2Relations: 'Mental model',
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Access Control',
+        title: 'Boundary de almacenamiento Access Control',
+        desc: 'Access Control almacena qué puede hacer un miembro de tenant dentro de una client app. Está separado de los roles de Organization y del RBAC a nivel plataforma.',
+        callout: 'Un tenant user puede existir sin acceso a apps. app_memberships es la arista explícita que habilita entrada a una client app.',
+        h2Entities: 'Entidades núcleo',
+        h2Mer: 'Diagrama ER',
+        entities: [
+          ['app_roles', 'Catálogo de roles por app', 'Los códigos de rol son únicos dentro de una client app.'],
+          ['app_role_hierarchy', 'Herencia de roles de app', 'Árbol same-app con un padre por hijo y profundidad acotada.'],
+          ['app_memberships', 'Arista de acceso a client app', 'Conecta tenant_user y client_app, opcionalmente ligada a billing de app.'],
+          ['app_membership_roles', 'Arista de asignación de rol', 'Asigna app_roles a una app_membership con integridad acotada a la app.'],
+        ],
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'app_memberships vive dentro de un tenant y una client app al mismo tiempo.',
+          'Una asignación de rol no puede cruzar fronteras de client_app porque app_membership_roles incluye explícitamente el contexto de app.',
+          'Los estados de invitación y acceso pendiente se modelan directo en app_memberships; no existe tabla separada de invitaciones.',
+          'Los roles de app no reemplazan los roles de tenant; refinan capacidad una vez que el usuario ya está dentro del contexto de la app.',
+        ],
+        h2Relations: 'Modelo mental',
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../extenders/data-model-client-applications.html', lang === 'en' ? 'Client Applications' : 'Client Applications'],
+    ['../extenders/security.html', lang === 'en' ? 'Security model' : 'Modelo de seguridad'],
+    ['../extenders/data-model-billing.html', 'Billing'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="lock" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Entities}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.entities.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="access-control-er" definition={ACCESS_CONTROL_ER} />
+
+        <h2>{copy.h2Relations}</h2>
+        <div className="diagram-block">
+{`tenant_users (Organization)
+  └─ app_memberships
+       └─ app_membership_roles
+
+client_apps (Client Applications)
+  ├─ app_roles
+  │    └─ app_role_hierarchy
+  └─ app_memberships`}
+        </div>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelaccess', content: DataModelAccessControlPage });
+</script>
+</body></html>

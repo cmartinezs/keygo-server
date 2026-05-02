@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Billing — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const BILLING_ER = `
+erDiagram
+    contractors {
+        uuid id PK
+        varchar type
+        citext billing_email
+        varchar status
+    }
+    contractor_users {
+        uuid contractor_id FK
+        uuid platform_user_id FK
+        varchar role_code
+    }
+    app_billing_accounts {
+        uuid id PK
+        uuid client_app_id FK
+        uuid tenant_id FK
+        uuid tenant_user_id FK
+        varchar status
+    }
+    app_plans {
+        uuid id PK
+        uuid client_app_id FK
+        varchar code
+        varchar status
+    }
+    app_plan_versions {
+        uuid id PK
+        uuid app_plan_id FK
+        varchar version
+        varchar status
+    }
+    app_contracts {
+        uuid id PK
+        uuid contractor_id FK
+        uuid app_billing_account_id FK
+        uuid client_app_id FK
+        uuid app_plan_version_id FK
+        varchar status
+    }
+    app_subscriptions {
+        uuid id PK
+        uuid contractor_id FK
+        uuid app_billing_account_id FK
+        uuid client_app_id FK
+        uuid app_plan_version_id FK
+        uuid contract_id FK
+        varchar status
+    }
+    invoices {
+        uuid id PK
+        uuid contractor_id FK
+        uuid client_app_id FK
+        uuid subscription_id FK
+        varchar status
+    }
+    payment_transactions {
+        uuid id PK
+        uuid contractor_id FK
+        uuid client_app_id FK
+        uuid contract_id FK
+        uuid subscription_id FK
+        varchar status
+    }
+
+    contractors ||--o{ contractor_users : manages
+    contractors ||--o{ app_contracts : signs
+    contractors ||--o{ app_subscriptions : owns
+    contractors ||--o{ invoices : receives
+    contractors ||--o{ payment_transactions : pays
+    app_billing_accounts ||--o{ app_contracts : signs
+    app_billing_accounts ||--o{ app_subscriptions : owns
+    app_plans ||--o{ app_plan_versions : versions
+    app_plan_versions ||--o{ app_contracts : contracts
+    app_plan_versions ||--o{ app_subscriptions : subscriptions
+    app_contracts ||--o{ app_subscriptions : originates
+    app_subscriptions ||--o{ invoices : bills
+    app_subscriptions ||--o{ payment_transactions : charges
+`;
+function DataModelBillingPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Billing',
+        title: 'Billing storage boundary',
+        desc: 'Billing stores the commercial relationship. It has two anchors: contractor for platform billing and app_billing_account for per-app billing against an end user.',
+        callout: 'Exactly one billing anchor is active in a contract or subscription: contractor or app_billing_account, never both at once.',
+        h2Anchors: 'Commercial anchors',
+        h2Mer: 'ER diagram',
+        anchors: [
+          ['contractors', 'Commercial account owner', 'Person or company that signs contracts with KeyGo and owns payments.'],
+          ['contractor_users', 'Administrative access to the contractor account', 'Lets multiple platform identities manage one contractor.'],
+          ['app_billing_accounts', 'Per-app billing account', 'Billing anchor for one tenant user inside one client app.'],
+        ],
+        h2Catalog: 'Plan catalog',
+        catalog: [
+          ['app_plans', 'Commercial plan definition', 'Platform plans when client_app_id is null; app plans otherwise.'],
+          ['app_plan_versions', 'Immutable commercial snapshot', 'Contracts and subscriptions always point to a specific version.'],
+          ['app_plan_billing_options', 'Billing cadence per version', 'Monthly, yearly or one-time price options.'],
+          ['app_plan_entitlements', 'Quota / feature matrix', 'Limits or booleans attached to a plan version.'],
+        ],
+        h2Execution: 'Operational billing records',
+        execution: [
+          ['app_contracts', 'Onboarding and commercial agreement', 'Moves through draft, verification, payment and activation states.'],
+          ['contract_email_verifications', 'Pre-account email verification', 'Short-lived code attached to a contract onboarding flow.'],
+          ['app_subscriptions', 'Active commercial state', 'Current entitlement source for a contractor or app billing account.'],
+          ['invoices', 'Billed cycle artifact', 'Snapshot of amounts, tax and plan data at issuance time.'],
+          ['payment_transactions', 'Charge attempts and outcomes', 'Each payment attempt is recorded explicitly.'],
+          ['payment_methods', 'External instrument reference', 'Stores only provider references and display metadata, never sensitive card data.'],
+          ['usage_counters', 'Measured consumption', 'Tracks metric usage over time per contractor and app.'],
+        ],
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'Contracts and subscriptions choose exactly one billing anchor: contractor or app_billing_account.',
+          'Plan versions are immutable snapshots so commercial history remains stable after plan changes.',
+          'Invoices preserve billing snapshots; payment providers remain outside the model and are translated through a separate adapter layer.',
+          'Usage counters are metering records, not authorization state by themselves; entitlement logic interprets them later.',
+        ],
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Billing',
+        title: 'Boundary de almacenamiento Billing',
+        desc: 'Billing almacena la relación comercial. Tiene dos anclas: contractor para billing de plataforma y app_billing_account para billing por app contra un usuario final.',
+        callout: 'Exactamente un ancla comercial está activa en contrato o suscripción: contractor o app_billing_account, nunca ambas al mismo tiempo.',
+        h2Anchors: 'Anclas comerciales',
+        h2Mer: 'Diagrama ER',
+        anchors: [
+          ['contractors', 'Dueño de la cuenta comercial', 'Persona o empresa que firma contratos con KeyGo y asume pagos.'],
+          ['contractor_users', 'Acceso administrativo a la cuenta contractor', 'Permite que múltiples identidades de plataforma administren un contractor.'],
+          ['app_billing_accounts', 'Cuenta de billing por app', 'Ancla comercial para un tenant user dentro de una client app.'],
+        ],
+        h2Catalog: 'Catálogo de planes',
+        catalog: [
+          ['app_plans', 'Definición comercial del plan', 'Planes de plataforma cuando client_app_id es null; planes de app en caso contrario.'],
+          ['app_plan_versions', 'Snapshot comercial inmutable', 'Contratos y suscripciones siempre apuntan a una versión específica.'],
+          ['app_plan_billing_options', 'Cadencia de cobro por versión', 'Opciones monthly, yearly o one-time.'],
+          ['app_plan_entitlements', 'Matriz de cuotas / features', 'Límites o flags booleanos asociados a una versión de plan.'],
+        ],
+        h2Execution: 'Registros operativos de billing',
+        execution: [
+          ['app_contracts', 'Onboarding y acuerdo comercial', 'Pasa por estados draft, verificación, pago y activación.'],
+          ['contract_email_verifications', 'Verificación de email previa a cuenta', 'Código efímero unido al onboarding del contrato.'],
+          ['app_subscriptions', 'Estado comercial activo', 'Fuente vigente de entitlements para contractor o app billing account.'],
+          ['invoices', 'Artefacto del ciclo facturado', 'Snapshot de montos, impuestos y datos del plan al emitir.'],
+          ['payment_transactions', 'Intentos y resultados de cobro', 'Cada intento de pago queda registrado explícitamente.'],
+          ['payment_methods', 'Referencia a instrumento externo', 'Guarda solo referencias del proveedor y metadata de display, nunca datos sensibles de tarjeta.'],
+          ['usage_counters', 'Consumo medido', 'Registra uso por métrica a lo largo del tiempo por contractor y app.'],
+        ],
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'Contratos y suscripciones eligen exactamente un ancla comercial: contractor o app_billing_account.',
+          'Las versiones de plan son snapshots inmutables para que la historia comercial siga estable tras cambios de catálogo.',
+          'Las facturas preservan snapshots de billing; el proveedor de pago permanece fuera del modelo y se traduce mediante una capa adaptadora separada.',
+          'Los usage counters son registros de medición, no estado de autorización por sí solos; la lógica de entitlements los interpreta después.',
+        ],
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../extenders/data-model-organization.html', 'Organization'],
+    ['../extenders/data-model-access-control.html', 'Access Control'],
+    ['../extenders/data-model-audit.html', 'Audit'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="database" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Anchors}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.anchors.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="billing-er" definition={BILLING_ER} />
+
+        <h2>{copy.h2Catalog}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.catalog.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Execution}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.execution.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelbilling', content: DataModelBillingPage });
+</script>
+</body></html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Domain Patterns — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function PatternsPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const naming = [
+    ['Comando / Command',     'Action + Entity + Command',     'RegisterIdentityCommand'],
+    ['Query',                 'Find + Entity + Query',         'FindUsersByTenantQuery'],
+    ['Use Case',              'Action + Entity + UseCase',     'AssignRoleUseCase'],
+    ['Puerto / Port',         'Entity + RepositoryPort',       'IdentityRepositoryPort'],
+    ['Adaptador / Adapter',   'Entity + RepositoryAdapter',    'IdentityRepositoryAdapter'],
+    ['DTO Request',           'Action + Entity + Request',     'RegisterIdentityRequest'],
+    ['DTO Response',          'Entity + Data',                 'IdentityData'],
+    ['Excepción / Exception', 'Entity + DomainException',      'DuplicateEmailException'],
+  ];
+  const validationRows = lang === 'en'
+    ? [
+        ['HTTP', 'Format and nullability only', '@Valid, @NotBlank, @Email, malformed JSON'],
+        ['Domain', 'Reusable business invariants', 'Value Object constructors and stateless helpers'],
+        ['Use case', 'Stateful or repository-backed checks', 'uniqueness, tenant active, preconditions'],
+      ]
+    : [
+        ['HTTP', 'Solo formato y nulabilidad', '@Valid, @NotBlank, @Email, JSON malformado'],
+        ['Domain', 'Invariantes de negocio reutilizables', 'Constructores de Value Objects y helpers stateless'],
+        ['Use case', 'Checks con estado o repositorio', 'unicidad, tenant activo, precondiciones'],
+      ];
+  const antiPatterns = lang === 'en'
+    ? [
+        'Putting business validation in controllers.',
+        'Querying repositories from Value Objects.',
+        'Leaking persistence entities into the domain or API contract.',
+      ]
+    : [
+        'Poner validación de negocio en controllers.',
+        'Consultar repositorios desde Value Objects.',
+        'Filtrar entidades de persistencia hacia el dominio o el contrato API.',
+      ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="patterns" size={13} color="var(--green)" />{t('pat.eyebrow')}</div>
+        <h1 className="page-title">{t('pat.title')}</h1>
+        <p className="page-desc">{t('pat.desc')}</p>
+      </div>
+      <div className="section">
+        <h2>{t('pat.h2.vo')}</h2>
+        <KG_CodeBlock id="value_object" />
+
+        <h2>{t('pat.h2.ports')}</h2>
+        <div className="two-col">
+          <KG_CodeBlock id="port_interface" />
+          <KG_CodeBlock id="port_adapter" />
+        </div>
+
+        <h2>{t('pat.h2.agg')}</h2>
+        <KG_CodeBlock id="aggregate" />
+
+        <h2>{t('pat.h2.naming')}</h2>
+        <div className="kv-grid">
+          {naming.map(([type, pattern, example]) => (
+            <React.Fragment key={type}>
+              <div className="kv-key">{type}</div>
+              <div className="kv-val"><code>{pattern}</code> — e.g. <code>{example}</code></div>
+            </React.Fragment>
+          ))}
+        </div>
+
+        <h2>{lang === 'en' ? 'Validation placement' : 'Ubicación de validación'}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Layer' : 'Capa'}</th><th>{lang === 'en' ? 'Responsibility' : 'Responsabilidad'}</th><th>{lang === 'en' ? 'Typical mechanism' : 'Mecanismo típico'}</th></tr></thead>
+          <tbody>
+            {validationRows.map(([layer, responsibility, mechanism]) => (
+              <tr key={layer}><td className="bc-name">{layer}</td><td>{responsibility}</td><td>{mechanism}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{lang === 'en' ? 'Frequent anti-patterns' : 'Anti-patterns frecuentes'}</h2>
+        <ul className="dense-list">
+          {antiPatterns.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'patterns', content: PatternsPage });
+</script>
+</body></html>

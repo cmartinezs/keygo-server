@@ -1,0 +1,4 @@
+keygo:
+  email:
+    template-cache-enabled: false  # No cachear en desarrollo para hot reload
+

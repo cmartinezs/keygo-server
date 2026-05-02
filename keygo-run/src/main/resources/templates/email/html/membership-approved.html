@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${headerTitle} + ' — KeyGo'">Acceso aprobado — KeyGo</title>
+    <th:block th:replace="~{html/fragments/styles :: styles}" />
+</head>
+<body>
+    <div class="email-container" th:classappend="${theme}">
+        <th:block th:replace="~{html/fragments/header :: header(${headerTitle}, ${headerSubtitle})}" />
+
+        <div class="email-body">
+            <th:block th:replace="~{html/fragments/greeting :: greeting(${userFirstName}, ${userLastName}, ${userUsername})}" />
+            <p style="margin-bottom: 24px;">¡Buenas noticias! Tu solicitud de acceso ha sido aprobada por un administrador.</p>
+
+            <div class="section-title">Detalle del acceso</div>
+            <div class="highlight-box">
+                <div class="highlight-title" th:text="${appName}">Mi Aplicación</div>
+                <div class="highlight-status">Estado: <strong>Activo</strong></div>
+            </div>
+
+            <div class="section-title">¿Qué sigue?</div>
+            <ol class="instructions">
+                <li>Inicia sesión en la aplicación con tus credenciales habituales.</li>
+                <li>Podrás acceder a todas las funcionalidades asociadas a tu membresía.</li>
+                <li>Si tienes dudas, contacta al administrador de tu organización.</li>
+            </ol>
+
+            <th:block th:if="${actionUrl}">
+                <th:block th:replace="~{html/fragments/button :: button(${actionUrl}, ${ctaLabel}, ${ctaHint})}" />
+            </th:block>
+
+            <th:block th:replace="~{html/fragments/disclaimer :: disclaimer('tu solicitud de acceso fue aprobada por un administrador en KeyGo', false)}" />
+        </div>
+
+        <th:block th:replace="~{html/fragments/footer :: footer(${footerLinks}, ${copyrightHolder}, ${copyrightYear})}" />
+    </div>
+</body>
+</html>

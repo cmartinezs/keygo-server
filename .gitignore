@@ -1,6 +1,19 @@
+# =========================================================
+# Environment Files / Archivos de Ambiente
+# =========================================================
+# Ignore all environment files with sensitive data
+# Ignorar todos los archivos de ambiente con datos sensibles
+.env
+.env-local
+.env-desa
+.env-prod
+.env.*
+!.env.example
+.env.backup.*
+
 target/
 logs/
-db/
+/db/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -37,3 +50,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Front examples
+**/node_modules/**
+**/package-lock.json

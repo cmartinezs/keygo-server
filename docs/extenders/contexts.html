@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bounded Contexts — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+<script src="../shared/tweaks-panel.jsx" type="text/babel"></script>
+<style>
+.mermaid-wrap {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px 16px;
+  margin-bottom: 24px; overflow-x: auto;
+  display: flex; justify-content: center;
+}
+.mermaid-wrap svg { max-width: 100%; height: auto; }
+.legend-grid {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-bottom: 32px;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.legend-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 7px; border-radius: 3px; flex-shrink: 0; min-width: 42px; text-align: center;
+}
+.lb-cs  { background: color-mix(in oklch,var(--blue) 15%,transparent);  color: var(--blue);  border: 1px solid var(--blue-dim); }
+.lb-pt  { background: color-mix(in oklch,var(--green) 15%,transparent); color: var(--green); border: 1px solid var(--green-dim);}
+.lb-pl  { background: color-mix(in oklch,var(--amber) 15%,transparent); color: var(--amber); border: 1px solid var(--amber-dim);}
+.lb-cf  { background: color-mix(in oklch,var(--text3) 20%,transparent); color: var(--text2); border: 1px solid var(--border2); }
+.lb-acl { background: color-mix(in oklch,var(--red) 15%,transparent);   color: var(--red);   border: 1px solid oklch(30% 0.08 25);}
+.legend-desc { color: var(--text3); }
+
+/* ── Themes ── */
+body.theme-light {
+  --bg:#f4f5f8; --bg2:#eceef3; --bg3:#e2e5ec; --bg4:#d6dae4;
+  --border:#c8cdd9; --border2:#b0b7c8;
+  --text:#1a1d27; --text2:#3d4460; --text3:#7a82a0;
+}
+body.theme-hc {
+  --bg:#000; --bg2:#0a0a0a; --bg3:#111; --bg4:#1a1a1a;
+  --border:#333; --border2:#444;
+  --text:#fff; --text2:#e0e0e0; --text3:#888;
+  --green:oklch(80% 0.22 165); --blue:oklch(80% 0.22 250); --amber:oklch(85% 0.20 75);
+}
+body.theme-text {
+  --bg:#fffef9; --bg2:#fffef9; --bg3:#f5f4ee; --bg4:#ebe9e0;
+  --border:#d4cfc0; --border2:#bbb8a8;
+  --text:#111; --text2:#333; --text3:#888;
+  --font-body: Georgia, 'Times New Roman', serif;
+  --font-mono: 'Courier New', monospace;
+  --font-code: 'Courier New', monospace;
+}
+body.theme-text .code-block { background: #f0ede4; border-color: #ccc9b8; }
+body.theme-text .code-body  { color: #222; }
+body.theme-text .sidebar    { background: #f5f4ee; border-color: #d4cfc0; }
+body.theme-text .topbar     { background: color-mix(in srgb, #fffef9 85%, transparent); }
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+
+const CTX_MAP_DIAGRAM = `
+flowchart LR
+  classDef core fill:#0d2b1a,stroke:#22c55e,color:#dcfce7,stroke-width:2px;
+  classDef support fill:#152235,stroke:#60a5fa,color:#dbeafe,stroke-width:2px;
+  classDef downstream fill:#2b1f10,stroke:#f59e0b,color:#fde68a,stroke-width:2px;
+  classDef external fill:#30131a,stroke:#f43f5e,color:#ffe4e6,stroke-width:2px;
+
+  subgraph LEFT["Upstream / consumers"]
+    direction TB
+    PLT["Platform"]
+    ORG["Organization"]
+    CA["Client Applications"]
+    EXT["Payment Provider"]
+  end
+
+  subgraph CORE["Core domain"]
+    direction TB
+    ID["Identity"]
+    AC["Access Control"]
+  end
+
+  subgraph RIGHT["Supporting / downstream"]
+    direction TB
+    BIL["Billing"]
+    AUD["Audit"]
+  end
+
+  ORG -->|"C/S"| ID
+  ORG -->|"C/S"| AC
+  CA -->|"C/S"| ID
+  CA -->|"C/S"| AC
+  ID <-->|"Partner"| AC
+  ORG -->|"C/S"| BIL
+  EXT -->|"ACL"| BIL
+  ID -->|"PL"| AUD
+  AC -->|"PL"| AUD
+  ORG -->|"PL"| AUD
+  BIL -->|"PL"| AUD
+  PLT -.->|"Conformist"| ORG
+  PLT -.->|"Conformist"| ID
+  PLT -.->|"Conformist"| BIL
+  PLT -.->|"Conformist"| AUD
+
+  class ID,AC core;
+  class PLT,ORG,CA support;
+  class BIL,AUD downstream;
+  class EXT external;
+`;
+
+const ISO_DIAGRAM = `
+flowchart LR
+  subgraph A["Org A"]
+    IDA["Identities A"]
+    ACA["Roles A"]
+  end
+  subgraph B["Org B"]
+    IDB["Identities B"]
+    ACB["Roles B"]
+  end
+  IDA -. "❌ impossible" .-> IDB
+  ACA -. "❌ impossible" .-> ACB
+  IDA -. "❌ impossible" .-> ACB
+`;
+
+function ContextsPage() {
+  const t = KG_useT();
+  const ctxs = [
+    { name:'Identity',            key:'Identity',            type:'core' },
+    { name:'Access Control',      key:'AccessControl',       type:'core' },
+    { name:'Organization',        key:'Organization',        type:'sup' },
+    { name:'Client Applications', key:'ClientApplications',  type:'sup' },
+    { name:'Billing',             key:'Billing',             type:'sup' },
+    { name:'Audit',               key:'Audit',               type:'sup' },
+    { name:'Platform',            key:'Platform',            type:'sup' },
+  ];
+  const legend = [
+    { cls:'lb-cs',  label:'C/S',       dk:'ctx.legend.cs' },
+    { cls:'lb-pt',  label:'Partner',   dk:'ctx.legend.pt' },
+    { cls:'lb-pl',  label:'PL',        dk:'ctx.legend.pl' },
+    { cls:'lb-cf',  label:'Conformist',dk:'ctx.legend.cf' },
+    { cls:'lb-acl', label:'ACL',       dk:'ctx.legend.acl' },
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="contexts" size={13} color="var(--green)" />{t('ctx.eyebrow')}</div>
+        <h1 className="page-title">{t('ctx.title')}</h1>
+        <p className="page-desc">{t('ctx.desc')}</p>
+      </div>
+      <div className="section">
+
+        <h2>{t('ctx.h2.map')}</h2>
+        <KG_Callout type="info">
+          {t('ctx.h2.map')} — {t('ctx.legend.cs')} / {t('ctx.legend.pt')} / {t('ctx.legend.pl')} / {t('ctx.legend.cf')} / {t('ctx.legend.acl')}. {t('ctx.th.type')} se lee por color y la dirección general va de izquierda a derecha.
+        </KG_Callout>
+        <KG_MermaidDiagram id="ctx-map-svg" definition={CTX_MAP_DIAGRAM} />
+
+        <div className="legend-grid">
+          {legend.map(l => (
+            <div key={l.label} className="legend-row">
+              <span className={'legend-badge ' + l.cls}>{l.label}</span>
+              <span className="legend-desc">{t(l.dk)}</span>
+            </div>
+          ))}
+        </div>
+
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{t('ctx.th.ctx')}</th>
+              <th>{t('ctx.th.type')}</th>
+              <th>{t('ctx.th.desc')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ctxs.map(c => (
+              <tr key={c.name}>
+                <td className="bc-name">{c.name}</td>
+                <td><span className={'bc-badge ' + c.type}>{c.type === 'core' ? 'Core Domain' : 'Supporting'}</span></td>
+                <td>{t('ctx.'+c.key+'.d')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{t('ctx.h2.iso')}</h2>
+        <p>{t('ctx.iso.desc')}</p>
+        <KG_MermaidDiagram id="ctx-iso-svg" definition={ISO_DIAGRAM} />
+
+        <h2>{t('ctx.h2.acl')}</h2>
+        <KG_Callout type="info">{t('ctx.acl.info')}</KG_Callout>
+        <KG_CodeBlock id="acl_example" />
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'contexts', content: ContextsPage });
+</script>
+</body></html>

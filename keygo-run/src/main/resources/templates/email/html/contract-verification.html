@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${headerTitle} + ' — KeyGo'">Confirma tu email — KeyGo</title>
+    <th:block th:replace="~{html/fragments/styles :: styles}" />
+</head>
+<body>
+    <div class="email-container" th:classappend="${theme}">
+        <th:block th:replace="~{html/fragments/header :: header(${headerTitle}, ${headerSubtitle})}" />
+
+        <div class="email-body">
+            <th:block th:replace="~{html/fragments/greeting :: greeting(${userFirstName}, ${userLastName}, ${userUsername})}" />
+            <p style="margin-bottom: 24px;">¡Gracias por tu interés en suscribirte a KeyGo! Necesitamos confirmar tu dirección de email para completar tu contrato.</p>
+            <div class="highlight-box">
+                <p style="margin: 0 0 8px 0;"><strong>ID de Contrato:</strong></p>
+                <p class="highlight-value" style="margin: 0;" th:text="${contract_id}">contract-id-123456</p>
+            </div>
+
+            <div class="section-title">Tu código de verificación</div>
+            <th:block th:replace="~{html/fragments/code-box :: codeBox(${verificationCode}, 'Copia este código y úsalo en tu panel de contratación.', '')}" />
+
+            <th:block th:if="${actionUrl}">
+                <th:block th:replace="~{html/fragments/button :: button(${actionUrl}, ${ctaLabel}, ${ctaHint})}" />
+            </th:block>
+
+            <th:block th:replace="~{html/fragments/notice :: notice('notice-warning', '⏱️ &lt;strong&gt;Este código expira en ' + ${expiresInMinutes} + ' minutos.&lt;/strong&gt; Verifica tu email antes de que expire para continuar con tu suscripción.')}" />
+
+            <div class="section-title">¿Qué viene después?</div>
+            <ol class="instructions">
+                <li>Copia el código de verificación arriba.</li>
+                <li>Vuelve a tu panel de contratación (usa el ID de contrato si es necesario).</li>
+                <li>Pega el código en el campo de verificación.</li>
+                <li>Completa el proceso de pago para activar tu suscripción.</li>
+                <li>¡Listo! Tendrás acceso completo a KeyGo inmediatamente.</li>
+            </ol>
+
+            <th:block th:replace="~{html/fragments/disclaimer :: disclaimer('se inició un nuevo contrato de suscripción con esta dirección de email en KeyGo', false)}" />
+        </div>
+
+        <th:block th:replace="~{html/fragments/footer :: footer(${footerLinks}, ${copyrightHolder}, ${copyrightYear})}" />
+    </div>
+</body>
+</html>

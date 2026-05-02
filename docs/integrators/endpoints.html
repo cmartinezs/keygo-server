@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Endpoints — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function EndpointsPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        versionTitle: 'Versioning and deprecation notes',
+        versionRows: [
+          ['Current line', '/api/v1 is the active public line for REST, auth and discovery routes.'],
+          ['Backward-compatible evolution', 'New endpoints or optional fields should land inside v1.x without breaking existing clients.'],
+          ['Breaking evolution', 'Path changes, removed fields or new mandatory parameters should move to /api/v2.'],
+        ],
+        deprecationTitle: 'Deprecation headers',
+        deprecationNote: 'When a successor version exists, legacy responses should announce the migration window through HTTP headers instead of silent drift.',
+      }
+    : {
+        versionTitle: 'Versionado y notas de deprecación',
+        versionRows: [
+          ['Línea actual', '/api/v1 es la línea pública activa para rutas REST, auth y discovery.'],
+          ['Evolución backward-compatible', 'Nuevos endpoints o campos opcionales deberían caer dentro de v1.x sin romper clientes existentes.'],
+          ['Evolución breaking', 'Cambios de path, remoción de campos o nuevos parámetros obligatorios deberían moverse a /api/v2.'],
+        ],
+        deprecationTitle: 'Headers de deprecación',
+        deprecationNote: 'Cuando exista una versión sucesora, las respuestas legacy deberían anunciar la ventana de migración vía headers HTTP y no mediante drift silencioso.',
+      };
+  const groups = [
+    { tk:'epg.discovery', note: t('epg.discovery.note'), eps:[
+      { m:'GET',  p:'/api/v1/tenants/public',                       dk:'ep.d.tenants.public' },
+      { m:'GET',  p:'/api/v1/tenants/{slug}/apps/public',           dk:'ep.d.apps.public' },
+      { m:'POST', p:'/api/v1/tenants/{slug}/users/register',        dk:'ep.d.users.register' },
+    ]},
+    { tk:'epg.oauth', eps:[
+      { m:'GET',  p:'/api/v1/tenants/{slug}/oauth2/authorize',                   dk:'ep.d.oauth.authorize' },
+      { m:'POST', p:'/api/v1/tenants/{slug}/oauth2/token',                       dk:'ep.d.oauth.token' },
+      { m:'POST', p:'/api/v1/tenants/{slug}/oauth2/logout',                      dk:'ep.d.oauth.logout' },
+      { m:'GET',  p:'/api/v1/tenants/{slug}/oauth2/.well-known/jwks.json',       dk:'ep.d.oauth.jwks' },
+      { m:'POST', p:'/api/v1/platform/oauth2/token',                             dk:'ep.d.platform.token' },
+    ]},
+    { tk:'epg.account', eps:[
+      { m:'GET',   p:'/api/v1/account/me',       dk:'ep.d.me.get' },
+      { m:'PATCH', p:'/api/v1/account/me',       dk:'ep.d.me.patch' },
+      { m:'POST',  p:'/api/v1/account/password', dk:'ep.d.password' },
+    ]},
+    { tk:'epg.users', eps:[
+      { m:'GET',    p:'/api/v1/tenants/{slug}/users',             dk:'ep.d.users.list' },
+      { m:'POST',   p:'/api/v1/tenants/{slug}/users',             dk:'ep.d.users.create' },
+      { m:'GET',    p:'/api/v1/tenants/{slug}/users/{id}',        dk:'ep.d.users.get' },
+      { m:'PATCH',  p:'/api/v1/tenants/{slug}/users/{id}',        dk:'ep.d.users.patch' },
+      { m:'DELETE', p:'/api/v1/tenants/{slug}/users/{id}',        dk:'ep.d.users.delete' },
+      { m:'POST',   p:'/api/v1/tenants/{slug}/users/{id}/suspend',dk:'ep.d.users.suspend' },
+    ]},
+    { tk:'epg.apps', eps:[
+      { m:'GET',    p:'/api/v1/tenants/{slug}/apps',      dk:'ep.d.apps.list' },
+      { m:'POST',   p:'/api/v1/tenants/{slug}/apps',      dk:'ep.d.apps.create' },
+      { m:'PATCH',  p:'/api/v1/tenants/{slug}/apps/{id}', dk:'ep.d.apps.patch' },
+      { m:'DELETE', p:'/api/v1/tenants/{slug}/apps/{id}', dk:'ep.d.apps.delete' },
+    ]},
+    { tk:'epg.roles', eps:[
+      { m:'GET',    p:'/api/v1/tenants/{slug}/roles',                         dk:'ep.d.roles.list' },
+      { m:'POST',   p:'/api/v1/tenants/{slug}/roles',                         dk:'ep.d.roles.create' },
+      { m:'POST',   p:'/api/v1/tenants/{slug}/users/{id}/roles',              dk:'ep.d.roles.assign' },
+      { m:'DELETE', p:'/api/v1/tenants/{slug}/users/{id}/roles/{roleId}',     dk:'ep.d.roles.revoke' },
+    ]},
+    { tk:'epg.audit', eps:[
+      { m:'GET', p:'/api/v1/tenants/{slug}/audit/events',   dk:'ep.d.audit.events' },
+      { m:'GET', p:'/api/v1/tenants/{slug}/audit/sessions', dk:'ep.d.audit.sessions' },
+    ]},
+    { tk:'epg.platform', eps:[
+      { m:'GET',   p:'/api/v1/platform/tenants',      dk:'ep.d.plat.tenants' },
+      { m:'POST',  p:'/api/v1/platform/tenants',      dk:'ep.d.plat.create' },
+      { m:'PATCH', p:'/api/v1/platform/tenants/{id}', dk:'ep.d.plat.patch' },
+      { m:'GET',   p:'/api/v1/platform/stats',        dk:'ep.d.plat.stats' },
+    ]},
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="endpoints" size={13} color="var(--green)" />{t('ep.eyebrow')}</div>
+        <h1 className="page-title">{t('ep.title')}</h1>
+        <p className="page-desc">{t('ep.desc')}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{t('ep.callout')}</KG_Callout>
+        <h2>{copy.versionTitle}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Aspect' : 'Aspecto'}</th><th>{lang === 'en' ? 'Rule' : 'Regla'}</th></tr></thead>
+          <tbody>
+            {copy.versionRows.map(([aspect, rule]) => <tr key={aspect}><td className="bc-name">{aspect}</td><td>{rule}</td></tr>)}
+          </tbody>
+        </table>
+        <h2>{copy.deprecationTitle}</h2>
+        <p className="mini-text">{copy.deprecationNote}</p>
+        <div className="diagram-block">
+{`Deprecation: true
+Sunset: Sun, 10 Oct 2026 00:00:00 GMT
+Link: </api/v2/...>; rel="successor-version"`}
+        </div>
+        {groups.map(g => (
+          <div key={g.tk} style={{ marginBottom: 32 }}>
+            <h3>{t(g.tk)}</h3>
+            {g.note && <p style={{ marginBottom:10,fontSize:13,color:'var(--text3)' }}>{g.note}</p>}
+            <div className="endpoint-list">
+              {g.eps.map((ep, i) => (
+                <div key={i} className="endpoint-row">
+                  <KG_HttpMethodBadge method={ep.m} />
+                  <KG_PathDisplay path={ep.p} />
+                  <span className="endpoint-desc">{t(ep.dk)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'endpoints', content: EndpointsPage });
+</script>
+</body></html>

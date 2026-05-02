@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Organization — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const ORGANIZATION_ER = `
+erDiagram
+    tenants {
+        string id
+        string slug
+        string name
+        string status
+        string contractor_id
+        boolean is_internal_reserved
+    }
+    tenant_users {
+        string id
+        string tenant_id
+        string platform_user_id
+        string local_username
+        string status
+    }
+    tenant_roles {
+        string id
+        string tenant_id
+        string code
+        string display_name
+    }
+    tenant_role_hierarchy {
+        string child_role_id
+        string parent_role_id
+        string tenant_id
+    }
+    tenant_user_roles {
+        string tenant_user_id
+        string tenant_id
+        string role_id
+    }
+    tenant_billing_profiles {
+        string id
+        string tenant_id
+        string billing_type
+        string billing_email
+        boolean is_default
+    }
+
+    tenants ||--o{ tenant_users : contains
+    tenants ||--o{ tenant_roles : defines
+    tenants ||--o{ tenant_billing_profiles : registers
+    tenant_roles ||--o| tenant_role_hierarchy : child
+    tenant_roles ||--o{ tenant_role_hierarchy : parent
+    tenant_users ||--o{ tenant_user_roles : receives
+    tenant_roles ||--o{ tenant_user_roles : assigns
+`;
+function DataModelOrganizationPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Organization',
+        title: 'Organization storage boundary',
+        desc: 'Organization owns tenants and tenant-local participation. It does not own global credentials; instead it binds a platform identity to one tenant and its internal role catalog.',
+        callout: 'tenant_users is the membership edge between a global identity and a tenant. That is the key to understanding all tenant-scoped behavior in KeyGo.',
+        h2Entities: 'Core entities',
+        h2Mer: 'ER diagram',
+        entities: [
+          ['tenants', 'Operational isolation unit', 'Every tenant has its own slug, state and commercial owner reference.'],
+          ['tenant_users', 'Tenant participation edge', 'Connects platform_users to one tenant with local state and optional local naming.'],
+          ['tenant_roles', 'Tenant-local role catalog', 'Role codes are unique only inside one tenant.'],
+          ['tenant_role_hierarchy', 'Tenant role inheritance', 'One parent per child, bounded depth, same-tenant constraint.'],
+          ['tenant_user_roles', 'Role assignment edge', 'Assigns tenant_roles to one tenant_user.'],
+          ['tenant_billing_profiles', 'Tenant fiscal profiles', 'A tenant can keep multiple billing profiles while one remains default.'],
+        ],
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'tenants are organizational boundaries, not person roots.',
+          'tenant_users never duplicates password hashes or global identity state; it references platform_users.',
+          'tenant_role_hierarchy and tenant_user_roles cannot cross tenant boundaries.',
+          'tenants.contractor_id connects commercial ownership without moving Billing logic into Organization.',
+        ],
+        h2Flow: 'Mental model',
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Organization',
+        title: 'Boundary de almacenamiento Organization',
+        desc: 'Organization posee tenants y participación local al tenant. No posee credenciales globales; en cambio vincula una identidad de plataforma con un tenant y con su catálogo interno de roles.',
+        callout: 'tenant_users es la arista de membresía entre una identidad global y un tenant. Esa es la clave para entender todo el comportamiento tenant-scoped en KeyGo.',
+        h2Entities: 'Entidades núcleo',
+        h2Mer: 'Diagrama ER',
+        entities: [
+          ['tenants', 'Unidad de aislamiento operativo', 'Cada tenant tiene su propio slug, estado y referencia a dueño comercial.'],
+          ['tenant_users', 'Arista de participación en tenant', 'Conecta platform_users con un tenant usando estado local y naming opcional.'],
+          ['tenant_roles', 'Catálogo local de roles', 'Los códigos de rol son únicos solo dentro de un tenant.'],
+          ['tenant_role_hierarchy', 'Herencia de roles de tenant', 'Un padre por hijo, profundidad acotada y restricción same-tenant.'],
+          ['tenant_user_roles', 'Arista de asignación de rol', 'Asigna tenant_roles a un tenant_user.'],
+          ['tenant_billing_profiles', 'Perfiles fiscales del tenant', 'Un tenant puede guardar múltiples perfiles de billing manteniendo uno como default.'],
+        ],
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'tenants son límites organizacionales, no raíces de persona.',
+          'tenant_users nunca duplica password hashes ni estado global de identidad; referencia platform_users.',
+          'tenant_role_hierarchy y tenant_user_roles no pueden cruzar fronteras de tenant.',
+          'tenants.contractor_id conecta ownership comercial sin mover la lógica de Billing dentro de Organization.',
+        ],
+        h2Flow: 'Modelo mental',
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../integrators/tenant-scope.html', lang === 'en' ? 'Multi-tenant scope' : 'Multi-tenant scope'],
+    ['../extenders/data-model-identity.html', 'Identity'],
+    ['../extenders/data-model-client-applications.html', lang === 'en' ? 'Client Applications' : 'Client Applications'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="users" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Entities}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.entities.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="organization-er" definition={ORGANIZATION_ER} />
+
+        <h2>{copy.h2Flow}</h2>
+        <div className="diagram-block">
+{`platform_users
+  └─ tenant_users
+       ├─ tenant_user_roles
+       └─ app_memberships (owned by Access Control)
+
+tenants
+  ├─ tenant_roles
+  │    └─ tenant_role_hierarchy
+  ├─ tenant_billing_profiles
+  └─ client_apps (owned by Client Applications)`}
+        </div>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelorganization', content: DataModelOrganizationPage });
+</script>
+</body></html>

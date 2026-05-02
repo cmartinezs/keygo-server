@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KeyGo Server — Developer Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="shared/i18n.js"></script>
+<script src="shared/nav.js"></script>
+<script src="shared/icons.js"></script>
+<script src="shared/code-data.js"></script>
+<script src="shared/layout.js" type="text/babel"></script>
+<style>
+/* Index-only: hero chips row */
+.hero-chips { display: flex; flex-wrap: wrap; gap: 8px; position: relative; }
+/* Index cards grid for sections */
+.index-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 48px 64px; border-bottom: 1px solid var(--border); }
+.index-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; text-decoration: none; color: inherit; display: block; transition: all 0.15s; }
+.index-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-1px); }
+.index-card-zone { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; display: inline-block; margin-bottom: 12px; }
+.index-card-zone.int { color: var(--green); background: var(--green-dim); }
+.index-card-zone.ext { color: var(--blue); background: var(--blue-dim); }
+.index-card-icon { margin-bottom: 14px; display: flex; align-items: center; }
+.index-card-title { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: #eef0f8; margin-bottom: 6px; }
+.index-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.index-card-links { margin-top: 16px; display: flex; flex-direction: column; gap: 4px; }
+.index-card-link { font-family: var(--font-mono); font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 6px; }
+.index-card-link::before { content: '→'; color: var(--text3); font-size: 10px; }
+.index-card:hover .index-card-link { color: var(--text2); }
+@media (max-width: 960px) { .index-sections { grid-template-columns: 1fr; padding: 24px; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useContext } = React;
+
+function Hero() {
+  const t = KG_useT();
+  return (
+    <div className="hero">
+      <div className="hero-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <KG_Icon name="overview" size={13} color="var(--green)" />
+        {t('hero.eyebrow')}
+      </div>
+      <h1 className="hero-title">
+        {t('hero.line1')}<br />
+        <span className="ag">{t('hero.line2')}</span><br />
+        <span className="ab">{t('hero.line2b')}</span>
+      </h1>
+      <p className="hero-desc">{t('hero.desc')}</p>
+      <div className="hero-chips">
+        {[['Java 21','green'],['Spring Boot 4.x','green'],['OAuth2/OIDC','blue'],['PKCE','blue'],['DDD + Hexagonal','amber'],['Multi-Tenant','amber'],['PostgreSQL',''],['OpenAPI 3.x',''],['RBAC','']].map(([l,c]) => (
+          <span key={l} className={'chip'+(c?' '+c:'')}>{l}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IndexSections() {
+  const t = KG_useT();
+  const sections = [
+    {
+      zone: 'int', zoneLabel: t('zone.integrators'),
+      icon: 'overview', iconColor: 'var(--green)',
+      title: t('nav.overview'), desc: t('overview.desc'),
+      href: 'overview.html', links: [
+        { label: t('nav.overview'), href: 'overview.html' },
+        { label: t('nav.quickstart'), href: 'quickstart.html' },
+      ]
+    },
+    {
+      zone: 'int', zoneLabel: t('zone.integrators'),
+      icon: 'endpoints', iconColor: 'var(--green)',
+      title: t('zone.integrators'), desc: t('zone.integrators.desc'),
+      href: 'integrators/auth.html', links: [
+        { label: t('nav.auth'),        href: 'integrators/auth.html' },
+        { label: t('nav.endpoints'),   href: 'integrators/endpoints.html' },
+        { label: t('nav.apiconventions'), href: 'integrators/api-conventions.html' },
+        { label: t('nav.versioning'), href: 'integrators/versioning.html' },
+        { label: t('nav.tenantscope'), href: 'integrators/tenant-scope.html' },
+        { label: t('nav.sessionmodel'), href: 'integrators/session-model.html' },
+      ]
+    },
+    {
+      zone: 'ext', zoneLabel: t('zone.extenders'),
+      icon: 'architecture', iconColor: 'var(--blue)',
+      title: t('zone.extenders'), desc: t('zone.extenders.desc'),
+      href: 'extenders/architecture.html', links: [
+        { label: t('nav.architecture'), href: 'extenders/architecture.html' },
+        { label: t('nav.modules'),      href: 'extenders/modules.html' },
+        { label: t('nav.contexts'),     href: 'extenders/contexts.html' },
+        { label: t('nav.patterns'),     href: 'extenders/patterns.html' },
+        { label: t('nav.datamodel'),    href: 'extenders/data-model.html' },
+        { label: t('nav.datamodelidentity'), href: 'extenders/data-model-identity.html' },
+        { label: t('nav.datamodelbilling'),  href: 'extenders/data-model-billing.html' },
+        { label: t('nav.validation'),   href: 'extenders/validation.html' },
+        { label: t('nav.security'),     href: 'extenders/security.html' },
+      ]
+    },
+    {
+      zone: 'int', zoneLabel: 'Stack',
+      icon: 'layers', iconColor: 'var(--amber)',
+      title: 'Stack Técnico', desc: 'Java 21 · Spring Boot 4.x · PostgreSQL · Spring Data JPA · Flyway · OpenAPI 3.x',
+      href: 'extenders/architecture.html', links: [
+        { label: 'Arquitectura Hexagonal', href: 'extenders/architecture.html' },
+        { label: 'Bounded Contexts', href: 'extenders/contexts.html' },
+      ]
+    },
+  ];
+
+  return (
+    <div className="index-sections">
+      {sections.map((s, i) => (
+        <a key={i} className="index-card" href={s.href}>
+          <div className={'index-card-zone ' + s.zone}>{s.zoneLabel}</div>
+          <div className="index-card-icon">
+            <KG_Icon name={s.icon} size={18} color={s.iconColor} />
+          </div>
+          <div className="index-card-title">{s.title}</div>
+          <div className="index-card-desc">{s.desc}</div>
+          <div className="index-card-links">
+            {s.links.map(lk => (
+              <span key={lk.href} className="index-card-link">{lk.label}</span>
+            ))}
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function IndexPage() {
+  return (
+    <>
+      <Hero />
+      <IndexSections />
+    </>
+  );
+}
+
+KG_mountIndex({ content: IndexPage });
+</script>
+</body>
+</html>

@@ -14,6 +14,11 @@
     <name>KeyGo Common</name>
     <description>Shared utilities and cross-cutting components / Utilidades compartidas y componentes transversales</description>
 
+    <properties>
+        <!-- Módulo stub vacío: sin código propio que medir aún -->
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
