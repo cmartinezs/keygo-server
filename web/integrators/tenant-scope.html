@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Multi-Tenant Scope — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function TenantScopePage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        invariantsTitle: 'Boundary invariants',
+        invariant: 'Invariant',
+        rule: 'Technical rule',
+        impact: 'Why it matters',
+      }
+    : {
+        invariantsTitle: 'Invariantes de frontera',
+        invariant: 'Invariante',
+        rule: 'Regla técnica',
+        impact: 'Por qué importa',
+      };
+  const headers = [
+    ['Authorization', 'Bearer eyJhbGci...'],
+    ['Content-Type',  'application/json'],
+    ['X-Trace-ID',    t('ts.hdr.xtra')],
+    ['Accept',        'application/json'],
+  ];
+  const invariants = [
+    [
+      'Global identity root',
+      'platform_users.email is globally unique (CITEXT, case-insensitive)',
+      lang === 'en'
+        ? 'A person has one platform identity even if they belong to many tenants.'
+        : 'Una persona tiene una sola identidad de plataforma aunque pertenezca a muchos tenants.',
+    ],
+    [
+      'Tenant membership boundary',
+      'tenant_users enforces UNIQUE (tenant_id, platform_user_id)',
+      lang === 'en'
+        ? 'Membership is explicit per tenant and cannot be duplicated silently.'
+        : 'La membresía es explícita por tenant y no puede duplicarse silenciosamente.',
+    ],
+    [
+      'Tenant URL boundary',
+      'tenants.slug is unique and immutable; URL scope is part of the contract',
+      lang === 'en'
+        ? 'The request path itself declares the organization context under evaluation.'
+        : 'El path del request declara el contexto organizacional que se está evaluando.',
+    ],
+    [
+      'OAuth session boundary',
+      'oauth_sessions and refresh_tokens bind identity + tenant + client_app',
+      lang === 'en'
+        ? 'Tokens are not just user-scoped: they are tenant/app-scoped credentials.'
+        : 'Los tokens no son solo user-scoped: son credenciales acotadas por tenant y app.',
+    ],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="tenantscope" size={13} color="var(--green)" />{t('ts.eyebrow')}</div>
+        <h1 className="page-title">{t('ts.title')}</h1>
+        <p className="page-desc">{t('ts.desc')}</p>
+      </div>
+      <div className="section">
+        <h2>{t('ts.h2.ctx')}</h2>
+        <p>{t('ts.ctx.desc')}</p>
+        <KG_CodeBlock id="tenant_scope_controller" />
+
+        <h2>{t('ts.h2.iso')}</h2>
+        <p>{t('ts.iso.desc')}</p>
+        <KG_CodeBlock id="tenant_scope_repo" />
+
+        <h2>{copy.invariantsTitle}</h2>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{copy.invariant}</th>
+              <th>{copy.rule}</th>
+              <th>{copy.impact}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invariants.map(([invariant, rule, impact]) => (
+              <tr key={invariant}>
+                <td className="bc-name">{invariant}</td>
+                <td>{rule}</td>
+                <td>{impact}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{t('ts.h2.hdrs')}</h2>
+        <div className="kv-grid">
+          {headers.map(([k,v]) => (
+            <React.Fragment key={k}>
+              <div className="kv-key">{k}</div>
+              <div className="kv-val"><code>{v}</code></div>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'tenantscope', content: TenantScopePage });
+</script>
+</body></html>

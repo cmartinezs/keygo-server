@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ADRs — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+<style>
+.adr-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 32px; overflow: hidden;
+}
+.adr-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.adr-number {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: var(--text3); letter-spacing: 1px;
+}
+.adr-title-text {
+  font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+  color: #eef0f8; flex: 1;
+}
+.adr-status {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 3px;
+  color: var(--green); background: var(--green-dim);
+  border: 1px solid color-mix(in oklch, var(--green) 30%, transparent);
+}
+.adr-date {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text3);
+}
+.adr-body { padding: 24px; }
+.adr-section-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--text3);
+  margin-bottom: 8px; margin-top: 20px;
+}
+.adr-section-label:first-child { margin-top: 0; }
+.adr-text {
+  font-size: 14px; color: var(--text2); line-height: 1.75; margin-bottom: 12px;
+}
+.adr-modules {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+}
+.adr-module {
+  font-family: var(--font-mono); font-size: 11px;
+  padding: 3px 10px; border-radius: 4px;
+  background: var(--bg4); border: 1px solid var(--border2); color: var(--text2);
+}
+.adr-pros-cons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;
+}
+.adr-pros, .adr-cons {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 14px 16px;
+}
+.adr-pros { border-left: 3px solid var(--green); }
+.adr-cons { border-left: 3px solid var(--amber); }
+.adr-pros-label, .adr-cons-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;
+}
+.adr-pros-label { color: var(--green); }
+.adr-cons-label { color: var(--amber); }
+.adr-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 6px;
+}
+.adr-item-icon { flex-shrink: 0; margin-top: 1px; font-size: 12px; }
+.adr-pros .adr-item-icon { color: var(--green); }
+.adr-cons .adr-item-icon { color: var(--amber); }
+.adr-alts-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 0; }
+.adr-alts-table th {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3);
+  text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.adr-alts-table td {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  color: var(--text2); vertical-align: top;
+}
+.adr-alts-table tr:last-child td { border-bottom: none; }
+.adr-alts-table tr:hover td { background: var(--bg3); }
+.adr-alts-table td:first-child { font-family: var(--font-mono); font-size: 12px; color: var(--text); white-space: nowrap; }
+@media (max-width: 700px) { .adr-pros-cons { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+
+const ADRS_ES = [
+  {
+    id: 'ADR-001',
+    date: '2026-04-10',
+    title: 'Arquitectura Hexagonal con Puertos y Adaptadores',
+    context: 'KeyGo requiere una arquitectura que permita testabilidad del dominio sin dependencias de framework, intercambiar la implementación de persistencia, y evolucionar la infraestructura sin impactar el dominio.',
+    decision: 'Adoptar Arquitectura Hexagonal (Ports & Adapters) con módulos separados por responsabilidad. keygo-domain no depende de ningún módulo interno. Las dependencias van siempre hacia el dominio.',
+    modules: ['keygo-domain → Entidades puras', 'keygo-app → Use Cases, Puertos OUT', 'keygo-api → Controllers, DTOs REST', 'keygo-infra → JWT, JWKS, adaptadores', 'keygo-supabase → JPA, Repositories', 'keygo-run → Spring Boot main'],
+    pros: ['Dominio testeable sin Spring ni BD', 'Persistencia intercambiable (JPA → Document → etc)', 'Use cases reutilizables en diferentes contextos', 'Equipos pueden trabajar en paralelo dominio/infraestructura', 'Claridad en contratos mediante puertos'],
+    cons: ['Curva de aprendizaje inicial', 'Más archivos/estructura que arquitectura monolítica', 'Requiere disciplina para mantener reglas de dependencia'],
+    alts: [
+      { alt: 'Arquitectura tradicional (layers)', why: 'Acoplamiento con Spring, testabilidad limitada' },
+      { alt: 'Domain-Driven Design puro', why: 'Necesitábamos estructura de módulos práctica' },
+      { alt: 'Microkernel / Plugin', why: 'Sobre-ingeniería para el tamaño actual' },
+    ],
+  },
+  {
+    id: 'ADR-002',
+    date: '2026-04-10',
+    title: 'Multi-Tenancy con Aislamiento a Nivel de Modelo',
+    context: 'KeyGo es una plataforma multi-tenant de identidad y acceso. Cada organización debe estar completamente aislada en datos y acceso. Una filtración entre tenants es un incidente P0.',
+    decision: 'El aislamiento multi-tenant se implementa a nivel de modelo de datos, no como preocupación transversal. Toda entidad tiene tenant_id obligatorio. El tenantSlug es requerido en todas las operaciones tenant-scoped. La autorización valida que tenant_slug en JWT == tenantSlug en URL.',
+    modules: ['tenant_id en todas las entidades JPA', 'Queries obligan slug como parámetro', 'JWT claim: tenant_slug', '@PreAuthorize con tenantAuthorizationEvaluator'],
+    pros: ['Aislamiento real a nivel de datos', 'Queries imposibles sin especificar tenant', 'Compliance natural', 'Debugging facilita: siempre se sabe a qué tenant pertenece cada query'],
+    cons: ['No hay soporte para datos cross-tenant sin diseño explícito', 'Queries más complejas para acceso global (platform admin)'],
+    alts: [
+      { alt: 'Schema por tenant (PostgreSQL schemas)', why: 'Overhead operacional, complejidad de migraciones' },
+      { alt: 'Base de datos por tenant', why: 'Costo, complejidad de operaciones' },
+      { alt: 'Filter/interceptor con softcoding', why: 'Riesgo de bypass, no hay aislamiento real en BD' },
+    ],
+  },
+  {
+    id: 'ADR-003',
+    date: '2026-04-10',
+    title: 'JWT con Roles por Claim',
+    context: 'KeyGo necesita un mecanismo para transporte de roles desde el backend hasta las aplicaciones cliente, permitiendo autorización granular a nivel de plataforma, tenant y aplicación sin round-trips adicionales.',
+    decision: 'Los roles se transportan en el JWT claim "roles". Tres niveles independientes: Platform (keygo_admin), Tenant (ADMIN_ORG, USER), y App (roles personalizados por aplicación cliente). Evaluación stateless — no requiere llamada a BD por request.',
+    modules: ['claim: roles[] en JWT', 'Nivel Platform: hasRole(keygo_admin)', 'Nivel Tenant: @tenantAuthorizationEvaluator', 'Nivel App: evaluación local por la app cliente'],
+    pros: ['Roles disponibles sin llamada a BD adicional', 'Evaluación stateless', 'Soporte para tres niveles de granularidad', 'Compatible con estándar OAuth2'],
+    cons: ['Revocación de roles no inmediata (hasta expiración del token)', 'Token más grande con muchos roles', 'Necesidad de refrescar token para ver cambios de rol'],
+    alts: [
+      { alt: 'Database lookup por request', why: 'Latencia, bottleneck de BD' },
+      { alt: 'Introspección OAuth2', why: 'Extra round-trip, complejidad adicional' },
+      { alt: 'Custom claims en lugar de roles', why: 'No es estándar' },
+    ],
+  },
+];
+
+const ADRS_EN = [
+  {
+    id: 'ADR-001',
+    date: '2026-04-10',
+    title: 'Hexagonal Architecture with Ports & Adapters',
+    context: 'KeyGo requires an architecture that allows domain testability without framework dependencies, swappable persistence implementations, and infrastructure evolution without impacting the domain.',
+    decision: 'Adopt Hexagonal Architecture (Ports & Adapters) with modules separated by responsibility. keygo-domain must not depend on any internal module. Dependencies always point toward the domain.',
+    modules: ['keygo-domain → Pure entities', 'keygo-app → Use Cases, OUT Ports', 'keygo-api → Controllers, REST DTOs', 'keygo-infra → JWT, JWKS, adapters', 'keygo-supabase → JPA, Repositories', 'keygo-run → Spring Boot main'],
+    pros: ['Domain testable without Spring or DB', 'Swappable persistence (JPA → Document → etc)', 'Reusable use cases in different contexts', 'Teams can work in parallel on domain/infrastructure', 'Clear contracts via ports'],
+    cons: ['Initial learning curve', 'More files/structure than monolithic architecture', 'Requires discipline to maintain dependency rules'],
+    alts: [
+      { alt: 'Traditional layered architecture', why: 'Spring coupling, limited testability' },
+      { alt: 'Pure Domain-Driven Design', why: 'Needed practical module structure' },
+      { alt: 'Microkernel / Plugin', why: 'Over-engineering for current size' },
+    ],
+  },
+  {
+    id: 'ADR-002',
+    date: '2026-04-10',
+    title: 'Multi-Tenancy with Model-Level Isolation',
+    context: 'KeyGo is a multi-tenant IAM platform. Each organization must be completely isolated in data and access. A cross-tenant data leak is a P0 incident.',
+    decision: 'Multi-tenant isolation is implemented at the data model level, not as a cross-cutting concern. Every entity has a mandatory tenant_id. tenantSlug is required in all tenant-scoped operations. Authorization validates that tenant_slug in JWT == tenantSlug in URL.',
+    modules: ['tenant_id on all JPA entities', 'Queries require slug as parameter', 'JWT claim: tenant_slug', '@PreAuthorize with tenantAuthorizationEvaluator'],
+    pros: ['Real isolation at data level', 'Queries impossible without specifying tenant', 'Natural compliance', 'Easier debugging: always know which tenant owns each query'],
+    cons: ['No cross-tenant data support without explicit design', 'More complex queries for global access (platform admin)'],
+    alts: [
+      { alt: 'Schema per tenant (PostgreSQL schemas)', why: 'Operational overhead, migration complexity' },
+      { alt: 'Database per tenant', why: 'Cost, operational complexity' },
+      { alt: 'Filter/interceptor with softcoding', why: 'Bypass risk, no real DB-level isolation' },
+    ],
+  },
+  {
+    id: 'ADR-003',
+    date: '2026-04-10',
+    title: 'JWT with Roles as Claims',
+    context: 'KeyGo needs a mechanism to transport roles from the backend to client applications, enabling granular authorization at platform, tenant, and application levels without additional round-trips.',
+    decision: 'Roles are transported in the JWT "roles" claim. Three independent levels: Platform (keygo_admin), Tenant (ADMIN_ORG, USER), and App (custom roles per client app). Stateless evaluation — no DB call required per request.',
+    modules: ['claim: roles[] in JWT', 'Platform level: hasRole(keygo_admin)', 'Tenant level: @tenantAuthorizationEvaluator', 'App level: local evaluation by client app'],
+    pros: ['Roles available without additional DB call', 'Stateless evaluation', 'Support for three levels of granularity', 'Compatible with OAuth2 standard'],
+    cons: ['Role revocation not immediate (until token expiry)', 'Larger token with many roles', 'Token refresh required to see role changes'],
+    alts: [
+      { alt: 'Database lookup per request', why: 'Latency, DB bottleneck' },
+      { alt: 'OAuth2 introspection', why: 'Extra round-trip, added complexity' },
+      { alt: 'Custom claims instead of roles', why: 'Not standard' },
+    ],
+  },
+];
+
+function AdrCard({ adr, t }) {
+  return (
+    <div className="adr-card">
+      <div className="adr-header">
+        <span className="adr-number">{adr.id}</span>
+        <span className="adr-title-text">{adr.title}</span>
+        <span className="adr-date">{adr.date}</span>
+        <span className="adr-status" style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <KG_Icon name="check" size={10} color="var(--green)" />
+          {t('adr.status.accepted')}
+        </span>
+      </div>
+      <div className="adr-body">
+
+        <div className="adr-section-label">Context</div>
+        <p className="adr-text">{adr.context}</p>
+
+        <div className="adr-section-label">Decision</div>
+        <p className="adr-text">{adr.decision}</p>
+        <div className="adr-modules">
+          {adr.modules.map((m, i) => <span key={i} className="adr-module">{m}</span>)}
+        </div>
+
+        <div className="adr-pros-cons">
+          <div className="adr-pros">
+            <div className="adr-pros-label" style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <KG_Icon name="check" size={11} color="var(--green)" />
+              {t('adr.pros')}
+            </div>
+            {adr.pros.map((p, i) => (
+              <div key={i} className="adr-item">
+                <KG_Icon name="check" size={12} color="var(--green)" style={{ marginTop:2 }} />
+                <span>{p}</span>
+              </div>
+            ))}
+          </div>
+          <div className="adr-cons">
+            <div className="adr-cons-label" style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <KG_Icon name="warn" size={11} color="var(--amber)" />
+              {t('adr.cons')}
+            </div>
+            {adr.cons.map((c, i) => (
+              <div key={i} className="adr-item">
+                <KG_Icon name="warn" size={12} color="var(--amber)" style={{ marginTop:2 }} />
+                <span>{c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="adr-section-label">{t('adr.alts')}</div>
+        <table className="adr-alts-table">
+          <thead>
+            <tr>
+              <th>Alternative</th>
+              <th>{t('adr.alt.why')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {adr.alts.map((a, i) => (
+              <tr key={i}>
+                <td>{a.alt}</td>
+                <td>{a.why}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdrsPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const adrs = lang === 'en' ? ADRS_EN : ADRS_ES;
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="adrs" size={13} color="var(--green)" />{t('adr.eyebrow')}</div>
+        <h1 className="page-title">{t('adr.title')}</h1>
+        <p className="page-desc">{t('adr.desc')}</p>
+      </div>
+      <div className="section">
+        {adrs.map(adr => <AdrCard key={adr.id} adr={adr} t={t} />)}
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'adrs', content: AdrsPage });
+</script>
+</body></html>

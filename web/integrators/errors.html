@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Errors &amp; Responses — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function ErrorsPage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        validationTitle: 'Validation by layer',
+        layer: 'Layer',
+        responsibility: 'Responsibility',
+        example: 'Typical example',
+        response: 'Typical response',
+        validationInfo: 'KeyGo splits validation into HTTP, Domain and Use Case layers so business rules remain reusable and testable without Spring or HTTP.',
+      }
+      : {
+          validationTitle: 'Validación por capa',
+          layer: 'Capa',
+          responsibility: 'Responsabilidad',
+          example: 'Ejemplo típico',
+          response: 'Respuesta típica',
+          validationInfo: 'KeyGo separa la validación en capas HTTP, Domain y Use Case para que las reglas de negocio sigan siendo reutilizables y testeables sin Spring ni HTTP.',
+          mappingTitle: 'Mapping status / origin / layer',
+        };
+  const errors = [
+    { s:409, code:'USER_ALREADY_EXISTS',      o:'CLIENT_REQUEST' },
+    { s:404, code:'TENANT_NOT_FOUND',         o:'CLIENT_REQUEST' },
+    { s:403, code:'INSUFFICIENT_PERMISSIONS', o:'AUTH' },
+    { s:401, code:'TOKEN_EXPIRED',            o:'AUTH' },
+    { s:401, code:'REFRESH_TOKEN_REUSED',     o:'AUTH' },
+    { s:429, code:'RATE_LIMITED',             o:'INFRA' },
+    { s:404, code:'IDENTITY_NOT_FOUND',       o:'DOMAIN' },
+    { s:403, code:'ORGANIZATION_SUSPENDED',   o:'DOMAIN' },
+  ];
+  const layers = [
+    [
+      'HTTP',
+      lang === 'en' ? 'Format, nullability and structural constraints in request DTOs' : 'Formato, nulabilidad y restricciones estructurales en request DTOs',
+      '@NotBlank · @Email · @Size',
+      '400 INVALID_INPUT',
+    ],
+    [
+      'Domain',
+      lang === 'en' ? 'Pure business invariants in value objects and helpers' : 'Invariantes puras de negocio en value objects y helpers',
+      'Username regex · password policy',
+      '400 INVALID_INPUT / domain exception',
+    ],
+    [
+      'Use Case',
+      lang === 'en' ? 'Contextual or stateful rules that require repositories or aggregate state' : 'Reglas contextuales o con estado que requieren repositorios o estado de agregados',
+      'tenant active? · duplicate email? · role preconditions',
+      '409 BUSINESS_RULE_VIOLATION',
+    ],
+  ];
+  const mappingRows = [
+    ['400', 'CLIENT_REQUEST', 'HTTP', lang === 'en' ? 'Malformed payload, request DTO violations, missing params' : 'Payload malformado, violaciones de DTO request, parámetros faltantes'],
+    ['401', 'CLIENT_REQUEST', 'AUTH', lang === 'en' ? 'Missing or invalid credentials, token problems' : 'Credenciales ausentes o inválidas, problemas de token'],
+    ['403', 'BUSINESS_RULE', 'DOMAIN / USE_CASE', lang === 'en' ? 'Tenant suspended, self-registration blocked, insufficient authorization context' : 'Tenant suspendido, self-registration bloqueado, contexto de autorización insuficiente'],
+    ['404', 'CLIENT_REQUEST', 'USE_CASE', lang === 'en' ? 'Tenant, app or business resource not found' : 'Tenant, app o recurso de negocio no encontrado'],
+    ['409', 'BUSINESS_RULE', 'USE_CASE', lang === 'en' ? 'Conflicts such as duplicate resources or invalid state transitions' : 'Conflictos como recursos duplicados o transiciones de estado inválidas'],
+    ['429', 'CLIENT_REQUEST', 'INFRA', lang === 'en' ? 'Rate limiting or abuse protection' : 'Rate limiting o protección ante abuso'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="errors" size={13} color="var(--green)" />{t('err.eyebrow')}</div>
+        <h1 className="page-title">{t('err.title')}</h1>
+        <p className="page-desc">{t('err.desc')}</p>
+      </div>
+      <div className="section">
+        <h2>{t('err.h2.env')}</h2>
+        <div className="two-col">
+          <div><h3>{t('err.h3.ok')}</h3><KG_CodeBlock id="response_ok" /></div>
+          <div><h3>{t('err.h3.err')}</h3><KG_CodeBlock id="response_err" /></div>
+        </div>
+
+        <h2>{t('err.h2.cat')}</h2>
+        <div className="endpoint-list">
+          {errors.map((e, i) => {
+            const color = e.s>=500?'var(--red)':e.s>=400?'var(--amber)':'var(--green)';
+            const bg    = e.s>=500?'oklch(25% 0.08 25)':e.s>=400?'var(--amber-dim)':'var(--green-dim)';
+            return (
+              <div key={i} className="endpoint-row" style={{ gridTemplateColumns:'auto 1fr auto auto' }}>
+                <span className="method" style={{ color,background:bg,padding:'3px 6px',borderRadius:3,fontFamily:'var(--font-mono)',fontSize:10,fontWeight:700 }}>{e.s}</span>
+                <span className="endpoint-path" style={{ fontFamily:'var(--font-code)',fontSize:12,color:'var(--amber)' }}>{e.code}</span>
+                <span className="endpoint-desc" style={{ color:'var(--text3)',fontSize:11 }}>{e.o}</span>
+                <span className="endpoint-desc">{t('err.'+e.code)}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <h2>{copy.validationTitle}</h2>
+        <KG_Callout type="info">{copy.validationInfo}</KG_Callout>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{copy.layer}</th>
+              <th>{copy.responsibility}</th>
+              <th>{copy.example}</th>
+              <th>{copy.response}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {layers.map(([layer, responsibility, example, response]) => (
+              <tr key={layer}>
+                <td className="bc-name">{layer}</td>
+                <td>{responsibility}</td>
+                <td><code>{example}</code></td>
+                <td><code>{response}</code></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{copy.mappingTitle}</h2>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>HTTP</th>
+              <th>origin</th>
+              <th>layer</th>
+              <th>{lang === 'en' ? 'Typical source' : 'Fuente típica'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mappingRows.map(([http, origin, layer, source]) => (
+              <tr key={http + origin}>
+                <td className="bc-name">{http}</td>
+                <td><code>{origin}</code></td>
+                <td><code>{layer}</code></td>
+                <td>{source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{t('err.h2.pag')}</h2>
+        <KG_CodeBlock id="pagination" />
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'errors', content: ErrorsPage });
+</script>
+</body></html>

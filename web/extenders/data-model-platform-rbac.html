@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Platform RBAC — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const PLATFORM_RBAC_ER = `
+erDiagram
+    platform_roles {
+        string id
+        string code
+        string display_name
+    }
+    platform_role_hierarchy {
+        string child_role_id
+        string parent_role_id
+    }
+    platform_user_roles {
+        string id
+        string platform_user_id
+        string role_id
+        string scope_type
+        string contractor_id
+        string tenant_id
+    }
+
+    platform_roles ||--o| platform_role_hierarchy : child
+    platform_roles ||--o{ platform_role_hierarchy : parent
+    platform_roles ||--o{ platform_user_roles : assigned_in
+`;
+function DataModelPlatformRbacPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Platform RBAC',
+        title: 'Platform RBAC boundary',
+        desc: 'Platform RBAC is independent from tenant roles and app roles. It governs what a platform identity can do globally or in contractor/tenant-scoped administrative contexts.',
+        callout: 'A role code may look familiar across layers, but storage and inheritance are isolated: platform_roles never share hierarchy tables with tenant_roles or app_roles.',
+        h2Entities: 'Core entities',
+        h2Mer: 'ER diagram',
+        entities: [
+          ['platform_roles', 'Canonical platform role catalog', 'Global codes such as keygo_admin or keygo_account_admin live here.'],
+          ['platform_role_hierarchy', 'Single-parent inheritance tree', 'One child role can inherit from one parent role with bounded depth.'],
+          ['platform_user_roles', 'Scoped assignment edge', 'Assigns a platform role to a platform_user with GLOBAL, CONTRACTOR or TENANT scope.'],
+        ],
+        h2Scopes: 'Scope model',
+        scopes: [
+          ['GLOBAL', 'Role is effective platform-wide.'],
+          ['CONTRACTOR', 'Role applies only inside one contractor account context.'],
+          ['TENANT', 'Role applies only inside one tenant context.'],
+        ],
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'platform_role_hierarchy is a tree: one parent per child, no cycles, bounded depth.',
+          'platform_user_roles carries the scope type explicitly so authorization can distinguish global, contractor and tenant administration.',
+          'Platform RBAC never replaces tenant or app RBAC; it sits above them and can bypass tenant-local restrictions only when the policy allows it.',
+        ],
+        h2ContextRefs: 'Cross-context references',
+        refs: [
+          ['platform_user_roles.contractor_id', 'Links Platform RBAC to Billing when the assignment is scoped to one contractor.'],
+          ['platform_user_roles.tenant_id', 'Links Platform RBAC to Organization when the assignment is scoped to one tenant.'],
+        ],
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Platform RBAC',
+        title: 'Boundary de Platform RBAC',
+        desc: 'Platform RBAC es independiente de los roles de tenant y de app. Gobierna lo que una identidad de plataforma puede hacer globalmente o en contextos administrativos acotados a contractor/tenant.',
+        callout: 'Un código de rol puede sonar familiar entre capas, pero el almacenamiento y la herencia están aislados: platform_roles nunca comparte tablas de jerarquía con tenant_roles ni app_roles.',
+        h2Entities: 'Entidades núcleo',
+        h2Mer: 'Diagrama ER',
+        entities: [
+          ['platform_roles', 'Catálogo canónico de roles de plataforma', 'Aquí viven códigos globales como keygo_admin o keygo_account_admin.'],
+          ['platform_role_hierarchy', 'Árbol de herencia de padre único', 'Un rol hijo puede heredar de un rol padre con profundidad acotada.'],
+          ['platform_user_roles', 'Arista de asignación con scope', 'Asigna un rol de plataforma a un platform_user con scope GLOBAL, CONTRACTOR o TENANT.'],
+        ],
+        h2Scopes: 'Modelo de scope',
+        scopes: [
+          ['GLOBAL', 'El rol es efectivo en toda la plataforma.'],
+          ['CONTRACTOR', 'El rol aplica solo dentro del contexto de una cuenta contractor.'],
+          ['TENANT', 'El rol aplica solo dentro del contexto de un tenant.'],
+        ],
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'platform_role_hierarchy es un árbol: un padre por hijo, sin ciclos y con profundidad acotada.',
+          'platform_user_roles carga explícitamente el tipo de scope para que autorización distinga administración global, contractor y tenant.',
+          'Platform RBAC no reemplaza tenant ni app RBAC; se ubica por encima y solo puede bypass local cuando la política lo permite.',
+        ],
+        h2ContextRefs: 'Referencias cross-context',
+        refs: [
+          ['platform_user_roles.contractor_id', 'Conecta Platform RBAC con Billing cuando la asignación se acota a un contractor.'],
+          ['platform_user_roles.tenant_id', 'Conecta Platform RBAC con Organization cuando la asignación se acota a un tenant.'],
+        ],
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../extenders/security.html', lang === 'en' ? 'Security model' : 'Modelo de seguridad'],
+    ['../extenders/data-model-identity.html', 'Identity'],
+    ['../extenders/data-model-organization.html', 'Organization'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="shield" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Entities}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.entities.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="platform-rbac-er" definition={PLATFORM_RBAC_ER} />
+
+        <h2>{copy.h2Scopes}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Scope' : 'Scope'}</th><th>{lang === 'en' ? 'Meaning' : 'Significado'}</th></tr></thead>
+          <tbody>
+            {copy.scopes.map(([scope, meaning]) => <tr key={scope}><td className="bc-name">{scope}</td><td>{meaning}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2ContextRefs}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Reference' : 'Referencia'}</th><th>{lang === 'en' ? 'Meaning' : 'Significado'}</th></tr></thead>
+          <tbody>
+            {copy.refs.map(([ref, meaning]) => <tr key={ref}><td className="bc-name">{ref}</td><td>{meaning}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelplatform', content: DataModelPlatformRbacPage });
+</script>
+</body></html>

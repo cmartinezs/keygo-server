@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quickstart — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="shared/i18n.js"></script>
+<script src="shared/nav.js"></script>
+<script src="shared/icons.js"></script>
+<script src="shared/code-data.js"></script>
+<script src="shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+function QuickstartPage() {
+  const t = KG_useT();
+  const steps = [1,2,3,4,5,6].map(n => ({ title: t('qs.step'+n+'.t'), text: t('qs.step'+n+'.d') }));
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="quickstart" size={13} color="var(--green)" />{t('qs.eyebrow')}</div>
+        <h1 className="page-title">{t('qs.title')}</h1>
+        <p className="page-desc">{t('qs.desc')}</p>
+      </div>
+      <div className="section">
+        <div className="flow-steps">
+          {steps.map((s, i) => (
+            <div key={i} className="flow-step">
+              <div className="flow-num">{String(i+1).padStart(2,'0')}</div>
+              <div className="flow-content">
+                <div className="flow-title">{s.title}</div>
+                <div className="flow-text">{s.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <KG_CodeBlock id="pkce_authorize" />
+        <KG_CodeBlock id="pkce_token" />
+        <KG_Callout type="success">{t('qs.callout')}</KG_Callout>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'quickstart', content: QuickstartPage });
+</script>
+</body></html>

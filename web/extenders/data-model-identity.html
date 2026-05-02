@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Model · Identity — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const IDENTITY_ER = `
+erDiagram
+    platform_users {
+        uuid id PK
+        citext email
+        varchar password_hash
+        varchar status
+        timestamptz email_verified_at
+    }
+    email_verifications {
+        uuid id PK
+        uuid platform_user_id FK
+        varchar code
+        timestamptz expires_at
+        timestamptz used_at
+    }
+    password_reset_tokens {
+        uuid id PK
+        uuid platform_user_id FK
+        varchar token_hash
+        timestamptz expires_at
+        timestamptz used_at
+    }
+    platform_user_notification_preferences {
+        uuid id PK
+        uuid platform_user_id FK
+        boolean security_alerts_email
+        boolean billing_alerts_email
+    }
+    platform_sessions {
+        uuid id PK
+        uuid platform_user_id FK
+        varchar status
+        timestamptz expires_at
+        varchar login_method
+    }
+    oauth_sessions {
+        uuid id PK
+        uuid platform_session_id FK
+        uuid platform_user_id FK
+        uuid tenant_id FK
+        uuid tenant_user_id FK
+        uuid client_app_id FK
+        uuid signing_key_id FK
+        varchar status
+    }
+    authorization_codes {
+        uuid id PK
+        varchar code_hash
+        uuid platform_session_id FK
+        uuid platform_user_id FK
+        uuid tenant_id FK
+        uuid client_app_id FK
+        varchar status
+    }
+    refresh_tokens {
+        uuid id PK
+        varchar token_hash
+        uuid oauth_session_id FK
+        uuid platform_user_id FK
+        uuid client_app_id FK
+        uuid replaced_by_id FK
+        varchar status
+    }
+    signing_keys {
+        uuid id PK
+        uuid tenant_id FK
+        varchar kid
+        varchar status
+    }
+
+    platform_users ||--o{ email_verifications : verifies
+    platform_users ||--o{ password_reset_tokens : resets
+    platform_users ||--|| platform_user_notification_preferences : configures
+    platform_users ||--o{ platform_sessions : opens
+    platform_sessions ||--o{ oauth_sessions : originates
+    platform_sessions ||--o{ authorization_codes : issues
+    oauth_sessions ||--o{ refresh_tokens : rotates
+    refresh_tokens ||--o| refresh_tokens : replaces
+    signing_keys ||--o{ oauth_sessions : signs
+`;
+function DataModelIdentityPage() {
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        eyebrow: 'Data Model · Identity',
+        title: 'Identity storage boundary',
+        desc: 'Identity is the global root of personhood and authentication in KeyGo. It owns credentials, verification artifacts, platform sessions, OAuth sessions and token material.',
+        callout: 'A tenant never owns a person root. Organization references Identity through technical IDs, but credentials, recovery and session state stay here.',
+        h2Entities: 'Core entities',
+        h2Mer: 'ER diagram',
+        entities: [
+          ['platform_users', 'Global person root', 'Unique email, password hash, profile state and verification timestamps.'],
+          ['email_verifications', 'Short-lived verification artifact', 'Only one active code per identity at a time.'],
+          ['password_reset_tokens', 'Recovery artifact', 'Stored only as token hash and consumed once.'],
+          ['platform_user_notification_preferences', 'One-to-one preferences', 'Communication switches attached directly to the identity.'],
+          ['platform_activity_events', 'Self-service activity feed', 'User-facing activity log, distinct from immutable audit.'],
+          ['platform_sessions', 'Global authenticated session', 'Tracks IP, device, login method, strength and lifetime.'],
+          ['oauth_sessions', 'Tenant/app scoped auth session', 'Binds platform session + tenant + tenant_user + client_app context.'],
+          ['authorization_codes', 'Single-use bridge artifact', 'Stores redirect_uri and PKCE metadata as part of the login flow.'],
+          ['refresh_tokens', 'Rotating long-lived credential', 'Chained by replaced_by_id for replay detection.'],
+          ['signing_keys', 'JWT signing material', 'Platform-global or tenant-scoped keys referenced during issuance.'],
+        ],
+        h2Lifecycle: 'Lifecycle chain',
+        h2Invariants: 'Key invariants',
+        invariants: [
+          'platform_users is the only place that owns password hashes and verified email state.',
+          'authorization_codes and refresh_tokens are persisted as hashes; plaintext values are not stored.',
+          'oauth_sessions keeps user, tenant, tenant_user and client_app context aligned before tokens are issued.',
+          'signing_keys can be platform-global (tenant_id = null) or tenant-specific; issuance references the exact key used.',
+        ],
+        h2Relations: 'Critical relations',
+        relations: [
+          ['Identity → Platform session', 'One identity can open many platform_sessions simultaneously.'],
+          ['Platform session → OAuth session', 'One platform session can originate multiple oauth_sessions across apps and tenants.'],
+          ['OAuth session → Refresh tokens', 'Refresh tokens belong to one oauth_session and form a rotation chain.'],
+          ['Identity → Recovery / verification artifacts', 'At most one active verification code and one active password reset token per identity.'],
+        ],
+        h2Links: 'Related pages',
+      }
+    : {
+        eyebrow: 'Modelo de Datos · Identity',
+        title: 'Boundary de almacenamiento Identity',
+        desc: 'Identity es la raíz global de persona y autenticación en KeyGo. Posee credenciales, artefactos de verificación, sesiones de plataforma, sesiones OAuth y material de tokens.',
+        callout: 'Un tenant nunca posee la raíz de una persona. Organization referencia Identity mediante IDs técnicos, pero credenciales, recuperación y estado de sesión permanecen aquí.',
+        h2Entities: 'Entidades núcleo',
+        h2Mer: 'Diagrama ER',
+        entities: [
+          ['platform_users', 'Raíz global de persona', 'Email único, password hash, estado de perfil y timestamps de verificación.'],
+          ['email_verifications', 'Artefacto efímero de verificación', 'Solo un código activo por identidad al mismo tiempo.'],
+          ['password_reset_tokens', 'Artefacto de recuperación', 'Se almacena solo como hash y se consume una vez.'],
+          ['platform_user_notification_preferences', 'Preferencias uno-a-uno', 'Switches de comunicación vinculados directo a la identidad.'],
+          ['platform_activity_events', 'Feed de actividad self-service', 'Historial de actividad orientado al usuario, distinto del audit inmutable.'],
+          ['platform_sessions', 'Sesión global autenticada', 'Guarda IP, dispositivo, login method, fortaleza y lifetime.'],
+          ['oauth_sessions', 'Sesión auth acotada a tenant/app', 'Vincula platform session + tenant + tenant_user + client_app.'],
+          ['authorization_codes', 'Artefacto puente de un solo uso', 'Guarda redirect_uri y metadata PKCE como parte del login flow.'],
+          ['refresh_tokens', 'Credencial rotativa de larga vida', 'Se encadena por replaced_by_id para replay detection.'],
+          ['signing_keys', 'Material de firma JWT', 'Claves globales de plataforma o acotadas a tenant referenciadas al emitir tokens.'],
+        ],
+        h2Lifecycle: 'Cadena de lifecycle',
+        h2Invariants: 'Invariantes clave',
+        invariants: [
+          'platform_users es el único lugar que posee password hashes y estado de email verificado.',
+          'authorization_codes y refresh_tokens se persisten como hashes; no se guarda el valor plano.',
+          'oauth_sessions mantiene alineado el contexto user, tenant, tenant_user y client_app antes de emitir tokens.',
+          'signing_keys puede ser global de plataforma (tenant_id = null) o específica de tenant; la emisión referencia la clave exacta usada.',
+        ],
+        h2Relations: 'Relaciones críticas',
+        relations: [
+          ['Identity → Platform session', 'Una identidad puede abrir múltiples platform_sessions simultáneamente.'],
+          ['Platform session → OAuth session', 'Una platform session puede originar múltiples oauth_sessions entre apps y tenants.'],
+          ['OAuth session → Refresh tokens', 'Los refresh tokens pertenecen a una oauth_session y forman una cadena de rotación.'],
+          ['Identity → Recovery / verification artifacts', 'Como máximo un código de verificación activo y un token de reset activo por identidad.'],
+        ],
+        h2Links: 'Páginas relacionadas',
+      };
+  const links = [
+    ['../integrators/session-model.html', lang === 'en' ? 'Session model for integrators' : 'Modelo de sesión para integradores'],
+    ['../extenders/data-model-platform-rbac.html', 'Platform RBAC'],
+    ['../extenders/data-model-organization.html', 'Organization'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="key" size={13} color="var(--blue)" />{copy.eyebrow}</div>
+        <h1 className="page-title">{copy.title}</h1>
+        <p className="page-desc">{copy.desc}</p>
+      </div>
+      <div className="section">
+        <KG_Callout type="info">{copy.callout}</KG_Callout>
+
+        <h2>{copy.h2Entities}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Entity' : 'Entidad'}</th><th>{lang === 'en' ? 'Role' : 'Rol'}</th><th>{lang === 'en' ? 'Why it matters' : 'Por qué importa'}</th></tr></thead>
+          <tbody>
+            {copy.entities.map(([entity, role, why]) => <tr key={entity}><td className="bc-name">{entity}</td><td>{role}</td><td>{why}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Mer}</h2>
+        <KG_MermaidDiagram id="identity-er" definition={IDENTITY_ER} />
+
+        <h2>{copy.h2Lifecycle}</h2>
+        <div className="diagram-block">
+{`platform_users
+  ├─ email_verifications / password_reset_tokens
+  ├─ platform_user_notification_preferences
+  ├─ platform_activity_events
+  └─ platform_sessions
+       ├─ oauth_sessions
+       │    └─ refresh_tokens (rotation via replaced_by_id)
+       └─ authorization_codes
+
+signing_keys
+  └─ referenced by oauth_sessions / token issuance`}
+        </div>
+
+        <h2>{copy.h2Invariants}</h2>
+        <ul className="dense-list">
+          {copy.invariants.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <h2>{copy.h2Relations}</h2>
+        <table className="bc-table">
+          <thead><tr><th>{lang === 'en' ? 'Relation' : 'Relación'}</th><th>{lang === 'en' ? 'Meaning' : 'Significado'}</th></tr></thead>
+          <tbody>
+            {copy.relations.map(([relation, meaning]) => <tr key={relation}><td className="bc-name">{relation}</td><td>{meaning}</td></tr>)}
+          </tbody>
+        </table>
+
+        <h2>{copy.h2Links}</h2>
+        <div className="doc-links">
+          {links.map(([href, label]) => <a key={href} className="doc-link" href={href}>{label}</a>)}
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'datamodelidentity', content: DataModelIdentityPage });
+</script>
+</body></html>

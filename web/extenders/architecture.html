@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Architecture — KeyGo Server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/keygo.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/code-data.js"></script>
+<script src="../shared/layout.js" type="text/babel"></script>
+<style>
+.mermaid-wrap {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px 24px;
+  margin-bottom: 32px; overflow-x: auto;
+  display: flex; justify-content: center;
+}
+.mermaid-wrap svg { max-width: 100%; height: auto; }
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+// Mermaid diagram definition
+const ARCH_DIAGRAM = `
+flowchart BT
+  classDef domain  fill:#0d2b1a,stroke:#22c55e,color:#86efac,rx:6
+  classDef app     fill:#0d1a2b,stroke:#3b82f6,color:#93c5fd,rx:6
+  classDef infra   fill:#1e1a0d,stroke:#f59e0b,color:#fcd34d,rx:6
+  classDef run     fill:#0d1a2b,stroke:#60a5fa,color:#bfdbfe,rx:6
+
+  DOMAIN["keygo-domain\nEntities · Value Objects · Aggregates\n⚠ NO Spring dependencies"]
+  APP["keygo-app\nUse Cases · Commands · Queries · Ports OUT"]
+  API["keygo-api\nControllers · DTOs · OpenAPI · Error Handlers"]
+  INFRA["keygo-infra\nJWT Signer · JWKS Builder · PKCE Verifier"]
+  SUPA["keygo-supabase\nJPA Entities · Repositories · Flyway Migrations"]
+  RUN["keygo-run\nSpring Boot Main · Wiring · Security Filters"]
+
+  APP --> DOMAIN
+  API --> APP
+  INFRA --> APP
+  SUPA --> APP
+  RUN --> API
+  RUN --> INFRA
+  RUN --> SUPA
+
+  class DOMAIN domain
+  class APP app
+  class API,INFRA,SUPA infra
+  class RUN run
+`;
+
+function ArchitecturePage() {
+  const t = KG_useT();
+  const { lang } = React.useContext(window.KG_LangCtx);
+  const copy = lang === 'en'
+    ? {
+        principlesTitle: 'Architectural principles',
+        runtimeTitle: 'Runtime and observability',
+        principle: 'Principle',
+        implication: 'Technical implication',
+      }
+    : {
+        principlesTitle: 'Principios arquitectónicos',
+        runtimeTitle: 'Runtime y observabilidad',
+        principle: 'Principio',
+        implication: 'Implicancia técnica',
+      };
+  const principles = [
+    ['Hexagonal / Ports & Adapters', lang === 'en' ? 'The domain stays isolated from frameworks; infra is replaceable behind ports.' : 'El dominio permanece aislado de frameworks; la infraestructura es reemplazable detrás de puertos.'],
+    ['DDD táctico', lang === 'en' ? 'Entities, value objects, aggregates and domain services encode business invariants.' : 'Entidades, value objects, agregados y domain services codifican invariantes del negocio.'],
+    ['Multi-tenancy core', lang === 'en' ? 'Tenant isolation is modeled in entities, sessions and repositories, not added as UI filtering.' : 'El aislamiento tenant se modela en entidades, sesiones y repositorios, no como filtrado de UI.'],
+    ['Versioned API', lang === 'en' ? 'HTTP contracts are explicit under /api/v1 with stable envelope semantics and deprecation control.' : 'Los contratos HTTP son explícitos bajo /api/v1 con envelope estable y control de deprecación.'],
+    ['Clear contracts', lang === 'en' ? 'Controllers expose DTOs and use cases, never JPA entities or persistence details.' : 'Los controllers exponen DTOs y use cases; nunca entidades JPA ni detalles de persistencia.'],
+    ['Observability by design', lang === 'en' ? 'traceId in MDC, Prometheus metrics, health probes and distributed traces are first-class concerns.' : 'traceId en MDC, métricas Prometheus, health probes y traces distribuidos son preocupaciones de primera clase.'],
+  ];
+  const flow = [
+    ['keygo-run',      'arch.flow.1'],
+    ['keygo-api',      'arch.flow.2'],
+    ['keygo-app',      'arch.flow.3'],
+    ['keygo-supabase', 'arch.flow.4'],
+    ['keygo-domain',   'arch.flow.5'],
+    ['keygo-api',      'arch.flow.6'],
+  ];
+  return (
+    <>
+      <div className="page-header">
+        <div className="page-eyebrow" style={{ display:'flex', alignItems:'center', gap:6 }}><KG_Icon name="architecture" size={13} color="var(--green)" />{t('arch.eyebrow')}</div>
+        <h1 className="page-title">{t('arch.title')}</h1>
+        <p className="page-desc">{t('arch.desc')}</p>
+      </div>
+      <div className="section">
+        <h2>{copy.principlesTitle}</h2>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>{copy.principle}</th>
+              <th>{copy.implication}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {principles.map(([principle, implication]) => (
+              <tr key={principle}>
+                <td className="bc-name">{principle}</td>
+                <td>{implication}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>{t('arch.h2.layers')}</h2>
+        <KG_MermaidDiagram id="arch-diagram-svg" definition={ARCH_DIAGRAM} />
+
+        <h2>{t('arch.h2.flow')}</h2>
+        <div className="flow-steps">
+          {flow.map(([mod, fk], i) => (
+            <div key={i} className="flow-step">
+              <div className="flow-num">{String(i+1).padStart(2,'0')}</div>
+              <div className="flow-content">
+                <div className="flow-title"><code>{mod}</code> — {t(fk+'.t')}</div>
+                <div className="flow-text">{t(fk+'.d')}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{copy.runtimeTitle}</h2>
+        <div className="kv-grid">
+          <div className="kv-key">Logs</div>
+          <div className="kv-val"><code>ELK stack · MDC traceId · INFO/WARN/ERROR event logging</code></div>
+          <div className="kv-key">Metrics</div>
+          <div className="kv-val"><code>Prometheus via /actuator/prometheus · HTTP/JVM/business counters</code></div>
+          <div className="kv-key">Traces</div>
+          <div className="kv-val"><code>Jaeger / Zipkin · request path + dependency timing breakdown</code></div>
+          <div className="kv-key">Health</div>
+          <div className="kv-val"><code>/actuator/health · liveness · readiness · startup probes</code></div>
+        </div>
+      </div>
+    </>
+  );
+}
+KG_mountPage({ activeId: 'architecture', content: ArchitecturePage });
+</script>
+</body></html>
