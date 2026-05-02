@@ -21,7 +21,8 @@
       "Bash(./mvnw test *)",
       "Bash(python3 *)",
       "Bash(./mvnw install *)",
-      "Bash(./mvnw compile *)"
+      "Bash(./mvnw compile *)",
+      "Bash(awk '{print length\\($0\\)-2, $0}')"
     ]
   }
 }
