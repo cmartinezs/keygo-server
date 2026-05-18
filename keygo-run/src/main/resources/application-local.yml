@@ -2,3 +2,24 @@ keygo:
   email:
     template-cache-enabled: false  # No cachear en desarrollo para hot reload
 
+spring:
+  docker:
+    compose:
+      file: compose.yml
+      enabled: true
+      lifecycle-management: start-and-stop
+      stop:
+        command: stop
+        timeout: 30s
+
+  mail:
+    host: localhost
+    port: 1025
+    username:
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false

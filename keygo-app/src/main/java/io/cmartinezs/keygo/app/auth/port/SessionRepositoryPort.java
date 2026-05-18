@@ -44,5 +44,15 @@ public interface SessionRepositoryPort {
    * @return lista de sesiones, ordenada por lastAccessedAt DESC
    */
   List<Session> findAllByPlatformUserId(UUID platformUserId);
+
+  /**
+   * Devuelve todas las sesiones de un tenant_user en un tenant específico (sin filtro de estado).
+   * Garantiza aislamiento: solo devuelve sesiones del usuario en ese tenant.
+   *
+   * @param tenantUserId UUID del tenant_user
+   * @param tenantId     UUID del tenant
+   * @return lista de sesiones, ordenada por lastAccessedAt DESC
+   */
+  List<Session> findAllByTenantUserIdAndTenantId(UUID tenantUserId, UUID tenantId);
 }
 

@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.membership.filter;
 
 import io.cmartinezs.keygo.app.shared.PageFilter;
+import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,14 +18,16 @@ public class MembershipFilter extends PageFilter {
       "createdAt"
   );
 
-  private final UUID userId;         // optional user ID filter
-  private final UUID clientAppId;    // optional client app ID filter
+  private final UUID userId;               // optional user ID filter
+  private final UUID clientAppId;          // optional client app ID filter
+  private final MembershipStatus status;   // optional status filter
 
-  private MembershipFilter(UUID userId, UUID clientAppId,
+  private MembershipFilter(UUID userId, UUID clientAppId, MembershipStatus status,
                            int page, int size, String sortBy, String sortOrder) {
     super(page, size, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
     this.userId = userId;
     this.clientAppId = clientAppId;
+    this.status = status;
   }
 
   /**
@@ -40,7 +43,12 @@ public class MembershipFilter extends PageFilter {
    */
   public static MembershipFilter of(UUID userId, UUID clientAppId,
                                     int page, int size, String sortBy, String sortOrder) {
-    return new MembershipFilter(userId, clientAppId, page, size, sortBy, sortOrder);
+    return new MembershipFilter(userId, clientAppId, null, page, size, sortBy, sortOrder);
+  }
+
+  public static MembershipFilter of(UUID userId, UUID clientAppId, MembershipStatus status,
+                                    int page, int size, String sortBy, String sortOrder) {
+    return new MembershipFilter(userId, clientAppId, status, page, size, sortBy, sortOrder);
   }
 
   public UUID getUserId() {
@@ -51,11 +59,19 @@ public class MembershipFilter extends PageFilter {
     return clientAppId;
   }
 
+  public MembershipStatus getStatus() {
+    return status;
+  }
+
   public boolean hasUserId() {
     return userId != null;
   }
 
   public boolean hasClientAppId() {
     return clientAppId != null;
+  }
+
+  public boolean hasStatus() {
+    return status != null;
   }
 }

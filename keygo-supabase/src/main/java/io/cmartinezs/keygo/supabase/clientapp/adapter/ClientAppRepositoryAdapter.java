@@ -114,8 +114,15 @@ public class ClientAppRepositoryAdapter implements ClientAppRepositoryPort {
         predicates.add(cb.equal(root.get("status"), filter.getStatus()));
       }
 
-      // Filter by name (case-insensitive LIKE)
-      if (filter.hasNameLike()) {
+      // Full-text OR search across name and clientId
+      if (filter.hasQ()) {
+        String pattern = "%" + filter.getQ().toLowerCase() + "%";
+        predicates.add(cb.or(
+            cb.like(cb.lower(root.get("name")), pattern),
+            cb.like(cb.lower(root.get("clientId")), pattern)
+        ));
+      } else if (filter.hasNameLike()) {
+        // Filter by name (case-insensitive LIKE)
         predicates.add(cb.like(
             cb.lower(root.get("name")),
             "%" + filter.getNameLike().toLowerCase() + "%"

@@ -4,6 +4,7 @@ import io.cmartinezs.keygo.app.clientapp.command.UpdateClientAppCommand;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidClientAppConfigException;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
@@ -70,7 +71,7 @@ class UpdateClientAppUseCaseTest {
     UpdateClientAppCommand command = new UpdateClientAppCommand(
         TENANT_SLUG, CLIENT_ID, "New Name", "desc",
         Set.of("https://example.com/callback"),
-        Set.of(AllowedGrant.CLIENT_CREDENTIALS), Set.of("read"));
+        Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of("read"));
 
     when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
     when(clientAppRepositoryPort.findByClientIdAndTenantId(any(), any()))
@@ -99,6 +100,25 @@ class UpdateClientAppUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(ClientAppNotFoundException.class);
+  }
+
+  @Test
+  void execute_publicAppUpdatedWithClientCredentials_shouldThrow() {
+    // Given
+    Tenant tenant = activeTenant();
+    ClientApp existing = app(tenant.getId()); // PUBLIC type
+    UpdateClientAppCommand command = new UpdateClientAppCommand(
+        TENANT_SLUG, CLIENT_ID, "New Name", null,
+        Set.of(), Set.of(AllowedGrant.CLIENT_CREDENTIALS), Set.of());
+
+    when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
+    when(clientAppRepositoryPort.findByClientIdAndTenantId(any(), any()))
+        .thenReturn(Optional.of(existing));
+
+    // When / Then
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(InvalidClientAppConfigException.class)
+        .hasMessageContaining("CLIENT_CREDENTIALS");
   }
 }
 

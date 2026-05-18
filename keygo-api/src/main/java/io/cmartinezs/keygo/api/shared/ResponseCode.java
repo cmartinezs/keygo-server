@@ -99,6 +99,7 @@ public enum ResponseCode {
   MEMBERSHIP_REVOKED("MEMBERSHIP_REVOKED", "Membership revoked successfully"),
   MEMBERSHIP_SUSPENDED("MEMBERSHIP_SUSPENDED", "Membership suspended successfully"),
   MEMBERSHIP_APPROVED("MEMBERSHIP_APPROVED", "Membership approved successfully"),
+  NO_MEMBERSHIP("NO_MEMBERSHIP", "User has no active membership for this application"),
 
   // Role Operations
   ROLE_CREATED("ROLE_CREATED", "Role created successfully"),
@@ -119,6 +120,7 @@ public enum ResponseCode {
   CLIENT_CREDENTIALS_TOKEN_ISSUED("CLIENT_CREDENTIALS_TOKEN_ISSUED", "Client credentials token issued successfully"),
   REFRESH_TOKEN_ROTATED("REFRESH_TOKEN_ROTATED", "Refresh token rotated successfully"),
   TOKEN_REVOKED("TOKEN_REVOKED", "Token revoked successfully"),
+  LOGOUT_SUCCESSFUL("LOGOUT_SUCCESSFUL", "Logout successful — current session terminated"),
   USER_INFO_RETRIEVED("USER_INFO_RETRIEVED", "User information retrieved successfully"),
   JWKS_RETRIEVED("JWKS_RETRIEVED", "JWK Set retrieved successfully"),
   OIDC_CONFIGURATION_RETRIEVED("OIDC_CONFIGURATION_RETRIEVED", "OpenID Configuration retrieved successfully"),
@@ -167,6 +169,7 @@ public enum ResponseCode {
 
   // Client App errors
   CLIENT_APP_INACTIVE("CLIENT_APP_INACTIVE", "Client application is not active"),
+  APP_OAUTH_CONFIG_INVALID("APP_OAUTH_CONFIG_INVALID", "Invalid OAuth configuration for the client application"),
 
   // Tenant errors
   DUPLICATE_TENANT("DUPLICATE_TENANT", "A tenant with this slug already exists"),

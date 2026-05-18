@@ -4821,8 +4821,16 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/billing/catalog",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "billing", "catalog"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "billing",
+                "catalog"
+              ]
             },
             "description": "Retorna todos los planes públicos de plataforma (clientAppId IS NULL).\n\n**Auth:** Público | **ResponseCode:** `PLATFORM_PLAN_CATALOG_RETRIEVED` | **HTTP:** 200 OK"
           },
@@ -4853,8 +4861,17 @@
             "header": [],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/billing/catalog/PERSONAL",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "billing", "catalog", "PERSONAL"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "billing",
+                "catalog",
+                "PERSONAL"
+              ]
             },
             "description": "Retorna el detalle de un plan de plataforma por código.\n\n**Auth:** Público | **ResponseCode:** `PLATFORM_PLAN_RETRIEVED` | **HTTP:** 200 OK"
           },
@@ -4891,8 +4908,16 @@
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/billing/subscription",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "billing", "subscription"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "billing",
+                "subscription"
+              ]
             },
             "description": "Retorna la suscripción activa del contractor de plataforma asociado al usuario autenticado.\n\n**Auth:** Bearer JWT con rol `KEYGO_ADMIN` o `KEYGO_TENANT_ADMIN` | **ResponseCode:** `PLATFORM_SUBSCRIPTION_RETRIEVED` | **HTTP:** 200 OK"
           },
@@ -4929,8 +4954,17 @@
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/billing/subscription/cancel",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "billing", "subscription", "cancel"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "billing",
+                "subscription",
+                "cancel"
+              ]
             },
             "description": "Marca la suscripción de plataforma para cancelación al fin del período actual.\n\n**Auth:** Bearer JWT con rol `KEYGO_ADMIN` o `KEYGO_TENANT_ADMIN` | **ResponseCode:** `PLATFORM_SUBSCRIPTION_CANCELLED` | **HTTP:** 200 OK"
           },
@@ -4967,8 +5001,16 @@
             ],
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/billing/invoices",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "billing", "invoices"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "billing",
+                "invoices"
+              ]
             },
             "description": "Retorna todas las facturas del contractor de plataforma asociado al usuario autenticado.\n\n**Auth:** Bearer JWT con rol `KEYGO_ADMIN` o `KEYGO_TENANT_ADMIN` | **ResponseCode:** `PLATFORM_INVOICES_RETRIEVED` | **HTTP:** 200 OK"
           },
@@ -5003,7 +5045,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -5011,8 +5056,16 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/account/check-email",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "account", "check-email"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "check-email"
+              ]
             },
             "description": "Verifica si un email ya existe como platform user antes del ToS en hosted login. Requiere la cookie de sesión creada por `GET /platform/oauth2/authorize`.\n\n**Auth:** Público con JSESSIONID previa | **ResponseCode:** `PLATFORM_USER_EMAIL_FOUND` / `PLATFORM_USER_EMAIL_NOT_FOUND` / `AUTHENTICATION_REQUIRED` | **HTTP:** 200 / 404 / 401"
           },
@@ -5039,7 +5092,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -5047,8 +5103,16 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/account/forgot-password",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "account", "forgot-password"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "forgot-password"
+              ]
             },
             "description": "Solicita un token de recuperación de contraseña para un usuario de plataforma. Siempre retorna 200 (anti-enumeración).\n\n**Auth:** Público | **ResponseCode:** `ACCOUNT_PASSWORD_RECOVERY_SENT` | **HTTP:** 200 OK"
           },
@@ -5077,7 +5141,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -5085,8 +5152,16 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/account/recover-password",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "account", "recover-password"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "recover-password"
+              ]
             },
             "description": "Restablece la contraseña usando el recovery token recibido por email.\n\n**Auth:** Público | **ResponseCode:** `ACCOUNT_PASSWORD_RECOVERED` | **HTTP:** 200 OK"
           },
@@ -5111,7 +5186,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -5119,8 +5197,16 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/account/reset-password",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "account", "reset-password"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "reset-password"
+              ]
             },
             "description": "Reset de contraseña para usuario en estado RESET_PASSWORD. Requiere request_id (del 401 del login bloqueado), contraseña temporal, nueva contraseña y código de verificación.\n\n**Auth:** Público | **ResponseCode:** `ACCOUNT_PASSWORD_RESET` | **HTTP:** 200 OK"
           },
@@ -5145,7 +5231,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -5153,8 +5242,16 @@
             },
             "url": {
               "raw": "{{fullBaseUrl}}/api/v1/platform/oauth2/revoke",
-              "host": ["{{fullBaseUrl}}"],
-              "path": ["api", "v1", "platform", "oauth2", "revoke"]
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "oauth2",
+                "revoke"
+              ]
             },
             "description": "Revoca un refresh token de plataforma. Idempotente — retorna 200 incluso si el token no existe o ya fue revocado (RFC 7009).\n\n**Auth:** Público | **ResponseCode:** `TOKEN_REVOKED` | **HTTP:** 200 OK"
           },
@@ -5168,6 +5265,141 @@
                   "pm.test(\"ResponseCode is TOKEN_REVOKED\", () => {",
                   "  const body = pm.response.json();",
                   "  pm.expect(body.success.code).to.equal(\"TOKEN_REVOKED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Platform Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{platformAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/profile",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "profile"
+              ]
+            },
+            "description": "Retorna el perfil completo del usuario de plataforma autenticado.\n\n**Auth:** Bearer `{{platformAccessToken}}` | **ResponseCode:** `USER_PROFILE_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is USER_PROFILE_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"USER_PROFILE_RETRIEVED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH Platform Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{platformAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Carlos\",\n  \"last_name\": \"Martinez\",\n  \"locale\": \"es-CL\"\n}"
+            },
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/profile",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "profile"
+              ]
+            },
+            "description": "Actualiza parcialmente el perfil del usuario de plataforma autenticado (PATCH — solo se actualizan campos enviados).\n\n**Auth:** Bearer `{{platformAccessToken}}` | **ResponseCode:** `USER_PROFILE_UPDATED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is USER_PROFILE_UPDATED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"USER_PROFILE_UPDATED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Platform Account Access",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{platformAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{fullBaseUrl}}/api/v1/platform/account/access",
+              "host": [
+                "{{fullBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "platform",
+                "account",
+                "access"
+              ]
+            },
+            "description": "Retorna todos los tenants y apps a los que el usuario de plataforma autenticado tiene membresias, agrupados por tenant. Todo se deriva del token, sin parametros adicionales.\n\n**Auth:** Bearer `{{platformAccessToken}}` | **ResponseCode:** `ACCOUNT_ACCESS_RETRIEVED` | **HTTP:** 200 OK"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ResponseCode is ACCOUNT_ACCESS_RETRIEVED\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success.code).to.equal(\"ACCOUNT_ACCESS_RETRIEVED\");",
+                  "});",
+                  "pm.test(\"data is array\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
                   "});"
                 ]
               }

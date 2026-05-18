@@ -48,7 +48,7 @@ import java.util.List;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps")
 @Tag(name = "Client Apps", description = "OAuth2 client application management per tenant — requires Bearer JWT")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantClientAppController {
 
   private final CreateClientAppUseCase createClientAppUseCase;
@@ -140,6 +140,8 @@ public class TenantClientAppController {
       @RequestParam(required = false) ClientAppStatus status,
       @Parameter(description = "Partial match on application name (case-insensitive)")
       @RequestParam(name = "name_like", required = false) String nameLike,
+      @Parameter(description = "OR search across name and client_id (case-insensitive). Overrides name_like when set.")
+      @RequestParam(required = false) String q,
       @Parameter(description = "Zero-based page number", example = "0")
       @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size (1–200)", example = "20")
@@ -149,7 +151,7 @@ public class TenantClientAppController {
       @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
       @RequestParam(required = false) String order) {
 
-    ClientAppFilter filter = ClientAppFilter.of(status, nameLike, page, size, sort, order);
+    ClientAppFilter filter = ClientAppFilter.of(status, nameLike, q, page, size, sort, order);
     PagedResult<ClientApp> result = listClientAppsUseCase.execute(tenantSlug, filter);
 
     List<ClientAppData> content = result.getContent().stream()

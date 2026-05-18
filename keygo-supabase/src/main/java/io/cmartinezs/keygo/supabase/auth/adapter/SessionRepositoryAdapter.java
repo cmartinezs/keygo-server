@@ -129,6 +129,14 @@ public class SessionRepositoryAdapter implements SessionRepositoryPort {
         .toList();
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public List<Session> findAllByTenantUserIdAndTenantId(UUID tenantUserId, UUID tenantId) {
+    return sessionJpaRepository.findAllByTenantUserIdAndTenantId(tenantUserId, tenantId).stream()
+        .map(SessionPersistenceMapper::toDomain)
+        .toList();
+  }
+
   private ClientAppEntity resolveInternalClientApp() {
     return clientAppJpaRepository
         .findByClientId(INTERNAL_PLATFORM_CLIENT_ID)

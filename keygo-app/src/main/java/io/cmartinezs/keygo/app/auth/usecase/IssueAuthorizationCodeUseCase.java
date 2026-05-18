@@ -19,6 +19,7 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipPendingException;
+import io.cmartinezs.keygo.domain.membership.exception.NoMembershipException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
@@ -90,30 +91,33 @@ public class IssueAuthorizationCodeUseCase {
                     new UserNotFoundException("id", String.valueOf(userId)));
 
     // Validar app cliente
-    ClientAppId clientAppId =
+    ClientApp clientApp =
         clientAppRepository
             .findByClientIdAndTenantId(new ClientId(command.clientId()), tenantId)
-            .map(ClientApp::getId)
             .orElseThrow(
                 () ->
                     new ClientAppNotFoundException(
                         "Client app not found: " + command.clientId()));
+    ClientAppId clientAppId = clientApp.getId();
 
-    // Validar que el usuario tiene acceso a la app (membership activa)
-    Membership membership =
-        membershipRepository
-            .findByUserAndClientApp(userId.value(), clientAppId.value())
-            .orElseThrow(
-                () ->
-                    new MembershipInactiveException(
-                        "User has no access to this application"));
+    // Validar acceso a la app según política de acceso
+    if (!clientApp.isOpenJoin()) {
+      // CLOSED (default) y SELF_SIGNUP (no implementado) requieren membership activa
+      Membership membership =
+          membershipRepository
+              .findByUserAndClientApp(userId.value(), clientAppId.value())
+              .orElseThrow(
+                  () ->
+                      new NoMembershipException(
+                          "User has no membership for this application"));
 
-    if (membership.isSuspended()) {
-      throw new MembershipInactiveException("User membership is suspended");
-    }
+      if (membership.isSuspended()) {
+        throw new MembershipInactiveException("User membership is suspended");
+      }
 
-    if (membership.isPending()) {
-      throw new MembershipPendingException("User membership is pending approval");
+      if (membership.isPending()) {
+        throw new MembershipPendingException("User membership is pending approval");
+      }
     }
 
     // Validar scopes

@@ -9,6 +9,7 @@ import io.cmartinezs.keygo.api.user.request.ResetPasswordRequest;
 import io.cmartinezs.keygo.api.user.request.UpdateUserRequest;
 import io.cmartinezs.keygo.api.user.request.ValidateCredentialsRequest;
 import io.cmartinezs.keygo.api.user.response.UserData;
+import io.cmartinezs.keygo.api.user.response.UserStatusActionData;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.user.command.CreateUserCommand;
 import io.cmartinezs.keygo.app.user.command.ResetUserPasswordCommand;
@@ -17,6 +18,8 @@ import io.cmartinezs.keygo.app.user.filter.UserFilter;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
+import io.cmartinezs.keygo.api.user.response.AccountSessionData;
+import io.cmartinezs.keygo.app.user.usecase.ListAdminUserSessionsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
@@ -49,7 +52,7 @@ import java.util.List;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/users")
 @Tag(name = "Users", description = "User identity management per tenant — requires Bearer JWT")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantUserController {
 
   private final CreateUserUseCase createUserUseCase;
@@ -60,6 +63,7 @@ public class TenantUserController {
   private final ValidateUserCredentialsUseCase validateUserCredentialsUseCase;
   private final SuspendUserUseCase suspendUserUseCase;
   private final ActivateUserUseCase activateUserUseCase;
+  private final ListAdminUserSessionsUseCase listAdminUserSessionsUseCase;
 
   public TenantUserController(
       CreateUserUseCase createUserUseCase,
@@ -69,7 +73,8 @@ public class TenantUserController {
       ResetUserPasswordUseCase resetUserPasswordUseCase,
       ValidateUserCredentialsUseCase validateUserCredentialsUseCase,
       SuspendUserUseCase suspendUserUseCase,
-      ActivateUserUseCase activateUserUseCase) {
+      ActivateUserUseCase activateUserUseCase,
+      ListAdminUserSessionsUseCase listAdminUserSessionsUseCase) {
     this.createUserUseCase = createUserUseCase;
     this.listUsersUseCase = listUsersUseCase;
     this.getUserUseCase = getUserUseCase;
@@ -78,6 +83,7 @@ public class TenantUserController {
     this.validateUserCredentialsUseCase = validateUserCredentialsUseCase;
     this.suspendUserUseCase = suspendUserUseCase;
     this.activateUserUseCase = activateUserUseCase;
+    this.listAdminUserSessionsUseCase = listAdminUserSessionsUseCase;
   }
 
   /**
@@ -141,6 +147,8 @@ public class TenantUserController {
       @RequestParam(name = "username_like", required = false) String usernameLike,
       @Parameter(description = "Partial match on email (case-insensitive)")
       @RequestParam(name = "email_like", required = false) String emailLike,
+      @Parameter(description = "OR search across username and email (case-insensitive). Overrides username_like/email_like when set.")
+      @RequestParam(required = false) String q,
       @Parameter(description = "Zero-based page number", example = "0")
       @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size (1–200)", example = "20")
@@ -150,7 +158,7 @@ public class TenantUserController {
       @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
       @RequestParam(required = false) String order) {
 
-    UserFilter filter = UserFilter.of(status, usernameLike, emailLike, page, size, sort, order);
+    UserFilter filter = UserFilter.of(status, usernameLike, emailLike, q, page, size, sort, order);
     PagedResult<User> result = listUsersUseCase.execute(tenantSlug, filter);
 
     List<UserData> content = result.getContent().stream()
@@ -277,15 +285,15 @@ public class TenantUserController {
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<UserData>> suspendUser(
+  public ResponseEntity<BaseResponse<UserStatusActionData>> suspendUser(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
 
-    User user = suspendUserUseCase.execute(tenantSlug, userId);
+    var result = suspendUserUseCase.execute(tenantSlug, userId);
 
     return ResponseEntity.status(HttpStatus.OK).body(
-        BaseResponse.<UserData>builder()
-            .data(toData(user))
+        BaseResponse.<UserStatusActionData>builder()
+            .data(UserStatusActionData.fromSuspend(result))
             .success(ResponseHelper.message(ResponseCode.USER_SUSPENDED))
             .build());
   }
@@ -303,15 +311,15 @@ public class TenantUserController {
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
   @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
       content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
-  public ResponseEntity<BaseResponse<UserData>> activateUser(
+  public ResponseEntity<BaseResponse<UserStatusActionData>> activateUser(
       @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
       @Parameter(description = "User UUID", example = "a1b2c3d4-e5f6-...") @PathVariable String userId) {
 
-    User user = activateUserUseCase.execute(tenantSlug, userId);
+    var result = activateUserUseCase.execute(tenantSlug, userId);
 
     return ResponseEntity.status(HttpStatus.OK).body(
-        BaseResponse.<UserData>builder()
-            .data(toData(user))
+        BaseResponse.<UserStatusActionData>builder()
+            .data(UserStatusActionData.fromActivate(result))
             .success(ResponseHelper.message(ResponseCode.USER_ACTIVATED))
             .build());
   }
@@ -345,6 +353,34 @@ public class TenantUserController {
         BaseResponse.<UserData>builder()
             .data(toData(user))
             .success(ResponseHelper.message(ResponseCode.CREDENTIALS_VALID))
+            .build());
+  }
+
+  /**
+   * List active sessions for a specific user (admin view).
+   * <p>Lista sesiones del usuario especificado dentro del tenant. Solo sesiones de ese tenant.
+   */
+  @GetMapping("/{userId}/sessions")
+  @Operation(
+      summary = "List user sessions (admin)",
+      description = "Returns all sessions for the given user within the tenant. "
+                    + "Tenant isolation is enforced: only sessions belonging to this tenant are returned.")
+  @ApiResponse(responseCode = "200", description = "Sessions listed (code: SUCCESS)")
+  @ApiResponse(responseCode = "404", description = "User or tenant not found (code: RESOURCE_NOT_FOUND)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<List<AccountSessionData>>> listUserSessions(
+      @Parameter(description = "Tenant slug", example = "my-company") @PathVariable String tenantSlug,
+      @Parameter(description = "User UUID") @PathVariable String userId) {
+
+    List<AccountSessionData> sessions = listAdminUserSessionsUseCase.execute(tenantSlug, userId)
+        .stream()
+        .map(AccountSessionData::from)
+        .toList();
+
+    return ResponseEntity.ok(
+        BaseResponse.<List<AccountSessionData>>builder()
+            .data(sessions)
+            .success(ResponseHelper.message(ResponseCode.USER_SESSIONS_RETRIEVED))
             .build());
   }
 

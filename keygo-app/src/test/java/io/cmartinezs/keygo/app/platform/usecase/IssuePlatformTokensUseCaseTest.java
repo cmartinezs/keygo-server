@@ -69,11 +69,11 @@ class IssuePlatformTokensUseCaseTest {
     when(platformUserRoleRepository.findRoleCodesByPlatformUserId(userId))
         .thenReturn(List.of("keygo_admin", "keygo_user"));
     when(issueTokensUseCase.execute(
-        isNull(), eq("http://localhost/keygo-server/api/v1/platform"),
+        isNull(), isNull(), eq("http://localhost/keygo-server/api/v1/platform"),
         eq(userId.toString()), eq("keygo-platform"),
         eq("openid profile platform"), isNull(),
         eq("admin@keygo.local"), eq("Admin KeyGo"),
-        isNull(), eq(List.of("keygo_admin", "keygo_user"))))
+        isNull(), eq(List.of("keygo_admin", "keygo_user")), any()))
         .thenReturn(new IssueTokensResult(
             "access.jwt", "id.jwt", "Bearer", 3600L,
             "openid profile platform", null, "signing-key-1"));
@@ -140,10 +140,10 @@ class IssuePlatformTokensUseCaseTest {
     when(platformUserRoleRepository.findRoleCodesByPlatformUserId(userId))
         .thenReturn(List.of("keygo_user"));
     when(issueTokensUseCase.execute(
-        isNull(), anyString(), anyString(), eq("keygo-platform"),
+        isNull(), isNull(), anyString(), anyString(), eq("keygo-platform"),
         eq("openid profile platform"), isNull(),
         eq("anon@keygo.local"), isNull(),
-        isNull(), eq(List.of("keygo_user"))))
+        isNull(), eq(List.of("keygo_user")), any()))
         .thenReturn(new IssueTokensResult(
             "access.jwt", "id.jwt", "Bearer", 3600L,
             "openid profile platform", null, "key-3"));

@@ -84,11 +84,24 @@ public class Session {
       String userAgent,
       String ipAddress,
       String signingKeyId) {
+    return open(UUID.randomUUID(), platformUserId, clientAppId, expiresAt, now,
+        userAgent, ipAddress, signingKeyId);
+  }
+
+  public static Session open(
+      UUID preGeneratedId,
+      UUID platformUserId,
+      ClientAppId clientAppId,
+      Instant expiresAt,
+      Instant now,
+      String userAgent,
+      String ipAddress,
+      String signingKeyId) {
     if (expiresAt == null) throw new IllegalArgumentException("ExpiresAt cannot be null");
     if (now == null) throw new IllegalArgumentException("Now cannot be null");
 
     return new Session(
-        SessionId.generate(),
+        SessionId.from(preGeneratedId),
         platformUserId, clientAppId,
         SessionStatus.ACTIVE,
         expiresAt, now, userAgent, ipAddress, now,

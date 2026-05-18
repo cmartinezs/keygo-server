@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientAppId}/roles")
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "App Roles", description = "Application-scoped roles — requires Bearer JWT")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantAppRoleController {
 
   private final CreateAppRoleUseCase createAppRoleUseCase;

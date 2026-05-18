@@ -43,7 +43,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/apps/{clientId}/billing")
 @Tag(name = "Billing — Subscription", description = "Subscription & invoice management — requires Bearer JWT with ADMIN_TENANT role")
 @SecurityRequirement(name = "BearerAuth")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class AppBillingSubscriptionController {
 
   private final TenantRepositoryPort tenantRepo;

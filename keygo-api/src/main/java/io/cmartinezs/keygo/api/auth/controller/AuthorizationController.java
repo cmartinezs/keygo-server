@@ -432,6 +432,7 @@ public class AuthorizationController {
     String name = null;
     List<String> roles = List.of();
     TenantId resolvedTenantId = null;
+    UUID resolvedClientAppId = null;
     var tenantOpt = tenantRepository.findBySlug(new TenantSlug(tenantSlug));
     if (tenantOpt.isPresent()) {
       resolvedTenantId = tenantOpt.get().getId();
@@ -443,19 +444,22 @@ public class AuthorizationController {
         name = buildName(user.getFirstName(), user.getLastName());
       }
       // Resolver clientApp UUID para obtener roles de la membresía
+      UUID clientAppUUID = null;
       var clientAppOpt = clientAppRepository.findByClientIdAndTenantId(
           new ClientId(exchangeResult.clientId()), resolvedTenantId);
       if (clientAppOpt.isPresent()) {
-        UUID clientAppUUID = clientAppOpt.get().getId().value();
+        clientAppUUID = clientAppOpt.get().getId().value();
         roles = membershipRepository.findEffectiveRoleCodesByUserAndClientApp(userUUID, clientAppUUID);
       }
+      resolvedClientAppId = clientAppUUID;
     }
 
     // 3. Emitir access_token + id_token (incluye claim roles y clave tenant-scoped)
     String issuer = issuerBaseUrl + "/api/v1/tenants/" + tenantSlug;
     IssueTokensResult tokenResult =
         issueTokensUseCase.execute(
-            resolvedTenantId,    // nuevo: TenantId para seleccionar la clave correcta
+            resolvedTenantId,
+            resolvedClientAppId,
             issuer,
             exchangeResult.userId(),
             exchangeResult.clientId(),

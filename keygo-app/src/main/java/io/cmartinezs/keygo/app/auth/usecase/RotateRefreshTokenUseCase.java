@@ -167,6 +167,8 @@ public class RotateRefreshTokenUseCase {
     var accessClaims = new LinkedHashMap<>(tokenClaimsFactory.buildAccessTokenClaims(
         issuer, sub, command.clientId(), scope, accessJti, now, expiresAt, roles));
     accessClaims.put("tenant_slug", command.tenantSlug());
+    accessClaims.put("tid", tenantId.value().toString());
+    accessClaims.put("cid", clientApp.getId().value().toString());
     String accessToken = tokenSigner.signJwt(accessClaims, signingKey);
 
     var idClaims = tokenClaimsFactory.buildIdTokenClaims(

@@ -94,12 +94,18 @@ public class BootstrapAdminKeyFilter extends OncePerRequestFilter {
     String requestPath = request.getServletPath();
     log.debug("BootstrapAdminKeyFilter processing request: {} (URI: {})", requestPath, request.getRequestURI());
     if (!bootstrapProperties.isEnabled()) {
-      log.debug("Bootstrap is disabled — setting bypass authentication with ROLE_ADMIN");
-      setBypassAuthentication();
+      if (!authenticateBearer(request)) {
+        log.debug("Bootstrap is disabled — no valid JWT, setting bypass authentication");
+        setBypassAuthentication();
+      } else {
+        log.debug("Bootstrap is disabled — JWT authenticated successfully");
+        enrichMdcWithUserId();
+      }
       try {
         filterChain.doFilter(request, response);
       } finally {
         SecurityContextHolder.clearContext();
+        MDC.remove("userId");
       }
       return;
     }

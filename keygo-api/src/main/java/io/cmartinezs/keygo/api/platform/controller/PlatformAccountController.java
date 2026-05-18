@@ -1,5 +1,7 @@
 package io.cmartinezs.keygo.api.platform.controller;
 
+import io.cmartinezs.keygo.api.membership.response.AppAccessData;
+import io.cmartinezs.keygo.api.membership.response.TenantAccessData;
 import io.cmartinezs.keygo.api.platform.request.PlatformRevokeTokenRequest;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
@@ -11,6 +13,8 @@ import io.cmartinezs.keygo.api.user.request.UpdateUserProfileRequest;
 import io.cmartinezs.keygo.api.user.response.UserProfileData;
 import io.cmartinezs.keygo.app.auth.command.RevokeTokenCommand;
 import io.cmartinezs.keygo.app.auth.usecase.RevokeTokenUseCase;
+import io.cmartinezs.keygo.app.membership.result.TenantAccessResult;
+import io.cmartinezs.keygo.app.membership.usecase.GetAccountAccessUseCase;
 import io.cmartinezs.keygo.app.user.command.GetPlatformUserProfileCommand;
 import io.cmartinezs.keygo.app.user.command.UpdatePlatformUserProfileCommand;
 import io.cmartinezs.keygo.app.user.result.ForgotPasswordResult;
@@ -28,9 +32,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -75,6 +82,7 @@ public class PlatformAccountController {
   private final RevokeTokenUseCase revokeTokenUseCase;
   private final GetPlatformUserProfileUseCase getPlatformUserProfileUseCase;
   private final UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase;
+  private final GetAccountAccessUseCase getAccountAccessUseCase;
 
   public PlatformAccountController(
       ForgotPlatformPasswordUseCase forgotPasswordUseCase,
@@ -82,13 +90,15 @@ public class PlatformAccountController {
       ResetPlatformPasswordUseCase resetPasswordUseCase,
       RevokeTokenUseCase revokeTokenUseCase,
       GetPlatformUserProfileUseCase getPlatformUserProfileUseCase,
-      UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase) {
+      UpdatePlatformUserProfileUseCase updatePlatformUserProfileUseCase,
+      GetAccountAccessUseCase getAccountAccessUseCase) {
     this.forgotPasswordUseCase = forgotPasswordUseCase;
     this.recoverPasswordUseCase = recoverPasswordUseCase;
     this.resetPasswordUseCase = resetPasswordUseCase;
     this.revokeTokenUseCase = revokeTokenUseCase;
     this.getPlatformUserProfileUseCase = getPlatformUserProfileUseCase;
     this.updatePlatformUserProfileUseCase = updatePlatformUserProfileUseCase;
+    this.getAccountAccessUseCase = getAccountAccessUseCase;
   }
 
   // ─── POST /account/forgot-password ──────────────────────────────────────────
@@ -278,6 +288,51 @@ public class PlatformAccountController {
         BaseResponse.<UserProfileData>builder()
             .data(toData(result))
             .success(ResponseHelper.message(ResponseCode.USER_PROFILE_UPDATED))
+            .build());
+  }
+
+  // ─── GET /account/access ──────────────────────────────────────────────────
+
+  @GetMapping("/account/access")
+  @PreAuthorize("isAuthenticated()")
+  @io.swagger.v3.oas.annotations.Operation(
+      summary = "Get own platform access",
+      description = "Returns all tenants and apps the authenticated platform user has memberships in, "
+          + "grouped by tenant. Derived entirely from the Bearer token — no extra parameters needed.")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+      description = "Access view retrieved (code: ACCOUNT_ACCESS_RETRIEVED)")
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401",
+      description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @io.swagger.v3.oas.annotations.media.Content(
+          schema = @io.swagger.v3.oas.annotations.media.Schema(
+              implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<List<TenantAccessData>>> getAccess() {
+    UUID userId = UUID.fromString(extractUserId());
+
+    List<TenantAccessResult> results = getAccountAccessUseCase.execute(userId);
+
+    List<TenantAccessData> data = results.stream()
+        .map(r -> TenantAccessData.builder()
+            .tenantId(r.tenantId())
+            .tenantSlug(r.tenantSlug())
+            .tenantName(r.tenantName())
+            .apps(r.apps().stream()
+                .map(a -> AppAccessData.builder()
+                    .membershipId(a.membershipId())
+                    .membershipStatus(a.membershipStatus())
+                    .clientAppId(a.clientAppId())
+                    .clientId(a.clientId())
+                    .appName(a.appName())
+                    .roles(a.roles())
+                    .build())
+                .toList())
+            .build())
+        .toList();
+
+    return ResponseEntity.ok(
+        BaseResponse.<List<TenantAccessData>>builder()
+            .data(data)
+            .success(ResponseHelper.message(ResponseCode.ACCOUNT_ACCESS_RETRIEVED))
             .build());
   }
 

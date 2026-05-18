@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidClientAppConfigException;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
@@ -160,6 +161,38 @@ class CreateClientAppUseCaseTest {
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
         .isInstanceOf(TenantSuspendedException.class);
+    verify(clientAppRepositoryPort, never()).save(any());
+  }
+
+  @Test
+  void execute_authorizationCodeWithoutRedirectUri_shouldThrow() {
+    // Given
+    Tenant tenant = activeTenant();
+    CreateClientAppCommand command = new CreateClientAppCommand(
+        TENANT_SLUG, APP_NAME, null, ClientType.CONFIDENTIAL,
+        null, Set.of(AllowedGrant.AUTHORIZATION_CODE), Set.of());
+    when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
+
+    // When / Then
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(InvalidClientAppConfigException.class)
+        .hasMessageContaining("AUTHORIZATION_CODE");
+    verify(clientAppRepositoryPort, never()).save(any());
+  }
+
+  @Test
+  void execute_publicAppWithClientCredentials_shouldThrow() {
+    // Given
+    Tenant tenant = activeTenant();
+    CreateClientAppCommand command = new CreateClientAppCommand(
+        TENANT_SLUG, APP_NAME, null, ClientType.PUBLIC,
+        Set.of(), Set.of(AllowedGrant.CLIENT_CREDENTIALS), Set.of());
+    when(tenantRepositoryPort.findBySlug(any())).thenReturn(Optional.of(tenant));
+
+    // When / Then
+    assertThatThrownBy(() -> useCase.execute(command))
+        .isInstanceOf(InvalidClientAppConfigException.class)
+        .hasMessageContaining("CLIENT_CREDENTIALS");
     verify(clientAppRepositoryPort, never()).save(any());
   }
 }

@@ -24,15 +24,17 @@ public class ClientAppFilter extends PageFilter {
 
   private final ClientAppStatus status;                                  // optional status filter
   private final String nameLike;                                         // optional name substring
+  private final String q;                                                // optional OR search across name and clientId
   private final ClientType type;                                         // optional type filter
   private final Set<RegistrationPolicy> excludeRegistrationPolicies;    // optional policies to exclude
 
-  private ClientAppFilter(ClientAppStatus status, String nameLike, ClientType type,
+  private ClientAppFilter(ClientAppStatus status, String nameLike, String q, ClientType type,
                           Set<RegistrationPolicy> excludeRegistrationPolicies,
                           int page, int size, String sortBy, String sortOrder) {
     super(page, size, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
     this.status = status;
     this.nameLike = (nameLike != null && nameLike.isBlank()) ? null : nameLike;
+    this.q = (q != null && q.isBlank()) ? null : q;
     this.type = type;
     this.excludeRegistrationPolicies = excludeRegistrationPolicies != null
         ? Collections.unmodifiableSet(excludeRegistrationPolicies)
@@ -52,7 +54,7 @@ public class ClientAppFilter extends PageFilter {
    */
   public static ClientAppFilter of(ClientAppStatus status, String nameLike,
                                    int page, int size, String sortBy, String sortOrder) {
-    return new ClientAppFilter(status, nameLike, null, null, page, size, sortBy, sortOrder);
+    return new ClientAppFilter(status, nameLike, null, null, null, page, size, sortBy, sortOrder);
   }
 
   /**
@@ -72,7 +74,7 @@ public class ClientAppFilter extends PageFilter {
   public static ClientAppFilter of(ClientAppStatus status, String nameLike,
                                    ClientType type, Set<RegistrationPolicy> excludeRegistrationPolicies,
                                    int page, int size, String sortBy, String sortOrder) {
-    return new ClientAppFilter(status, nameLike, type, excludeRegistrationPolicies,
+    return new ClientAppFilter(status, nameLike, null, type, excludeRegistrationPolicies,
         page, size, sortBy, sortOrder);
   }
 
@@ -85,7 +87,12 @@ public class ClientAppFilter extends PageFilter {
     Set<RegistrationPolicy> set = (excludePolicies != null && excludePolicies.length > 0)
         ? EnumSet.copyOf(Arrays.asList(excludePolicies))
         : null;
-    return new ClientAppFilter(status, nameLike, type, set, page, size, sortBy, sortOrder);
+    return new ClientAppFilter(status, nameLike, null, type, set, page, size, sortBy, sortOrder);
+  }
+
+  public static ClientAppFilter of(ClientAppStatus status, String nameLike, String q,
+                                   int page, int size, String sortBy, String sortOrder) {
+    return new ClientAppFilter(status, nameLike, q, null, null, page, size, sortBy, sortOrder);
   }
 
   public ClientAppStatus getStatus() {
@@ -110,6 +117,14 @@ public class ClientAppFilter extends PageFilter {
 
   public boolean hasNameLike() {
     return nameLike != null;
+  }
+
+  public String getQ() {
+    return q;
+  }
+
+  public boolean hasQ() {
+    return q != null;
   }
 
   public boolean hasType() {

@@ -44,6 +44,7 @@ public class IssueTokensUseCase {
    * Emite un par access_token + id_token para el usuario autenticado.
    *
    * @param tenantId            tenant propietario (para resolver la clave de firma correcta; nullable)
+   * @param clientAppId         UUID interno de la app cliente para claim {@code cid} (nullable)
    * @param issuer              URL del emisor
    * @param subject             identificador del usuario (UUID como String)
    * @param audience            client_id de la app cliente
@@ -58,6 +59,7 @@ public class IssueTokensUseCase {
    */
   public IssueTokensResult execute(
       TenantId tenantId,
+      UUID clientAppId,
       String issuer,
       String subject,
       String audience,
@@ -67,6 +69,23 @@ public class IssueTokensUseCase {
       String name,
       String authorizationCodeId,
       List<String> roles) {
+    return execute(tenantId, clientAppId, issuer, subject, audience, scope, nonce, email, name,
+        authorizationCodeId, roles, null);
+  }
+
+  public IssueTokensResult execute(
+      TenantId tenantId,
+      UUID clientAppId,
+      String issuer,
+      String subject,
+      String audience,
+      String scope,
+      String nonce,
+      String email,
+      String name,
+      String authorizationCodeId,
+      List<String> roles,
+      String sessionId) {
 
     // Obtener clave activa: tenant-scoped con fallback global
     SigningKey signingKey = (tenantId != null
@@ -85,6 +104,15 @@ public class IssueTokensUseCase {
     String tenantSlug = extractTenantSlugFromIssuer(issuer);
     if (tenantSlug != null) {
       accessClaims.put("tenant_slug", tenantSlug);
+    }
+    if (tenantId != null) {
+      accessClaims.put("tid", tenantId.value().toString());
+    }
+    if (clientAppId != null) {
+      accessClaims.put("cid", clientAppId.toString());
+    }
+    if (sessionId != null) {
+      accessClaims.put("sid", sessionId);
     }
     String accessToken = tokenSigner.signJwt(accessClaims, signingKey);
 

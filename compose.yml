@@ -1,0 +1,11 @@
+name: keygo-local
+
+services:
+  mailing:
+    image: mailhog/mailhog:v1.0.1
+    container_name: keygo-mailhog
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    labels:
+      org.springframework.boot.ignore: true

@@ -1,6 +1,7 @@
 package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
@@ -32,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +47,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class RegisterTenantUserUseCaseTest {
@@ -62,6 +65,7 @@ class RegisterTenantUserUseCaseTest {
   @Mock CredentialEncoderPort credentialEncoderPort;
   @Mock VerificationCodeRepositoryPort verificationCodeRepositoryPort;
   @Mock EmailNotificationPort emailNotificationPort;
+  @Mock AssignPlatformRoleUseCase assignPlatformRoleUseCase;
 
   private RegisterTenantUserUseCase useCase;
   private Tenant activeTenant;
@@ -71,7 +75,8 @@ class RegisterTenantUserUseCaseTest {
   void setUp() {
     useCase = new RegisterTenantUserUseCase(
         tenantRepositoryPort, clientAppRepositoryPort, userRepositoryPort,
-        credentialEncoderPort, verificationCodeRepositoryPort, emailNotificationPort);
+        credentialEncoderPort, verificationCodeRepositoryPort, emailNotificationPort,
+        assignPlatformRoleUseCase);
 
     activeTenant = Tenant.builder()
         .id(TenantId.of(UUID.randomUUID()))
@@ -102,10 +107,10 @@ class RegisterTenantUserUseCaseTest {
     when(userRepositoryPort.existsByTenantIdAndUsername(any(), any())).thenReturn(false);
     when(credentialEncoderPort.encode(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
 
+    UUID platformUserId = UUID.randomUUID();
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     when(userRepositoryPort.save(userCaptor.capture())).thenAnswer(inv -> {
       User saved = inv.getArgument(0);
-      // Simular que JPA asigna ID al guardar
       return User.builder()
           .id(UserId.generate())
           .tenantId(saved.getTenantId())
@@ -115,8 +120,10 @@ class RegisterTenantUserUseCaseTest {
           .firstName(saved.getFirstName())
           .lastName(saved.getLastName())
           .status(saved.getStatus())
+          .platformUserId(platformUserId)
           .build();
     });
+    when(assignPlatformRoleUseCase.execute(any())).thenReturn(Collections.emptyList());
     when(verificationCodeRepositoryPort.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
 
     RegisterTenantUserCommand command = new RegisterTenantUserCommand(
@@ -133,6 +140,7 @@ class RegisterTenantUserUseCaseTest {
 
     verify(verificationCodeRepositoryPort).upsert(any());
     verify(emailNotificationPort).sendEmail(eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), anyString(), anyString(), any(Map.class));
+    verify(assignPlatformRoleUseCase, times(1)).execute(any());
   }
 
   @Test

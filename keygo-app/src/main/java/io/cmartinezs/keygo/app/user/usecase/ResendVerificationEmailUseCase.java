@@ -107,7 +107,8 @@ public class ResendVerificationEmailUseCase {
             "userFirstName", user.getFirstName() != null ? user.getFirstName() : "",
             "userLastName", user.getLastName() != null ? user.getLastName() : "",
             "verificationCode", active.getCode(),
-            "email", email.value(),
+            "registration_id", user.getId().value(),
+            "client_id", command.clientId(),
             "expiresInMinutes", VERIFICATION_EXPIRY_MINUTES));
   }
 

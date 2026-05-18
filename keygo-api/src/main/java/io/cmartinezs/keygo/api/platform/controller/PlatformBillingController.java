@@ -98,10 +98,10 @@ public class PlatformBillingController {
         .build());
   }
 
-  /** GET /platform/billing/subscription — authenticated, KEYGO_ADMIN or KEYGO_TENANT_ADMIN */
+  /** GET /platform/billing/subscription — authenticated, KEYGO_ADMIN or KEYGO_ACCOUNT_ADMIN */
   @GetMapping("/subscription")
   @SecurityRequirement(name = "BearerAuth")
-  @PreAuthorize("hasAnyRole('KEYGO_ADMIN','KEYGO_TENANT_ADMIN')")
+  @PreAuthorize("hasAnyRole('KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN')")
   @Operation(
       summary = "Get platform subscription",
       description = "Returns the active platform subscription for the authenticated user's contractor.")
@@ -120,10 +120,10 @@ public class PlatformBillingController {
         .build());
   }
 
-  /** POST /platform/billing/subscription/cancel — authenticated, KEYGO_ADMIN or KEYGO_TENANT_ADMIN */
+  /** POST /platform/billing/subscription/cancel — authenticated, KEYGO_ADMIN or KEYGO_ACCOUNT_ADMIN */
   @PostMapping("/subscription/cancel")
   @SecurityRequirement(name = "BearerAuth")
-  @PreAuthorize("hasAnyRole('KEYGO_ADMIN','KEYGO_TENANT_ADMIN')")
+  @PreAuthorize("hasAnyRole('KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN')")
   @Operation(
       summary = "Cancel platform subscription",
       description = "Marks the platform subscription for cancellation at the end of the current billing period.")
@@ -144,10 +144,10 @@ public class PlatformBillingController {
         .build());
   }
 
-  /** GET /platform/billing/invoices — authenticated, KEYGO_ADMIN or KEYGO_TENANT_ADMIN */
+  /** GET /platform/billing/invoices — authenticated, KEYGO_ADMIN or KEYGO_ACCOUNT_ADMIN */
   @GetMapping("/invoices")
   @SecurityRequirement(name = "BearerAuth")
-  @PreAuthorize("hasAnyRole('KEYGO_ADMIN','KEYGO_TENANT_ADMIN')")
+  @PreAuthorize("hasAnyRole('KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN')")
   @Operation(
       summary = "List platform invoices",
       description = "Returns all invoices for the platform subscription of the authenticated user's contractor.")

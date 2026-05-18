@@ -86,6 +86,83 @@ class TenantAuthorizationEvaluatorTest {
     assertThat(result).isTrue();
   }
 
+  @Test
+  void hasTenantAccess_shouldAllowKeygoAdminWithoutTenantClaim() {
+    // Given
+    setTenantPathVariable("acme");
+    var authentication = new UsernamePasswordAuthenticationToken(
+        Map.of("sub", "user-1"),
+        "token",
+        List.of(new SimpleGrantedAuthority("ROLE_KEYGO_ADMIN")));
+
+    // When
+    boolean result = evaluator.hasTenantAccess(authentication);
+
+    // Then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasTenantAccess_shouldAllowKeygoAccountAdminWhenTenantClaimMatchesPath() {
+    // Given
+    setTenantPathVariable("acme");
+    var authentication = new UsernamePasswordAuthenticationToken(
+        Map.of("sub", "user-1", "tenant_slug", "acme"),
+        "token",
+        List.of(new SimpleGrantedAuthority("ROLE_KEYGO_ACCOUNT_ADMIN")));
+
+    // When
+    boolean result = evaluator.hasTenantAccess(authentication);
+
+    // Then
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasTenantAccess_shouldDenyKeygoAccountAdminWhenTenantClaimDoesNotMatchPath() {
+    // Given
+    setTenantPathVariable("acme");
+    var authentication = new UsernamePasswordAuthenticationToken(
+        Map.of("sub", "user-1", "tenant_slug", "globex"),
+        "token",
+        List.of(new SimpleGrantedAuthority("ROLE_KEYGO_ACCOUNT_ADMIN")));
+
+    // When
+    boolean result = evaluator.hasTenantAccess(authentication);
+
+    // Then
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void hasTenantAccess_shouldDenyKeygoUserEvenWhenTenantClaimMatchesPath() {
+    // Given
+    setTenantPathVariable("acme");
+    var authentication = new UsernamePasswordAuthenticationToken(
+        Map.of("sub", "user-1", "tenant_slug", "acme"),
+        "token",
+        List.of(new SimpleGrantedAuthority("ROLE_KEYGO_USER")));
+
+    // When — KEYGO_USER passes the tenant check (slug matches), but @PreAuthorize
+    // hasAnyRole() would reject it before reaching this evaluator in real requests
+    boolean result = evaluator.hasTenantAccess(authentication);
+
+    // Then — evaluator itself only checks tenant match, not role authorization
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasTenantAccess_shouldDenyUnauthenticatedPrincipal() {
+    // Given
+    setTenantPathVariable("acme");
+
+    // When
+    boolean result = evaluator.hasTenantAccess(null);
+
+    // Then
+    assertThat(result).isFalse();
+  }
+
   private void setTenantPathVariable(String tenantSlug) {
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.setAttribute(

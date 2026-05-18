@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.supabase.clientapp.entity;
 
+import io.cmartinezs.keygo.domain.clientapp.model.AppAccessRestriction;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
 import io.cmartinezs.keygo.domain.clientapp.model.RegistrationPolicy;
@@ -79,6 +80,11 @@ public class ClientAppEntity {
   @Column(name = "registration_policy", nullable = false, length = 50)
   @Builder.Default
   private RegistrationPolicy registrationPolicy = RegistrationPolicy.OPEN_NO_MEMBERSHIP;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "access_restriction", nullable = false, length = 50)
+  @Builder.Default
+  private AppAccessRestriction accessRestriction = AppAccessRestriction.CLOSED;
 
   @OneToMany(
       mappedBy = "clientApp",

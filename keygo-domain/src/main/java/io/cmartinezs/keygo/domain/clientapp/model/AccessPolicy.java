@@ -1,5 +1,6 @@
 package io.cmartinezs.keygo.domain.clientapp.model;
 
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidClientAppConfigException;
 import java.util.Set;
 
 /**
@@ -14,10 +15,10 @@ public record AccessPolicy(Set<AllowedGrant> grants, Set<AllowedScope> scopes) {
 
   public AccessPolicy {
     if (grants == null || grants.isEmpty()) {
-      throw new IllegalArgumentException("AccessPolicy must have at least one allowed grant");
+      throw new InvalidClientAppConfigException("AccessPolicy must have at least one allowed grant");
     }
     if (scopes == null) {
-      throw new IllegalArgumentException("AccessPolicy scopes cannot be null");
+      throw new InvalidClientAppConfigException("AccessPolicy scopes cannot be null");
     }
     grants = Set.copyOf(grants);
     scopes = Set.copyOf(scopes);

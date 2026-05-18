@@ -7,8 +7,10 @@ import io.cmartinezs.keygo.api.user.request.ForgotPasswordRequest;
 import io.cmartinezs.keygo.api.user.request.RecoverPasswordRequest;
 import io.cmartinezs.keygo.app.user.result.ChangePasswordResult;
 import io.cmartinezs.keygo.app.user.result.ForgotPasswordResult;
+import io.cmartinezs.keygo.app.user.result.ListUserSessionsResult;
 import io.cmartinezs.keygo.app.user.result.RecoverPasswordResult;
 import io.cmartinezs.keygo.app.user.result.ResetPasswordResult;
+import io.cmartinezs.keygo.app.user.result.SessionInfoResult;
 import io.cmartinezs.keygo.app.user.usecase.ChangePasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ForgotPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetNotificationPreferencesUseCase;
@@ -18,6 +20,10 @@ import io.cmartinezs.keygo.app.user.usecase.RecoverPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetPasswordUseCase;
 import io.cmartinezs.keygo.app.user.usecase.RevokeUserSessionUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateNotificationPreferencesUseCase;
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +35,9 @@ import org.springframework.http.ResponseEntity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -145,6 +154,56 @@ class AccountSettingsControllerTest {
     // When / Then
     assertThatThrownBy(() ->
         controller.changePassword(TENANT_SLUG, "Basic abc", new ChangePasswordRequest("old", "new")))
+        .isInstanceOf(UnauthorizedException.class);
+  }
+
+  @Test
+  void logout_withActiveCurrentSession_revokesSessionAndReturns200() {
+    // Given
+    UUID sessionId = UUID.randomUUID();
+    SessionInfoResult currentSession = new SessionInfoResult(
+        sessionId, "ACTIVE", "Mozilla/5.0", "127.0.0.1",
+        Instant.now(), Instant.now(), Instant.now().plusSeconds(3600), true);
+    ListUserSessionsResult sessions = new ListUserSessionsResult(List.of(currentSession));
+
+    HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+    when(listUserSessionsUseCase.execute(any())).thenReturn(sessions);
+
+    // When
+    ResponseEntity<?> response = controller.logout(TENANT_SLUG, "Bearer sometoken", httpRequest);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    verify(revokeUserSessionUseCase).execute(any());
+  }
+
+  @Test
+  void logout_withNoCurrentSession_returns200Anyway() {
+    // Given — session exists but isCurrent=false
+    SessionInfoResult otherSession = new SessionInfoResult(
+        UUID.randomUUID(), "ACTIVE", "OtherAgent", "10.0.0.1",
+        Instant.now(), Instant.now(), Instant.now().plusSeconds(3600), false);
+    ListUserSessionsResult sessions = new ListUserSessionsResult(List.of(otherSession));
+
+    HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+    when(listUserSessionsUseCase.execute(any())).thenReturn(sessions);
+
+    // When
+    ResponseEntity<?> response = controller.logout(TENANT_SLUG, "Bearer sometoken", httpRequest);
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    verify(revokeUserSessionUseCase, never()).execute(any());
+  }
+
+  @Test
+  void logout_throwsUnauthorizedWhenBearerMissing() {
+    // Given
+    HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+
+    // When / Then
+    assertThatThrownBy(() ->
+        controller.logout(TENANT_SLUG, null, httpRequest))
         .isInstanceOf(UnauthorizedException.class);
   }
 }

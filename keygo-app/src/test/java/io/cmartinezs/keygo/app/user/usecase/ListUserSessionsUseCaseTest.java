@@ -30,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,7 +70,7 @@ class ListUserSessionsUseCaseTest {
         .status(TenantStatus.ACTIVE).build();
 
     when(signingKeyRepository.findPublishableKeys()).thenReturn(List.of(mock(SigningKey.class)));
-    when(accessTokenVerifier.verify(eq(BEARER_TOKEN), any()))
+    lenient().when(accessTokenVerifier.verify(eq(BEARER_TOKEN), any()))
         .thenReturn(Map.of("sub", userId.toString()));
     when(tenantRepository.findBySlug(any())).thenReturn(Optional.of(tenant));
   }
@@ -91,7 +92,7 @@ class ListUserSessionsUseCaseTest {
 
     // When
     ListUserSessionsResult result = useCase.execute(
-        new ListUserSessionsCommand(TENANT_SLUG, BEARER_TOKEN, USER_AGENT, IP_ADDRESS));
+        new ListUserSessionsCommand(TENANT_SLUG, BEARER_TOKEN));
 
     // Then
     assertThat(result.sessions()).hasSize(1);
@@ -99,10 +100,14 @@ class ListUserSessionsUseCaseTest {
   }
 
   @Test
-  void execute_shouldMarkCurrentSession_whenUserAgentAndIpMatch() {
-    // Given
+  void execute_shouldMarkCurrentSession_whenSidClaimMatchesSessionId() {
+    // Given — the JWT carries a 'sid' claim pointing to the current session
+    UUID currentSessionId = UUID.randomUUID();
+    when(accessTokenVerifier.verify(eq(BEARER_TOKEN), any()))
+        .thenReturn(Map.of("sub", userId.toString(), "sid", currentSessionId.toString()));
+
     var currentSession = Session.reconstitute(
-        SessionId.from(UUID.randomUUID()), userId, ClientAppId.of(UUID.randomUUID()),
+        SessionId.from(currentSessionId), userId, ClientAppId.of(UUID.randomUUID()),
         SessionStatus.ACTIVE,
         Instant.now().plusSeconds(3600), Instant.now(), USER_AGENT, IP_ADDRESS, Instant.now(), null);
     var otherSession = Session.reconstitute(
@@ -115,7 +120,7 @@ class ListUserSessionsUseCaseTest {
 
     // When
     ListUserSessionsResult result = useCase.execute(
-        new ListUserSessionsCommand(TENANT_SLUG, BEARER_TOKEN, USER_AGENT, IP_ADDRESS));
+        new ListUserSessionsCommand(TENANT_SLUG, BEARER_TOKEN));
 
     // Then
     assertThat(result.sessions()).hasSize(2);
@@ -131,7 +136,7 @@ class ListUserSessionsUseCaseTest {
 
     // When
     ListUserSessionsResult result = useCase.execute(
-        new ListUserSessionsCommand(TENANT_SLUG, BEARER_TOKEN, USER_AGENT, IP_ADDRESS));
+        new ListUserSessionsCommand(TENANT_SLUG, BEARER_TOKEN));
 
     // Then
     assertThat(result.sessions()).isEmpty();

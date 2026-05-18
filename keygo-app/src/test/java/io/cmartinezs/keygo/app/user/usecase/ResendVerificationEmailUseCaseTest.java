@@ -124,6 +124,7 @@ class ResendVerificationEmailUseCaseTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   void generatesNewCodeAndSendsEmailWhenPreviousCodeHasExpired() {
     // Given — upsertIfExpiredOrAbsent returns the NEW verification (expired code was replaced)
     VerificationCode newVerification =
@@ -138,9 +139,15 @@ class ResendVerificationEmailUseCaseTest {
     // When
     useCase.execute(new ResendVerificationCommand(TENANT_SLUG, CLIENT_ID, EMAIL));
 
-    // Then — upsertIfExpiredOrAbsent was called and the new code was sent
+    // Then — upsertIfExpiredOrAbsent was called and the new code was sent with all link params
     verify(verificationCodeRepositoryPort).upsertIfExpiredOrAbsent(any(), any(), any());
-    verify(emailNotificationPort).sendEmail(eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), eq(EMAIL), anyString(), any(Map.class));
+    ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(emailNotificationPort).sendEmail(
+        eq(EmailNotificationPort.TYPE_EMAIL_VERIFICATION), eq(EMAIL), anyString(), paramsCaptor.capture());
+    Map<String, Object> params = paramsCaptor.getValue();
+    assertThat(params).containsKey("registration_id");
+    assertThat(params).containsEntry("client_id", CLIENT_ID);
+    assertThat(params).containsEntry("verificationCode", "999999");
   }
 
   @Test

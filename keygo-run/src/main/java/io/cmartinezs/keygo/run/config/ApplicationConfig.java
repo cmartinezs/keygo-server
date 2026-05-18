@@ -67,9 +67,11 @@ import io.cmartinezs.keygo.app.membership.port.AppRoleRepositoryPort;
 import io.cmartinezs.keygo.app.membership.port.MembershipRepositoryPort;
 import io.cmartinezs.keygo.app.membership.usecase.AssignRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateAppRoleUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.GetAccountAccessUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ApproveMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListAppRolesUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.GetMembershipRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RemoveRoleParentUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
@@ -105,6 +107,7 @@ import io.cmartinezs.keygo.app.platform.usecase.RotatePlatformRefreshTokenUseCas
 import io.cmartinezs.keygo.app.user.port.PlatformUserRepositoryPort;
 import io.cmartinezs.keygo.app.user.usecase.ActivatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListAdminUserSessionsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.AuthenticatePlatformUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CheckPlatformUserEmailUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreatePlatformUserUseCase;
@@ -338,6 +341,14 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public ListAdminUserSessionsUseCase listAdminUserSessionsUseCase(
+      TenantRepositoryPort tenantRepositoryPort,
+      UserRepositoryPort userRepositoryPort,
+      SessionRepositoryPort sessionRepositoryPort) {
+    return new ListAdminUserSessionsUseCase(tenantRepositoryPort, userRepositoryPort, sessionRepositoryPort);
+  }
+
+  @Bean
   public EmailNotificationPort emailNotificationPort(
       TemplateEngine emailTemplateEngine,
       JavaMailSender mailSender,
@@ -353,14 +364,16 @@ public class ApplicationConfig {
       UserRepositoryPort userRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
       VerificationCodeRepositoryPort verificationCodeRepositoryPort,
-      EmailNotificationPort emailNotificationPort) {
+      EmailNotificationPort emailNotificationPort,
+      AssignPlatformRoleUseCase assignPlatformRoleUseCase) {
     return new RegisterTenantUserUseCase(
         tenantRepositoryPort,
         clientAppRepositoryPort,
         userRepositoryPort,
         credentialEncoderPort,
         verificationCodeRepositoryPort,
-        emailNotificationPort);
+        emailNotificationPort,
+        assignPlatformRoleUseCase);
   }
 
   @Bean
@@ -434,6 +447,21 @@ public class ApplicationConfig {
   public ListMembershipsUseCase listMembershipsUseCase(
       MembershipRepositoryPort membershipRepositoryPort) {
     return new ListMembershipsUseCase(membershipRepositoryPort);
+  }
+
+  @Bean
+  public GetMembershipRolesUseCase getMembershipRolesUseCase(
+      AppRoleRepositoryPort appRoleRepositoryPort) {
+    return new GetMembershipRolesUseCase(appRoleRepositoryPort);
+  }
+
+  @Bean
+  public GetAccountAccessUseCase getAccountAccessUseCase(
+      MembershipRepositoryPort membershipRepositoryPort,
+      ClientAppRepositoryPort clientAppRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort) {
+    return new GetAccountAccessUseCase(
+        membershipRepositoryPort, clientAppRepositoryPort, tenantRepositoryPort);
   }
 
   @Bean

@@ -21,8 +21,10 @@ import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppStatus;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
+import io.cmartinezs.keygo.domain.clientapp.model.AppAccessRestriction;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipPendingException;
+import io.cmartinezs.keygo.domain.membership.exception.NoMembershipException;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
 import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
@@ -115,15 +117,15 @@ class IssueAuthorizationCodeUseCaseTest {
         .hasMessageContaining("pending");
   }
 
-  // ── Membership not found ───────────────────────────────────────────────────
+  // ── Membership not found (CLOSED app) ─────────────────────────────────────
 
   @Test
-  void execute_membershipNotFound_throwsMembershipInactiveException() {
+  void execute_closedApp_membershipNotFound_throwsNoMembershipException() {
     // Given
     IssueAuthorizationCodeCommand command = buildCommand();
     Tenant tenant = buildTenant();
     User user = buildUser();
-    ClientApp clientApp = buildClientApp();
+    ClientApp clientApp = buildClientApp(AppAccessRestriction.CLOSED);
 
     when(tenantRepository.findBySlug(any(TenantSlug.class))).thenReturn(Optional.of(tenant));
     when(userRepository.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(user));
@@ -132,8 +134,30 @@ class IssueAuthorizationCodeUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(command))
-        .isInstanceOf(MembershipInactiveException.class)
-        .hasMessageContaining("no access");
+        .isInstanceOf(NoMembershipException.class);
+  }
+
+  // ── OPEN_JOIN app ──────────────────────────────────────────────────────────
+
+  @Test
+  void execute_openJoinApp_noMembership_allowsAccess() {
+    // Given
+    IssueAuthorizationCodeCommand command = buildCommand();
+    Tenant tenant = buildTenant();
+    User user = buildUser();
+    ClientApp clientApp = buildClientApp(AppAccessRestriction.OPEN_JOIN);
+
+    when(tenantRepository.findBySlug(any(TenantSlug.class))).thenReturn(Optional.of(tenant));
+    when(userRepository.findByIdAndTenantId(any(), any())).thenReturn(Optional.of(user));
+    when(clientAppRepository.findByClientIdAndTenantId(any(), any())).thenReturn(Optional.of(clientApp));
+    when(clock.futureSeconds(600L)).thenReturn(Instant.now().plusSeconds(600));
+
+    // When
+    AuthorizationCodeIssuedResult result = useCase.execute(command);
+
+    // Then — no membership needed for OPEN_JOIN
+    assertThat(result).isNotNull();
+    assertThat(result.code()).isNotBlank();
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -180,6 +204,10 @@ class IssueAuthorizationCodeUseCaseTest {
   }
 
   private ClientApp buildClientApp() {
+    return buildClientApp(null);
+  }
+
+  private ClientApp buildClientApp(AppAccessRestriction accessRestriction) {
     return ClientApp.builder()
         .id(new ClientAppId(CLIENT_APP_UUID))
         .clientId(new ClientId(CLIENT_ID))
@@ -188,6 +216,7 @@ class IssueAuthorizationCodeUseCaseTest {
         .type(ClientType.PUBLIC)
         .accessPolicy(new AccessPolicy(Set.of(AllowedGrant.AUTHORIZATION_CODE), Collections.emptySet()))
         .status(ClientAppStatus.ACTIVE)
+        .accessRestriction(accessRestriction)
         .build();
   }
 

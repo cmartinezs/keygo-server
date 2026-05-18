@@ -45,6 +45,14 @@ public interface AppRoleRepositoryPort {
   List<AppRole> findByClientAppId(UUID clientAppId);
 
   /**
+   * List all roles assigned to a membership.
+   * <p>Lista todos los roles asignados a una membresía.
+   * @param membershipId the membership ID
+   * @return list of roles with code and display name
+   */
+  List<AppRole> findByMembershipId(UUID membershipId);
+
+  /**
    * Check if a role code already exists for the client app.
    * <p>Verifica si un código de rol ya existe para la app de cliente.
    * @param clientAppId the client app ID

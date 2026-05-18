@@ -5,7 +5,9 @@ import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.clientapp.port.ClientCredentialGeneratorPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidClientAppConfigException;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
+import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedScope;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientAppId;
@@ -62,6 +64,8 @@ public class CreateClientAppUseCase {
       throw new TenantSuspendedException(command.tenantSlug());
     }
 
+    validateOAuthConfig(command.grants(), command.type(), command.redirectUris());
+
     String rawClientId = credentialGenerator.generateClientId();
     ClientId clientId = ClientId.of(rawClientId);
 
@@ -99,6 +103,19 @@ public class CreateClientAppUseCase {
 
     ClientApp saved = clientAppRepositoryPort.save(clientApp);
     return new CreateClientAppResult(saved, rawSecret);
+  }
+
+  private void validateOAuthConfig(Set<AllowedGrant> grants, ClientType type, Set<String> redirectUris) {
+    if (grants != null && grants.contains(AllowedGrant.AUTHORIZATION_CODE)) {
+      if (redirectUris == null || redirectUris.isEmpty()) {
+        throw new InvalidClientAppConfigException(
+            "AUTHORIZATION_CODE grant requires at least one redirect URI");
+      }
+    }
+    if (ClientType.PUBLIC.equals(type) && grants != null && grants.contains(AllowedGrant.CLIENT_CREDENTIALS)) {
+      throw new InvalidClientAppConfigException(
+          "CLIENT_CREDENTIALS grant is not allowed for PUBLIC client applications");
+    }
   }
 }
 

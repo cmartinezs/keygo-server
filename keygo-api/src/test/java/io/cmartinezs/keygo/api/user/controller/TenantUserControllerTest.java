@@ -7,11 +7,13 @@ import io.cmartinezs.keygo.api.user.request.ValidateCredentialsRequest;
 import io.cmartinezs.keygo.api.user.response.UserData;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.app.user.filter.UserFilter;
+import io.cmartinezs.keygo.app.user.result.UserStatusActionResult;
 import io.cmartinezs.keygo.app.user.usecase.ActivateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.CreateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.GetUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ListUsersUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ResetUserPasswordUseCase;
+import io.cmartinezs.keygo.app.user.usecase.ListAdminUserSessionsUseCase;
 import io.cmartinezs.keygo.app.user.usecase.SuspendUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.UpdateUserUseCase;
 import io.cmartinezs.keygo.app.user.usecase.ValidateUserCredentialsUseCase;
@@ -51,6 +53,7 @@ class TenantUserControllerTest {
   @Mock ValidateUserCredentialsUseCase validateUserCredentialsUseCase;
   @Mock SuspendUserUseCase suspendUserUseCase;
   @Mock ActivateUserUseCase activateUserUseCase;
+  @Mock ListAdminUserSessionsUseCase listAdminUserSessionsUseCase;
 
   private TenantUserController controller;
   private User sampleUser;
@@ -60,7 +63,7 @@ class TenantUserControllerTest {
     controller = new TenantUserController(
         createUserUseCase, listUsersUseCase, getUserUseCase,
         updateUserUseCase, resetUserPasswordUseCase, validateUserCredentialsUseCase,
-        suspendUserUseCase, activateUserUseCase);
+        suspendUserUseCase, activateUserUseCase, listAdminUserSessionsUseCase);
 
     sampleUser = User.builder()
         .id(UserId.of(UUID.randomUUID()))
@@ -93,7 +96,7 @@ class TenantUserControllerTest {
     when(listUsersUseCase.execute(eq(TENANT_SLUG), any(UserFilter.class))).thenReturn(pagedResult);
 
     // When
-    var response = controller.listUsers(TENANT_SLUG, null, null, null, 0, 20, null, null);
+    var response = controller.listUsers(TENANT_SLUG, null, null, null, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -157,49 +160,75 @@ class TenantUserControllerTest {
   }
 
   @Test
-  void suspendUserReturns200() {
+  void suspendUserReturns200WithStatusTransition() {
     // Given
-    User suspendedUser = User.builder()
-        .id(sampleUser.getId())
-        .tenantId(sampleUser.getTenantId())
-        .username(sampleUser.getUsername())
-        .email(sampleUser.getEmail())
-        .passwordHash(sampleUser.getPasswordHash())
-        .firstName("John").lastName("Doe")
-        .status(UserStatus.SUSPENDED)
-        .build();
-    when(suspendUserUseCase.execute(any(), any())).thenReturn(suspendedUser);
+    var result = new UserStatusActionResult(
+        sampleUser.getId().value(), UserStatus.ACTIVE, UserStatus.SUSPENDED, false);
+    when(suspendUserUseCase.execute(any(), any())).thenReturn(result);
 
     // When
     var response = controller.suspendUser(TENANT_SLUG, sampleUser.getId().toString());
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData().getStatus()).isEqualTo("SUSPENDED");
+    var data = response.getBody().getData();
+    assertThat(data.previousStatus()).isEqualTo("ACTIVE");
+    assertThat(data.currentStatus()).isEqualTo("SUSPENDED");
+    assertThat(data.alreadySuspended()).isFalse();
+    assertThat(data.alreadyActive()).isFalse();
   }
 
   @Test
-  void activateUserReturns200() {
+  void suspendUserReturns200WhenAlreadySuspended() {
     // Given
-    User activeUser = User.builder()
-        .id(sampleUser.getId())
-        .tenantId(sampleUser.getTenantId())
-        .username(sampleUser.getUsername())
-        .email(sampleUser.getEmail())
-        .passwordHash(sampleUser.getPasswordHash())
-        .firstName("John").lastName("Doe")
-        .status(UserStatus.ACTIVE)
-        .build();
-    when(activateUserUseCase.execute(any(), any())).thenReturn(activeUser);
+    var result = new UserStatusActionResult(
+        sampleUser.getId().value(), UserStatus.SUSPENDED, UserStatus.SUSPENDED, true);
+    when(suspendUserUseCase.execute(any(), any())).thenReturn(result);
+
+    // When
+    var response = controller.suspendUser(TENANT_SLUG, sampleUser.getId().toString());
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    var data = response.getBody().getData();
+    assertThat(data.alreadySuspended()).isTrue();
+    assertThat(data.alreadyActive()).isFalse();
+  }
+
+  @Test
+  void activateUserReturns200WithStatusTransition() {
+    // Given
+    var result = new UserStatusActionResult(
+        sampleUser.getId().value(), UserStatus.SUSPENDED, UserStatus.ACTIVE, false);
+    when(activateUserUseCase.execute(any(), any())).thenReturn(result);
 
     // When
     var response = controller.activateUser(TENANT_SLUG, sampleUser.getId().toString());
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData().getStatus()).isEqualTo("ACTIVE");
+    var data = response.getBody().getData();
+    assertThat(data.previousStatus()).isEqualTo("SUSPENDED");
+    assertThat(data.currentStatus()).isEqualTo("ACTIVE");
+    assertThat(data.alreadyActive()).isFalse();
+    assertThat(data.alreadySuspended()).isFalse();
+  }
+
+  @Test
+  void activateUserReturns200WhenAlreadyActive() {
+    // Given
+    var result = new UserStatusActionResult(
+        sampleUser.getId().value(), UserStatus.ACTIVE, UserStatus.ACTIVE, true);
+    when(activateUserUseCase.execute(any(), any())).thenReturn(result);
+
+    // When
+    var response = controller.activateUser(TENANT_SLUG, sampleUser.getId().toString());
+
+    // Then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    var data = response.getBody().getData();
+    assertThat(data.alreadyActive()).isTrue();
+    assertThat(data.alreadySuspended()).isFalse();
   }
 }
 

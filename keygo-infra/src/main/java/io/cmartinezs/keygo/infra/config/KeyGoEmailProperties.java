@@ -1,6 +1,5 @@
 package io.cmartinezs.keygo.infra.config;
 
-import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -25,8 +24,6 @@ import org.springframework.context.annotation.Configuration;
  * <pre>
  * keygo:
  *   email:
- *     smtp-host: smtp.example.com
- *     smtp-port: 587
  *     template-cache-enabled: true
  *     default-from-address: "noreply@keygo.local"
  *     default-from-name: "KeyGo"
@@ -46,12 +43,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "keygo.email")
 public class KeyGoEmailProperties {
-
-  /** SMTP host para envío de emails */
-  @NotBlank private String smtpHost;
-
-  /** SMTP port para envío de emails (default: 587) */
-  private int smtpPort = 587;
 
   /** Flag para habilitar/deshabilitar caché de templates Thymeleaf */
   private boolean templateCacheEnabled = true;

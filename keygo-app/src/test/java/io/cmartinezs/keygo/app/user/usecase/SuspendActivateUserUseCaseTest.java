@@ -9,13 +9,13 @@ import static org.mockito.Mockito.when;
 
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.app.user.result.UserStatusActionResult;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
 import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 import io.cmartinezs.keygo.domain.tenant.model.TenantStatus;
 import io.cmartinezs.keygo.domain.user.exception.UserNotFoundException;
-import io.cmartinezs.keygo.domain.user.exception.UserSuspendedException;
 import io.cmartinezs.keygo.domain.user.model.EmailAddress;
 import io.cmartinezs.keygo.domain.user.model.PasswordHash;
 import io.cmartinezs.keygo.domain.user.model.User;
@@ -35,78 +35,89 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("SuspendActivateUserUseCase")
 class SuspendActivateUserUseCaseTest {
 
-  @Mock
-  private TenantRepositoryPort tenantRepositoryPort;
-
-  @Mock
-  private UserRepositoryPort userRepositoryPort;
+  @Mock private TenantRepositoryPort tenantRepositoryPort;
+  @Mock private UserRepositoryPort userRepositoryPort;
 
   private SuspendUserUseCase suspendUserUseCase;
   private ActivateUserUseCase activateUserUseCase;
 
-  private final String TENANT_SLUG = "test-tenant";
-  private final UUID USER_UUID = UUID.randomUUID();
-  private final String USER_ID = USER_UUID.toString();
+  private static final String TENANT_SLUG = "test-tenant";
+  private static final UUID USER_UUID = UUID.randomUUID();
+  private static final String USER_ID = USER_UUID.toString();
 
   private Tenant activeTenant;
   private User activeUser;
 
   @BeforeEach
   void setUp() {
-    suspendUserUseCase =
-        new SuspendUserUseCase(tenantRepositoryPort, userRepositoryPort);
-    activateUserUseCase =
-        new ActivateUserUseCase(tenantRepositoryPort, userRepositoryPort);
+    suspendUserUseCase = new SuspendUserUseCase(tenantRepositoryPort, userRepositoryPort);
+    activateUserUseCase = new ActivateUserUseCase(tenantRepositoryPort, userRepositoryPort);
 
-    activeTenant =
-        Tenant.builder()
-            .id(TenantId.generate())
-            .slug(TenantSlug.of(TENANT_SLUG))
-            .name("Test Tenant")
-            .status(TenantStatus.ACTIVE)
-            .build();
+    activeTenant = Tenant.builder()
+        .id(TenantId.generate())
+        .slug(TenantSlug.of(TENANT_SLUG))
+        .name("Test Tenant")
+        .status(TenantStatus.ACTIVE)
+        .build();
 
-    activeUser =
-        User.builder()
-            .id(UserId.of(USER_ID))
-            .tenantId(activeTenant.getId())
-            .username(Username.of("testuser"))
-            .email(EmailAddress.of("user@example.com"))
-            .passwordHash(PasswordHash.of("$2a$10$hash"))
-            .firstName("Test")
-            .lastName("User")
-            .status(UserStatus.ACTIVE)
-            .build();
+    activeUser = User.builder()
+        .id(UserId.of(USER_ID))
+        .tenantId(activeTenant.getId())
+        .username(Username.of("testuser"))
+        .email(EmailAddress.of("user@example.com"))
+        .passwordHash(PasswordHash.of("$2a$10$hash"))
+        .firstName("Test")
+        .lastName("User")
+        .status(UserStatus.ACTIVE)
+        .build();
   }
 
   // ── SuspendUserUseCase ──────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("suspendUser: should suspend an active user and persist the change")
+  @DisplayName("suspendUser: active user → SUSPENDED, idempotent=false")
   void suspendUser_success() {
-    // Given
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.of(activeTenant));
-    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId()))
-        .thenReturn(Optional.of(activeUser));
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId())).thenReturn(Optional.of(activeUser));
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    // When
-    User result = suspendUserUseCase.execute(TENANT_SLUG, USER_ID);
+    UserStatusActionResult result = suspendUserUseCase.execute(TENANT_SLUG, USER_ID);
 
-    // Then
-    assertThat(result.getStatus()).isEqualTo(UserStatus.SUSPENDED);
+    assertThat(result.previousStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(result.currentStatus()).isEqualTo(UserStatus.SUSPENDED);
+    assertThat(result.idempotent()).isFalse();
+    assertThat(result.userId()).isEqualTo(USER_UUID);
     verify(userRepositoryPort).save(activeUser);
   }
 
   @Test
-  @DisplayName("suspendUser: should throw TenantNotFoundException when tenant does not exist")
-  void suspendUser_throwsTenantNotFound() {
-    // Given
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.empty());
+  @DisplayName("suspendUser: already SUSPENDED → idempotent=true, no persist")
+  void suspendUser_alreadySuspended_isIdempotent() {
+    User suspendedUser = User.builder()
+        .id(UserId.of(USER_ID))
+        .tenantId(activeTenant.getId())
+        .username(Username.of("testuser"))
+        .email(EmailAddress.of("user@example.com"))
+        .passwordHash(PasswordHash.of("$2a$10$hash"))
+        .status(UserStatus.SUSPENDED)
+        .build();
 
-    // When / Then
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId())).thenReturn(Optional.of(suspendedUser));
+
+    UserStatusActionResult result = suspendUserUseCase.execute(TENANT_SLUG, USER_ID);
+
+    assertThat(result.previousStatus()).isEqualTo(UserStatus.SUSPENDED);
+    assertThat(result.currentStatus()).isEqualTo(UserStatus.SUSPENDED);
+    assertThat(result.idempotent()).isTrue();
+    verify(userRepositoryPort, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("suspendUser: tenant not found → TenantNotFoundException")
+  void suspendUser_throwsTenantNotFound() {
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.empty());
+
     assertThatThrownBy(() -> suspendUserUseCase.execute(TENANT_SLUG, USER_ID))
         .isInstanceOf(TenantNotFoundException.class)
         .hasMessageContaining(TENANT_SLUG);
@@ -116,15 +127,11 @@ class SuspendActivateUserUseCaseTest {
   }
 
   @Test
-  @DisplayName("suspendUser: should throw UserNotFoundException when user does not exist")
+  @DisplayName("suspendUser: user not found → UserNotFoundException")
   void suspendUser_throwsUserNotFound() {
-    // Given
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.of(activeTenant));
-    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId()))
-        .thenReturn(Optional.empty());
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId())).thenReturn(Optional.empty());
 
-    // When / Then
     assertThatThrownBy(() -> suspendUserUseCase.execute(TENANT_SLUG, USER_ID))
         .isInstanceOf(UserNotFoundException.class)
         .hasMessageContaining(USER_ID);
@@ -132,62 +139,52 @@ class SuspendActivateUserUseCaseTest {
     verify(userRepositoryPort, never()).save(any());
   }
 
-  @Test
-  @DisplayName("suspendUser: should throw UserSuspendedException when user is already suspended")
-  void suspendUser_throwsUserSuspendedException() {
-    // Given
-    activeUser.suspend(); // already suspended
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.of(activeTenant));
-    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId()))
-        .thenReturn(Optional.of(activeUser));
-
-    // When / Then
-    assertThatThrownBy(() -> suspendUserUseCase.execute(TENANT_SLUG, USER_ID))
-        .isInstanceOf(UserSuspendedException.class);
-
-    verify(userRepositoryPort, never()).save(any());
-  }
-
   // ── ActivateUserUseCase ─────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("activateUser: should activate a suspended user and persist the change")
+  @DisplayName("activateUser: suspended user → ACTIVE, idempotent=false")
   void activateUser_success() {
-    // Given
     User suspendedUser = User.builder()
         .id(UserId.of(USER_ID))
         .tenantId(activeTenant.getId())
         .username(Username.of("testuser"))
         .email(EmailAddress.of("user@example.com"))
         .passwordHash(PasswordHash.of("$2a$10$hash"))
-        .firstName("Test")
-        .lastName("User")
         .status(UserStatus.SUSPENDED)
         .build();
 
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.of(activeTenant));
-    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId()))
-        .thenReturn(Optional.of(suspendedUser));
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId())).thenReturn(Optional.of(suspendedUser));
     when(userRepositoryPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    // When
-    User result = activateUserUseCase.execute(TENANT_SLUG, USER_ID);
+    UserStatusActionResult result = activateUserUseCase.execute(TENANT_SLUG, USER_ID);
 
-    // Then
-    assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(result.previousStatus()).isEqualTo(UserStatus.SUSPENDED);
+    assertThat(result.currentStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(result.idempotent()).isFalse();
+    assertThat(result.userId()).isEqualTo(USER_UUID);
     verify(userRepositoryPort).save(suspendedUser);
   }
 
   @Test
-  @DisplayName("activateUser: should throw TenantNotFoundException when tenant does not exist")
-  void activateUser_throwsTenantNotFound() {
-    // Given
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.empty());
+  @DisplayName("activateUser: already ACTIVE → idempotent=true, no persist")
+  void activateUser_alreadyActive_isIdempotent() {
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId())).thenReturn(Optional.of(activeUser));
 
-    // When / Then
+    UserStatusActionResult result = activateUserUseCase.execute(TENANT_SLUG, USER_ID);
+
+    assertThat(result.previousStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(result.currentStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(result.idempotent()).isTrue();
+    verify(userRepositoryPort, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("activateUser: tenant not found → TenantNotFoundException")
+  void activateUser_throwsTenantNotFound() {
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.empty());
+
     assertThatThrownBy(() -> activateUserUseCase.execute(TENANT_SLUG, USER_ID))
         .isInstanceOf(TenantNotFoundException.class)
         .hasMessageContaining(TENANT_SLUG);
@@ -197,15 +194,11 @@ class SuspendActivateUserUseCaseTest {
   }
 
   @Test
-  @DisplayName("activateUser: should throw UserNotFoundException when user does not exist")
+  @DisplayName("activateUser: user not found → UserNotFoundException")
   void activateUser_throwsUserNotFound() {
-    // Given
-    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG)))
-        .thenReturn(Optional.of(activeTenant));
-    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId()))
-        .thenReturn(Optional.empty());
+    when(tenantRepositoryPort.findBySlug(TenantSlug.of(TENANT_SLUG))).thenReturn(Optional.of(activeTenant));
+    when(userRepositoryPort.findByIdAndTenantId(UserId.of(USER_ID), activeTenant.getId())).thenReturn(Optional.empty());
 
-    // When / Then
     assertThatThrownBy(() -> activateUserUseCase.execute(TENANT_SLUG, USER_ID))
         .isInstanceOf(UserNotFoundException.class)
         .hasMessageContaining(USER_ID);

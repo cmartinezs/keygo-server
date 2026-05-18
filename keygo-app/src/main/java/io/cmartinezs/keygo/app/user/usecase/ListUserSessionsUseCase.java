@@ -15,7 +15,6 @@ import io.cmartinezs.keygo.domain.tenant.model.TenantSlug;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -101,17 +100,19 @@ public class ListUserSessionsUseCase {
     //    is null on the session it won't match, and that's acceptable for now.
     List<Session> sessions = sessionRepository.findAllByPlatformUserId(userId);
 
+    String currentSessionId = (String) claims.get("sid");
+
     List<SessionInfoResult> results = sessions.stream()
         .filter(s -> s.getStatus() == SessionStatus.ACTIVE)
-        .map(s -> toResult(s, command.requestUserAgent(), command.requestIpAddress()))
+        .map(s -> toResult(s, currentSessionId))
         .toList();
 
     return new ListUserSessionsResult(results);
   }
 
-  private SessionInfoResult toResult(Session session, String reqUserAgent, String reqIpAddress) {
-    boolean isCurrent = Objects.equals(session.getUserAgent(), reqUserAgent)
-        && Objects.equals(session.getIpAddress(), reqIpAddress);
+  private SessionInfoResult toResult(Session session, String currentSessionId) {
+    boolean isCurrent = currentSessionId != null
+        && currentSessionId.equals(session.getId().value().toString());
 
     return new SessionInfoResult(
         session.getId().value(),

@@ -119,8 +119,8 @@ public class RotatePlatformRefreshTokenUseCase {
     String sub = platformUserId.toString();
 
     IssueTokensResult tokensResult = issueTokensUseCase.execute(
-        null, issuer, sub, PLATFORM_AUDIENCE, PLATFORM_SCOPE,
-        null, null, null, null, roleCodes);
+        null, null, issuer, sub, PLATFORM_AUDIENCE, PLATFORM_SCOPE,
+        null, null, null, null, roleCodes, session.getId().value().toString());
 
     String signingKeyId = tokensResult.signingKeyId();
 

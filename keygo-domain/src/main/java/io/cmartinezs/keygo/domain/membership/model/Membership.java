@@ -5,6 +5,7 @@ import io.cmartinezs.keygo.domain.membership.exception.InvalidRoleAssignmentExce
 import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadyActiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.user.model.UserId;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Builder;
@@ -26,9 +27,10 @@ public class Membership {
   private final ClientAppId clientAppId;
   private MembershipStatus status;
   private final Set<MembershipRole> roles = new HashSet<>();
+  private final OffsetDateTime createdAt;
 
   @Builder
-  private Membership(MembershipId id, UserId userId, ClientAppId clientAppId, MembershipStatus status) {
+  private Membership(MembershipId id, UserId userId, ClientAppId clientAppId, MembershipStatus status, OffsetDateTime createdAt) {
     if (userId == null) throw new IllegalArgumentException("Membership userId cannot be null");
     if (clientAppId == null) throw new IllegalArgumentException("Membership clientAppId cannot be null");
     if (status == null) throw new IllegalArgumentException("Membership status cannot be null");
@@ -37,6 +39,7 @@ public class Membership {
     this.userId = userId;
     this.clientAppId = clientAppId;
     this.status = status;
+    this.createdAt = createdAt;
   }
 
   /* Domain behaviour */

@@ -31,6 +31,7 @@ public class ClientApp {
   private AccessPolicy accessPolicy;
   private ClientAppStatus status;
   private RegistrationPolicy registrationPolicy;
+  private AppAccessRestriction accessRestriction;
 
   @Builder
   private ClientApp(
@@ -44,7 +45,8 @@ public class ClientApp {
       Set<RedirectUri> redirectUris,
       AccessPolicy accessPolicy,
       ClientAppStatus status,
-      RegistrationPolicy registrationPolicy) {
+      RegistrationPolicy registrationPolicy,
+      AppAccessRestriction accessRestriction) {
     if (tenantId == null) throw new IllegalArgumentException("ClientApp tenantId cannot be null");
     if (clientId == null) throw new IllegalArgumentException("ClientApp clientId cannot be null");
     if (name == null || name.isBlank()) throw new IllegalArgumentException("ClientApp name cannot be null or blank");
@@ -66,6 +68,15 @@ public class ClientApp {
     this.accessPolicy = accessPolicy;
     this.status = status;
     this.registrationPolicy = registrationPolicy == null ? RegistrationPolicy.OPEN_NO_MEMBERSHIP : registrationPolicy;
+    this.accessRestriction = accessRestriction == null ? AppAccessRestriction.CLOSED : accessRestriction;
+  }
+
+  public boolean isClosed() {
+    return AppAccessRestriction.CLOSED.equals(this.accessRestriction);
+  }
+
+  public boolean isOpenJoin() {
+    return AppAccessRestriction.OPEN_JOIN.equals(this.accessRestriction);
   }
 
   // ─── Domain behaviour ─────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ keygo:
     issuer-base-url: "${KEYGO_ISSUER_BASE_URL:http://localhost:8080/keygo-server}"
   bootstrap:
     enabled: true
-    bypass-roles: ${KEYGO_BOOTSTRAP_BYPASS_ROLES:ADMIN,ADMIN_TENANT,USER,KEYGO_ADMIN,KEYGO_TENANT_ADMIN,KEYGO_USER}
+    bypass-roles: ${KEYGO_BOOTSTRAP_BYPASS_ROLES:ADMIN,ADMIN_TENANT,USER,KEYGO_ADMIN,KEYGO_ACCOUNT_ADMIN,KEYGO_USER}
     api-path-prefix: "/api/"
     actuator-path-prefix: "/actuator/"
     service-info-path-prefix: "/service/info"
@@ -102,8 +102,6 @@ keygo:
         route: "/dashboard"
         query-params: []
   email:
-    smtp-host: "${SMTP_HOST:localhost}"
-    smtp-port: "${SMTP_PORT:587}"
     template-cache-enabled: true
     default-from-address: "${KEYGO_MAIL_FROM:noreply@keygo.local}"
     default-from-name: "${KEYGO_MAIL_APP_NAME:KeyGo}"
@@ -220,10 +218,10 @@ spring:
   profiles:
     active: "${SPRING_PROFILES_ACTIVE:default}"
   mail:
-    host: "${SMTP_HOST:localhost}"
-    port: "${SMTP_PORT:587}"
-    username: "${SMTP_USERNAME:}"
-    password: "${SMTP_PASSWORD:}"
+    host: "${SMTP_HOST}"
+    port: "${SMTP_PORT}"
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
     properties:
       mail:
         smtp:

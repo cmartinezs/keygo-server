@@ -84,24 +84,27 @@ public class IssuePlatformTokensUseCase {
       throw new PlatformUserWithoutRolesException(userId);
     }
 
-    // 2. Emitir access_token + id_token (tenantId=null → clave global)
+    // 2. Pre-generar el ID de sesión para incluirlo como claim 'sid' en el access token
+    UUID sessionUuid = UUID.randomUUID();
+
+    // 3. Emitir access_token + id_token (tenantId=null → clave global)
     String sub = userId.toString();
     String email = platformUser.getEmail() != null ? platformUser.getEmail().value() : null;
     String name = buildName(platformUser.getFirstName(), platformUser.getLastName());
 
     IssueTokensResult tokensResult = issueTokensUseCase.execute(
-        null, issuer, sub, PLATFORM_AUDIENCE, PLATFORM_SCOPE,
-        null, email, name, null, roleCodes);
+        null, null, issuer, sub, PLATFORM_AUDIENCE, PLATFORM_SCOPE,
+        null, email, name, null, roleCodes, sessionUuid.toString());
 
     Instant now = clock.now();
     String signingKeyId = tokensResult.signingKeyId();
 
-    // 3. Abrir sesión de plataforma (clientAppId=null)
+    // 4. Abrir sesión de plataforma con el ID pre-generado (clientAppId=null)
     Session session = Session.open(
-        userId, null, now.plus(SESSION_TTL), now, userAgent, ipAddress, signingKeyId);
+        sessionUuid, userId, null, now.plus(SESSION_TTL), now, userAgent, ipAddress, signingKeyId);
     Session savedSession = sessionRepository.save(session);
 
-    // 4. Generar refresh token
+    // 5. Generar refresh token
     String rawRefreshToken = generateSecureToken();
     String tokenHash = sha256Hex(rawRefreshToken);
     Instant refreshExpiresAt = now.plus(REFRESH_TOKEN_TTL);
@@ -111,7 +114,7 @@ public class IssuePlatformTokensUseCase {
         PLATFORM_SCOPE, refreshExpiresAt, now, signingKeyId);
     refreshTokenRepository.save(refreshToken);
 
-    // 5. Retornar resultado
+    // 6. Retornar resultado
     return new IssuePlatformTokensResult(
         tokensResult.accessToken(),
         tokensResult.idToken(),

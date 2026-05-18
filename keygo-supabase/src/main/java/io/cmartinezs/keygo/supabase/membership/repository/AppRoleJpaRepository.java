@@ -59,5 +59,16 @@ public interface AppRoleJpaRepository extends JpaRepository<AppRoleEntity, UUID>
   @Transactional
   @Query("UPDATE AppRoleEntity r SET r.isDefault = false WHERE r.clientAppId = :clientAppId AND r.isDefault = true")
   void clearDefaultByClientAppId(@Param("clientAppId") UUID clientAppId);
+
+  /**
+   * Find all roles assigned to a membership via app_membership_roles join.
+   * <p>Busca todos los roles asignados a una membresía vía join con app_membership_roles.
+   */
+  @Query(value =
+      "SELECT ar.* FROM app_roles ar "
+      + "JOIN app_membership_roles mr ON ar.id = mr.role_id AND ar.client_app_id = mr.client_app_id "
+      + "WHERE mr.membership_id = :membershipId",
+      nativeQuery = true)
+  List<AppRoleEntity> findByMembershipId(@Param("membershipId") UUID membershipId);
 }
 

@@ -9,13 +9,16 @@ import io.cmartinezs.keygo.domain.auth.model.SigningKey;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyAlgorithm;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyId;
 import io.cmartinezs.keygo.domain.auth.model.SigningKeyStatus;
+import io.cmartinezs.keygo.domain.tenant.model.TenantId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -63,7 +66,7 @@ class IssueTokensUseCaseTest {
 
     // When
     var result = useCase.execute(
-        null,
+        null, null,
         "http://localhost/keygo-server/api/v1/tenants/my-tenant",
         "user-uuid",
         "client-id",
@@ -95,7 +98,7 @@ class IssueTokensUseCaseTest {
 
     // When
     var result = useCase.execute(
-        null,
+        null, null,
         "http://localhost/keygo-server/api/v1/tenants/my-tenant",
         "user-uuid", "client-id", "openid profile",
         null, null, null, "code-id-456", List.of());
@@ -112,7 +115,68 @@ class IssueTokensUseCaseTest {
 
     // When / Then
     assertThatThrownBy(() -> useCase.execute(
-        null, "http://localhost", "user", "client", "openid", null, null, null, "code-1", null))
+        null, null, "http://localhost", "user", "client", "openid", null, null, null, "code-1", null))
         .isInstanceOf(NoActiveSigningKeyException.class);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void givenTenantIdAndClientAppId_whenExecute_thenAccessTokenIncludesTidAndCidClaims() {
+    // Given
+    UUID tenantUUID = UUID.randomUUID();
+    UUID clientAppUUID = UUID.randomUUID();
+    TenantId tenantId = TenantId.of(tenantUUID);
+
+    when(signingKeyRepository.findActiveKeyForTenant(tenantId)).thenReturn(Optional.of(activeKey));
+    when(clock.now()).thenReturn(Instant.now());
+    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new java.util.LinkedHashMap<>(Map.of("iss", "http://localhost/api/v1/tenants/acme")));
+    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Map.of("iss", "http://localhost/api/v1/tenants/acme", "sub", "user-1"));
+    when(tokenSigner.signJwt(any(), eq(activeKey))).thenReturn("access.jwt", "id.jwt");
+
+    // When
+    useCase.execute(
+        tenantId, clientAppUUID,
+        "http://localhost/api/v1/tenants/acme",
+        "user-uuid", "client-id", "openid profile",
+        null, null, null, "code-id-789", List.of("editor"));
+
+    // Then — capture the claims map passed to signJwt for the access token (first call)
+    ArgumentCaptor<Map<String, Object>> claimsCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(tokenSigner, times(2)).signJwt(claimsCaptor.capture(), eq(activeKey));
+    Map<String, Object> accessClaims = claimsCaptor.getAllValues().get(0);
+
+    assertThat(accessClaims).containsEntry("tid", tenantUUID.toString());
+    assertThat(accessClaims).containsEntry("cid", clientAppUUID.toString());
+    assertThat(accessClaims).containsKey("tenant_slug");
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void givenNullTenantIdAndClientAppId_whenExecute_thenTidAndCidClaimsAbsent() {
+    // Given
+    when(signingKeyRepository.findActiveKey()).thenReturn(Optional.of(activeKey));
+    when(clock.now()).thenReturn(Instant.now());
+    when(tokenClaimsFactory.buildAccessTokenClaims(any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new java.util.LinkedHashMap<>(Map.of("iss", "http://localhost")));
+    when(tokenClaimsFactory.buildIdTokenClaims(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Map.of("iss", "http://localhost", "sub", "user-1"));
+    when(tokenSigner.signJwt(any(), eq(activeKey))).thenReturn("access.jwt", "id.jwt");
+
+    // When
+    useCase.execute(
+        null, null,
+        "http://localhost",
+        "user-uuid", "client-id", "openid",
+        null, null, null, "code-1", List.of());
+
+    // Then — tid and cid must not appear in access token for platform (null tenant/clientApp)
+    ArgumentCaptor<Map<String, Object>> claimsCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(tokenSigner, times(2)).signJwt(claimsCaptor.capture(), eq(activeKey));
+    Map<String, Object> accessClaims = claimsCaptor.getAllValues().get(0);
+
+    assertThat(accessClaims).doesNotContainKey("tid");
+    assertThat(accessClaims).doesNotContainKey("cid");
   }
 }

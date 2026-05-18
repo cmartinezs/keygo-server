@@ -1,12 +1,15 @@
 package io.cmartinezs.keygo.app.user.usecase;
 
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
+import io.cmartinezs.keygo.app.membership.command.AssignPlatformRoleCommand;
+import io.cmartinezs.keygo.app.membership.usecase.AssignPlatformRoleUseCase;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.app.user.command.RegisterTenantUserCommand;
 import io.cmartinezs.keygo.app.user.port.EmailNotificationPort;
 import io.cmartinezs.keygo.app.user.port.VerificationCodeRepositoryPort;
 import io.cmartinezs.keygo.app.auth.port.CredentialEncoderPort;
 import io.cmartinezs.keygo.app.user.port.UserRepositoryPort;
+import io.cmartinezs.keygo.domain.membership.model.PlatformRoleCode;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
 import io.cmartinezs.keygo.domain.clientapp.exception.SelfRegistrationNotAllowedException;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
@@ -33,6 +36,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Use case: register a new user in a tenant's client app.
@@ -53,6 +57,7 @@ public class RegisterTenantUserUseCase {
   private static final int VERIFICATION_EXPIRY_MINUTES = 30;
   private static final int USERNAME_MAX_LENGTH = 100;
   private static final int USERNAME_COUNTER_DIGITS = 2;
+  private static final List<String> DEFAULT_PLATFORM_ROLES = List.of(PlatformRoleCode.KEYGO_USER.code());
 
   private final TenantRepositoryPort tenantRepositoryPort;
   private final ClientAppRepositoryPort clientAppRepositoryPort;
@@ -60,6 +65,7 @@ public class RegisterTenantUserUseCase {
   private final CredentialEncoderPort credentialEncoderPort;
   private final VerificationCodeRepositoryPort verificationCodeRepositoryPort;
   private final EmailNotificationPort emailNotificationPort;
+  private final AssignPlatformRoleUseCase assignPlatformRoleUseCase;
   private final SecureRandom secureRandom;
 
   public RegisterTenantUserUseCase(
@@ -68,13 +74,15 @@ public class RegisterTenantUserUseCase {
       UserRepositoryPort userRepositoryPort,
       CredentialEncoderPort credentialEncoderPort,
       VerificationCodeRepositoryPort verificationCodeRepositoryPort,
-      EmailNotificationPort emailNotificationPort) {
+      EmailNotificationPort emailNotificationPort,
+      AssignPlatformRoleUseCase assignPlatformRoleUseCase) {
     this.tenantRepositoryPort = tenantRepositoryPort;
     this.clientAppRepositoryPort = clientAppRepositoryPort;
     this.userRepositoryPort = userRepositoryPort;
     this.credentialEncoderPort = credentialEncoderPort;
     this.verificationCodeRepositoryPort = verificationCodeRepositoryPort;
     this.emailNotificationPort = emailNotificationPort;
+    this.assignPlatformRoleUseCase = assignPlatformRoleUseCase;
     this.secureRandom = new SecureRandom();
   }
 
@@ -145,6 +153,12 @@ public class RegisterTenantUserUseCase {
             .build();
 
     User savedUser = userRepositoryPort.save(user);
+
+    // 5.1 Assign default platform role to the linked platform user
+    UUID platformUserId = savedUser.getPlatformUserId();
+    if (platformUserId != null) {
+      assignPlatformRoleUseCase.execute(new AssignPlatformRoleCommand(platformUserId, DEFAULT_PLATFORM_ROLES));
+    }
 
     // 5. Generate and persist verification code
     String code = generateCode();

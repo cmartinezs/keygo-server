@@ -19,4 +19,12 @@ public interface SessionJpaRepository extends JpaRepository<SessionEntity, UUID>
           + "WHERE s.platformUser.id = :platformUserId "
           + "ORDER BY s.lastAccessedAt DESC")
   List<SessionEntity> findAllByPlatformUserId(@Param("platformUserId") UUID platformUserId);
+
+  @Query(
+      "SELECT s FROM SessionEntity s "
+          + "WHERE s.tenantUserId = :tenantUserId AND s.tenantId = :tenantId "
+          + "ORDER BY s.lastAccessedAt DESC")
+  List<SessionEntity> findAllByTenantUserIdAndTenantId(
+      @Param("tenantUserId") UUID tenantUserId,
+      @Param("tenantId") UUID tenantId);
 }

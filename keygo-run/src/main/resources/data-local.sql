@@ -748,16 +748,19 @@ SET tenant_id = (SELECT id FROM tenants WHERE slug = 'keygo'),
     hashed_secret = NULL,
     status = 'ACTIVE',
     is_internal = TRUE,
+    registration_policy = 'OPEN_NO_MEMBERSHIP',
+    access_restriction = 'CLOSED',
     updated_at = CURRENT_TIMESTAMP
 WHERE client_id = 'keygo-ui';
 
 INSERT INTO client_apps (
-    id, tenant_id, client_id, name, description, type, hashed_secret, status, is_internal, created_at, updated_at
+    id, tenant_id, client_id, name, description, type, hashed_secret, status,
+    is_internal, registration_policy, access_restriction, created_at, updated_at
 )
 SELECT '17000000-0000-0000-0000-000000000001',
        (SELECT id FROM tenants WHERE slug = 'keygo'),
        'keygo-ui', 'Keygo UI', 'Internal platform account UI and OAuth technical client',
-       'PUBLIC', NULL, 'ACTIVE', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'PUBLIC', NULL, 'ACTIVE', TRUE, 'OPEN_NO_MEMBERSHIP', 'CLOSED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM client_apps WHERE client_id = 'keygo-ui');
 
 UPDATE client_apps
@@ -768,16 +771,19 @@ SET tenant_id = (SELECT id FROM tenants WHERE slug = 'demo'),
     hashed_secret = NULL,
     status = 'ACTIVE',
     is_internal = FALSE,
+    registration_policy = 'OPEN_NO_MEMBERSHIP',
+    access_restriction = 'CLOSED',
     updated_at = CURRENT_TIMESTAMP
 WHERE client_id = 'demo-ui';
 
 INSERT INTO client_apps (
-    id, tenant_id, client_id, name, description, type, hashed_secret, status, is_internal, created_at, updated_at
+    id, tenant_id, client_id, name, description, type, hashed_secret, status,
+    is_internal, registration_policy, access_restriction, created_at, updated_at
 )
 SELECT '17000000-0000-0000-0000-000000000002',
        (SELECT id FROM tenants WHERE slug = 'demo'),
        'demo-ui', 'Demo UI', 'Demo tenant frontend',
-       'PUBLIC', NULL, 'ACTIVE', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'PUBLIC', NULL, 'ACTIVE', FALSE, 'OPEN_NO_MEMBERSHIP', 'CLOSED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM client_apps WHERE client_id = 'demo-ui');
 
 UPDATE client_apps
@@ -788,17 +794,89 @@ SET tenant_id = (SELECT id FROM tenants WHERE slug = 'acme'),
     hashed_secret = NULL,
     status = 'ACTIVE',
     is_internal = FALSE,
+    registration_policy = 'OPEN_NO_MEMBERSHIP',
+    access_restriction = 'CLOSED',
     updated_at = CURRENT_TIMESTAMP
 WHERE client_id = 'acme-ui';
 
 INSERT INTO client_apps (
-    id, tenant_id, client_id, name, description, type, hashed_secret, status, is_internal, created_at, updated_at
+    id, tenant_id, client_id, name, description, type, hashed_secret, status,
+    is_internal, registration_policy, access_restriction, created_at, updated_at
 )
 SELECT '17000000-0000-0000-0000-000000000003',
        (SELECT id FROM tenants WHERE slug = 'acme'),
        'acme-ui', 'Acme UI', 'Commercial tenant frontend',
-       'PUBLIC', NULL, 'ACTIVE', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'PUBLIC', NULL, 'ACTIVE', FALSE, 'OPEN_NO_MEMBERSHIP', 'CLOSED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM client_apps WHERE client_id = 'acme-ui');
+
+-- Self-registration apps for demo and acme (required by /api/v1/tenants/public discovery filter)
+UPDATE client_apps
+SET tenant_id           = (SELECT id FROM tenants WHERE slug = 'demo'),
+    name                = 'Demo Web App',
+    description         = 'Demo tenant public web application',
+    type                = 'PUBLIC',
+    hashed_secret       = NULL,
+    status              = 'ACTIVE',
+    is_internal         = FALSE,
+    registration_policy = 'OPEN_AUTO_ACTIVE',
+    access_restriction  = 'CLOSED',
+    updated_at          = CURRENT_TIMESTAMP
+WHERE client_id = 'demo-web';
+
+INSERT INTO client_apps (
+    id, tenant_id, client_id, name, description, type, hashed_secret, status,
+    is_internal, registration_policy, access_restriction, created_at, updated_at
+)
+SELECT '17000000-0000-0000-0000-000000000004',
+       (SELECT id FROM tenants WHERE slug = 'demo'),
+       'demo-web', 'Demo Web App', 'Demo tenant public web application',
+       'PUBLIC', NULL, 'ACTIVE', FALSE, 'OPEN_AUTO_ACTIVE', 'CLOSED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM client_apps WHERE client_id = 'demo-web');
+
+UPDATE client_apps
+SET tenant_id           = (SELECT id FROM tenants WHERE slug = 'acme'),
+    name                = 'Acme Web App',
+    description         = 'Acme tenant public web application',
+    type                = 'PUBLIC',
+    hashed_secret       = NULL,
+    status              = 'ACTIVE',
+    is_internal         = FALSE,
+    registration_policy = 'OPEN_AUTO_ACTIVE',
+    access_restriction  = 'CLOSED',
+    updated_at          = CURRENT_TIMESTAMP
+WHERE client_id = 'acme-web';
+
+INSERT INTO client_apps (
+    id, tenant_id, client_id, name, description, type, hashed_secret, status,
+    is_internal, registration_policy, access_restriction, created_at, updated_at
+)
+SELECT '17000000-0000-0000-0000-000000000005',
+       (SELECT id FROM tenants WHERE slug = 'acme'),
+       'acme-web', 'Acme Web App', 'Acme tenant public web application',
+       'PUBLIC', NULL, 'ACTIVE', FALSE, 'OPEN_AUTO_ACTIVE', 'CLOSED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM client_apps WHERE client_id = 'acme-web');
+
+INSERT INTO client_redirect_uris (id, client_app_id, uri, created_at)
+SELECT '17100000-0000-0000-0000-000000000004',
+       (SELECT id FROM client_apps WHERE client_id = 'demo-web'),
+       'http://localhost:4200/callback',
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_redirect_uris
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-web')
+      AND uri = 'http://localhost:4200/callback'
+);
+
+INSERT INTO client_redirect_uris (id, client_app_id, uri, created_at)
+SELECT '17100000-0000-0000-0000-000000000005',
+       (SELECT id FROM client_apps WHERE client_id = 'acme-web'),
+       'http://localhost:4100/callback',
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_redirect_uris
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-web')
+      AND uri = 'http://localhost:4100/callback'
+);
 
 INSERT INTO client_redirect_uris (id, client_app_id, uri, created_at)
 SELECT '17100000-0000-0000-0000-000000000001',
@@ -983,19 +1061,121 @@ WHERE NOT EXISTS (
       AND scope = 'email'
 );
 
+-- Grants and scopes for demo-web and acme-web (self-registration apps)
+INSERT INTO client_allowed_grants (id, client_app_id, grant_type, created_at)
+SELECT '17200000-0000-0000-0000-000000000007',
+       (SELECT id FROM client_apps WHERE client_id = 'demo-web'),
+       'AUTHORIZATION_CODE', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_grants
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-web')
+      AND grant_type = 'AUTHORIZATION_CODE'
+);
+
+INSERT INTO client_allowed_grants (id, client_app_id, grant_type, created_at)
+SELECT '17200000-0000-0000-0000-000000000008',
+       (SELECT id FROM client_apps WHERE client_id = 'demo-web'),
+       'REFRESH_TOKEN', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_grants
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-web')
+      AND grant_type = 'REFRESH_TOKEN'
+);
+
+INSERT INTO client_allowed_grants (id, client_app_id, grant_type, created_at)
+SELECT '17200000-0000-0000-0000-000000000009',
+       (SELECT id FROM client_apps WHERE client_id = 'acme-web'),
+       'AUTHORIZATION_CODE', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_grants
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-web')
+      AND grant_type = 'AUTHORIZATION_CODE'
+);
+
+INSERT INTO client_allowed_grants (id, client_app_id, grant_type, created_at)
+SELECT '17200000-0000-0000-0000-000000000010',
+       (SELECT id FROM client_apps WHERE client_id = 'acme-web'),
+       'REFRESH_TOKEN', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_grants
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-web')
+      AND grant_type = 'REFRESH_TOKEN'
+);
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope, created_at)
+SELECT '17300000-0000-0000-0000-000000000010',
+       (SELECT id FROM client_apps WHERE client_id = 'demo-web'),
+       'openid', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_scopes
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-web')
+      AND scope = 'openid'
+);
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope, created_at)
+SELECT '17300000-0000-0000-0000-000000000011',
+       (SELECT id FROM client_apps WHERE client_id = 'demo-web'),
+       'profile', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_scopes
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-web')
+      AND scope = 'profile'
+);
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope, created_at)
+SELECT '17300000-0000-0000-0000-000000000012',
+       (SELECT id FROM client_apps WHERE client_id = 'demo-web'),
+       'email', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_scopes
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-web')
+      AND scope = 'email'
+);
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope, created_at)
+SELECT '17300000-0000-0000-0000-000000000013',
+       (SELECT id FROM client_apps WHERE client_id = 'acme-web'),
+       'openid', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_scopes
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-web')
+      AND scope = 'openid'
+);
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope, created_at)
+SELECT '17300000-0000-0000-0000-000000000014',
+       (SELECT id FROM client_apps WHERE client_id = 'acme-web'),
+       'profile', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_scopes
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-web')
+      AND scope = 'profile'
+);
+
+INSERT INTO client_allowed_scopes (id, client_app_id, scope, created_at)
+SELECT '17300000-0000-0000-0000-000000000015',
+       (SELECT id FROM client_apps WHERE client_id = 'acme-web'),
+       'email', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (
+    SELECT 1 FROM client_allowed_scopes
+    WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-web')
+      AND scope = 'email'
+);
+
 UPDATE app_roles
 SET tenant_id = (SELECT id FROM tenants WHERE slug = 'demo'),
     display_name = 'Admin',
     description = 'Demo UI administrators',
+    is_default = FALSE,
     updated_at = CURRENT_TIMESTAMP
 WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui')
   AND code = 'admin';
 
-INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, created_at, updated_at)
+INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, is_default, created_at, updated_at)
 SELECT '18000000-0000-0000-0000-000000000001',
        (SELECT id FROM tenants WHERE slug = 'demo'),
        (SELECT id FROM client_apps WHERE client_id = 'demo-ui'),
-       'admin', 'Admin', 'Demo UI administrators', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'admin', 'Admin', 'Demo UI administrators', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
     SELECT 1 FROM app_roles
     WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui')
@@ -1006,15 +1186,16 @@ UPDATE app_roles
 SET tenant_id = (SELECT id FROM tenants WHERE slug = 'demo'),
     display_name = 'User',
     description = 'Demo UI users',
+    is_default = TRUE,
     updated_at = CURRENT_TIMESTAMP
 WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui')
   AND code = 'user';
 
-INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, created_at, updated_at)
+INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, is_default, created_at, updated_at)
 SELECT '18000000-0000-0000-0000-000000000002',
        (SELECT id FROM tenants WHERE slug = 'demo'),
        (SELECT id FROM client_apps WHERE client_id = 'demo-ui'),
-       'user', 'User', 'Demo UI users', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'user', 'User', 'Demo UI users', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
     SELECT 1 FROM app_roles
     WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'demo-ui')
@@ -1025,15 +1206,16 @@ UPDATE app_roles
 SET tenant_id = (SELECT id FROM tenants WHERE slug = 'acme'),
     display_name = 'Admin',
     description = 'Acme UI administrators',
+    is_default = FALSE,
     updated_at = CURRENT_TIMESTAMP
 WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-ui')
   AND code = 'admin';
 
-INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, created_at, updated_at)
+INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, is_default, created_at, updated_at)
 SELECT '18000000-0000-0000-0000-000000000003',
        (SELECT id FROM tenants WHERE slug = 'acme'),
        (SELECT id FROM client_apps WHERE client_id = 'acme-ui'),
-       'admin', 'Admin', 'Acme UI administrators', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'admin', 'Admin', 'Acme UI administrators', FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
     SELECT 1 FROM app_roles
     WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-ui')
@@ -1044,15 +1226,16 @@ UPDATE app_roles
 SET tenant_id = (SELECT id FROM tenants WHERE slug = 'acme'),
     display_name = 'User',
     description = 'Acme UI users',
+    is_default = TRUE,
     updated_at = CURRENT_TIMESTAMP
 WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-ui')
   AND code = 'user';
 
-INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, created_at, updated_at)
+INSERT INTO app_roles (id, tenant_id, client_app_id, code, display_name, description, is_default, created_at, updated_at)
 SELECT '18000000-0000-0000-0000-000000000004',
        (SELECT id FROM tenants WHERE slug = 'acme'),
        (SELECT id FROM client_apps WHERE client_id = 'acme-ui'),
-       'user', 'User', 'Acme UI users', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       'user', 'User', 'Acme UI users', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
     SELECT 1 FROM app_roles
     WHERE client_app_id = (SELECT id FROM client_apps WHERE client_id = 'acme-ui')

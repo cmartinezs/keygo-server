@@ -4,10 +4,13 @@ import io.cmartinezs.keygo.app.clientapp.command.UpdateClientAppCommand;
 import io.cmartinezs.keygo.app.clientapp.port.ClientAppRepositoryPort;
 import io.cmartinezs.keygo.app.tenant.port.TenantRepositoryPort;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidClientAppConfigException;
 import io.cmartinezs.keygo.domain.clientapp.model.AccessPolicy;
+import io.cmartinezs.keygo.domain.clientapp.model.AllowedGrant;
 import io.cmartinezs.keygo.domain.clientapp.model.AllowedScope;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientApp;
 import io.cmartinezs.keygo.domain.clientapp.model.ClientId;
+import io.cmartinezs.keygo.domain.clientapp.model.ClientType;
 import io.cmartinezs.keygo.domain.clientapp.model.RedirectUri;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
 import io.cmartinezs.keygo.domain.tenant.model.Tenant;
@@ -54,6 +57,9 @@ public class UpdateClientAppUseCase {
 
     Set<RedirectUri> redirectUris = command.redirectUris() == null ? Set.of() :
         command.redirectUris().stream().map(RedirectUri::of).collect(Collectors.toSet());
+
+    validateOAuthConfig(command.grants(), clientApp.getType(), command.redirectUris());
+
     clientApp.updateRedirectUris(redirectUris);
 
     Set<AllowedScope> scopes = command.scopes() == null ? Set.of() :
@@ -61,6 +67,19 @@ public class UpdateClientAppUseCase {
     clientApp.updateAccessPolicy(new AccessPolicy(command.grants(), scopes));
 
     return clientAppRepositoryPort.save(clientApp);
+  }
+
+  private void validateOAuthConfig(Set<AllowedGrant> grants, ClientType type, Set<String> redirectUris) {
+    if (grants != null && grants.contains(AllowedGrant.AUTHORIZATION_CODE)) {
+      if (redirectUris == null || redirectUris.isEmpty()) {
+        throw new InvalidClientAppConfigException(
+            "AUTHORIZATION_CODE grant requires at least one redirect URI");
+      }
+    }
+    if (ClientType.PUBLIC.equals(type) && grants != null && grants.contains(AllowedGrant.CLIENT_CREDENTIALS)) {
+      throw new InvalidClientAppConfigException(
+          "CLIENT_CREDENTIALS grant is not allowed for PUBLIC client applications");
+    }
   }
 }
 

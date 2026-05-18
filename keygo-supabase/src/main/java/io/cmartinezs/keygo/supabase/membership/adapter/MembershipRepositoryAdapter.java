@@ -183,6 +183,11 @@ public class MembershipRepositoryAdapter implements MembershipRepositoryPort {
         predicates.add(cb.equal(root.get("clientApp").get("id"), filter.getClientAppId()));
       }
 
+      // Filter by status (optional)
+      if (filter.hasStatus()) {
+        predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+      }
+
       return cb.and(predicates.toArray(new Predicate[0]));
     };
   }

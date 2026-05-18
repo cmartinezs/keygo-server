@@ -96,10 +96,12 @@ public class KeyGoTracingAspect {
    * Redacts sensitive field values in JSON output produced by Jackson.
    *
    * <p>Matches {@code "fieldName":"value"}, {@code "fieldName":null} and
-   * {@code "fieldName":number} for all known sensitive field names (camelCase and snake_case).
+   * {@code "fieldName":number} for all known sensitive field names (camelCase and snake_case),
+   * including compound names such as {@code password_hash}, {@code client_secret}.
    */
   private static final Pattern SENSITIVE_JSON_PATTERN = Pattern.compile(
-      "(?i)\"(password|secret|token|credential|api[_\\-]?key|private[_\\-]?key|hash|pin"
+      "(?i)\"(password[_]?hash|password[_]?salt|client[_]?secret|raw[_]?secret"
+          + "|password|secret|token|credential|api[_\\-]?key|private[_\\-]?key|hash|pin"
           + "|access[_\\-]?token|refresh[_\\-]?token|bearer|jwt)\"\\s*:\\s*"
           + "(\"[^\"]*\"|null|\\d+)",
       Pattern.CASE_INSENSITIVE);
@@ -108,10 +110,12 @@ public class KeyGoTracingAspect {
    * Redacts sensitive field values in {@code toString()} fallback output.
    *
    * <p>Matches {@code field=value} patterns found in Java record syntax
-   * ({@code Record[field=value]}) and Lombok / manual toString ({@code Class{field=value}}).
+   * ({@code Record[field=value]}) and Lombok / manual toString ({@code Class{field=value}}),
+   * including compound names such as {@code passwordHash}, {@code clientSecret}.
    */
   private static final Pattern SENSITIVE_TOSTRING_PATTERN = Pattern.compile(
-      "(?i)\\b(password|secret|token|credential|api[_\\-]?key|private[_\\-]?key|hash|pin"
+      "(?i)\\b(password[_]?hash|password[_]?salt|client[_]?secret|raw[_]?secret"
+          + "|password|secret|token|credential|api[_\\-]?key|private[_\\-]?key|hash|pin"
           + "|access[_\\-]?token|refresh[_\\-]?token|bearer|jwt)=([^,\\]}\\s]*)",
       Pattern.CASE_INSENSITIVE);
 

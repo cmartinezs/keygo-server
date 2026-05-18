@@ -328,7 +328,7 @@ public class AccountSettingsController {
   @Operation(
       summary = "List own active sessions",
       description = "Returns all ACTIVE sessions of the authenticated user. "
-                    + "The current session is identified by matching User-Agent + IP address. "
+                    + "The current session is identified via the 'sid' claim in the access token. "
                     + "Requires Authorization: Bearer <access_token>.")
   @ApiResponse(responseCode = "200",
       description = "Sessions retrieved successfully (code: ACCOUNT_SESSIONS_RETRIEVED)")
@@ -345,11 +345,9 @@ public class AccountSettingsController {
       HttpServletRequest httpRequest) {
 
     String bearerToken = extractBearerToken(authorization);
-    String userAgent = httpRequest.getHeader("User-Agent");
-    String ipAddress = extractClientIp(httpRequest);
 
     ListUserSessionsResult result = listUserSessionsUseCase.execute(
-        new ListUserSessionsCommand(tenantSlug, bearerToken, userAgent, ipAddress));
+        new ListUserSessionsCommand(tenantSlug, bearerToken));
 
     List<AccountSessionData> data = result.sessions().stream()
         .map(AccountSessionData::from)
@@ -410,6 +408,50 @@ public class AccountSettingsController {
         BaseResponse.<RevokeUserSessionResult>builder()
             .data(result)
             .success(ResponseHelper.message(code))
+            .build());
+  }
+
+  /**
+   * POST /api/v1/tenants/{tenantSlug}/account/logout
+   *
+   * <p>Cierra la sesión actual del usuario autenticado.
+   * Idempotente: si no hay sesión activa que coincida con el User-Agent + IP, responde 200 igualmente.
+   *
+   * @param tenantSlug    slug del tenant
+   * @param authorization header Authorization (debe ser "Bearer &lt;token&gt;")
+   * @param httpRequest   petición HTTP (para identificar la sesión actual por User-Agent + IP)
+   * @return 200 OK siempre
+   */
+  @PostMapping("/logout")
+  @Operation(
+      summary = "Logout — terminate current session",
+      description = "Terminates the current session of the authenticated user. "
+                    + "Idempotent: if no active session is found matching the current device, 200 OK is returned anyway. "
+                    + "Requires Authorization: Bearer <access_token>.")
+  @ApiResponse(responseCode = "200", description = "Logout successful (code: LOGOUT_SUCCESSFUL)")
+  @ApiResponse(responseCode = "401",
+      description = "Missing or invalid Bearer token (code: AUTHENTICATION_REQUIRED)",
+      content = @Content(schema = @Schema(implementation = BaseResponse.ErrorResponse.class)))
+  public ResponseEntity<BaseResponse<Void>> logout(
+      @Parameter(description = "Tenant slug", example = "my-company")
+      @PathVariable String tenantSlug,
+      @RequestHeader(value = "Authorization", required = false) String authorization,
+      HttpServletRequest httpRequest) {
+
+    String bearerToken = extractBearerToken(authorization);
+
+    ListUserSessionsResult sessions = listUserSessionsUseCase.execute(
+        new ListUserSessionsCommand(tenantSlug, bearerToken));
+
+    sessions.sessions().stream()
+        .filter(s -> s.isCurrent() && "ACTIVE".equals(s.status()))
+        .findFirst()
+        .ifPresent(current -> revokeUserSessionUseCase.execute(
+            new RevokeUserSessionCommand(tenantSlug, bearerToken, current.sessionId().toString())));
+
+    return ResponseEntity.ok(
+        BaseResponse.<Void>builder()
+            .success(ResponseHelper.message(ResponseCode.LOGOUT_SUCCESSFUL))
             .build());
   }
 

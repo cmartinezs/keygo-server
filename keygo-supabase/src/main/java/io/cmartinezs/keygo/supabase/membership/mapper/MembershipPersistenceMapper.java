@@ -41,6 +41,7 @@ public class MembershipPersistenceMapper {
         .userId(UserId.of(entity.getUser().getId()))
         .clientAppId(ClientAppId.of(entity.getClientApp().getId()))
         .status(entity.getStatus())
+        .createdAt(entity.getCreatedAt())
         .build();
   }
 

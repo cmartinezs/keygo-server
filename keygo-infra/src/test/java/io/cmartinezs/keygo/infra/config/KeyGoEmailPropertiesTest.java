@@ -56,8 +56,7 @@ class KeyGoEmailPropertiesTest {
   void defaultsAreInitialized() {
     assertThat(props.getDefaultFromAddress()).isEqualTo("noreply@keygo.local");
     assertThat(props.getDefaultFromName()).isEqualTo("KeyGo");
-    assertThat(props.getSmtpPort()).isEqualTo(587);
-    assertThat(props.isTemplateCacheEnabled()).isTrue();
+assertThat(props.isTemplateCacheEnabled()).isTrue();
   }
 
   @Test

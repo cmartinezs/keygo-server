@@ -38,6 +38,7 @@ import io.cmartinezs.keygo.domain.auth.exception.ScopeNotGrantedException;
 import io.cmartinezs.keygo.domain.auth.exception.SessionInvalidStateException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppAlreadySuspendedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppNotFoundException;
+import io.cmartinezs.keygo.domain.clientapp.exception.InvalidClientAppConfigException;
 import io.cmartinezs.keygo.domain.clientapp.exception.SelfRegistrationNotAllowedException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAppSecretRotationException;
 import io.cmartinezs.keygo.domain.clientapp.exception.ClientAuthenticationException;
@@ -49,6 +50,7 @@ import io.cmartinezs.keygo.domain.membership.exception.MembershipAlreadySuspende
 import io.cmartinezs.keygo.domain.membership.exception.MembershipInactiveException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipNotFoundException;
 import io.cmartinezs.keygo.domain.membership.exception.MembershipPendingException;
+import io.cmartinezs.keygo.domain.membership.exception.NoMembershipException;
 import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyCycleException;
 import io.cmartinezs.keygo.domain.membership.exception.RoleHierarchyDepthExceededException;
 import io.cmartinezs.keygo.domain.tenant.exception.TenantNotFoundException;
@@ -285,6 +287,16 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles InvalidClientAppConfigException - returns 400 Bad Request.
+   * Maneja InvalidClientAppConfigException - retorna 400 Bad Request.
+   */
+  @ExceptionHandler(InvalidClientAppConfigException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleInvalidClientAppConfigException(InvalidClientAppConfigException ex) {
+    log.error("Invalid client app OAuth config: {}", ex.getMessage());
+    return error(HttpStatus.BAD_REQUEST, ResponseCode.APP_OAUTH_CONFIG_INVALID, ex);
+  }
+
+  /**
    * Handles SelfRegistrationNotAllowedException - returns 403 Forbidden.
    * Lanzada cuando el registro propio se intenta en una app con política INVITE_ONLY.
    */
@@ -362,6 +374,15 @@ public class GlobalExceptionHandler {
   public ResponseEntity<BaseResponse<ErrorData>> handleMembershipNotFoundException(MembershipNotFoundException ex) {
     log.error("Membership not found: {}", ex.getMessage());
     return error(HttpStatus.NOT_FOUND, ResponseCode.RESOURCE_NOT_FOUND, ex);
+  }
+
+  /**
+   * Handles NoMembershipException - returns 403 Forbidden with NO_MEMBERSHIP code.
+   */
+  @ExceptionHandler(NoMembershipException.class)
+  public ResponseEntity<BaseResponse<ErrorData>> handleNoMembershipException(NoMembershipException ex) {
+    log.error("No membership: {}", ex.getMessage());
+    return error(HttpStatus.FORBIDDEN, ResponseCode.NO_MEMBERSHIP, ex);
   }
 
   /**

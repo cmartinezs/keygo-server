@@ -2,19 +2,22 @@ package io.cmartinezs.keygo.api.membership.controller;
 
 import io.cmartinezs.keygo.api.membership.request.CreateMembershipRequest;
 import io.cmartinezs.keygo.api.membership.response.MembershipData;
+import io.cmartinezs.keygo.api.membership.response.MembershipRoleData;
 import io.cmartinezs.keygo.api.shared.response.BaseResponse;
 import io.cmartinezs.keygo.api.shared.response.PagedData;
 import io.cmartinezs.keygo.api.shared.ResponseCode;
 import io.cmartinezs.keygo.api.shared.ResponseHelper;
 import io.cmartinezs.keygo.app.membership.command.CreateMembershipCommand;
 import io.cmartinezs.keygo.app.membership.filter.MembershipFilter;
-import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ApproveMembershipUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.CreateMembershipUseCase;
+import io.cmartinezs.keygo.app.membership.usecase.GetMembershipRolesUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.ListMembershipsUseCase;
 import io.cmartinezs.keygo.app.membership.usecase.RevokeMembershipUseCase;
 import io.cmartinezs.keygo.app.shared.PagedResult;
 import io.cmartinezs.keygo.domain.membership.model.Membership;
 import io.cmartinezs.keygo.domain.membership.model.MembershipId;
+import io.cmartinezs.keygo.domain.membership.model.MembershipStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,23 +43,26 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/tenants/{tenantSlug}/memberships")
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "Memberships", description = "User access to applications — requires Bearer JWT")
-@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+@PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
 public class TenantMembershipController {
 
   private final CreateMembershipUseCase createMembershipUseCase;
   private final ApproveMembershipUseCase approveMembershipUseCase;
   private final ListMembershipsUseCase listMembershipsUseCase;
   private final RevokeMembershipUseCase revokeMembershipUseCase;
+  private final GetMembershipRolesUseCase getMembershipRolesUseCase;
 
   public TenantMembershipController(
       CreateMembershipUseCase createMembershipUseCase,
       ApproveMembershipUseCase approveMembershipUseCase,
       ListMembershipsUseCase listMembershipsUseCase,
-      RevokeMembershipUseCase revokeMembershipUseCase) {
+      RevokeMembershipUseCase revokeMembershipUseCase,
+      GetMembershipRolesUseCase getMembershipRolesUseCase) {
     this.createMembershipUseCase = createMembershipUseCase;
     this.approveMembershipUseCase = approveMembershipUseCase;
     this.listMembershipsUseCase = listMembershipsUseCase;
     this.revokeMembershipUseCase = revokeMembershipUseCase;
+    this.getMembershipRolesUseCase = getMembershipRolesUseCase;
   }
 
   @PostMapping
@@ -86,15 +92,16 @@ public class TenantMembershipController {
 
     Membership membership = createMembershipUseCase.execute(command);
 
+    List<MembershipRoleData> roles = getMembershipRolesUseCase.execute(membership.getId().value())
+        .stream().map(MembershipRoleData::from).toList();
+
     MembershipData data = MembershipData.builder()
         .id(membership.getId().value())
         .userId(membership.getUserId().value())
         .clientAppId(membership.getClientAppId().value())
         .status(membership.getStatus())
-        .roleIds(membership.getRoles().stream()
-            .map(r -> r.roleId().value())
-            .collect(java.util.stream.Collectors.toSet()))
-        .createdAt(null) // Will be set by entity
+        .roles(roles)
+        .createdAt(membership.getCreatedAt())
         .build();
 
     BaseResponse<MembershipData> response = BaseResponse.<MembershipData>builder()
@@ -118,6 +125,7 @@ public class TenantMembershipController {
       @Parameter(description = "Tenant slug") @PathVariable String tenantSlug,
       @Parameter(description = "Filter by user ID") @RequestParam(name = "user_id", required = false) UUID userId,
       @Parameter(description = "Filter by client app ID") @RequestParam(name = "client_app_id", required = false) UUID clientAppId,
+      @Parameter(description = "Filter by membership status (ACTIVE, SUSPENDED, PENDING)") @RequestParam(required = false) MembershipStatus status,
       @Parameter(description = "Zero-based page number", example = "0")
       @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size (1–200)", example = "20")
@@ -127,19 +135,22 @@ public class TenantMembershipController {
       @Parameter(description = "Sort order (ASC, DESC)", example = "ASC")
       @RequestParam(required = false) String order) {
 
-    MembershipFilter filter = MembershipFilter.of(userId, clientAppId, page, size, sort, order);
+    MembershipFilter filter = MembershipFilter.of(userId, clientAppId, status, page, size, sort, order);
     PagedResult<Membership> result = listMembershipsUseCase.execute(tenantSlug, filter);
 
     List<MembershipData> data = result.getContent().stream()
-        .map(m -> MembershipData.builder()
-            .id(m.getId().value())
-            .userId(m.getUserId().value())
-            .clientAppId(m.getClientAppId().value())
-            .status(m.getStatus())
-            .roleIds(m.getRoles().stream()
-                .map(r -> r.roleId().value())
-                .collect(java.util.stream.Collectors.toSet()))
-            .build())
+        .map(m -> {
+          List<MembershipRoleData> roles = getMembershipRolesUseCase.execute(m.getId().value())
+              .stream().map(MembershipRoleData::from).toList();
+          return MembershipData.builder()
+              .id(m.getId().value())
+              .userId(m.getUserId().value())
+              .clientAppId(m.getClientAppId().value())
+              .status(m.getStatus())
+              .roles(roles)
+              .createdAt(m.getCreatedAt())
+              .build();
+        })
         .toList();
 
     PagedData<MembershipData> pagedData = PagedData.<MembershipData>builder()
@@ -178,14 +189,15 @@ public class TenantMembershipController {
         MembershipId.of(membershipId), tenantSlug);
 
     var membership = result.membership();
+    List<MembershipRoleData> roles = getMembershipRolesUseCase.execute(membership.getId().value())
+        .stream().map(MembershipRoleData::from).toList();
     MembershipData data = MembershipData.builder()
         .id(membership.getId().value())
         .userId(membership.getUserId().value())
         .clientAppId(membership.getClientAppId().value())
         .status(membership.getStatus())
-        .roleIds(membership.getRoles().stream()
-            .map(r -> r.roleId().value())
-            .collect(java.util.stream.Collectors.toSet()))
+        .roles(roles)
+        .createdAt(membership.getCreatedAt())
         .notificationEmail(result.maskedEmail())
         .build();
 

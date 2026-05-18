@@ -22,13 +22,15 @@ public class UserFilter extends PageFilter {
   private final UserStatus status;        // optional status filter
   private final String usernameLike;      // optional username substring
   private final String emailLike;         // optional email substring
+  private final String q;                 // optional OR search across username and email
 
-  private UserFilter(UserStatus status, String usernameLike, String emailLike,
+  private UserFilter(UserStatus status, String usernameLike, String emailLike, String q,
                      int page, int size, String sortBy, String sortOrder) {
     super(page, size, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
     this.status = status;
     this.usernameLike = (usernameLike != null && usernameLike.isBlank()) ? null : usernameLike;
     this.emailLike = (emailLike != null && emailLike.isBlank()) ? null : emailLike;
+    this.q = (q != null && q.isBlank()) ? null : q;
   }
 
   /**
@@ -45,7 +47,12 @@ public class UserFilter extends PageFilter {
    */
   public static UserFilter of(UserStatus status, String usernameLike, String emailLike,
                               int page, int size, String sortBy, String sortOrder) {
-    return new UserFilter(status, usernameLike, emailLike, page, size, sortBy, sortOrder);
+    return new UserFilter(status, usernameLike, emailLike, null, page, size, sortBy, sortOrder);
+  }
+
+  public static UserFilter of(UserStatus status, String usernameLike, String emailLike, String q,
+                              int page, int size, String sortBy, String sortOrder) {
+    return new UserFilter(status, usernameLike, emailLike, q, page, size, sortBy, sortOrder);
   }
 
     public boolean hasStatus() {
@@ -58,5 +65,13 @@ public class UserFilter extends PageFilter {
 
   public boolean hasEmailLike() {
     return emailLike != null;
+  }
+
+  public String getQ() {
+    return q;
+  }
+
+  public boolean hasQ() {
+    return q != null;
   }
 }

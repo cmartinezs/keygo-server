@@ -136,7 +136,7 @@ public class AppBillingPlanController {
    */
   @PostMapping("/billing/plans")
   @SecurityRequirement(name = "BearerAuth")
-  @PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_TENANT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
+  @PreAuthorize("hasAnyRole('ADMIN','ADMIN_TENANT','KEYGO_ADMIN','KEYGO_ACCOUNT_ADMIN') and @tenantAuthorizationEvaluator.hasTenantAccess(authentication)")
   @Operation(
       summary = "Create a billing plan",
       description = "Creates a new plan with its initial version (price, currency, billing period, trial days) "

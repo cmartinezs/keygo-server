@@ -156,20 +156,29 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         predicates.add(cb.equal(root.get("status"), filter.getStatus()));
       }
 
-      // Filter by username (case-insensitive LIKE)
-      if (filter.hasUsernameLike()) {
-        predicates.add(
-            cb.like(
-                cb.lower(root.get("localUsername")),
-                "%" + filter.getUsernameLike().toLowerCase() + "%"));
-      }
+      // Full-text OR search across username and email
+      if (filter.hasQ()) {
+        String pattern = "%" + filter.getQ().toLowerCase() + "%";
+        predicates.add(cb.or(
+            cb.like(cb.lower(root.get("localUsername")), pattern),
+            cb.like(cb.lower(root.get("platformUser").get("email")), pattern)
+        ));
+      } else {
+        // Filter by username (case-insensitive LIKE)
+        if (filter.hasUsernameLike()) {
+          predicates.add(
+              cb.like(
+                  cb.lower(root.get("localUsername")),
+                  "%" + filter.getUsernameLike().toLowerCase() + "%"));
+        }
 
-      // Filter by email (case-insensitive LIKE)
-      if (filter.hasEmailLike()) {
-        predicates.add(
-            cb.like(
-                cb.lower(root.get("platformUser").get("email")),
-                "%" + filter.getEmailLike().toLowerCase() + "%"));
+        // Filter by email (case-insensitive LIKE)
+        if (filter.hasEmailLike()) {
+          predicates.add(
+              cb.like(
+                  cb.lower(root.get("platformUser").get("email")),
+                  "%" + filter.getEmailLike().toLowerCase() + "%"));
+        }
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));

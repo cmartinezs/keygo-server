@@ -122,7 +122,7 @@ class TenantClientAppControllerTest {
         .thenReturn(pagedResult);
 
     // When
-    var response = controller.listClientApps(TENANT_SLUG, null, null, 0, 20, null, null);
+    var response = controller.listClientApps(TENANT_SLUG, null, null, null, 0, 20, null, null);
 
     // Then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

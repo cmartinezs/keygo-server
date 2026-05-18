@@ -71,7 +71,7 @@ class PlatformBillingControllerTest {
   private Authentication authenticatedUser() {
     return new UsernamePasswordAuthenticationToken(
         PLATFORM_USER_ID.toString(), null,
-        List.of(new SimpleGrantedAuthority("ROLE_KEYGO_TENANT_ADMIN")));
+        List.of(new SimpleGrantedAuthority("ROLE_KEYGO_ACCOUNT_ADMIN")));
   }
 
   // ── Catalog ────────────────────────────────────────────────────────────────

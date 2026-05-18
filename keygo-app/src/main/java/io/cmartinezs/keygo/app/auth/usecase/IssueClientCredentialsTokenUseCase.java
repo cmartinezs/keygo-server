@@ -137,6 +137,8 @@ public class IssueClientCredentialsTokenUseCase {
     var claims = new LinkedHashMap<>(tokenClaimsFactory.buildAccessTokenClaims(
         issuer, command.clientId(), command.clientId(), scope, jti, now, expiresAt, null));
     claims.put("tenant_slug", command.tenantSlug());
+    claims.put("tid", tenant.getId().value().toString());
+    claims.put("cid", clientApp.getId().value().toString());
     String accessToken = tokenSigner.signJwt(claims, signingKey);
 
     return new IssueClientCredentialsTokenResult(accessToken, "Bearer", ACCESS_TOKEN_TTL.toSeconds(), scope);

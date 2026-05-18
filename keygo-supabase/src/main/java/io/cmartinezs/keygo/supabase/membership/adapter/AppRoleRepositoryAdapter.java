@@ -58,6 +58,14 @@ public class AppRoleRepositoryAdapter implements AppRoleRepositoryPort {
   }
 
   @Override
+  public List<AppRole> findByMembershipId(UUID membershipId) {
+    return jpaRepository.findByMembershipId(membershipId)
+        .stream()
+        .map(MembershipPersistenceMapper::toDomain)
+        .toList();
+  }
+
+  @Override
   public boolean existsByClientAppAndCode(UUID clientAppId, RoleCode roleCode) {
     return jpaRepository.existsByClientAppIdAndCode(clientAppId, roleCode.value());
   }

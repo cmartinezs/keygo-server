@@ -39,7 +39,8 @@ public class ClientAppPersistenceMapper {
         .type(clientApp.getType())
         .hashedSecret(clientApp.getHashedSecret())
         .status(clientApp.getStatus())
-        .registrationPolicy(clientApp.getRegistrationPolicy());
+        .registrationPolicy(clientApp.getRegistrationPolicy())
+        .accessRestriction(clientApp.getAccessRestriction());
     if (clientApp.getId() != null) {
       builder.id(clientApp.getId().value());
     }
@@ -111,6 +112,7 @@ public class ClientAppPersistenceMapper {
         .accessPolicy(accessPolicy)
         .status(entity.getStatus())
         .registrationPolicy(entity.getRegistrationPolicy())
+        .accessRestriction(entity.getAccessRestriction())
         .build();
   }
 }

@@ -152,6 +152,20 @@ class KeyGoTracingAspectTest {
   }
 
   @Test
+  void shouldRedactCompoundSensitiveFieldsInsideJsonOutput() {
+    // Given — object with compound sensitive field names serialized to JSON
+    target.withUserEntity(new TracingTarget.UserEntity("user@example.com", "$2b$12$hashed"));
+
+    // Then — password_hash (snake_case of passwordHash) must be redacted
+    List<String> logs = capturedMessages();
+    assertThat(logs)
+        .anyMatch(m ->
+            m.contains("[TRACE_IN]")
+                && m.contains("\"password_hash\":\"[REDACTED]\""))
+        .noneMatch(m -> m.contains("$2b$12$hashed"));
+  }
+
+  @Test
   void shouldNotTraceMethodAnnotatedWithNoLog() {
     // Given / When
     String result = target.excludedMethod("data");
@@ -194,6 +208,9 @@ class KeyGoTracingAspectTest {
     /** Record with a sensitive field — Jackson serializes as {"emailOrUsername":"...","password":"..."} */
     record LoginRequest(String emailOrUsername, String password) {}
 
+    /** Record with a compound sensitive field — Jackson + SNAKE_CASE serializes as {"email":"...","password_hash":"..."} */
+    record UserEntity(String email, String passwordHash) {}
+
     /** Record with a sensitive result field — serialized as {"accessToken":"..."} */
     record TokenResult(String accessToken) {}
 
@@ -211,6 +228,10 @@ class KeyGoTracingAspectTest {
 
     public void login(LoginRequest request) {
       // intentionally empty — request is serialized to JSON by the aspect
+    }
+
+    public void withUserEntity(UserEntity entity) {
+      // intentionally empty — entity is serialized to JSON by the aspect
     }
 
     public TokenResult generateToken(String username) {
