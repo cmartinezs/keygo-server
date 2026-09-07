@@ -22,10 +22,10 @@ help:
 	  '  make doctor     Fast, side-effect-safe repository health check'
 
 bootstrap:
-	@./scripts/bootstrap-env.sh
+	@bash scripts/bootstrap-env.sh
 
 deps:
-	@./scripts/deps.sh
+	@bash scripts/deps.sh
 
 up:
 	@$(COMPOSE) --env-file $(ENV_FILE) up -d postgres mailing
@@ -50,7 +50,7 @@ build:
 
 validate:
 	@$(MVNW) verify --no-transfer-progress
-	@./scripts/doctor.sh
+	@bash scripts/doctor.sh
 
 doctor:
-	@./scripts/doctor.sh
+	@bash scripts/doctor.sh
