@@ -29,7 +29,8 @@ COPY keygo-api/src keygo-api/src
 COPY keygo-supabase/src keygo-supabase/src
 COPY keygo-run/src keygo-run/src
 
-# Build application / Construir aplicación
+# Build application. Repository validation is intentionally a separate gate
+# (`make validate`) so Docker layer caching does not become the source of test truth.
 RUN ./mvnw clean package -DskipTests -B
 
 # Extract JAR layers / Extraer capas del JAR
@@ -40,7 +41,6 @@ RUN java -Djarmode=tools -jar keygo-run-*.jar extract --layers --destination ext
 # Stage 2: Runtime / Etapa 2: Ejecución
 FROM eclipse-temurin:21-jre-alpine
 
-# Add metadata / Agregar metadata
 LABEL org.opencontainers.image.title="KeyGo Server"
 LABEL org.opencontainers.image.description="Enterprise authentication service - open source"
 LABEL org.opencontainers.image.version="1.0-SNAPSHOT"
@@ -48,47 +48,30 @@ LABEL org.opencontainers.image.authors="Carlos Martínez <https://github.com/cma
 LABEL org.opencontainers.image.source="https://github.com/cmartinezs/keygo-server"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
-# Create non-root user / Crear usuario sin privilegios root
 RUN addgroup -S keygo && adduser -S keygo -G keygo
-
-# Set working directory / Establecer directorio de trabajo
 WORKDIR /app
 
-# Copy JAR layers from builder / Copiar capas del JAR desde builder
 COPY --from=builder --chown=keygo:keygo /build/keygo-run/target/extracted/dependencies/ ./
 COPY --from=builder --chown=keygo:keygo /build/keygo-run/target/extracted/spring-boot-loader/ ./
 COPY --from=builder --chown=keygo:keygo /build/keygo-run/target/extracted/snapshot-dependencies/ ./
 COPY --from=builder --chown=keygo:keygo /build/keygo-run/target/extracted/application/ ./
 COPY --from=builder --chown=keygo:keygo /build/keygo-run/target/keygo-run.jar ./keygo-run.jar
 
-# Switch to non-root user / Cambiar a usuario sin privilegios
 USER keygo
-
-# Expose port / Exponer puerto
 EXPOSE 8080
 
-# Health check / Verificación de salud
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/keygo-server/actuator/health || exit 1
 
-# Spring profile — activates Supabase datasource & Flyway
-# Override at runtime: -e SPRING_PROFILES_ACTIVE=supabase,other
+# Supabase/PostgreSQL adapter remains the current container persistence profile.
+# Shared develop/prod deployments MUST override with the explicit environment profile set.
 ENV SPRING_PROFILES_ACTIVE="supabase"
-
-# ── Supabase / Database connection variables ──────────────────────────────────
-# Required — must be provided at runtime (no defaults for sensitive values)
-# Provide via: docker run -e SUPABASE_URL=jdbc:postgresql://host:5432/db ...
-#              docker-compose environment section
-#              Kubernetes Secret / ConfigMap
 ENV SUPABASE_URL=""
 ENV SUPABASE_USER=""
 ENV SUPABASE_PASSWORD=""
-
-# Optional — defaults match application-supabase.yml
 ENV SUPABASE_DB_SCHEMA="public"
 
-# Set JVM options / Configurar opciones de JVM
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+OptimizeStringConcat"
 
-# Run application / Ejecutar aplicación
-ENTRYPOINT ["java", "-Duser.timezone=\"America/Santiago\"","-Djava.security.egd=file:/dev/./urandom","-jar","keygo-run.jar"]
+# Shell expansion is intentional here so provider/runtime JAVA_OPTS are actually applied.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Duser.timezone=America/Santiago -Djava.security.egd=file:/dev/./urandom -jar keygo-run.jar"]
