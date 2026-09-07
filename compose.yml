@@ -1,11 +1,40 @@
 name: keygo-local
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: keygo-postgres
+    environment:
+      POSTGRES_DB: ${KEYGO_LOCAL_DB_NAME:-keygo}
+      POSTGRES_USER: ${KEYGO_LOCAL_DB_USER:-keygo}
+      POSTGRES_PASSWORD: ${KEYGO_LOCAL_DB_PASSWORD:-keygo}
+    ports:
+      - "${KEYGO_LOCAL_DB_PORT:-5432}:5432"
+    volumes:
+      - keygo-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYGO_LOCAL_DB_USER:-keygo} -d ${KEYGO_LOCAL_DB_NAME:-keygo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    labels:
+      org.springframework.boot.ignore: true
+
   mailing:
     image: mailhog/mailhog:v1.0.1
     container_name: keygo-mailhog
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # Web UI
+      - "${KEYGO_LOCAL_SMTP_PORT:-1025}:1025"
+      - "${KEYGO_LOCAL_MAIL_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     labels:
       org.springframework.boot.ignore: true
+
+volumes:
+  keygo-postgres-data:
