@@ -1,0 +1,112 @@
+schema_version: capability-dependency-graph.v1
+initiative: INIT-KEYGO-001
+recorded_at: 2026-09-07
+authority:
+  mode: DERIVED_IMPLEMENTATION_CONTRACT
+  canonical_decisions:
+    - DEC-KEYGO-SCOPE-001
+    - DEC-KEYGO-DEV-001
+  canonical_capabilities:
+    - CAP-IAM-001
+    - CAP-SUB-001
+    - CAP-PAY-001
+
+nodes:
+  - id: CAP-IAM-001
+    name: Identity, Tenancy & Access Management
+    owner: INIT-KEYGO-001
+    target_shape: cohesive_saas_capability
+  - id: CAP-SUB-001
+    name: Subscription & Entitlement Management
+    owner: INIT-SUB-001
+    target_shape: capability_boundary
+    maturity: PROVISIONAL
+  - id: CAP-PAY-001
+    name: Payment Orchestration
+    owner: INIT-PAY-001
+    target_shape: capability_boundary
+    maturity: PROVISIONAL
+  - id: CAP-NOTIFICATIONS
+    name: Notifications
+    owner: UNRESOLVED_SHARED_CAPABILITY
+    target_shape: outbound_port
+  - id: CAP-CONFIG-SECRETS
+    name: Configuration & Secrets
+    owner: ADUMUN_SHARED
+    target_shape: outbound_port
+  - id: ADAPTER-POSTGRES
+    name: PostgreSQL/Supabase Persistence Adapter
+    owner: INIT-KEYGO-001
+    target_shape: infrastructure_adapter
+
+allowed_edges:
+  - from: CAP-SUB-001
+    to: CAP-IAM-001
+    relation: consumes_stable_identity_tenant_application_refs
+  - from: CAP-PAY-001
+    to: CAP-IAM-001
+    relation: consumes_actor_and_correlation_context
+  - from: CAP-SUB-001
+    to: CAP-PAY-001
+    relation: invokes_payment_port_when_money_movement_required
+  - from: CAP-IAM-001
+    to: CAP-NOTIFICATIONS
+    relation: invokes_outbound_notification_port
+  - from: CAP-IAM-001
+    to: CAP-CONFIG-SECRETS
+    relation: consumes_runtime_configuration
+  - from: CAP-IAM-001
+    to: ADAPTER-POSTGRES
+    relation: persists_through_ports
+
+forbidden_edges:
+  - from: CAP-IAM-001
+    to: CAP-SUB-001
+    relation: import_commercial_domain_models
+    reason: IAM validity and authorization must not depend on subscription domain state
+  - from: CAP-IAM-001
+    to: CAP-PAY-001
+    relation: import_payment_domain_models
+    reason: authentication must not depend on payment execution state
+  - from: CAP-SUB-001
+    to: ADAPTER-POSTGRES
+    relation: depend_on_keygo_jpa_entities_as_domain_api
+    reason: persistence entities are not cross-capability contracts
+  - from: CAP-PAY-001
+    to: ADAPTER-POSTGRES
+    relation: depend_on_keygo_jpa_entities_as_domain_api
+    reason: persistence entities are not cross-capability contracts
+
+transitional_edges:
+  - from: CAP-IAM-001
+    to: LEGACY-KEYGO-BILLING
+    relation: entitlement_check
+    status: MUST_BE_STRANGLED
+    replacement: SubscriptionEntitlementPort
+  - from: LEGACY-KEYGO-BILLING
+    to: IAM-CLIENT-APP-JPA
+    relation: direct_entity_reference
+    status: MUST_BE_REMOVED_BEFORE_AUTONOMY_CLAIM
+
+reference_contracts:
+  - IdentityRef
+  - TenantRef
+  - ClientApplicationRef
+  - ActorContext
+  - CorrelationRef
+
+first_seam:
+  port: SubscriptionEntitlementPort
+  result: EntitlementDecision
+  adapters:
+    - LegacyKeyGoBillingEntitlementAdapter
+    - StaticDevelopEntitlementAdapter
+  invariant: CAP-IAM-001 must remain usable when CAP-PAY-001 is unavailable
+
+review_triggers:
+  - physical service extraction proposal
+  - repository split proposal
+  - shared database boundary change
+  - first independent CAP-SUB consumer
+  - first independent CAP-PAY consumer
+  - material IAM claims/tenant/application contract change
